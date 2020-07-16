@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>BSL-editor</title>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+  <script src="./data_loader.js"></script>
+  <style>
+    html,
+    body {
+      height: 100%;
+      margin: 0px;
+    }
+    #container {
+      height: 100%;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="container"></div>
+
+  <script>
+    function getCode() {
+      return [].join('\n');;
+    }
+  </script>
+  <script src="./vs/loader.js"></script>
+  <script src="./bsl_helper.js"></script>
+  <script src="./init.js"></script>
+
+</body>
+
+</html>
