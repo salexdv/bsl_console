@@ -1,17 +1,48 @@
 define(['vs/editor/editor.main'], function () {
 
-  setText = function setTextToCurrentPosition(txt) {
+  setText = function(txt, range) {
 
     editor.getModel().applyEdits([{
-      range: monaco.Range.fromPositions(editor.getPosition()),
+      range: range ? range : monaco.Range.fromPositions(editor.getPosition()),
       text: txt
     }]);
 
   }
 
-  getText = function getFullText(txt) {
+  eraseText = function () {
+    
+    setText('', editor.getModel().getFullModelRange());    
+
+  }
+
+  getText = function(txt) {
 
     return editor.getValue();
+
+  }
+
+  getQuery = function () {
+
+    let position = editor.getPosition();
+
+    const matches = editor.getModel().findMatches("\"(?:\\n|\\r|\\|)*(?:выбрать|select)(?:(?:.|\\n|\\r)*?)?\"", false, true, false, null, true)
+    const lineNumber = position.lineNumber;
+
+    let idx = 0;
+    let match = null;
+    let queryFound = false;
+
+    if (matches) {
+
+      while (idx < matches.length && !queryFound) {
+        match = matches[idx];
+        queryFound = (match.range.startLineNumber <= lineNumber && lineNumber <= match.range.endLineNumber);
+        idx++;
+      }
+
+    }
+
+    return queryFound ? { text: match.matches[0], range: match.range } : null;
 
   }
 

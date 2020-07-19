@@ -3,8 +3,6 @@ describe("Проверка автокомлита и подсказок реда
 
   require(['editor'], function () {
 
-    console.log(bslGlobals);
-
     var assert = chai.assert;
     var expect = chai.expect;
     chai.should();
@@ -37,10 +35,14 @@ describe("Проверка автокомлита и подсказок реда
 
     if (bslLoaded) {
 
+      it("проверка существования глобальной переменной editor", function () {
+        assert.notEqual(editor, undefined);
+      });
+
       it("проверка определения русского языка", function () {
         assert.equal(bsl.hasRu('тест'), true);
       });
-
+   
       it("проверка автокомплита для глобальной функции Найти", function () {
         bsl = helper('най');
         let suggestions = [];
@@ -196,6 +198,24 @@ describe("Проверка автокомлита и подсказок реда
         let suggestions = [];
         let help = bsl.getMetadataSigHelp(bslMetadata);
         expect(help).to.have.property('activeParameter');
+      });
+
+      it("проверка получения существующего текста запроса", function () {        
+      	editor.setPosition(new monaco.Position(10, 1));
+        assert.notEqual(getQuery(), null);
+      });
+
+      it("проверка получения несуществующего текста запроса", function () {        
+      	editor.setPosition(new monaco.Position(1, 1));
+        assert.equal(getQuery(), null);
+      });
+
+      it("проверка очистки всего текста", function () {              	
+        let text = editor.getValue();
+        eraseText();
+        assert.equal(editor.getValue(), getText());
+        editor.setValue(text);
+        assert.equal(text, getText());
       });
 
     }
