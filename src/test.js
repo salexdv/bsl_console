@@ -185,6 +185,14 @@ describe("Проверка автокомлита и подсказок реда
         assert.equal(suggestions.some(suggest => suggest.label === "Цена"), true);
       });
 
+      it("проверка автокомплита для элемента справочника 'Товары.' (список предопределенных)", function () {
+        bsl = helper('Товар = Справочники.Товары.');
+        let suggestions = [];
+        bsl.getMetadataCompletition(suggestions, bslMetadata)
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "Услуга"), true);
+      });
+
       it("проверка автокомплита для элемента справочника 'Товары.' (список реквизитов и функций объекта) обернутого в функцию", function () {
         bsl = helper('Товар = Справочники.Товары.НайтиПоКоду(1);\nНайти(Товар.');
         let suggestions = [];
@@ -216,6 +224,19 @@ describe("Проверка автокомлита и подсказок реда
         assert.equal(editor.getValue(), getText());
         editor.setValue(text);
         assert.equal(text, getText());
+      });
+
+      it("проверка обновления метаданных", function () {              	                
+        let mCopy = JSON.parse(JSON.stringify(bslMetadata));        
+        assert.notEqual(updateMetadata(123), true);
+        let strJSON = '{"catalogs": {"АвансовыйОтчетПрисоединенныеФайлы": {"properties": {"Автор": "Автор","ВладелецФайла": "Размещение","ДатаМодификацииУниверсальная": "Дата изменения (универсальное время)","ДатаСоздания": "Дата создания","Зашифрован": "Зашифрован","Изменил": "Отредактировал","ИндексКартинки": "Индекс значка","Описание": "Описание","ПодписанЭП": "Подписан электронно","ПутьКФайлу": "Путь к файлу","Размер": "Размер (байт)","Расширение": "Расширение","Редактирует": "Редактирует","СтатусИзвлеченияТекста": "Статус извлечения текста","ТекстХранилище": "Текст","ТипХраненияФайла": "Тип хранения файла","Том": "Том","ФайлХранилище": "Временное хранилище файла","ДатаЗаема": "Дата заема","ХранитьВерсии": "Хранить версии","ИмяПредопределенныхДанных": "","Предопределенный": "","Ссылка": "","ПометкаУдаления": "","Наименование": ""}}}}';                
+        assert.equal(updateMetadata(strJSON), true);
+        bsl = helper('Отчет = Справочники.АвансовыйОтчетПрисоединенныеФайлы.НайтиПоКоду(1);\nОтчет.');
+        let suggestions = [];
+        bsl.getMetadataCompletition(suggestions, bslMetadata)        
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "ДатаМодификацииУниверсальная"), true);
+        bslMetadata = JSON.parse(JSON.stringify(mCopy));
       });
 
     }

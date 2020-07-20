@@ -594,6 +594,23 @@ class bslHelper {
 
 					if (itemNode) {
 
+						if (itemNode.hasOwnProperty('predefined')) {
+
+							for (const [pkey, pvalue] of Object.entries(itemNode.predefined)) {
+														
+								values.push({
+									name: pkey,
+									postfix: '',
+									detail: '',
+									description: '',
+									kind: monaco.languages.CompletionItemKind.Field,
+									insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+								});
+																								
+							}
+
+						}
+
 						if (value.hasOwnProperty('methods')) {
 
 							for (const [mkey, mvalue] of Object.entries(value.methods)) {
@@ -627,7 +644,8 @@ class bslHelper {
 							}
 
 						}
-						else if (key == 'enums') {
+						
+						if (key == 'enums') {
 
 							for (const [pkey, pvalue] of Object.entries(itemNode.properties)) {
 								suggestions.push({
@@ -1025,6 +1043,36 @@ class bslHelper {
 			}
 
 		}
+
+	}
+
+	/**
+	 * Updates bslMetadata from JSON-string which
+	 * was received from 1C
+	 * 
+	 * @param {string} metadata JSON-string with metadata info
+	 * 
+	 * @returns {true|object} true - metadata was updated, {errorDescription} - not
+	 */
+	static updateMetadata(metadata) {
+
+		try {
+			let metadataObj = JSON.parse(metadata);
+			if (metadataObj.hasOwnProperty('catalogs')) {
+				for (const [key, value] of Object.entries(metadataObj)) {
+					bslMetadata[key].items = value;
+				}
+				return true;
+			}
+			else {
+				throw new TypeError("Wrong structure of metadata");
+			}
+
+		}
+		catch (e) {
+			return { errorDescription: e.message };
+		}
+
 
 	}
 

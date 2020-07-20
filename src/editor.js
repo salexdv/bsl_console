@@ -1,4 +1,4 @@
-define(['vs/editor/editor.main'], function () {
+define(['bslGlobals', 'bslMetadata', 'snippets', 'vs/editor/editor.main'], function () {
 
   setText = function(txt, range) {
 
@@ -46,6 +46,12 @@ define(['vs/editor/editor.main'], function () {
 
   }
 
+  updateMetadata = function (metadata) {
+        
+    return bslHelper.updateMetadata(metadata);    
+
+  }
+
   // Register a new language
   monaco.languages.register({ id: 'bsl' });
 
@@ -66,7 +72,7 @@ define(['vs/editor/editor.main'], function () {
       'While', 'Для', 'For', 'Каждого', 'Each', 'Из', 'In', 'По', 'To', 'Цикл',
       'Do', 'КонецЦикла', 'EndDo', 'НЕ', 'NOT', 'И', 'AND', 'ИЛИ', 'OR', 'Новый',
       'New', 'Процедура', 'Procedure', 'Функция', 'Function', 'Перем', 'Var',
-      'Экспорт', 'Export', 'Знач', 'Val', 'Неопределено'
+      'Экспорт', 'Export', 'Знач', 'Val', 'Неопределено', 'Выполнить'
     ],
     namespaceFollows: [
       'namespace', 'using',
