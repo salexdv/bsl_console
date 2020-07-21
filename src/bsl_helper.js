@@ -21,7 +21,8 @@ class bslHelper {
 	constructor(model, position) {
 
 		this.model = model;
-		this.position = position;
+		this.lineNumber = position.lineNumber;
+		this.column = position.column;
 
 		let wordData = model.getWordAtPosition(position);
 		this.word = wordData ? wordData.word.toLowerCase() : '';
@@ -31,7 +32,7 @@ class bslHelper {
 
 		this.textBeforePosition = this.getTextBeforePosition();
 		this.lastExpression = this.getLastExpression();
-		this.lastRawExpression = this.getLastRawExpression();
+		this.lastRawExpression = this.getLastRawExpression();		
 
 	}
 
@@ -83,7 +84,7 @@ class bslHelper {
 	 */
 	getFullTextBeforePosition() {
 
-		return this.model.getValueInRange({ startLineNumber: 1, startColumn: 1, endLineNumber: this.position.lineNumber, endColumn: this.position.column }).trim().toLowerCase();
+		return this.model.getValueInRange({ startLineNumber: 1, startColumn: 1, endLineNumber: this.lineNumber, endColumn: this.column }).trim().toLowerCase();
 
 	}
 
@@ -94,7 +95,7 @@ class bslHelper {
 	 */
 	getTextBeforePosition() {
 
-		let text = this.model.getValueInRange({ startLineNumber: this.position.lineNumber, startColumn: 1, endLineNumber: this.position.lineNumber, endColumn: this.position.column });
+		let text = this.model.getValueInRange({ startLineNumber: this.lineNumber, startColumn: 1, endLineNumber: this.lineNumber, endColumn: this.column });
 		this.hasWhitespace = (text.substr(-1) == ' ');
 		return text.trim().toLowerCase();
 
@@ -271,7 +272,10 @@ class bslHelper {
 				else {
 
 					for (const [inkey, invalue] of Object.entries(value)) {
-						values.push({ name: inkey, detail: '', description: '', postfix: '' });
+						let postfix = '';
+						if (invalue.hasOwnProperty('postfix'))
+							postfix = invalue.postfix;
+						values.push({ name: inkey, detail: '', description: '', postfix: postfix });
 					}
 
 				}
@@ -700,6 +704,48 @@ class bslHelper {
 	}
 
 	/**
+	 * Completition provider
+	 * 
+	 * @returns {array} array of completition
+	 */
+	getCompletition() {
+
+		let suggestions = [];
+
+		if (!this.getClassCompletition(suggestions, bslGlobals.classes)) {
+
+			if (!this.getClassCompletition(suggestions, bslGlobals.systemEnum)) {
+
+				if (!this.getMetadataCompletition(suggestions, bslMetadata)) {
+
+					this.getCommonCompletition(suggestions, bslGlobals.keywords, monaco.languages.CompletionItemKind.Keyword.ru, true);
+					this.getCommonCompletition(suggestions, bslGlobals.keywords, monaco.languages.CompletionItemKind.Keyword.en, true);
+
+					if (this.requireClass()) {
+						this.getCommonCompletition(suggestions, bslGlobals.classes, monaco.languages.CompletionItemKind.Constructor, false);
+					}
+					else {
+						this.getCommonCompletition(suggestions, bslGlobals.globalfunctions, monaco.languages.CompletionItemKind.Function, true);
+						this.getCommonCompletition(suggestions, bslGlobals.globalvariables, monaco.languages.CompletionItemKind.Class, false);
+						this.getCommonCompletition(suggestions, bslGlobals.systemEnum, monaco.languages.CompletionItemKind.Enum, false);
+					}
+
+					this.getSnippets(suggestions, snippets);
+
+				}
+
+			}
+
+		}
+
+		if (suggestions.length)
+			return { suggestions: suggestions }
+		else
+			return [];
+
+	}
+
+	/**
 	 * Returns array of parametrs as described in JSON-dictionary
 	 * for current node (method)
 	 *  
@@ -1047,6 +1093,26 @@ class bslHelper {
 	}
 
 	/**
+	 * Signature help provider
+	 * 
+	 * @returns {object} helper
+	 */
+	getSigHelp() {
+
+		let helper = this.getMetadataSigHelp(bslMetadata);
+
+		if (!helper)
+			helper = this.getClassSigHelp(bslGlobals.classes);
+
+		if (!helper)
+			helper = this.getCommonSigHelp(bslGlobals.globalfunctions);
+
+		if (helper)
+			return new SignatureHelpResult(helper);
+
+	}
+
+	/**
 	 * Updates bslMetadata from JSON-string which
 	 * was received from 1C
 	 * 
@@ -1075,5 +1141,184 @@ class bslHelper {
 
 
 	}
+
+	/**
+	 * Finds blocks like conditions (if...endif) and loops (while...enddo)
+	 * when start column startString equal start column endString
+	 * 
+	 * @param {ITextModel} current model of editor
+	 * @param {string} regexp to detect opening construction 
+	 * @param {string} regexp to detect closing construction 
+	 * 
+	 * @returns {array} - array of folding ranges
+	 */
+	static getRangesForConstruction(model, startString, endString) {
+		
+		let ranges = [];
+		
+		const startMatches = model.findMatches("(?:^|\\b)?(" + startString + ") ", false, true)	
+		let startMatch = null;
+
+		const endMatches =  model.findMatches("(?:^|\\b)?(" + endString + ") ?;", false, true)	
+		let endMatch = null;
+		
+		let structFound = false;
+		let subidx = 0;
+
+		if (startMatches && endMatches) {
+			
+			for (let idx = 0; idx < startMatches.length; idx++) {
+
+				structFound = false;
+				startMatch = startMatches[idx];				
+										
+				subidx = 0;
+
+				while (!structFound && subidx < endMatches.length) {
+					
+					endMatch = endMatches[subidx];
+
+					if (endMatch.range.startColumn == startMatch.range.startColumn && startMatch.range.startLineNumber < endMatch.range.startLineNumber) {
+						structFound = true;
+						ranges.push(
+							{
+								kind: monaco.languages.FoldingRangeKind.Region,
+								start: startMatch.range.startLineNumber,
+								end: endMatch.range.startLineNumber
+							}
+						)
+					}
+
+					subidx++;
+				}				
+
+			}
+
+		}
+
+		return ranges;
+
+	}	
+
+	/**
+	 * Finds blocks like functions by regexp	 
+	 * 
+	 * @param {ITextModel} current model of editor
+	 * @param {string} regexp to detect block 	 
+	 * 
+	 * @returns {array} - array of folding ranges
+	 */
+	static getRangesForRegexp(model, regexp) {
+
+		let ranges = [];
+		let match = null;
+		const matches = model.findMatches(regexp, false, true, false, null, true)
+    	
+    	if (matches) {
+			
+      		for (let idx = 0; idx < matches.length; idx++) {
+				match = matches[idx];
+				ranges.push(
+					{
+						kind: monaco.languages.FoldingRangeKind.Region,
+						start: match.range.startLineNumber,
+						end: match.range.endLineNumber
+					}
+				)
+      		}
+
+		}
+
+		return ranges;
+	
+	}
+
+	/**
+	 * Provider for folding blocks
+	 * @param {ITextModel} current model of editor
+	 * 
+	 * @returns {array} - array of folding ranges 
+	 */
+	static getFoldingRanges(model) {
+		
+		let ranges = this.getRangesForRegexp(model, "\"(?:\\n|\\r|\\|)*(?:выбрать|select)(?:(?:.|\\n|\\r)*?)?\"");
+		ranges = ranges.concat(this.getRangesForRegexp(model, "(?:^|\\b)(?:функция|процедура).*\\((?:.|\\n|\\r)*?(?:конецпроцедуры|конецфункции)"));
+		ranges = ranges.concat(this.getRangesForRegexp(model, "(?:^|\\b)#.+(?:.|\\n|\\r)*?#.+$"));
+		ranges = ranges.concat(this.getRangesForConstruction(model, "пока|while", "конеццикла|enddo"));
+		ranges = ranges.concat(this.getRangesForConstruction(model, "для .*(?:по|из) .*|for .* (?:to|each) .*", "конеццикла|enddo"));
+		ranges = ranges.concat(this.getRangesForConstruction(model, "если|if", "конецесли|endif"));
+		
+		return ranges;
+
+	}
+
+	/**
+	 * Provider for hover popoup
+	 * 
+	 * @returns {object} - hover object or null
+	 */
+	getHover() {
+
+		for (const [key, value] of Object.entries(bslGlobals)) {
+
+			for (const [ikey, ivalue] of Object.entries(value)) {
+	
+				if (ivalue.hasOwnProperty('name')) {
+	
+					if (ivalue.name.toLowerCase() == this.word) {
+
+						let contents = [
+							{ value: '**' + ivalue.name + '**' },
+							{ value: ivalue.description }
+						]
+		
+						if (ivalue.hasOwnProperty('returns')) {
+							contents.push(
+								{ value: 'Возвращает: ' + ivalue.returns }
+							)
+						}
+						
+						return {
+							range: new monaco.Range(this.lineNumber, this.column, this.lineNumber, this.model.getLineMaxColumn(this.lineNumber)),
+							contents: contents
+						};
+					}
+	
+				}
+				
+			}
+	
+		}		
+
+		return null;
+
+	}
+
+	/**
+	 * Returns query's text from current position
+	 * 
+	 * @returns {object} object with text and range or null
+	 */
+	getQuery() {
+	
+		const matches = this.model.findMatches("\"(?:\\n|\\r|\\|)*(?:выбрать|select)(?:(?:.|\\n|\\r)*?)?\"", false, true, false, null, true)		
+	
+		let idx = 0;
+		let match = null;
+		let queryFound = false;
+	
+		if (matches) {
+	
+		  while (idx < matches.length && !queryFound) {
+			match = matches[idx];
+			queryFound = (match.range.startLineNumber <= this.lineNumber && this.lineNumber <= match.range.endLineNumber);
+			idx++;
+		  }
+	
+		}
+	
+		return queryFound ? { text: match.matches[0], range: match.range } : null;
+	
+	  }
 
 }

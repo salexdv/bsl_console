@@ -239,6 +239,16 @@ describe("Проверка автокомлита и подсказок реда
         bslMetadata = JSON.parse(JSON.stringify(mCopy));
       });
 
+      it("проверка всплывающей подсказки", function () {        
+        let model = getModel("Найти(");
+        let position = new monaco.Position(1, 2);
+        bsl = new bslHelper(model, position);
+        assert.notEqual(bsl.getHover(), null);
+        model = getModel("НайтиЧтоНибудь(");
+        bsl = new bslHelper(model, position);
+        assert.equal(bsl.getHover(), null);        
+      });
+
     }
 
     mocha.run();
