@@ -117,8 +117,4 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     });
   }
 
-  // Replace keybinding for action "Change All Occurrences"
-  //editor._standaloneKeybindingService.addDynamicKeybinding('-editor.action.changeAll')
-  //editor._standaloneKeybindingService.addDynamicKeybinding('editor.action.changeAll', monaco.KeyMod.CtrlCmd | monaco.KeyCode.F5) // Ctrl+F5
-
 });
