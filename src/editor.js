@@ -1,11 +1,16 @@
-define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/editor.main'], function () {
+define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/editor.main', 'actions'], function () {
+
+  selectionText = '';
 
   setText = function(txt, range) {
 
-    editor.getModel().applyEdits([{
-      range: range ? range : monaco.Range.fromPositions(editor.getPosition()),
-      text: txt
-    }]);
+    let insertRange = range ? range : monaco.Range.fromPositions(editor.getPosition());    
+    let operation = {
+      range: insertRange,
+      text: txt,
+      forceMoveMarkers: true
+    };
+    editor.executeEdits(txt, [operation]);
 
   }
 
@@ -95,7 +100,25 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   editor = monaco.editor.create(document.getElementById("container"), {
     theme: "bsl-white",
     value: getCode(),
-    language: language.id
+    language: language.id,
+    contextmenu: false
   });
+  
+  for (const [action_id, action] of Object.entries(actions)) {
+    editor.addAction({
+      id: action_id,
+      label: action.label,
+      keybindings: [action.key, action.cmd],
+      precondition: null,
+      keybindingContext: null,
+      contextMenuGroupId: 'navigation',
+      contextMenuOrder: 1.5,
+      run: action.callback
+    });
+  }
+
+  // Replace keybinding for action "Change All Occurrences"
+  //editor._standaloneKeybindingService.addDynamicKeybinding('-editor.action.changeAll')
+  //editor._standaloneKeybindingService.addDynamicKeybinding('editor.action.changeAll', monaco.KeyMod.CtrlCmd | monaco.KeyCode.F5) // Ctrl+F5
 
 });
