@@ -1,6 +1,18 @@
 define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/editor.main', 'actions'], function () {
 
   selectionText = '';
+  lastEvent = {};
+
+  getEvent = function() {
+    let e = lastEvent;
+    lastEvent = {};
+    return e;
+  }
+
+  sendEvent = function(eventName, eventParams) {
+    lastEvent = {event : eventName, params: eventParams};
+    document.getElementById("event_producer").click();    
+  }
 
   setText = function(txt, range) {
 
@@ -30,6 +42,13 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
     let bsl = new bslHelper(editor.getModel(), editor.getPosition());		
     return bsl.getQuery();
+
+  }
+
+  getFormatString = function () {
+
+    let bsl = new bslHelper(editor.getModel(), editor.getPosition());		
+    return bsl.getFormatString();
 
   }
 
@@ -101,7 +120,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     theme: "bsl-white",
     value: getCode(),
     language: language.id,
-    contextmenu: false
+    contextmenu: true
   });
   
   for (const [action_id, action] of Object.entries(actions)) {
@@ -112,9 +131,10 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       precondition: null,
       keybindingContext: null,
       contextMenuGroupId: 'navigation',
-      contextMenuOrder: 1.5,
+      contextMenuOrder: action.order,
       run: action.callback
     });
+
   }
 
 });

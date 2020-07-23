@@ -1300,25 +1300,57 @@ class bslHelper {
 	 * @returns {object} object with text and range or null
 	 */
 	getQuery() {
-	
-		const matches = this.model.findMatches("\"(?:\\n|\\r|\\|)*(?:выбрать|select)(?:(?:.|\\n|\\r)*?)?\"", false, true, false, null, true)		
-	
+
+		const matches = this.model.findMatches("\"(?:\\n|\\r|\\|)*(?:выбрать|select)(?:(?:.|\\n|\\r)*?)?\"", false, true, false, null, true)
+
 		let idx = 0;
 		let match = null;
 		let queryFound = false;
-	
+
 		if (matches) {
-	
-		  while (idx < matches.length && !queryFound) {
-			match = matches[idx];
-			queryFound = (match.range.startLineNumber <= this.lineNumber && this.lineNumber <= match.range.endLineNumber);
-			idx++;
-		  }
-	
+
+			while (idx < matches.length && !queryFound) {
+				match = matches[idx];
+				queryFound = (match.range.startLineNumber <= this.lineNumber && this.lineNumber <= match.range.endLineNumber);
+				idx++;
+			}
+
 		}
-	
+
 		return queryFound ? { text: match.matches[0], range: match.range } : null;
-	
-	  }
+
+	}
+
+	/**
+   	* Returns format string's text from current position
+   	* 
+   	* @returns {object} object with text and range or null
+   	*/
+	getFormatString() {
+
+		const matches = this.model.findMatches("\"(.*?)\"", false, true, false, null, true)
+
+		let idx = 0;
+		let match = null;
+		let stringFound = false;
+
+		if (matches) {
+
+			while (idx < matches.length && !stringFound) {
+				match = matches[idx];
+				stringFound = (
+					match.range.startLineNumber == this.lineNumber
+					&& this.lineNumber == match.range.endLineNumber
+					&& match.range.startColumn <= this.column
+					&& this.column <= match.range.endColumn
+				);
+				idx++;
+			}
+
+		}
+
+		return stringFound ? { text: match.matches[0], range: match.range } : null;
+
+	}
 
 }

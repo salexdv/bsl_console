@@ -249,6 +249,18 @@ describe("Проверка автокомлита и подсказок реда
         assert.equal(bsl.getHover(), null);        
       });
 
+      it("проверка получения существующей форматной строки", function () {        
+      	editor.setPosition(new monaco.Position(47, 33));
+        assert.notEqual(getFormatString(), null);
+      });
+
+      it("проверка получения несуществующей форматной строки", function () {        
+        editor.setPosition(new monaco.Position(47, 21));
+        assert.equal(getFormatString(), null);
+        editor.setPosition(new monaco.Position(10, 1));
+        assert.equal(getFormatString(), null);
+      });
+
     }
 
     mocha.run();
