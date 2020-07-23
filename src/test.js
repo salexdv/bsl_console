@@ -110,6 +110,14 @@ describe("Проверка автокомлита и подсказок реда
         expect(suggestions).to.be.an('array').that.not.is.empty;
       });
 
+      it("проверка автокомплита для экземпляра объекта HTTPЗапрос (список свойств и методов)", function () {
+        bsl = helper('Запрос = Новый HTTPЗапрос();\nЗапрос.');
+        let suggestions = [];
+        bsl.getClassCompletition(suggestions, bslGlobals.classes);
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "УстановитьПараметр"), false);
+      });      
+
       it("проверка автокомплита объекта HTTPЗапрос (список свойств и методов) обернутого в функцию", function () {
         bsl = helper('Найти(HTTPЗапрос.');
         let suggestions = [];

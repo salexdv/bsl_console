@@ -438,8 +438,23 @@ class bslHelper {
 	 */
 	getClassCompletition(suggestions, data) {
 
-		let className = this.getLastRawExpression();
-		let classExists = this.getClassCompletitionByName(suggestions, data, className);
+		let classExists = false;
+		let className = '';
+		let exp = this.getLastRawExpression();
+
+		let fullText = this.getFullTextBeforePosition();
+		let regex = new RegExp(exp + '\\s?=\\s?(?:новый|new)\\s(.*)\\(.*\\);', 'gi');
+
+		regex = regex.exec(fullText);
+		
+		if (regex && 1 < regex.length) {						
+			className = regex[1];			
+		}
+		else {			
+			className = exp;
+		}
+		
+		classExists = this.getClassCompletitionByName(suggestions, data, className);
 
 		if (!classExists) {
 			let unclosed = this.unclosedString(this.textBeforePosition);
@@ -451,7 +466,7 @@ class bslHelper {
 			className = regex && 1 < regex.length ? regex[1] : '';
 			if (!this.lastOperator && !this.hasWhitespace)
 				classExists = this.getClassCompletitionByName(suggestions, data, className);
-		}
+		}		
 
 		return classExists;
 
