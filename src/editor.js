@@ -64,6 +64,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  setReadOnly = function () {
+
+    editor.updateOptions({ readOnly: true })
+    
+  }
+
   // Register a new language
   monaco.languages.register({ id: language.id });
 
