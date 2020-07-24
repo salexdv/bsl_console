@@ -1,17 +1,13 @@
 define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/editor.main', 'actions'], function () {
 
-  selectionText = '';
-  lastEvent = {};
-
-  getEvent = function() {
-    let e = lastEvent;
-    lastEvent = {};
-    return e;
-  }
+  selectionText = '';  
 
   sendEvent = function(eventName, eventParams) {
-    lastEvent = {event : eventName, params: eventParams};
-    document.getElementById("event_producer").click();    
+
+    let lastEvent = new MouseEvent('click');
+    lastEvent.eventData1C = {event : eventName, params: eventParams};
+    return dispatchEvent(lastEvent);
+    
   }
 
   setText = function(txt, range) {
