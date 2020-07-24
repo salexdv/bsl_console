@@ -58,6 +58,18 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  updateSnippets = function (snips, replace = false) {
+        
+    return bslHelper.updateSnippets(snips, replace);    
+
+  }
+
+  updateCustomFunctions = function (data) {
+        
+    return bslHelper.updateCustomFunctions(data);
+
+  }
+
   setTheme = function (theme) {
         
     monaco.editor.setTheme(theme);    

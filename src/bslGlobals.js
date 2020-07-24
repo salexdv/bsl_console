@@ -33127,6 +33127,7 @@ define([], function () {
                 },
                 "Прочее": ""
             }
-        }
+        },
+        "customFunctions": {}
     }
 });

@@ -136,7 +136,7 @@ class bslHelper {
 		let index = expArray.length - 1;
 
 		while (!exp && 0 <= index) {
-			if (/^[^\(\)\[\]=\+\*/%<>"\.\,;:][a-zA-Z\u0410-\u044F_\.]*$/.test(expArray[index]))
+			if (/^[^\(\)\[\]=\+\*/%<>"\.\,;:][a-zA-Z0-9\u0410-\u044F_\.]*$/.test(expArray[index]))
 				exp = expArray[index]
 			else {
 				if (expArray[index].trim() !== '' && !this.lastOperator)
@@ -188,7 +188,7 @@ class bslHelper {
 		let index = expArray.length - 1;
 
 		while (!exp && 0 <= index) {
-			if (/^(?!новый |new )[^\(\)\[\]=\+\*/%<>"][a-zA-Z\u0410-\u044F_\.]*$/.test(expArray[index])) {
+			if (/^(?!новый |new )[^\(\)\[\]=\+\*/%<>"][a-zA-Z0-9\u0410-\u044F_\.]*$/.test(expArray[index])) {
 				exp = expArray[index]
 			}
 			index--;
@@ -265,8 +265,11 @@ class bslHelper {
 							postfix = '()';
 					}
 
-					values.push({ name: value.name, detail: value.description, description: value.hasOwnProperty('returns') ? value.returns : '', postfix: postfix });
-					values.push({ name: value.name_en, detail: value.description, description: value.hasOwnProperty('returns') ? value.returns : '', postfix: postfix });
+					let template = value.hasOwnProperty('template') ? value.template : '';
+
+					values.push({ name: value.name, detail: value.description, description: value.hasOwnProperty('returns') ? value.returns : '', postfix: postfix, template: template });
+					if (value.hasOwnProperty('name_en'))
+						values.push({ name: value.name_en, detail: value.description, description: value.hasOwnProperty('returns') ? value.returns : '', postfix: postfix, template: template });
 
 				}
 				else {
@@ -275,7 +278,7 @@ class bslHelper {
 						let postfix = '';
 						if (invalue.hasOwnProperty('postfix'))
 							postfix = invalue.postfix;
-						values.push({ name: inkey, detail: '', description: '', postfix: postfix });
+						values.push({ name: inkey, detail: '', description: '', postfix: postfix, template: '' });
 					}
 
 				}
@@ -285,7 +288,7 @@ class bslHelper {
 						suggestions.push({
 							label: value.name,
 							kind: kind,
-							insertText: value.name + value.postfix,
+							insertText: value.template ? value.template : value.name + value.postfix,
 							insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
 							detail: value.detail,
 							documentation: value.description
@@ -483,71 +486,77 @@ class bslHelper {
 		let itemExists = false;
 
 		let exp = this.getLastRawExpression();
-		let fullText = this.getFullTextBeforePosition();
-		let regex = new RegExp(exp + '\\s?=\\s?(.*)\\(.*\\);', 'gi');
-		regex = regex.exec(fullText);
-		if (regex && 1 < regex.length) {
+		
+		if (exp) {
 
-			regex = /(.+?)(?:\.(.*?))?\.?(?:\.(.*?))?\(?$/.exec(regex[1]);
+			let fullText = this.getFullTextBeforePosition();
+			let regex = new RegExp(exp + '\\s?=\\s?(.*)\\(.*\\);', 'gi');
+			regex = regex.exec(fullText);
+			
+			if (regex && 1 < regex.length) {
 
-			let metadataName = regex && 1 < regex.length ? regex[1] : '';
-			let metadataItem = regex && 2 < regex.length ? regex[2] : '';
-			let metadataFunc = regex && 3 < regex.length ? regex[3] : '';
+				regex = /(.+?)(?:\.(.*?))?\.?(?:\.(.*?))?\(?$/.exec(regex[1]);
 
-			if (metadataName && metadataItem && metadataFunc) {
+				let metadataName = regex && 1 < regex.length ? regex[1] : '';
+				let metadataItem = regex && 2 < regex.length ? regex[2] : '';
+				let metadataFunc = regex && 3 < regex.length ? regex[3] : '';
 
-				for (const [key, value] of Object.entries(data)) {
+				if (metadataName && metadataItem && metadataFunc) {
 
-					if (value.name.toLowerCase() == metadataName || value.name_en.toLowerCase() == metadataName) {
+					for (const [key, value] of Object.entries(data)) {
 
-						for (const [ikey, ivalue] of Object.entries(value.items)) {
+						if (value.name.toLowerCase() == metadataName || value.name_en.toLowerCase() == metadataName) {
 
-							if (ikey.toLowerCase() == metadataItem) {
+							for (const [ikey, ivalue] of Object.entries(value.items)) {
 
-								itemExists = true;
+								if (ikey.toLowerCase() == metadataItem) {
 
-								for (const [pkey, pvalue] of Object.entries(ivalue.properties)) {
-									suggestions.push({
-										label: pkey,
-										kind: monaco.languages.CompletionItemKind.Field,
-										insertText: pkey,
-										insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-										detail: pvalue
-									});
-								}
+									itemExists = true;
 
-								if (value.hasOwnProperty('objMethods')) {
-
-									let postfix = '';
-									let signatures = [];
-
-									for (const [mkey, mvalue] of Object.entries(value.objMethods)) {
-
-										signatures = this.getMethodsSignature(mvalue);
-										if (signatures.length == 0 || (signatures.length == 1 && signatures[0].parameters.length == 0))
-											postfix = '()';
-
-										if (this.hasRu(metadataName)) {
-											suggestions.push({
-												label: mvalue.name,
-												kind: monaco.languages.CompletionItemKind.Function,
-												insertText: mvalue.name + postfix,
-												insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-												detail: mvalue.description
-											});
-										}
-										else {
-											suggestions.push({
-												label: mvalue.name_en,
-												kind: monaco.languages.CompletionItemKind.Function,
-												insertText: mvalue.name + postfix,
-												insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-												detail: mvalue.description
-											});
-										}
-
+									for (const [pkey, pvalue] of Object.entries(ivalue.properties)) {
+										suggestions.push({
+											label: pkey,
+											kind: monaco.languages.CompletionItemKind.Field,
+											insertText: pkey,
+											insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+											detail: pvalue
+										});
 									}
-									
+
+									if (value.hasOwnProperty('objMethods')) {
+
+										let postfix = '';
+										let signatures = [];
+
+										for (const [mkey, mvalue] of Object.entries(value.objMethods)) {
+
+											signatures = this.getMethodsSignature(mvalue);
+											if (signatures.length == 0 || (signatures.length == 1 && signatures[0].parameters.length == 0))
+												postfix = '()';
+
+											if (this.hasRu(metadataName)) {
+												suggestions.push({
+													label: mvalue.name,
+													kind: monaco.languages.CompletionItemKind.Function,
+													insertText: mvalue.name + postfix,
+													insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+													detail: mvalue.description
+												});
+											}
+											else {
+												suggestions.push({
+													label: mvalue.name_en,
+													kind: monaco.languages.CompletionItemKind.Function,
+													insertText: mvalue.name + postfix,
+													insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+													detail: mvalue.description
+												});
+											}
+
+										}
+										
+									}
+
 								}
 
 							}
@@ -557,8 +566,8 @@ class bslHelper {
 					}
 
 				}
-
 			}
+
 		}
 
 		return itemExists;
@@ -743,6 +752,7 @@ class bslHelper {
 						this.getCommonCompletition(suggestions, bslGlobals.globalfunctions, monaco.languages.CompletionItemKind.Function, true);
 						this.getCommonCompletition(suggestions, bslGlobals.globalvariables, monaco.languages.CompletionItemKind.Class, false);
 						this.getCommonCompletition(suggestions, bslGlobals.systemEnum, monaco.languages.CompletionItemKind.Enum, false);
+						this.getCommonCompletition(suggestions, bslGlobals.customFunctions, monaco.languages.CompletionItemKind.Function, true);
 					}
 
 					this.getSnippets(suggestions, snippets);
@@ -917,45 +927,50 @@ class bslHelper {
 		let helper = null;
 
 		let exp = this.getLastNExpression(4);
-		let fullText = this.getFullTextBeforePosition();
-		let regex = new RegExp(exp + '\\s?=\\s?(.*)\\(.*\\);', 'gi');
-		regex = regex.exec(fullText);
 
-		if (regex && 1 < regex.length) {
+		if (exp) {
 
-			regex = /(.+?)(?:\.(.*?))?\.?(?:\.(.*?))?\(?$/.exec(regex[1]);
+			let fullText = this.getFullTextBeforePosition();
+			let regex = new RegExp(exp + '\\s?=\\s?(.*)\\(.*\\);', 'gi');
+			regex = regex.exec(fullText);
 
-			let metadataName = regex && 1 < regex.length ? regex[1] : '';
-			let metadataItem = regex && 2 < regex.length ? regex[2] : '';
-			let metadataFunc = regex && 3 < regex.length ? regex[3] : '';
+			if (regex && 1 < regex.length) {
 
-			if (metadataName && metadataItem && metadataFunc) {
+				regex = /(.+?)(?:\.(.*?))?\.?(?:\.(.*?))?\(?$/.exec(regex[1]);
 
-				metadataFunc = this.lastRawExpression;
+				let metadataName = regex && 1 < regex.length ? regex[1] : '';
+				let metadataItem = regex && 2 < regex.length ? regex[2] : '';
+				let metadataFunc = regex && 3 < regex.length ? regex[3] : '';
 
-				if (metadataFunc) {
+				if (metadataName && metadataItem && metadataFunc) {
 
-					for (const [key, value] of Object.entries(data)) {
+					metadataFunc = this.lastRawExpression;
 
-						if (value.name.toLowerCase() == metadataName || value.name_en.toLowerCase() == metadataName) {
+					if (metadataFunc) {
 
-							for (const [ikey, ivalue] of Object.entries(value.items)) {
+						for (const [key, value] of Object.entries(data)) {
 
-								if (ikey.toLowerCase() == metadataItem) {
+							if (value.name.toLowerCase() == metadataName || value.name_en.toLowerCase() == metadataName) {
 
-									if (value.hasOwnProperty('objMethods')) {
+								for (const [ikey, ivalue] of Object.entries(value.items)) {
 
-										for (const [mkey, mvalue] of Object.entries(value.objMethods)) {
+									if (ikey.toLowerCase() == metadataItem) {
 
-											if (mvalue.name.toLowerCase() == metadataFunc || mvalue.name_en.toLowerCase() == metadataFunc) {
+										if (value.hasOwnProperty('objMethods')) {
 
-												let signatures = this.getMethodsSignature(mvalue);
-												if (signatures.length) {
-													helper = {
-														activeParameter: this.textBeforePosition.split(',').length - 1,
-														activeSignature: 0,
-														signatures: signatures,
+											for (const [mkey, mvalue] of Object.entries(value.objMethods)) {
+
+												if (mvalue.name.toLowerCase() == metadataFunc || mvalue.name_en.toLowerCase() == metadataFunc) {
+
+													let signatures = this.getMethodsSignature(mvalue);
+													if (signatures.length) {
+														helper = {
+															activeParameter: this.textBeforePosition.split(',').length - 1,
+															activeSignature: 0,
+															signatures: signatures,
+														}
 													}
+
 												}
 
 											}
@@ -1122,6 +1137,9 @@ class bslHelper {
 		if (!helper)
 			helper = this.getCommonSigHelp(bslGlobals.globalfunctions);
 
+		if (!helper)
+			helper = this.getCommonSigHelp(bslGlobals.customFunctions);
+
 		if (helper)
 			return new SignatureHelpResult(helper);
 
@@ -1147,6 +1165,84 @@ class bslHelper {
 			}
 			else {
 				throw new TypeError("Wrong structure of metadata");
+			}
+
+		}
+		catch (e) {
+			return { errorDescription: e.message };
+		}
+
+
+	}
+
+	/**
+	 * Escapes special character in json-string
+	 * before parsing
+	 * 
+	 * @param {string} jsonString string to parsing
+	 * 
+	 * @returns {string} escaped string
+	 */
+	static escapeJSON(jsonString) {
+
+		return jsonString.replace(/\n/g, "\\n").replace(/\r/g, "\\r").replace(/\t/g, "\\t");
+	
+	}
+
+	/**
+	 * Updates snippets from JSON-string which
+	 * was received from 1C
+	 * 
+	 * @param {string} data JSON-string with snippets info
+	 * @param {boolean} replace whether or not to replace native snippents
+	 * 
+	 * @returns {true|object} true - snippets was updated, {errorDescription} - not
+	 */
+	static updateSnippets(data, replace) {
+
+		try {			
+			let snippetsObj = JSON.parse(this.escapeJSON(data));
+			if (snippetsObj.hasOwnProperty('snippets')) {
+				if (replace) {
+					snippets = snippetsObj.snippets;
+				}
+				else {
+					for (const [key, value] of Object.entries(snippetsObj.snippets)) {
+						snippets[key] = value;
+					}
+				}
+				return true;
+			}
+			else {
+				throw new TypeError("Wrong structure of snippets");
+			}
+
+		}
+		catch (e) {
+			return { errorDescription: e.message };
+		}
+
+
+	}
+
+	/**
+	 * Updates custom functions JSON-string which
+	 * was received from 1C
+	 * 
+	 * @param {string} snips JSON-string with function's definition	 
+	 * 
+	 * @returns {true|object} true - functions was updated, {errorDescription} - not
+	 */
+	static updateCustomFunctions(data) {
+
+		try {			
+			let funcObj = JSON.parse(data);
+			if (funcObj.hasOwnProperty('customFunctions')) {
+				bslGlobals.customFunctions = funcObj.customFunctions;
+				return true;
+			}
+			else {
+				throw new TypeError("Wrong structure of custom functions");
 			}
 
 		}

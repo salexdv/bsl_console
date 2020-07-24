@@ -26,6 +26,21 @@ describe("Проверка автокомлита и подсказок реда
       return new bslHelper(model, position);
     }
 
+    function helperToConsole(helper) {
+      
+      console.log('line number:', helper.column);
+      console.log('column:', helper.lineNumber);      
+      console.log('word:', helper.word);
+      console.log('last operator:', helper.lastOperator);
+      console.log('whitespace:', helper.hasWhitespace);
+      console.log('last expr:', helper.lastExpression);
+      console.log('expr array:', helper.getExpressioArray());      
+      console.log('last raw expr:', helper.lastRawExpression);
+      console.log('raw array:', helper.getRawExpressioArray());      
+      console.log('text before:', helper.textBeforePosition);
+            
+    }
+
     let bsl = helper('');
     let bslLoaded = (bslGlobals != undefined);
 
@@ -58,7 +73,7 @@ describe("Проверка автокомлита и подсказок реда
       });
 
       it("проверка подсказки параметров для глобальной функции Найти(", function () {
-        bsl = helper('Найти(');
+        bsl = helper('Найти(');        
         let suggestions = [];
         let help = bsl.getCommonSigHelp(bslGlobals.globalfunctions);
         expect(help).to.have.property('activeParameter');
@@ -247,6 +262,30 @@ describe("Проверка автокомлита и подсказок реда
         bslMetadata = JSON.parse(JSON.stringify(mCopy));
       });
 
+      it("проверка обновления сниппетов", function () {              	                
+        let sCopy = JSON.parse(JSON.stringify(snippets));        
+        assert.notEqual(updateSnippets(123), true);
+        let strJSON = '{"snippets": { "ЕслиЧто": { "prefix": "Если", "body": "Если ${1:Условие} Тогда\n\t$0\nКонецЕсли;", "description": "ЕслиЧто"}}}';
+        assert.equal(updateSnippets(strJSON), true);
+        bsl = helper('ЕслиЧто');
+        let suggestions = [];
+        bsl.getSnippets(suggestions, snippets);        
+        expect(suggestions).to.be.an('array').that.not.is.empty;        
+        assert.equal(suggestions.some(suggest => suggest.detail === "ЕслиЧто"), true);
+        snippets = JSON.parse(JSON.stringify(sCopy));
+      });
+
+      it("проверка замены сниппетов", function () {              	                
+        let sCopy = JSON.parse(JSON.stringify(snippets));                
+        let strJSON = '{"snippets": { "ЕслиЧто": { "prefix": "Если", "body": "Если ${1:Условие} Тогда\n\t$0\nКонецЕсли;", "description": "ЕслиЧто"}}}';
+        assert.equal(updateSnippets(strJSON, true), true);
+        bsl = helper('Если');
+        let suggestions = [];
+        bsl.getSnippets(suggestions, snippets);
+        assert.equal(suggestions.length, 1);
+        snippets = JSON.parse(JSON.stringify(sCopy));
+      });
+
       it("проверка всплывающей подсказки", function () {        
         let model = getModel("Найти(");
         let position = new monaco.Position(1, 2);
@@ -267,6 +306,26 @@ describe("Проверка автокомлита и подсказок реда
         assert.equal(getFormatString(), null);
         editor.setPosition(new monaco.Position(10, 1));
         assert.equal(getFormatString(), null);
+      });
+
+      it("проверка загрузки пользовательских функций", function () {
+        let strJSON = '{ "customFunctions":{ "МояФункция1":{ "name":"МояФункция1", "name_en":"MyFuntion1", "description":"Получает из строки закодированной по алгоритму base64 двоичные данные.", "returns":"Тип: ДвоичныеДанные. ", "signature":{ "default":{ "СтрокаПараметров":"(Строка: Строка): ДвоичныеДанные", "Параметры":{ "Строка":"Строка, закодированная по алгоритму base64." } } } }, "МояФункция2":{ "name":"МояФункция2", "name_en":"MyFuntion2", "description":"Выполняет сериализацию значения в формат XML.", "template":"МояФункция2(ВызовЗависимойФункции(${1:ПервыйЗависимыйПараметр}, ${2:ВторойЗависимыйПараметр}), ${0:ПараметрМоейФункции}))", "signature":{ "ЗаписатьБезИмени":{ "СтрокаПараметров":"(ЗаписьXML: ЗаписьXML, Значение: Произвольный, НазначениеТипа?: НазначениеТипаXML)", "Параметры":{ "ЗаписьXML":"Объект, через который осуществляется запись XML, полученный через зависимою функцию", "Значение":"Записываемое в поток XML значение. Тип параметра определяется совокупностью типов, для которых определена XML-сериализация." } }, "ЗаписатьСПолнымИменем":{ "СтрокаПараметров":"(ЗаписьXML: ЗаписьXML, Значение: Произвольный, ПолноеИмя: Строка, НазначениеТипа?: НазначениеТипаXML)", "Параметры":{ "ЗаписьXML":"Объект, через который осуществляется запись XML.", "Значение":"Записываемое в поток XML значение. Тип параметра определяется совокупностью типов, для которых определена XML-сериализация.", "ПолноеИмя":"Полное имя элемента XML, в который будет записано значение.", "НазначениеТипа":"Определяет необходимость назначения типа элементу XML. Значение по умолчанию: Неявное." } }, "ЗаписатьСЛокальнымИменемИПространствомИмен":{ "СтрокаПараметров":"(ЗаписьXML: ЗаписьXML, Значение: Произвольный, ЛокальноеИмя: Строка, URIПространстваИмен: Строка, НазначениеТипа?: НазначениеТипаXML)", "Параметры":{ "ЗаписьXML":"Объект, через который осуществляется запись XML.", "Значение":"Записываемое в поток XML значение. Тип параметра определяется совокупностью типов, для которых определена XML-сериализация.", "ЛокальноеИмя":"Локальное имя элемента XML, в который будет записано значение.", "URIПространстваИмен":"URI пространства имен, к которому принадлежит указанное ЛокальноеИмя.", "НазначениеТипа":"Определяет необходимость назначения типа элементу XML. Значение по умолчанию: Неявное." } } } } } }';
+        assert.notEqual(updateCustomFunctions(123), true);
+        assert.equal(updateCustomFunctions(strJSON), true);
+      });
+
+      it("проверка автокомплита для пользовательской функции МояФункция2", function () {
+        bsl = helper('мояфу');
+        let suggestions = [];
+        bsl.getCommonCompletition(suggestions, bslGlobals.customFunctions, monaco.languages.CompletionItemKind.Function)
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+      });
+
+      it("проверка подсказки параметров для пользовательской функции МояФункция2", function () {
+        bsl = helper('МояФункция2');        
+        let suggestions = [];
+        let help = bsl.getCommonSigHelp(bslGlobals.customFunctions);
+        expect(help).to.have.property('activeParameter');
       });
 
     }
