@@ -72,9 +72,9 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
-  setReadOnly = function () {
+  setReadOnly = function (readOnly) {
 
-    editor.updateOptions({ readOnly: true })
+    editor.updateOptions({ readOnly: readOnly })
     
   }
 
