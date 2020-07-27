@@ -505,56 +505,60 @@ class bslHelper {
 
 					for (const [key, value] of Object.entries(data)) {
 
-						if (value.name.toLowerCase() == metadataName || value.name_en.toLowerCase() == metadataName) {
+						if (value.hasOwnProperty('name')) {
 
-							for (const [ikey, ivalue] of Object.entries(value.items)) {
+							if (value.name.toLowerCase() == metadataName || value.name_en.toLowerCase() == metadataName) {
 
-								if (ikey.toLowerCase() == metadataItem) {
+								for (const [ikey, ivalue] of Object.entries(value.items)) {
 
-									itemExists = true;
+									if (ikey.toLowerCase() == metadataItem) {
 
-									for (const [pkey, pvalue] of Object.entries(ivalue.properties)) {
-										suggestions.push({
-											label: pkey,
-											kind: monaco.languages.CompletionItemKind.Field,
-											insertText: pkey,
-											insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-											detail: pvalue
-										});
-									}
+										itemExists = true;
 
-									if (value.hasOwnProperty('objMethods')) {
-
-										let postfix = '';
-										let signatures = [];
-
-										for (const [mkey, mvalue] of Object.entries(value.objMethods)) {
-
-											signatures = this.getMethodsSignature(mvalue);
-											if (signatures.length == 0 || (signatures.length == 1 && signatures[0].parameters.length == 0))
-												postfix = '()';
-
-											if (this.hasRu(metadataName)) {
-												suggestions.push({
-													label: mvalue.name,
-													kind: monaco.languages.CompletionItemKind.Function,
-													insertText: mvalue.name + postfix,
-													insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-													detail: mvalue.description
-												});
-											}
-											else {
-												suggestions.push({
-													label: mvalue.name_en,
-													kind: monaco.languages.CompletionItemKind.Function,
-													insertText: mvalue.name + postfix,
-													insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-													detail: mvalue.description
-												});
-											}
-
+										for (const [pkey, pvalue] of Object.entries(ivalue.properties)) {
+											suggestions.push({
+												label: pkey,
+												kind: monaco.languages.CompletionItemKind.Field,
+												insertText: pkey,
+												insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+												detail: pvalue
+											});
 										}
-										
+
+										if (value.hasOwnProperty('objMethods')) {
+
+											let postfix = '';
+											let signatures = [];
+
+											for (const [mkey, mvalue] of Object.entries(value.objMethods)) {
+
+												signatures = this.getMethodsSignature(mvalue);
+												if (signatures.length == 0 || (signatures.length == 1 && signatures[0].parameters.length == 0))
+													postfix = '()';
+
+												if (this.hasRu(metadataName)) {
+													suggestions.push({
+														label: mvalue.name,
+														kind: monaco.languages.CompletionItemKind.Function,
+														insertText: mvalue.name + postfix,
+														insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+														detail: mvalue.description
+													});
+												}
+												else {
+													suggestions.push({
+														label: mvalue.name_en,
+														kind: monaco.languages.CompletionItemKind.Function,
+														insertText: mvalue.name + postfix,
+														insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+														detail: mvalue.description
+													});
+												}
+
+											}
+											
+										}
+
 									}
 
 								}
@@ -601,119 +605,122 @@ class bslHelper {
 
 			for (const [key, value] of Object.entries(data)) {
 
-				if (value.name.toLowerCase() == metadataName || value.name_en.toLowerCase() == metadataName) {
+				if (value.hasOwnProperty('name')) {
 
-					metadataExists = true;
-					let values = [];
-					let itemNode = null;
+					if (value.name.toLowerCase() == metadataName || value.name_en.toLowerCase() == metadataName) {
 
-					if (metadataName) {
+						metadataExists = true;
+						let values = [];
+						let itemNode = null;
 
-						for (const [ikey, ivalue] of Object.entries(value.items)) {
+						if (metadataName) {
 
-							if (ikey.toLowerCase() == metadataItem) {
-								itemNode = ivalue;
-								break;
+							for (const [ikey, ivalue] of Object.entries(value.items)) {
+
+								if (ikey.toLowerCase() == metadataItem) {
+									itemNode = ivalue;
+									break;
+								}
+
 							}
 
 						}
 
-					}
+						if (itemNode) {
 
-					if (itemNode) {
+							if (itemNode.hasOwnProperty('predefined')) {
 
-						if (itemNode.hasOwnProperty('predefined')) {
-
-							for (const [pkey, pvalue] of Object.entries(itemNode.predefined)) {
-														
-								values.push({
-									name: pkey,
-									postfix: '',
-									detail: '',
-									description: '',
-									kind: monaco.languages.CompletionItemKind.Field,
-									insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-								});
-																								
-							}
-
-						}
-
-						if (value.hasOwnProperty('methods')) {
-
-							for (const [mkey, mvalue] of Object.entries(value.methods)) {
-
-								let description = mvalue.hasOwnProperty('returns') ? mvalue.returns : '';
-								let signatures = this.getMethodsSignature(mvalue);
-								let postfix = '';
-								if (signatures.length == 0 || (signatures.length == 1 && signatures[0].parameters.length == 0))
-									postfix = '()';
-
-								if (this.hasRu(metadataName)) {
+								for (const [pkey, pvalue] of Object.entries(itemNode.predefined)) {
+															
 									values.push({
-										name: mvalue.name,
-										postfix: postfix,
-										detail: mvalue.description,
-										description: description,
-										kind: monaco.languages.CompletionItemKind.Method,
+										name: pkey,
+										postfix: '',
+										detail: '',
+										description: '',
+										kind: monaco.languages.CompletionItemKind.Field,
 										insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
 									});
+																									
 								}
-								else {
-									values.push({
-										name: mvalue.name_en,
-										postfix: postfix,
-										detail: mvalue.description,
-										description: description,
-										kind: monaco.languages.CompletionItemKind.Method
+
+							}
+
+							if (value.hasOwnProperty('methods')) {
+
+								for (const [mkey, mvalue] of Object.entries(value.methods)) {
+
+									let description = mvalue.hasOwnProperty('returns') ? mvalue.returns : '';
+									let signatures = this.getMethodsSignature(mvalue);
+									let postfix = '';
+									if (signatures.length == 0 || (signatures.length == 1 && signatures[0].parameters.length == 0))
+										postfix = '()';
+
+									if (this.hasRu(metadataName)) {
+										values.push({
+											name: mvalue.name,
+											postfix: postfix,
+											detail: mvalue.description,
+											description: description,
+											kind: monaco.languages.CompletionItemKind.Method,
+											insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+										});
+									}
+									else {
+										values.push({
+											name: mvalue.name_en,
+											postfix: postfix,
+											detail: mvalue.description,
+											description: description,
+											kind: monaco.languages.CompletionItemKind.Method
+										});
+									}
+
+								}
+
+							}
+							
+							if (key == 'enums') {
+
+								for (const [pkey, pvalue] of Object.entries(itemNode.properties)) {
+									suggestions.push({
+										label: pkey,
+										kind: monaco.languages.CompletionItemKind.Field,
+										insertText: pkey,
+										insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+										detail: pvalue
 									});
 								}
 
 							}
 
-						}
-						
-						if (key == 'enums') {
+						} else {
 
-							for (const [pkey, pvalue] of Object.entries(itemNode.properties)) {
-								suggestions.push({
-									label: pkey,
-									kind: monaco.languages.CompletionItemKind.Field,
-									insertText: pkey,
-									insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-									detail: pvalue
+							for (const [ikey, ivalue] of Object.entries(value.items)) {
+								values.push({
+									name: ikey,
+									detail: '',
+									description: '',
+									postfix: '',
+									kind: monaco.languages.CompletionItemKind.Field
 								});
 							}
 
 						}
 
-					} else {
+						values.forEach(function (value) {
 
-						for (const [ikey, ivalue] of Object.entries(value.items)) {
-							values.push({
-								name: ikey,
-								detail: '',
-								description: '',
-								postfix: '',
-								kind: monaco.languages.CompletionItemKind.Field
+							suggestions.push({
+								label: value.name,
+								kind: value.kind,
+								insertText: value.name + value.postfix,
+								insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+								detail: value.detail,
+								documentation: value.description
 							});
-						}
 
-					}
-
-					values.forEach(function (value) {
-
-						suggestions.push({
-							label: value.name,
-							kind: value.kind,
-							insertText: value.name + value.postfix,
-							insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-							detail: value.detail,
-							documentation: value.description
 						});
 
-					});
-
+					}
 				}
 
 			}
@@ -950,25 +957,29 @@ class bslHelper {
 
 						for (const [key, value] of Object.entries(data)) {
 
-							if (value.name.toLowerCase() == metadataName || value.name_en.toLowerCase() == metadataName) {
+							if (value.hasOwnProperty('name')) {
 
-								for (const [ikey, ivalue] of Object.entries(value.items)) {
+								if (value.name.toLowerCase() == metadataName || value.name_en.toLowerCase() == metadataName) {
 
-									if (ikey.toLowerCase() == metadataItem) {
+									for (const [ikey, ivalue] of Object.entries(value.items)) {
 
-										if (value.hasOwnProperty('objMethods')) {
+										if (ikey.toLowerCase() == metadataItem) {
 
-											for (const [mkey, mvalue] of Object.entries(value.objMethods)) {
+											if (value.hasOwnProperty('objMethods')) {
 
-												if (mvalue.name.toLowerCase() == metadataFunc || mvalue.name_en.toLowerCase() == metadataFunc) {
+												for (const [mkey, mvalue] of Object.entries(value.objMethods)) {
 
-													let signatures = this.getMethodsSignature(mvalue);
-													if (signatures.length) {
-														helper = {
-															activeParameter: this.textBeforePosition.split(',').length - 1,
-															activeSignature: 0,
-															signatures: signatures,
+													if (mvalue.name.toLowerCase() == metadataFunc || mvalue.name_en.toLowerCase() == metadataFunc) {
+
+														let signatures = this.getMethodsSignature(mvalue);
+														if (signatures.length) {
+															helper = {
+																activeParameter: this.textBeforePosition.split(',').length - 1,
+																activeSignature: 0,
+																signatures: signatures,
+															}
 														}
+
 													}
 
 												}
@@ -980,7 +991,6 @@ class bslHelper {
 									}
 
 								}
-
 							}
 
 						}
@@ -1018,21 +1028,25 @@ class bslHelper {
 
 			for (const [key, value] of Object.entries(data)) {
 
-				if (value.name.toLowerCase() == metadataName || value.name_en.toLowerCase() == metadataName) {
+				if (value.hasOwnProperty('name')) {
 
-					if (value.hasOwnProperty('methods')) {
+					if (value.name.toLowerCase() == metadataName || value.name_en.toLowerCase() == metadataName) {
 
-						for (const [mkey, mvalue] of Object.entries(value.methods)) {
+						if (value.hasOwnProperty('methods')) {
 
-							if (mvalue.name.toLowerCase() == metadataFunc || mvalue.name_en.toLowerCase() == metadataFunc) {
-								let signatures = this.getMethodsSignature(mvalue);
-								if (signatures.length) {
-									helper = {
-										activeParameter: this.textBeforePosition.split(',').length - 1,
-										activeSignature: 0,
-										signatures: signatures,
+							for (const [mkey, mvalue] of Object.entries(value.methods)) {
+
+								if (mvalue.name.toLowerCase() == metadataFunc || mvalue.name_en.toLowerCase() == metadataFunc) {
+									let signatures = this.getMethodsSignature(mvalue);
+									if (signatures.length) {
+										helper = {
+											activeParameter: this.textBeforePosition.split(',').length - 1,
+											activeSignature: 0,
+											signatures: signatures,
+										}
 									}
 								}
+
 							}
 
 						}
