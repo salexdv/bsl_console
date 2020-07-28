@@ -1472,8 +1472,8 @@ class bslHelper {
 	 * @returns {object} object with text and range or null
 	 */
 	getQuery() {
-
-		const matches = this.model.findMatches("\"(?:\\n|\\r|\\|)*(?:выбрать|select)(?:(?:.|\\n|\\r)*?)?\"", false, true, false, null, true)
+		
+		const matches = this.model.findMatches('"((?:\\n|\\r|\\|)*(?:выбрать|select)(?:(?:.|\\n|\\r)*?)?)"\\)?;?\\s?$(?!\\n\\|)', false, true, false, null, true);
 
 		let idx = 0;
 		let match = null;
@@ -1482,14 +1482,14 @@ class bslHelper {
 		if (matches) {
 
 			while (idx < matches.length && !queryFound) {
-				match = matches[idx];
+				match = matches[idx];				
 				queryFound = (match.range.startLineNumber <= this.lineNumber && this.lineNumber <= match.range.endLineNumber);
 				idx++;
 			}
 
 		}
 
-		return queryFound ? { text: match.matches[0], range: match.range } : null;
+		return queryFound ? { text: match.matches[match.matches.length - 1], range: match.range } : null;
 
 	}
 
