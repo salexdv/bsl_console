@@ -88,7 +88,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   // Register a completion item provider for the new language
   monaco.languages.registerCompletionItemProvider(language.id, {
 
-    triggerCharacters: [' ', '.'],
+    triggerCharacters: [' ', '.', '"'],
 
     provideCompletionItems: function (model, position) {
       let bsl = new bslHelper(model, position);
@@ -108,6 +108,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   monaco.languages.registerSignatureHelpProvider(language.id, {
 
     signatureHelpTriggerCharacters: ['(', ','],
+    signatureHelpRetriggerCharacters: [')'],
 
     provideSignatureHelp: (model, position) => {
       let bsl = new bslHelper(model, position);

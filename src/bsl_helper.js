@@ -140,7 +140,7 @@ class bslHelper {
 				exp = expArray[index]
 			else {
 				if (expArray[index].trim() !== '' && !this.lastOperator)
-					this.lastOperator = expArray[index];
+					this.lastOperator = expArray[index].replace(/[a-zA-Z0-9\u0410-\u044F_\.]/, '');
 			}
 			index--;
 		}
@@ -210,10 +210,11 @@ class bslHelper {
 	}
 
 	/**
-	 * Determines if string contain class constructor (New|Новый)
-	 * @param {string} word - last typed word
+	 * Determines if string contain class constructor (New|Новый)	 	 
+	 * 
+	 * @returns {bool}
 	 */
-	requireClass(word) {
+	requireClass() {
 
 		let exp = this.getLastNExpression(1);
 		return /^(?:new|новый)$/.test(exp);
@@ -229,6 +230,19 @@ class bslHelper {
 
 		let regex = /(.+?)(?:\((.*))?$/.exec(this.lastExpression);
 		return regex && 1 < regex.length ? regex[1] : '';
+
+	}
+
+	/**
+	 * Determines if string contain type constructor (Type|Тип)
+	 * 
+	 * 
+	 * @returns {bool}
+	 */
+	requireType() {
+
+		let exp = this.getFuncName();
+		return (exp == 'type' || exp == 'тип');
 
 	}
 
@@ -735,6 +749,69 @@ class bslHelper {
 	}
 
 	/**
+	 * Fills array of completition for types	 
+	 * 
+	 * @param {array} suggestions array of suggestions for provideCompletionItems
+	 * @param {object} data objects from BSL-JSON dictionary
+	 * @param {CompletionItemKind} kind - monaco.languages.CompletionItemKind (class, function, constructor etc.)
+	 */
+	getTypesCompletition(suggestions, data, kind) {
+
+		let subType = this.getLastNExpression(2);
+
+		for (const [key, value] of Object.entries(data)) {
+
+			let values = [];
+
+			for (const [inkey, invalue] of Object.entries(value)) {
+
+				if (!subType) {
+
+					let suggestion = {
+						label: inkey,
+						kind: kind,
+						insertText: inkey,
+						insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+					}
+
+					if (invalue.hasOwnProperty('ref')) {
+						suggestion.insertText += '.';
+						suggestion['command'] = { id: 'editor.action.triggerSuggest', title: 'suggest_type' };
+					}
+					else {
+						suggestion.insertText += '"';
+					}
+
+					suggestions.push(suggestion);
+
+				}
+				else {
+
+					if (inkey.toLowerCase() == subType) {
+
+						if (invalue.hasOwnProperty('ref') && bslMetadata.hasOwnProperty(invalue.ref) && bslMetadata[invalue.ref].hasOwnProperty('items')) {
+
+							for (const [mkey, mvalue] of Object.entries(bslMetadata[invalue.ref].items)) {
+
+								suggestions.push({
+									label: mkey,
+									kind: kind,
+									insertText: mkey + '"',
+									insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+								});
+
+							}
+						}
+					}
+
+				}
+
+			}
+		}
+
+	}
+
+	/**
 	 * Completition provider
 	 * 
 	 * @returns {array} array of completition
@@ -743,31 +820,42 @@ class bslHelper {
 
 		let suggestions = [];
 
-		if (!this.getClassCompletition(suggestions, bslGlobals.classes)) {
+		if (!this.requireType()) {
 
-			if (!this.getClassCompletition(suggestions, bslGlobals.systemEnum)) {
+			if (this.lastOperator != '"') {
 
-				if (!this.getMetadataCompletition(suggestions, bslMetadata)) {
+				if (!this.getClassCompletition(suggestions, bslGlobals.classes)) {
 
-					this.getCommonCompletition(suggestions, bslGlobals.keywords, monaco.languages.CompletionItemKind.Keyword.ru, true);
-					this.getCommonCompletition(suggestions, bslGlobals.keywords, monaco.languages.CompletionItemKind.Keyword.en, true);
+					if (!this.getClassCompletition(suggestions, bslGlobals.systemEnum)) {
 
-					if (this.requireClass()) {
-						this.getCommonCompletition(suggestions, bslGlobals.classes, monaco.languages.CompletionItemKind.Constructor, false);
+						if (!this.getMetadataCompletition(suggestions, bslMetadata)) {
+
+							this.getCommonCompletition(suggestions, bslGlobals.keywords, monaco.languages.CompletionItemKind.Keyword.ru, true);
+							this.getCommonCompletition(suggestions, bslGlobals.keywords, monaco.languages.CompletionItemKind.Keyword.en, true);
+
+							if (this.requireClass()) {
+								this.getCommonCompletition(suggestions, bslGlobals.classes, monaco.languages.CompletionItemKind.Constructor, false);
+							}
+							else {
+								this.getCommonCompletition(suggestions, bslGlobals.globalfunctions, monaco.languages.CompletionItemKind.Function, true);
+								this.getCommonCompletition(suggestions, bslGlobals.globalvariables, monaco.languages.CompletionItemKind.Class, false);
+								this.getCommonCompletition(suggestions, bslGlobals.systemEnum, monaco.languages.CompletionItemKind.Enum, false);
+								this.getCommonCompletition(suggestions, bslGlobals.customFunctions, monaco.languages.CompletionItemKind.Function, true);
+							}
+
+							this.getSnippets(suggestions, snippets);
+
+						}
+
 					}
-					else {
-						this.getCommonCompletition(suggestions, bslGlobals.globalfunctions, monaco.languages.CompletionItemKind.Function, true);
-						this.getCommonCompletition(suggestions, bslGlobals.globalvariables, monaco.languages.CompletionItemKind.Class, false);
-						this.getCommonCompletition(suggestions, bslGlobals.systemEnum, monaco.languages.CompletionItemKind.Enum, false);
-						this.getCommonCompletition(suggestions, bslGlobals.customFunctions, monaco.languages.CompletionItemKind.Function, true);
-					}
-
-					this.getSnippets(suggestions, snippets);
 
 				}
 
 			}
 
+		}
+		else {
+			this.getTypesCompletition(suggestions, bslGlobals.types, monaco.languages.CompletionItemKind.Enum);
 		}
 
 		if (suggestions.length)
@@ -938,7 +1026,14 @@ class bslHelper {
 		if (exp) {
 
 			let fullText = this.getFullTextBeforePosition();
-			let regex = new RegExp(exp + '\\s?=\\s?(.*)\\(.*\\);', 'gi');
+			let regex = null;
+			try {
+				regex = new RegExp(exp + '\\s?=\\s?(.*)\\(.*\\);', 'gi');
+			}
+			catch {
+				return helper;
+			}
+
 			regex = regex.exec(fullText);
 
 			if (regex && 1 < regex.length) {
@@ -1143,19 +1238,24 @@ class bslHelper {
 	 */
 	getSigHelp() {
 
-		let helper = this.getMetadataSigHelp(bslMetadata);
+		console.log('last', this.lastOperator);
+		if (this.lastOperator != ')') {
 
-		if (!helper)
-			helper = this.getClassSigHelp(bslGlobals.classes);
+			let helper = this.getMetadataSigHelp(bslMetadata);
 
-		if (!helper)
-			helper = this.getCommonSigHelp(bslGlobals.globalfunctions);
+			if (!helper)
+				helper = this.getClassSigHelp(bslGlobals.classes);
 
-		if (!helper)
-			helper = this.getCommonSigHelp(bslGlobals.customFunctions);
+			if (!helper)
+				helper = this.getCommonSigHelp(bslGlobals.globalfunctions);
 
-		if (helper)
-			return new SignatureHelpResult(helper);
+			if (!helper)
+				helper = this.getCommonSigHelp(bslGlobals.customFunctions);
+
+			if (helper)
+				return new SignatureHelpResult(helper);
+
+		}
 
 	}
 

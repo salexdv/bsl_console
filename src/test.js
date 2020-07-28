@@ -328,6 +328,33 @@ describe("Проверка автокомлита и подсказок реда
         expect(help).to.have.property('activeParameter');
       });
 
+      it("проверка автокомплита для функции 'Тип'", function () {
+        bsl = helper('Тип("');
+        assert.equal(bsl.requireType(), true);
+        let suggestions = [];
+        bsl.getTypesCompletition(suggestions, bslGlobals.types, monaco.languages.CompletionItemKind.Enum)
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "СправочникСсылка"), true);        
+      });
+
+      it("проверка автокомплита для функции 'Тип' обернутой в функцию", function () {
+        bsl = helper('Поиск = Найти(Тип("');
+        assert.equal(bsl.requireType(), true);
+        let suggestions = [];
+        bsl.getTypesCompletition(suggestions, bslGlobals.types, monaco.languages.CompletionItemKind.Enum)
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "СправочникСсылка"), true);        
+      });
+
+      it("проверка автокомплита для функции 'Тип' с указанием конкретного вида метаданных", function () {
+        bsl = helper('Тип("СправочникСсылка.');
+        assert.equal(bsl.requireType(), true);
+        let suggestions = [];
+        bsl.getTypesCompletition(suggestions, bslGlobals.types, monaco.languages.CompletionItemKind.Enum)
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "Товары"), true);        
+      });
+
     }
 
     mocha.run();
