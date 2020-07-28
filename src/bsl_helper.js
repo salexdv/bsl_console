@@ -1525,4 +1525,88 @@ class bslHelper {
 
 	}
 
+	/**
+	 * Finds min column in selected lines
+	 * 
+	 * @param {Selection} current selection
+	 * 
+	 * @returns {int} min column of selection
+	 */
+	getMinColumn(selection) {
+
+		let minColumn = 100000;
+
+		for (let line = selection.startLineNumber; line <= selection.endLineNumber; line++) {
+			minColumn = Math.min(minColumn, this.model.getLineFirstNonWhitespaceColumn(line));
+		}
+
+		return minColumn;
+
+	}
+
+	/**
+	 * Add comment for every selected lines
+	 */
+	addComment() {
+
+		let selection = editor.getSelection();
+		let minColumn = this.getMinColumn(selection);
+
+		for (let line = selection.startLineNumber; line <= selection.endLineNumber; line++) {
+			setText(
+				'//' +
+				this.model.getValueInRange({
+					startLineNumber: line,
+					startColumn: minColumn,
+					endLineNumber: line,
+					endColumn: this.model.getLineMaxColumn(line)
+				}),
+				{
+					startLineNumber: line,
+					startColumn: minColumn,
+					endLineNumber: line,
+					endColumn: this.model.getLineMaxColumn(line) + 2
+				}
+			)
+		}		
+
+	}
+
+	/**
+	 * Removes comment from every selected lines
+	 */
+	removeComment() {
+
+		let selection = editor.getSelection();		
+
+		for (let line = selection.startLineNumber; line <= selection.endLineNumber; line++) {
+			
+			let firsColumn = this.model.getLineFirstNonWhitespaceColumn(line);
+			let startChars = this.model.getValueInRange({
+				startLineNumber: line,
+				startColumn: firsColumn,
+				endLineNumber: line,
+				endColumn: Math.min(firsColumn + 2, this.model.getLineMaxColumn(line))
+			});
+
+			if (startChars == '//') {
+				setText(					
+					this.model.getValueInRange({
+						startLineNumber: line,
+						startColumn: firsColumn + 2,
+						endLineNumber: line,
+						endColumn: this.model.getLineMaxColumn(line)
+					}),
+					{
+						startLineNumber: line,
+						startColumn: firsColumn,
+						endLineNumber: line,
+						endColumn: this.model.getLineMaxColumn(line)
+					}
+				)
+			}			
+		}		
+
+	}
+
 }

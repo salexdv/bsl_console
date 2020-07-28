@@ -83,6 +83,20 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     engLang = !engLang;
   }
 
+  addComment = function () {
+    
+    let bsl = new bslHelper(editor.getModel(), editor.getPosition());		
+    bsl.addComment();
+
+  }
+
+  removeComment = function () {
+    
+    let bsl = new bslHelper(editor.getModel(), editor.getPosition());		
+    bsl.removeComment();
+    
+  }
+
   // Register a new language
   monaco.languages.register({ id: language.id });
 

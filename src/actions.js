@@ -40,6 +40,26 @@ define(['vs/editor/editor.main'], function () {
                 sendEvent('EVENT_FORMAT_CONSTRUCT', getFormatString());
                 return null;
             }
+        },
+        comment_bsl: {
+            label: 'Добавить комментарий',
+            key: monaco.KeyMod.CtrlCmd | monaco.KeyCode.NUMPAD_DIVIDE,
+            cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.NUMPAD_DIVIDE),
+            order: 1.5,
+            callback: function (ed) {                
+                addComment();
+                return null;
+            }
+        },
+        uncomment_bsl: {
+            label: 'Удалить комментарий',
+            key: monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.NUMPAD_DIVIDE,
+            cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.NUMPAD_DIVIDE),
+            order: 1.6,
+            callback: function (ed) {                
+                removeComment();
+                return null;
+            }
         }
     }
 
