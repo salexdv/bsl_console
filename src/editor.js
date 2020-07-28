@@ -1,6 +1,7 @@
 define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/editor.main', 'actions'], function () {
 
-  selectionText = '';  
+  selectionText = '';
+  engLang = false;
 
   sendEvent = function(eventName, eventParams) {
 
@@ -76,6 +77,10 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
     editor.updateOptions({ readOnly: readOnly })
     
+  }
+
+  switchLang = function () {
+    engLang = !engLang;
   }
 
   // Register a new language
