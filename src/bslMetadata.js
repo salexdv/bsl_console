@@ -1933,7 +1933,10 @@ define([], function () {
          }      
       },
       "commonModules": {
-         
+         "items":{
+            "ОбщийМодульНомер1":{},
+            "ОбщийМодульНомер2":{}
+         }
       },      
       "сhartsOfAccounts": {
          "name":"ПланыСчетов",

@@ -11,21 +11,15 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     
   }
 
-  setText = function(txt, range) {
+  setText = function(txt, range, usePadding) {
 
-    let insertRange = range ? range : monaco.Range.fromPositions(editor.getPosition());    
-    let operation = {
-      range: insertRange,
-      text: txt,
-      forceMoveMarkers: true
-    };
-    editor.executeEdits(txt, [operation]);
+    bslHelper.setText(txt, range, usePadding);    
 
   }
 
   eraseText = function () {
     
-    setText('', editor.getModel().getFullModelRange());    
+    setText('', editor.getModel().getFullModelRange(), false);    
 
   }
 

@@ -290,11 +290,15 @@ class bslHelper {
 				}
 				else {
 
-					for (const [inkey, invalue] of Object.entries(value)) {
-						let postfix = '';
-						if (invalue.hasOwnProperty('postfix'))
-							postfix = invalue.postfix;
-						values.push({ name: inkey, detail: '', description: '', postfix: postfix, template: '' });
+					if ( (key != 'ru' && key != 'en') || (key == 'ru' && !engLang) || (key == 'en' && engLang)) {
+
+						for (const [inkey, invalue] of Object.entries(value)) {
+							let postfix = '';
+							if (invalue.hasOwnProperty('postfix'))
+								postfix = invalue.postfix;
+							values.push({ name: inkey, detail: '', description: '', postfix: postfix, template: '' });
+						}
+
 					}
 
 				}
@@ -788,6 +792,7 @@ class bslHelper {
 								this.getCommonCompletition(suggestions, bslGlobals.globalvariables, monaco.languages.CompletionItemKind.Class, false);
 								this.getCommonCompletition(suggestions, bslGlobals.systemEnum, monaco.languages.CompletionItemKind.Enum, false);
 								this.getCommonCompletition(suggestions, bslGlobals.customFunctions, monaco.languages.CompletionItemKind.Function, true);
+								this.getCommonCompletition(suggestions, bslMetadata.commonModules, monaco.languages.CompletionItemKind.Module, true);
 							}
 
 							this.getSnippets(suggestions, snippets);
@@ -1184,8 +1189,7 @@ class bslHelper {
 	 * @returns {object} helper
 	 */
 	getSigHelp() {
-
-		console.log('last', this.lastOperator);
+		
 		if (this.lastOperator != ')') {
 
 			let helper = this.getMetadataSigHelp(bslMetadata);
@@ -1473,7 +1477,7 @@ class bslHelper {
 	 */
 	getQuery() {
 		
-		const matches = this.model.findMatches('"((?:\\n|\\r|\\|)*(?:выбрать|select)(?:(?:.|\\n|\\r)*?)?)"\\)?;?\\s?$(?!\\n\\|)', false, true, false, null, true);
+		const matches = this.model.findMatches('(".*$(?:\\n(?:\\t|\\s)*\\|.*)+")', false, true, false, null, true);
 
 		let idx = 0;
 		let match = null;
@@ -1553,7 +1557,7 @@ class bslHelper {
 		let minColumn = this.getMinColumn(selection);
 
 		for (let line = selection.startLineNumber; line <= selection.endLineNumber; line++) {
-			setText(
+			this.setText(
 				'//' +
 				this.model.getValueInRange({
 					startLineNumber: line,
@@ -1566,7 +1570,8 @@ class bslHelper {
 					startColumn: minColumn,
 					endLineNumber: line,
 					endColumn: this.model.getLineMaxColumn(line) + 2
-				}
+				},
+				false
 			)
 		}		
 
@@ -1590,7 +1595,7 @@ class bslHelper {
 			});
 
 			if (startChars == '//') {
-				setText(					
+				this.setText(					
 					this.model.getValueInRange({
 						startLineNumber: line,
 						startColumn: firsColumn + 2,
@@ -1602,10 +1607,52 @@ class bslHelper {
 						startColumn: firsColumn,
 						endLineNumber: line,
 						endColumn: this.model.getLineMaxColumn(line)
-					}
+					},
+					false
 				)
 			}			
 		}		
+
+	}
+
+	/**
+	 * Sets text to current position or range
+	 * @param {string} txt text to add
+	 * @param {Range|null} range null for current position or Range
+	 * @param {bool} usePadding true when need to allign block by fist column of position
+	 */
+	static setText(txt, range, usePadding) {
+		
+		let insertRange = range ? range : monaco.Range.fromPositions(editor.getPosition());
+		let startColumn = insertRange.startColumn;		
+
+		if (usePadding && 1 < startColumn) {
+			// Replacing tab to whitespaces for calculation number of appended tabs/whitespaces
+			let tabSize = editor.getModel().getOptions().tabSize;
+			let valueBefore =  editor.getModel().getValueInRange(
+				new monaco.Range(insertRange.startLineNumber, 1, insertRange.startLineNumber, startColumn)
+			);
+			if (valueBefore.trim().length == 0) {
+				startColumn = valueBefore.replace(/\t/g, ' '.repeat(tabSize)).length;
+			}
+			// Adding tabs/whitespaces for strings starting with the second
+			let strings = txt.split('\n');			
+			let tabCount = Math.trunc(startColumn / tabSize);
+			let spaceCount = startColumn - tabCount * tabSize;
+			for (let idx = 1; idx < strings.length; idx++) {
+				strings[idx] = '\t'.repeat(tabCount) + ' '.repeat(spaceCount) + strings[idx];
+			}
+			let newTxt = strings.join('\n');			
+			this.setText(newTxt, range, false);
+		}
+		else {
+			let operation = {
+				range: insertRange,
+				text: txt,
+				forceMoveMarkers: true
+			};
+			editor.executeEdits(txt, [operation]);
+		}
 
 	}
 

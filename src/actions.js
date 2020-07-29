@@ -17,7 +17,7 @@ define(['vs/editor/editor.main'], function () {
             cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_V),
             order: 1.2,
             callback: function (ed) {                
-                setText(selectionText, null);                
+                setText(selectionText, null, false);
                 return null;
             }
         },
