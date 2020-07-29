@@ -1,0 +1,9 @@
+.error-string {
+	background-color: #ffa07a;
+}
+
+.error-mark {
+	background: #ff0000;	
+	width: 5px !important;			
+	margin-left: 3px;	
+}

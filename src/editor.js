@@ -2,6 +2,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   selectionText = '';
   engLang = false;
+  decorations = [];
 
   sendEvent = function(eventName, eventParams) {
 
@@ -89,6 +90,30 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     let bsl = new bslHelper(editor.getModel(), editor.getPosition());		
     bsl.removeComment();
     
+  }
+
+  markError = function (line) {
+    let count = 12;
+    let tid = setInterval(function() {
+      let newDecor = [];
+      if (!decorations.length) {
+        newDecor = [            
+          { range: new monaco.Range(line,1,line), options: { isWholeLine: true, inlineClassName: 'error-string' }},
+          { range: new monaco.Range(line,1,line), options: { isWholeLine: true, linesDecorationsClassName: 'error-mark' }},
+        ];
+      }
+      decorations = editor.deltaDecorations(decorations, newDecor);
+      count--;
+      if (count == 0) {
+        clearInterval(tid);
+      }
+    }, 300);
+    editor.revealLineInCenter(line);
+  }
+
+  findText = function (string) {
+    let bsl = new bslHelper(editor.getModel(), editor.getPosition());
+    return bsl.findText(string);
   }
 
   // Register a new language

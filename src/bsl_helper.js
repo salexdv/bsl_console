@@ -1656,4 +1656,24 @@ class bslHelper {
 
 	}
 
+	/**
+	 * Finds text in model and returns first line number
+	 * 
+	 * @param {string} string - searching string
+	 * 
+	 * @returns {int} line number
+	 */
+	findText(string) {
+
+		let lineNumber = 0;
+
+		const matches = this.model.findMatches(string);
+
+		if (matches.length)
+			lineNumber =  matches[0].range.startLineNumber;
+
+		return lineNumber;
+
+	}
+
 }
