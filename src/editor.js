@@ -92,7 +92,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     
   }
 
-  markError = function (line) {
+  markError = function (line, column) {
     let count = 12;
     let tid = setInterval(function() {
       let newDecor = [];
@@ -109,6 +109,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       }
     }, 300);
     editor.revealLineInCenter(line);
+    editor.setPosition(new monaco.Position(line, column));
   }
 
   findText = function (string) {
