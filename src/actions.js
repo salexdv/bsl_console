@@ -60,6 +60,19 @@ define(['vs/editor/editor.main'], function () {
                 removeComment();
                 return null;
             }
+        },
+        saveref: {
+            label: 'Сохранение ссылки, на которую указывает конкретная позиция',
+            description: 'Служебное действие. Используется для подсказки любых ссылочных реквизитов через точку',
+            key: 0,
+            cmd: 0,
+            order: 0,
+            callback: function (e, obj) {                                
+                if (obj && obj.hasOwnProperty('ref')) {
+                    refs.set(editor.getPosition().toString(), obj);
+                }
+                return null;
+            }
         }
     }
 

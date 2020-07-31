@@ -355,6 +355,62 @@ describe("Проверка автокомлита и подсказок реда
         assert.equal(suggestions.some(suggest => suggest.label === "Товары"), true);        
       });
 
+      it("проверка загрузки пользовательских объектов", function () {              	                        
+        let strJSON = `{
+          "customObjects":{
+             "_СтруктураВыгрузки":{
+                "properties":{
+                   "Номенклатура":{
+                      "name":"Номенклатура",
+                      "description":"Ссылка на справочник номенклатуры",
+                      "ref":"catalogs.Товары"
+                   },
+                   "Остаток":{
+                      "name":"Остаток"
+                   }
+                }
+             },
+             "_ОстаткиТовара":{
+                "properties":{
+                   "Партия":{
+                      "name":"Партия",
+                      "description":"Ссылка на приходный документ",
+                      "ref":"documents.ПриходнаяНакладная"
+                   },
+                   "Номенклатура":{
+                      "name":"Номенклатура",
+                      "ref":"catalogs.Товары"
+                   },
+                   "Оборот":{
+                      "name":"Оборот"
+                   }
+                }
+             }
+          }
+        }`;                
+        let res = updateMetadata(strJSON);
+        assert.equal(res, true);
+        bsl = helper('_ОстаткиТ');
+        let suggestions = [];
+        bsl.getCustomObjectsCompletition(suggestions, bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "_ОстаткиТовара"), true);        
+      });
+
+      it("проверка подсказки ссылочных реквизитов", function () {              	                                
+        bsl = helper('_ОстаткиТовара.Номенклатура.');
+        let suggestions = [];
+        refs.set(new monaco.Position(bsl.position.lineNumber, bsl.position.column - 1).toString(), {"name": "Номенклатура", ref: "catalogs.Товары"});
+        bsl.getRefCompletition(suggestions);
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "СтавкаНДС"), true);        
+        suggestions = [];
+        bsl = helper('_ОстаткиТовара.Наминклатура.');
+        bsl.getRefCompletition(suggestions);
+        expect(suggestions).to.be.an('array').that.is.empty;
+        refs = new Map();
+      });
+
     }
 
     mocha.run();

@@ -3,6 +3,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   selectionText = '';
   engLang = false;
   decorations = [];
+  refs = new Map();
 
   sendEvent = function(eventName, eventParams) {
 

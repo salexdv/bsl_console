@@ -21,6 +21,7 @@ class bslHelper {
 	constructor(model, position) {
 
 		this.model = model;
+		this.position = position;
 		this.lineNumber = position.lineNumber;
 		this.column = position.column;
 
@@ -321,6 +322,163 @@ class bslHelper {
 	}
 
 	/**
+	 * Checks if the object contains properties
+	 * 
+	 * @param {object} obj the object for checking
+	 * @param {sting} property1 name of property1
+	 * @param {sting} property2 name of property2
+	 * @param {sting} propertyN name of propertyN
+	 * 
+	 * @returns {boolean} true - the object contains every poperty, fasle - otherwise
+	 */
+	objectHasProperties(obj) {
+
+		var args = Array.prototype.slice.call(arguments, 1);
+
+		for (let i = 0; i < args.length; i++) {
+
+			if (!obj || !obj.hasOwnProperty(args[i])) {
+				return false;
+			}
+
+			obj = obj[args[i]];
+		}
+
+		return true;
+	}
+
+	/**
+	 * Gets the list of methods owned by object
+	 * and fills the suggestions by it
+	 * 
+	 * @param {array} suggestions the list of suggestions
+	 * @param {object} obj object from BSL-JSON dictionary
+	 * @param {sting} methodsName the name of node (objMethods, refMethods)
+	 */
+	getMetadataMethods(suggestions, obj, methodsName) {
+
+		if (obj.hasOwnProperty(methodsName)) {
+			
+			let signatures = [];
+
+			for (const [mkey, mvalue] of Object.entries(obj[methodsName])) {
+
+				let postfix = '';
+
+				signatures = this.getMethodsSignature(mvalue);
+				if (signatures.length == 0 || (signatures.length == 1 && signatures[0].parameters.length == 0))
+					postfix = '()';
+				
+				suggestions.push({
+					label: mvalue[this.nameField],
+					kind: monaco.languages.CompletionItemKind.Function,
+					insertText: mvalue.name + postfix,
+					insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+					detail: mvalue.description
+				});
+
+			}
+			
+		}
+			
+
+	}
+
+	/**
+	 * Fills the suggestions for reference-type object
+	 * if a reference was found in the previous position
+	 * 
+	 * @param {aaray} suggestions the list of suggestions
+	 */
+	getRefCompletition(suggestions) {
+		
+		const match = this.model.findPreviousMatch('.', this.position, false);
+		
+		if (match) {
+
+			const position = new monaco.Position(match.range.startLineNumber, match.range.startColumn);
+
+			if (position.lineNumber = this.lineNumber) {
+
+				let positionRef = refs.get(position.toString())
+
+				if (positionRef) {
+									
+					let wordUntil = this.model.getWordUntilPosition(position);					
+					
+					if (positionRef.name == wordUntil.word) {
+
+						let refArray = positionRef.ref.split('.');
+						
+						if (refArray.length == 2) {
+
+							if (this.objectHasProperties(bslMetadata, refArray[0], 'items', refArray[1], 'properties')) {
+								this.fillSuggestionsForMetadataItem(suggestions, bslMetadata[refArray[0]].items[refArray[1]]);
+								this.getMetadataMethods(suggestions, bslMetadata[refArray[0]], 'refMethods');
+							}
+														
+						}						
+
+					}
+				}
+			}
+
+		}
+	}
+
+	/**
+	 * Fills array of completition for language keywords, classes, global functions,
+	 * global variables and system enumarations
+	 * 
+	 * @param {array} suggestions array of suggestions for provideCompletionItems
+	 * @param {object} data objects from BSL-JSON dictionary
+	 * @param {CompletionItemKind} kind - monaco.languages.CompletionItemKind (class, function, constructor etc.)
+	 */
+	getCustomObjectsCompletition(suggestions, data, kind) {
+
+		let objName = this.getLastNExpression(2);
+		let word = this.getLastRawExpression();
+
+		if (objName) {
+
+			for (const [key, value] of Object.entries(data)) {
+				
+				for (const [ikey, ivalue] of Object.entries(value)) {
+					
+					if (ikey.toLowerCase() == objName) {
+						this.fillSuggestionsForMetadataItem(suggestions, ivalue);
+					}
+					
+				}
+
+			}
+
+		}
+		else {
+
+			for (const [key, value] of Object.entries(data)) {
+				
+				for (const [ikey, ivalue] of Object.entries(value)) {
+					
+					if (ikey.toLowerCase().startsWith(word)) {
+									
+						suggestions.push({
+							label: ikey,
+							kind: kind,
+							insertText: ikey,
+							insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet							
+						});
+					}
+					
+				}
+
+			}
+
+		}		
+
+	}
+
+	/**
 	 * Fills array of completition for class methods, properties and
 	 * system enumarations
 	 * 
@@ -462,6 +620,54 @@ class bslHelper {
 
 	}
 
+
+	/**
+	 * Gets the list of properties (attributes) owned by object
+	 * (Catalog, Document, etc) and fills the suggestions by it
+	 * 
+	 * @param {array} suggestions the list of suggestions
+	 * @param {object} obj object from BSL-JSON dictionary
+	 */
+	fillSuggestionsForMetadataItem(suggestions, obj) {
+
+		if (obj.hasOwnProperty('properties')) {
+
+			for (const [pkey, pvalue] of Object.entries(obj.properties)) {
+				
+				let postfix = '';
+
+				if (pvalue.hasOwnProperty('postfix')) {
+					postfix = pvalue.postfix;
+				}
+
+				let command = null;
+								
+				if (pvalue.hasOwnProperty('ref')) {					
+					// If the attribute contains a ref, we need to run the command to save the position of ref
+					command = { id: 'vs.editor.ICodeEditor:1:saveref', arguments: [{'name': pkey, 'ref': pvalue.ref}]}
+				}
+
+				let detail = pvalue;
+
+				if (pvalue.hasOwnProperty('description'))
+					detail = pvalue.description;				
+				else if (pvalue.hasOwnProperty('name'))
+					detail = pvalue.name;					
+
+				suggestions.push({
+					label: pkey,
+					kind: monaco.languages.CompletionItemKind.Field,
+					insertText: pkey + postfix,
+					insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+					detail: detail,
+					command: command
+				});
+			}
+
+		}
+
+	}
+
 	/**
 	 * Fills array of completition for metadata subitem	like catalog of products
 	 * 
@@ -499,42 +705,9 @@ class bslHelper {
 								for (const [ikey, ivalue] of Object.entries(value.items)) {
 
 									if (ikey.toLowerCase() == metadataItem) {
-
 										itemExists = true;
-
-										for (const [pkey, pvalue] of Object.entries(ivalue.properties)) {
-											suggestions.push({
-												label: pkey,
-												kind: monaco.languages.CompletionItemKind.Field,
-												insertText: pkey,
-												insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-												detail: pvalue
-											});
-										}
-
-										if (value.hasOwnProperty('objMethods')) {
-
-											let postfix = '';
-											let signatures = [];
-
-											for (const [mkey, mvalue] of Object.entries(value.objMethods)) {
-
-												signatures = this.getMethodsSignature(mvalue);
-												if (signatures.length == 0 || (signatures.length == 1 && signatures[0].parameters.length == 0))
-													postfix = '()';
-												
-												suggestions.push({
-													label: mvalue[this.nameField],
-													kind: monaco.languages.CompletionItemKind.Function,
-													insertText: mvalue.name + postfix,
-													insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-													detail: mvalue.description
-												});
-
-											}
-											
-										}
-
+										this.fillSuggestionsForMetadataItem(suggestions, ivalue);
+										this.getMetadataMethods(suggestions, value, 'objMethods');										
 									}
 
 								}
@@ -645,17 +818,7 @@ class bslHelper {
 							}
 							
 							if (key == 'enums') {
-
-								for (const [pkey, pvalue] of Object.entries(itemNode.properties)) {
-									suggestions.push({
-										label: pkey,
-										kind: monaco.languages.CompletionItemKind.Field,
-										insertText: pkey,
-										insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-										detail: pvalue
-									});
-								}
-
+								this.fillSuggestionsForMetadataItem(suggestions, itemNode)
 							}
 
 						} else {
@@ -781,6 +944,8 @@ class bslHelper {
 
 						if (!this.getMetadataCompletition(suggestions, bslMetadata)) {
 
+							this.getRefCompletition(suggestions);
+
 							this.getCommonCompletition(suggestions, bslGlobals.keywords, monaco.languages.CompletionItemKind.Keyword.ru, true);
 							this.getCommonCompletition(suggestions, bslGlobals.keywords, monaco.languages.CompletionItemKind.Keyword.en, true);
 
@@ -793,6 +958,7 @@ class bslHelper {
 								this.getCommonCompletition(suggestions, bslGlobals.systemEnum, monaco.languages.CompletionItemKind.Enum, false);
 								this.getCommonCompletition(suggestions, bslGlobals.customFunctions, monaco.languages.CompletionItemKind.Function, true);
 								this.getCommonCompletition(suggestions, bslMetadata.commonModules, monaco.languages.CompletionItemKind.Module, true);
+								this.getCustomObjectsCompletition(suggestions, bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
 							}
 
 							this.getSnippets(suggestions, snippets);
@@ -1222,7 +1388,7 @@ class bslHelper {
 
 		try {
 			let metadataObj = JSON.parse(metadata);
-			if (metadataObj.hasOwnProperty('catalogs')) {
+			if (metadataObj.hasOwnProperty('catalogs') || metadataObj.hasOwnProperty('customObjects')) {
 				for (const [key, value] of Object.entries(metadataObj)) {
 					bslMetadata[key].items = value;
 				}
