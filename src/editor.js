@@ -1,3 +1,5 @@
+require.config( { 'vs/nls': { availableLanguages: { '*': "ru" } } } );
+
 define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/editor.main', 'actions'], function () {
 
   selectionText = '';
