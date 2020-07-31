@@ -1723,7 +1723,7 @@ class bslHelper {
 		let minColumn = this.getMinColumn(selection);
 
 		for (let line = selection.startLineNumber; line <= selection.endLineNumber; line++) {
-			this.setText(
+			bslHelper.setText(
 				'//' +
 				this.model.getValueInRange({
 					startLineNumber: line,
@@ -1761,7 +1761,7 @@ class bslHelper {
 			});
 
 			if (startChars == '//') {
-				this.setText(					
+				bslHelper.setText(					
 					this.model.getValueInRange({
 						startLineNumber: line,
 						startColumn: firsColumn + 2,
