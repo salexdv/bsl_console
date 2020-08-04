@@ -458,8 +458,10 @@ class bslHelper {
 					
 				}
 				else {
-													
-					match = this.model.findPreviousMatch('(?<!\\/\\/.*)' + this.lastRawExpression + '\\s?=\\s?.*\\.([^.]*?)\\s?(?:;|\\()', this.position, true, false, null, true);
+					
+					// 1C does not support positive/negative lookbehind yet
+					//match = this.model.findPreviousMatch('(?<!\\/\\/.*)' + this.lastRawExpression + '\\s?=\\s?.*\\.([^.]*?)\\s?(?:;|\\()', this.position, true, false, null, true);
+					match = this.model.findPreviousMatch(this.lastRawExpression + '\\s?=\\s?.*\\.([^.]*?)\\s?(?:;|\\()', this.position, true, false, null, true);
 			
 					if (match) {
 
@@ -655,7 +657,9 @@ class bslHelper {
 		let className = '';
 		let exp = this.lastRawExpression;
 
-		const match = this.model.findPreviousMatch('(?<!\\/\\/.*)' + exp + '\\s?=\\s?(?:new|новый)\\s+(.*?)(?:\\(|;)', this.position, true, false, null, true);
+		// 1C does not support positive/negative lookbehind yet
+		// const match = this.model.findPreviousMatch('(?<!\\/\\/.*)' + exp + '\\s?=\\s?(?:new|новый)\\s+(.*?)(?:\\(|;)', this.position, true, false, null, true);		
+		const match = this.model.findPreviousMatch(exp + '\\s?=\\s?(?:new|новый)\\s+(.*?)(?:\\(|;)', this.position, true, false, null, true);
 
 		if (match) {						
 			className = match.matches[match.matches.length - 1].toLowerCase();
