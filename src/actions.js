@@ -68,8 +68,14 @@ define(['vs/editor/editor.main'], function () {
             cmd: 0,
             order: 0,
             callback: function (e, obj) {                                
-                if (obj && obj.hasOwnProperty('ref')) {
-                    refs.set(editor.getPosition().toString(), obj);
+                if (obj && obj.hasOwnProperty('data')) {
+                    let position = editor.getPosition();
+                    let lineContextData = contextData.get(position.lineNumber);
+                    if (!lineContextData) {
+                        contextData.set(position.lineNumber, new Map());
+                    }
+                    lineContextData = contextData.get(position.lineNumber);
+                    lineContextData.set(obj.name, obj.data);
                 }
                 return null;
             }

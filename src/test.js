@@ -123,6 +123,7 @@ describe("Проверка автокомлита и подсказок реда
         let suggestions = [];
         bsl.getClassCompletition(suggestions, bslGlobals.classes);
         expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "УстановитьПараметр"), false);
       });
 
       it("проверка автокомплита для экземпляра объекта HTTPЗапрос (список свойств и методов)", function () {
@@ -400,7 +401,9 @@ describe("Проверка автокомлита и подсказок реда
       it("проверка подсказки ссылочных реквизитов", function () {              	                                
         bsl = helper('_ОстаткиТовара.Номенклатура.');
         let suggestions = [];
-        refs.set(new monaco.Position(bsl.position.lineNumber, bsl.position.column - 1).toString(), {"name": "Номенклатура", ref: "catalogs.Товары"});
+        contextData = new Map([
+          [1, new Map([["Номенклатура", { "ref": "catalogs.Товары", "sig": null }]])]
+        ]);
         bsl.getRefCompletition(suggestions);
         expect(suggestions).to.be.an('array').that.not.is.empty;
         assert.equal(suggestions.some(suggest => suggest.label === "СтавкаНДС"), true);        
@@ -408,7 +411,41 @@ describe("Проверка автокомлита и подсказок реда
         bsl = helper('_ОстаткиТовара.Наминклатура.');
         bsl.getRefCompletition(suggestions);
         expect(suggestions).to.be.an('array').that.is.empty;
-        refs = new Map();
+        contextData = new Map();
+      });
+
+      it("проверка подсказки для таблицы, полученной из результата запроса", function () {              	                                
+        bsl = helper('ОбъектЗапрос = Новый Запрос();\nРезультат = ОбъектЗапрос.Выполнить();\nТаблица = Результат.Выгрузить();\nТаблица.');
+        let suggestions = [];        
+        contextData = new Map([
+          [2, new Map([["Выполнить", { "ref": "types.РезультатЗапроса", "sig": null }]])],
+          [3, new Map([["Выгрузить", { "ref": "classes.ТаблицаЗначений", "sig": null }]])]
+        ]);        
+        bsl.getRefCompletition(suggestions);
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "ВыгрузитьКолонку"), true);        
+        contextData = new Map();
+      });
+
+      it("проверка подсказки параметров для функции ВыгрузитьКолонку таблицы значений, полученной из другой таблицы", function () {              	                                
+        bsl = helper('Таблица1 = Новый ТаблицаЗначений();\nТаблица2 = Таблица1.Скопировать();\nТаблица2.ВыгрузитьКолонку(');
+        let suggestions = [];  
+        let signature = {
+          "default": {
+            "СтрокаПараметров": "(Колонка: Число): Массив",
+            "Параметры": {
+              "Колонка": "Колонка, из которой нужно выгрузить значения. В качестве значения параметра может быть передан индекс колонки, имя колонки, либо колонка дерева значений."
+            }
+          }
+        };
+        contextData = new Map([
+          [2, new Map([["Скопировать", { "ref": "classes.ТаблицаЗначений", "sig": null }]])],
+          [3, new Map([["ВыгрузитьКолонку", { "ref": "classes.Массив", "sig": signature }]])]
+        ]);        
+        let help = bsl.getRefSigHelp();
+        console.log(help);
+        expect(help).to.have.property('activeParameter');
+        contextData = new Map();
       });
 
     }
