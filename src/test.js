@@ -442,9 +442,20 @@ describe("Проверка автокомлита и подсказок реда
           [2, new Map([["Скопировать", { "ref": "classes.ТаблицаЗначений", "sig": null }]])],
           [3, new Map([["ВыгрузитьКолонку", { "ref": "classes.Массив", "sig": signature }]])]
         ]);        
-        let help = bsl.getRefSigHelp();
-        console.log(help);
+        let help = bsl.getRefSigHelp();        
         expect(help).to.have.property('activeParameter');
+        contextData = new Map();
+      });
+
+      it("проверка подсказки для таблицы, полученной функцией НайтиПоСсылкам", function () {              	                                
+        bsl = helper('Таблица = НайтиПоСсылкам();\nТаблица.');
+        let suggestions = [];        
+        contextData = new Map([
+          [1, new Map([["НайтиПоСсылкам", { "ref": "classes.ТаблицаЗначений", "sig": null }]])]          
+        ]);        
+        bsl.getRefCompletition(suggestions);
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "ВыгрузитьКолонку"), true);        
         contextData = new Map();
       });
 

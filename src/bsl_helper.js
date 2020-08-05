@@ -284,9 +284,20 @@ class bslHelper {
 							postfix = '()';
 					}
 
+					let command = null;
+			
+					let ref = null;
+					if (value.hasOwnProperty('ref'))
+						ref = value.ref;
+
+					if (ref || signatures.length) {
+						// If the attribute contains a ref, we need to run the command to save the position of ref
+						command = { id: 'vs.editor.ICodeEditor:1:saveref', arguments: [{ "name": value[this.nameField], "data": { "ref": ref, "sig": signatures } }] }
+					}
+
 					let template = value.hasOwnProperty('template') ? value.template : '';
 
-					values.push({ name: value[this.nameField], detail: value.description, description: value.hasOwnProperty('returns') ? value.returns : '', postfix: postfix, template: template });					
+					values.push({ name: value[this.nameField], detail: value.description, description: value.hasOwnProperty('returns') ? value.returns : '', postfix: postfix, template: template, command: command });
 
 				}
 				else {
@@ -297,7 +308,7 @@ class bslHelper {
 							let postfix = '';
 							if (invalue.hasOwnProperty('postfix'))
 								postfix = invalue.postfix;
-							values.push({ name: inkey, detail: '', description: '', postfix: postfix, template: '' });
+							values.push({ name: inkey, detail: '', description: '', postfix: postfix, template: '', command: null });
 						}
 
 					}
@@ -312,7 +323,8 @@ class bslHelper {
 							insertText: value.template ? value.template : value.name + value.postfix,
 							insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
 							detail: value.detail,
-							documentation: value.description
+							documentation: value.description,
+							command: value.command
 						});
 					}
 				})
@@ -375,7 +387,7 @@ class bslHelper {
 				if (mvalue.hasOwnProperty('ref'))
 					ref = mvalue.ref;
 
-				if (ref || signatures) {
+				if (ref || signatures.length) {
 					// If the attribute contains a ref, we need to run the command to save the position of ref
 					command = { id: 'vs.editor.ICodeEditor:1:saveref', arguments: [{ "name": mvalue[this.nameField], "data": { "ref": ref, "sig": signatures } }] }
 				}
@@ -462,6 +474,9 @@ class bslHelper {
 					// 1C does not support positive/negative lookbehind yet
 					//match = this.model.findPreviousMatch('(?<!\\/\\/.*)' + this.lastRawExpression + '\\s?=\\s?.*\\.([^.]*?)\\s?(?:;|\\()', this.position, true, false, null, true);
 					match = this.model.findPreviousMatch(this.lastRawExpression + '\\s?=\\s?.*\\.([^.]*?)\\s?(?:;|\\()', this.position, true, false, null, true);
+
+					if (!match)
+						match = this.model.findPreviousMatch(this.lastRawExpression + '\\s?=\\s?([a-zA-Z0-9\u0410-\u044F_]+)\\(', this.position, true, false, null, true);
 			
 					if (match) {
 
@@ -554,7 +569,7 @@ class bslHelper {
 				if (mvalue.hasOwnProperty('ref'))
 					ref = mvalue.ref;
 
-				if (ref || signatures) {					
+				if (ref || signatures.length) {					
 					// If the attribute contains a ref, we need to run the command to save the position of ref
 					command = { id: 'vs.editor.ICodeEditor:1:saveref', arguments: [{ "name": mvalue[this.nameField], "data": { "ref": ref, "sig": signatures } }] };
 				}
@@ -577,6 +592,11 @@ class bslHelper {
 
 			for (const [pkey, pvalue] of Object.entries(obj.properties)) {
 				
+				let command = null;
+								
+				if (pvalue.hasOwnProperty('ref'))
+					command = { id: 'vs.editor.ICodeEditor:1:saveref', arguments: [{ "name": pvalue[this.nameField], "data": { "ref": pvalue.ref, "sig": null } }] };
+
 				suggestions.push({
 					label: pvalue[this.nameField],
 					kind: monaco.languages.CompletionItemKind.Field,
@@ -584,7 +604,7 @@ class bslHelper {
 					insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
 					detail: pvalue.description,
 					documentation: '',
-					command: null
+					command: command
 				});
 
 			}
