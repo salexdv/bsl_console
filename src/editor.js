@@ -120,6 +120,26 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     return bsl.findText(string);
   }
 
+  init = function(version1C) {
+
+    const actions = getActions(version1C);
+
+    for (const [action_id, action] of Object.entries(actions)) {
+      editor.addAction({
+        id: action_id,
+        label: action.label,
+        keybindings: [action.key, action.cmd],
+        precondition: null,
+        keybindingContext: null,
+        contextMenuGroupId: 'navigation',
+        contextMenuOrder: action.order,
+        run: action.callback
+      });
+  
+    }
+
+  }
+
   // Register a new language
   monaco.languages.register({ id: language.id });
 
@@ -180,7 +200,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     contextmenu: true
   });
   
-  for (const [action_id, action] of Object.entries(actions)) {
+  for (const [action_id, action] of Object.entries(permanentActions)) {
     editor.addAction({
       id: action_id,
       label: action.label,

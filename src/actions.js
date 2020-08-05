@@ -1,27 +1,40 @@
 define(['vs/editor/editor.main'], function () {
 
-    actions = {
-        copy_bsl: {
-            label: 'Копировать',
-            key: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_C,
-            cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_C),
-            order: 1.1,
-            callback: function (ed) {
-                selectionText = editor.getModel().getValueInRange(editor.getSelection());
-                return null;
-            }
-        },
-        paste_bsl: {
-            label: 'Вставить',
-            key: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_V,
-            cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_V),
-            order: 1.2,
-            callback: function (ed) {                
-                setText(selectionText, null, false);
-                return null;
-            }
-        },
-        query_bsl: {
+    getActions = function(version1C) {
+
+        let actions = {};
+        let overrideCopyPaste = true;
+
+        const verArray = version1C.split('.');
+
+        if (3 < verArray.length) {
+            overrideCopyPaste = !((8 <= parseInt(verArray[0])) && (3 <= parseInt(verArray[1])) && (18 <= parseInt(verArray[2])));
+        }
+
+        if (overrideCopyPaste) {
+            actions.copy_bsl = {
+                label: 'Копировать',
+                key: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_C,
+                cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_C),
+                order: 1.1,
+                callback: function (ed) {
+                    selectionText = editor.getModel().getValueInRange(editor.getSelection());
+                    return null;
+                }
+            };            
+            actions.paste_bsl = {
+                label: 'Вставить',
+                key: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_V,
+                cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_V),
+                order: 1.2,
+                callback: function (ed) {                
+                    setText(selectionText, null, false);
+                    return null;
+                }
+            };            
+        }
+
+        actions.query_bsl = {
             label: 'Конструктор запроса...',
             key: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_D,
             cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_D),
@@ -30,8 +43,9 @@ define(['vs/editor/editor.main'], function () {
                 sendEvent('EVENT_QUERY_CONSTRUCT', getQuery());
                 return null;
             }
-        },
-        formatstr_bsl: {
+        };        
+        
+        actions.formatstr_bsl = {
             label: 'Конструктор форматной строки...',
             key: null,
             cmd: null,
@@ -40,8 +54,9 @@ define(['vs/editor/editor.main'], function () {
                 sendEvent('EVENT_FORMAT_CONSTRUCT', getFormatString());
                 return null;
             }
-        },
-        comment_bsl: {
+        };        
+
+        actions.comment_bsl = {
             label: 'Добавить комментарий',
             key: monaco.KeyMod.CtrlCmd | monaco.KeyCode.NUMPAD_DIVIDE,
             cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.NUMPAD_DIVIDE),
@@ -50,8 +65,9 @@ define(['vs/editor/editor.main'], function () {
                 addComment();
                 return null;
             }
-        },
-        uncomment_bsl: {
+        };        
+
+        actions.uncomment_bsl = {
             label: 'Удалить комментарий',
             key: monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.NUMPAD_DIVIDE,
             cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.NUMPAD_DIVIDE),
@@ -60,7 +76,13 @@ define(['vs/editor/editor.main'], function () {
                 removeComment();
                 return null;
             }
-        },
+        };  
+        
+        return actions;
+
+    }
+
+    permanentActions = {
         saveref: {
             label: 'Сохранение ссылки, на которую указывает конкретная позиция',
             description: 'Служебное действие. Используется для подсказки любых ссылочных реквизитов через точку',
