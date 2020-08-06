@@ -469,7 +469,8 @@ class bslHelper {
 
 					
 				}
-				else {
+
+				if (!suggestions.length) {
 					
 					// 1C does not support positive/negative lookbehind yet
 					//match = this.model.findPreviousMatch('(?<!\\/\\/.*)' + this.lastRawExpression + '\\s?=\\s?.*\\.([^.]*?)\\s?(?:;|\\()', this.position, true, false, null, true);
@@ -1078,7 +1079,9 @@ class bslHelper {
 						if (!this.getMetadataCompletition(suggestions, bslMetadata)) {
 
 							this.getRefCompletition(suggestions);
-							this.getVariablesCompetition(suggestions);
+
+							if (!suggestions.length)
+								this.getVariablesCompetition(suggestions);
 
 							this.getCommonCompletition(suggestions, bslGlobals.keywords, monaco.languages.CompletionItemKind.Keyword.ru, true);
 							this.getCommonCompletition(suggestions, bslGlobals.keywords, monaco.languages.CompletionItemKind.Keyword.en, true);
