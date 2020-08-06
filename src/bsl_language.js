@@ -36,6 +36,7 @@ define([], function () {
             // The main tokenizer for our languages
             tokenizer: {
                 root: [
+                    [/(\.)(выполнить)(\(?)/, ['delimiter', 'identifier', 'delimiter.parenthesis']],
                     [/[a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]*/, { cases: { '@keywords': 'keyword', '@default': 'identifier' } }],
                     // whitespace
                     { include: '@whitespace' },
