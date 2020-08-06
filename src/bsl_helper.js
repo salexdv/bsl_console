@@ -456,7 +456,7 @@ class bslHelper {
 		
 		if (match) {
 
-			const position = new monaco.Position(match.range.startLineNumber, match.range.startColumn);
+			let position = new monaco.Position(match.range.startLineNumber, match.range.startColumn);
 
 			if (position.lineNumber = this.lineNumber) {
 
@@ -473,17 +473,34 @@ class bslHelper {
 					
 					// 1C does not support positive/negative lookbehind yet
 					//match = this.model.findPreviousMatch('(?<!\\/\\/.*)' + this.lastRawExpression + '\\s?=\\s?.*\\.([^.]*?)\\s?(?:;|\\()', this.position, true, false, null, true);
+					
+					// This also does not work inside 1C
+					/*
 					match = this.model.findPreviousMatch(this.lastRawExpression + '\\s?=\\s?.*\\.([^.]*?)\\s?(?:;|\\()', this.position, true, false, null, true);
-
 					if (!match)
 						match = this.model.findPreviousMatch(this.lastRawExpression + '\\s?=\\s?([a-zA-Z0-9\u0410-\u044F_]+)\\(', this.position, true, false, null, true);
+					*/
+					
+					// So we have to use 2 rexep to detect last function`s (field`s) reference
+					match = this.model.findPreviousMatch(this.lastRawExpression + '\\s?=\\s?.*', this.position, true, false, null, true);					
 			
 					if (match) {
 
-						lineContextData = contextData.get(match.range.startLineNumber);
+						position = new monaco.Position(match.range.endLineNumber, match.range.endColumn);
 
-						if (lineContextData) 
-							this.getRefSuggestions(suggestions, lineContextData.get(match.matches[match.matches.length - 1]));						
+						match = this.model.findPreviousMatch('\\.([^.]*?)\\s?(?:;|\\()', position, true, false, null, true);					
+
+						if (!match)
+							match = this.model.findPreviousMatch('([a-zA-Z0-9\u0410-\u044F_]+)\\(', position, true, false, null, true);
+
+						if (match) {
+
+							lineContextData = contextData.get(match.range.startLineNumber);
+
+							if (lineContextData) 
+								this.getRefSuggestions(suggestions, lineContextData.get(match.matches[match.matches.length - 1]));
+								
+						}
 
 					}
 				}
@@ -1008,6 +1025,39 @@ class bslHelper {
 
 	}
 
+	
+	/**
+	 * Fills array of completition for variables
+	 * 
+	 * @param {array} suggestions array of suggestions for provideCompletionItems
+	 */
+	getVariablesCompetition(suggestions) {
+
+		const matches = this.model.findMatches('([a-zA-Z0-9\u0410-\u044F_]+)\\s?=\\s?.*(?:;|\\()\\s*$', true, true, false, null, true);
+
+		for (let idx = 0; idx < matches.length; idx++) {
+
+			let match = matches[idx];
+
+			if (match.range.startLineNumber < this.lineNumber) {
+
+				let varName = match.matches[match.matches.length - 1];			
+
+				if (varName.toLowerCase().startsWith(this.word)) {
+					suggestions.push({
+						label: varName,
+						kind: monaco.languages.CompletionItemKind.Variable,
+						insertText: varName,
+						insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet					
+					});
+				}
+
+			}
+
+		}
+
+	}
+
 	/**
 	 * Completition provider
 	 * 
@@ -1028,6 +1078,7 @@ class bslHelper {
 						if (!this.getMetadataCompletition(suggestions, bslMetadata)) {
 
 							this.getRefCompletition(suggestions);
+							this.getVariablesCompetition(suggestions);
 
 							this.getCommonCompletition(suggestions, bslGlobals.keywords, monaco.languages.CompletionItemKind.Keyword.ru, true);
 							this.getCommonCompletition(suggestions, bslGlobals.keywords, monaco.languages.CompletionItemKind.Keyword.en, true);
