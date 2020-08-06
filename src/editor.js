@@ -140,6 +140,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  enableQuickSuggestions = function (enabled) {
+
+    editor.updateOptions({ quickSuggestions: enabled });
+
+  }
+
   // Register a new language
   monaco.languages.register({ id: language.id });
 
