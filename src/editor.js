@@ -146,6 +146,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  minimap = function (enabled) {
+
+    editor.updateOptions({ minimap: { enabled: enabled } });
+    
+  }
+
   // Register a new language
   monaco.languages.register({ id: language.id });
 

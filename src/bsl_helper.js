@@ -787,8 +787,15 @@ class bslHelper {
 		if (exp) {
 
 			let fullText = this.getFullTextBeforePosition();
-			let regex = new RegExp(exp + '\\s?=\\s?(.*)\\(.*\\);', 'gi');
-			regex = regex.exec(fullText);
+			let regex = null
+			
+			try {
+				regex = new RegExp(exp + '\\s?=\\s?(.*)\\(.*\\);', 'gi');
+				regex = regex.exec(fullText);
+			}
+			catch (e) {
+				regex = null;
+			}			
 			
 			if (regex && 1 < regex.length) {
 
