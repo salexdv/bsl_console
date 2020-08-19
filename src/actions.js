@@ -97,7 +97,7 @@ define(['vs/editor/editor.main'], function () {
                         contextData.set(position.lineNumber, new Map());
                     }
                     lineContextData = contextData.get(position.lineNumber);
-                    lineContextData.set(obj.name, obj.data);
+                    lineContextData.set(obj.name.toLowerCase(), obj.data);
                 }
                 return null;
             }

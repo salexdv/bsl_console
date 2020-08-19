@@ -465,8 +465,10 @@ class bslHelper {
 				if (lineContextData) {
 
 					let wordUntil = this.model.getWordUntilPosition(position);
-					this.getRefSuggestions(suggestions, lineContextData.get(wordUntil.word))
-
+					if (wordUntil.word)
+						this.getRefSuggestions(suggestions, lineContextData.get(wordUntil.word.toLowerCase()))
+					else if (this.lastOperator == ')')
+						this.getRefSuggestions(suggestions, lineContextData.get(this.lastRawExpression))
 					
 				}
 
@@ -499,7 +501,7 @@ class bslHelper {
 							lineContextData = contextData.get(match.range.startLineNumber);
 
 							if (lineContextData) 
-								this.getRefSuggestions(suggestions, lineContextData.get(match.matches[match.matches.length - 1]));
+								this.getRefSuggestions(suggestions, lineContextData.get(match.matches[match.matches.length - 1].toLowerCase()));
 								
 						}
 
@@ -1079,38 +1081,41 @@ class bslHelper {
 
 			if (this.lastOperator != '"') {
 
-				if (!this.getClassCompletition(suggestions, bslGlobals.classes)) {
+				this.getRefCompletition(suggestions);
 
-					if (!this.getClassCompletition(suggestions, bslGlobals.systemEnum)) {
+				if (!suggestions.length) {
 
-						if (!this.getMetadataCompletition(suggestions, bslMetadata)) {
+					if (!this.getClassCompletition(suggestions, bslGlobals.classes)) {
 
-							this.getRefCompletition(suggestions);
+						if (!this.getClassCompletition(suggestions, bslGlobals.systemEnum)) {
 
-							if (!suggestions.length)
-								this.getVariablesCompetition(suggestions);
+							if (!this.getMetadataCompletition(suggestions, bslMetadata)) {
 
-							this.getCommonCompletition(suggestions, bslGlobals.keywords, monaco.languages.CompletionItemKind.Keyword.ru, true);
-							this.getCommonCompletition(suggestions, bslGlobals.keywords, monaco.languages.CompletionItemKind.Keyword.en, true);
+								if (!suggestions.length)
+									this.getVariablesCompetition(suggestions);
 
-							if (this.requireClass()) {
-								this.getCommonCompletition(suggestions, bslGlobals.classes, monaco.languages.CompletionItemKind.Constructor, false);
+								this.getCommonCompletition(suggestions, bslGlobals.keywords, monaco.languages.CompletionItemKind.Keyword.ru, true);
+								this.getCommonCompletition(suggestions, bslGlobals.keywords, monaco.languages.CompletionItemKind.Keyword.en, true);
+
+								if (this.requireClass()) {
+									this.getCommonCompletition(suggestions, bslGlobals.classes, monaco.languages.CompletionItemKind.Constructor, false);
+								}
+								else {
+									this.getCommonCompletition(suggestions, bslGlobals.globalfunctions, monaco.languages.CompletionItemKind.Function, true);
+									this.getCommonCompletition(suggestions, bslGlobals.globalvariables, monaco.languages.CompletionItemKind.Class, false);
+									this.getCommonCompletition(suggestions, bslGlobals.systemEnum, monaco.languages.CompletionItemKind.Enum, false);
+									this.getCommonCompletition(suggestions, bslGlobals.customFunctions, monaco.languages.CompletionItemKind.Function, true);
+									this.getCommonCompletition(suggestions, bslMetadata.commonModules, monaco.languages.CompletionItemKind.Module, true);
+									this.getCustomObjectsCompletition(suggestions, bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
+								}
+
+								this.getSnippets(suggestions, snippets);
+
 							}
-							else {
-								this.getCommonCompletition(suggestions, bslGlobals.globalfunctions, monaco.languages.CompletionItemKind.Function, true);
-								this.getCommonCompletition(suggestions, bslGlobals.globalvariables, monaco.languages.CompletionItemKind.Class, false);
-								this.getCommonCompletition(suggestions, bslGlobals.systemEnum, monaco.languages.CompletionItemKind.Enum, false);
-								this.getCommonCompletition(suggestions, bslGlobals.customFunctions, monaco.languages.CompletionItemKind.Function, true);
-								this.getCommonCompletition(suggestions, bslMetadata.commonModules, monaco.languages.CompletionItemKind.Module, true);
-								this.getCustomObjectsCompletition(suggestions, bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
-							}
-
-							this.getSnippets(suggestions, snippets);
 
 						}
 
 					}
-
 				}
 
 			}
@@ -1517,7 +1522,7 @@ class bslHelper {
 				if (lineContextData) {
 					
 					let wordUntil = this.model.getWordUntilPosition(position);
-					wordContext = lineContextData.get(wordUntil.word);
+					wordContext = lineContextData.get(wordUntil.word.toLowerCase());
 				
 					if (wordContext && wordContext.sig) {
 												

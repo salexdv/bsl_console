@@ -402,7 +402,7 @@ describe("Проверка автокомлита и подсказок реда
         bsl = helper('_ОстаткиТовара.Номенклатура.');
         let suggestions = [];
         contextData = new Map([
-          [1, new Map([["Номенклатура", { "ref": "catalogs.Товары", "sig": null }]])]
+          [1, new Map([["номенклатура", { "ref": "catalogs.Товары", "sig": null }]])]
         ]);
         bsl.getRefCompletition(suggestions);
         expect(suggestions).to.be.an('array').that.not.is.empty;
@@ -418,8 +418,8 @@ describe("Проверка автокомлита и подсказок реда
         bsl = helper('ОбъектЗапрос = Новый Запрос();\nРезультат = ОбъектЗапрос.Выполнить();\nТаблица = Результат.Выгрузить();\nТаблица.');
         let suggestions = [];        
         contextData = new Map([
-          [2, new Map([["Выполнить", { "ref": "types.РезультатЗапроса", "sig": null }]])],
-          [3, new Map([["Выгрузить", { "ref": "classes.ТаблицаЗначений", "sig": null }]])]
+          [2, new Map([["выполнить", { "ref": "types.РезультатЗапроса", "sig": null }]])],
+          [3, new Map([["выгрузить", { "ref": "classes.ТаблицаЗначений", "sig": null }]])]
         ]);        
         bsl.getRefCompletition(suggestions);
         expect(suggestions).to.be.an('array').that.not.is.empty;
@@ -439,8 +439,8 @@ describe("Проверка автокомлита и подсказок реда
           }
         };
         contextData = new Map([
-          [2, new Map([["Скопировать", { "ref": "classes.ТаблицаЗначений", "sig": null }]])],
-          [3, new Map([["ВыгрузитьКолонку", { "ref": "classes.Массив", "sig": signature }]])]
+          [2, new Map([["скопировать", { "ref": "classes.ТаблицаЗначений", "sig": null }]])],
+          [3, new Map([["выгрузитьколонку", { "ref": "classes.Массив", "sig": signature }]])]
         ]);        
         let help = bsl.getRefSigHelp();        
         expect(help).to.have.property('activeParameter');
@@ -451,11 +451,24 @@ describe("Проверка автокомлита и подсказок реда
         bsl = helper('Таблица = НайтиПоСсылкам();\nТаблица.');
         let suggestions = [];        
         contextData = new Map([
-          [1, new Map([["НайтиПоСсылкам", { "ref": "classes.ТаблицаЗначений", "sig": null }]])]          
+          [1, new Map([["найтипоссылкам", { "ref": "classes.ТаблицаЗначений", "sig": null }]])]          
         ]);        
         bsl.getRefCompletition(suggestions);
         expect(suggestions).to.be.an('array').that.not.is.empty;
         assert.equal(suggestions.some(suggest => suggest.label === "ВыгрузитьКолонку"), true);        
+        contextData = new Map();
+      });
+
+      it("проверка подсказки для таблицы, полученной из результата запроса в одну строку", function () {              	                                
+        bsl = helper('ОбъектЗапрос = Новый Запрос();\nТаблица = ОбъектЗапрос.Выполнить().Выгрузить().');
+        let suggestions = [];        
+        contextData = new Map([
+          [2, new Map([["выполнить", { "ref": "types.РезультатЗапроса", "sig": null }]])],
+          [2, new Map([["выгрузить", { "ref": "classes.ТаблицаЗначений", "sig": null }]])]
+        ]);        
+        bsl.getRefCompletition(suggestions);
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "Скопировать"), true);        
         contextData = new Map();
       });
 
