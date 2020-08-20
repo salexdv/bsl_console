@@ -30,6 +30,7 @@ define([], function () {
                 { token: 'query.commentbsl', foreground: '008000' }
             ],
             dark: [
+                { background: '1e1e1e' },
                 { token: 'commentbsl', foreground: '6A9955' },
                 { token: 'keywordbsl', foreground: '499caa' },
                 { token: 'delimiterbsl', foreground: 'd4d4d4' },
