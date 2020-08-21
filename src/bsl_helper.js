@@ -750,7 +750,7 @@ class bslHelper {
 								
 				if (pvalue.hasOwnProperty('ref')) {					
 					// If the attribute contains a ref, we need to run the command to save the position of ref
-					command = { id: 'vs.editor.ICodeEditor:1:saveref', arguments: [{'name': pkey, 'ref': pvalue.ref}]}
+					command = { id: 'vs.editor.ICodeEditor:1:saveref', arguments: [{'name': pkey, "data": { "ref": pvalue.ref, "sig": null } }]}
 				}
 
 				let detail = pvalue;
