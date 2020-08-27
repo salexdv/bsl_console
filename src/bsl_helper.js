@@ -540,7 +540,7 @@ class bslHelper {
 			}
 
 		}
-		else {
+		else if (word) {
 
 			for (const [key, value] of Object.entries(data)) {
 				
@@ -697,30 +697,34 @@ class bslHelper {
 		let className = '';
 		let exp = this.lastRawExpression;
 
-		// 1C does not support positive/negative lookbehind yet
-		// const match = this.model.findPreviousMatch('(?<!\\/\\/.*)' + exp + '\\s?=\\s?(?:new|новый)\\s+(.*?)(?:\\(|;)', this.position, true, false, null, true);		
-		const match = this.model.findPreviousMatch(exp + '\\s?=\\s?(?:new|новый)\\s+(.*?)(?:\\(|;)', this.position, true, false, null, true);
+		if (exp) {
 
-		if (match) {						
-			className = match.matches[match.matches.length - 1].toLowerCase();
-		}
-		else {			
-			className = exp;
-		}
-		
-		classExists = this.getClassCompletitionByName(suggestions, data, className);
+			// 1C does not support positive/negative lookbehind yet
+			// const match = this.model.findPreviousMatch('(?<!\\/\\/.*)' + exp + '\\s?=\\s?(?:new|новый)\\s+(.*?)(?:\\(|;)', this.position, true, false, null, true);		
+			const match = this.model.findPreviousMatch(exp + '\\s?=\\s?(?:new|новый)\\s+(.*?)(?:\\(|;)', this.position, true, false, null, true);
 
-		if (!classExists) {
-			let unclosed = this.unclosedString(this.textBeforePosition);
-			let regex = null;
-			if (unclosed.string)
-				regex = /(.+?)(?:\.(.*?))?\.?(?:\.(.*?))?\(?$/.exec(unclosed.string.slice(1));
-			else
-				regex = /(.+?)(?:\.(.*?))?\.?(?:\.(.*?))?\(?$/.exec(this.lastExpression);
-			className = regex && 1 < regex.length ? regex[1] : '';
-			if (!this.lastOperator && !this.hasWhitespace)
-				classExists = this.getClassCompletitionByName(suggestions, data, className);
-		}		
+			if (match) {						
+				className = match.matches[match.matches.length - 1].toLowerCase();
+			}
+			else {			
+				className = exp;
+			}
+			
+			classExists = this.getClassCompletitionByName(suggestions, data, className);
+
+			if (!classExists) {
+				let unclosed = this.unclosedString(this.textBeforePosition);
+				let regex = null;
+				if (unclosed.string)
+					regex = /(.+?)(?:\.(.*?))?\.?(?:\.(.*?))?\(?$/.exec(unclosed.string.slice(1));
+				else
+					regex = /(.+?)(?:\.(.*?))?\.?(?:\.(.*?))?\(?$/.exec(this.lastExpression);
+				className = regex && 1 < regex.length ? regex[1] : '';
+				if (!this.lastOperator && !this.hasWhitespace)
+					classExists = this.getClassCompletitionByName(suggestions, data, className);
+			}
+
+		}
 
 		return classExists;
 
