@@ -1066,6 +1066,30 @@ class bslHelper {
 
 		}
 
+		const funcDef = editor.getModel().findPreviousMatch('(?:процедура|функция)\\s+[a-zA-Z0-9\u0410-\u044F_]+\\(([a-zA-Z0-9\u0410-\u044F_,\\s=]+)\\)', true, true, false, null, true);
+
+		if (funcDef && 1 < funcDef.matches.length) {
+			
+			const params = funcDef.matches[1].split(',');
+			let word = this.word;
+
+			params.forEach(function(param){
+				
+				let paramName = param.split('=')[0].trim();
+				
+				if (paramName.toLowerCase().startsWith(word)) {
+					suggestions.push({
+						label: paramName,
+						kind: monaco.languages.CompletionItemKind.Variable,
+						insertText: paramName,
+						insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet					
+					});
+				}
+
+			});
+
+		}
+
 	}
 
 	/**

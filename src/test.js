@@ -472,6 +472,14 @@ describe("Проверка автокомлита и подсказок реда
         contextData = new Map();
       });
 
+      it("проверка подсказки переменных из параметров функции", function () {              	                                
+        bsl = helper('Функция МояФункция(Парам1, Парам2, Парам3)\nПар');        
+        let suggestions = [];
+        bsl.getVariablesCompetition(suggestions);
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "Парам1"), true);
+      });
+
     }
 
     mocha.run();
