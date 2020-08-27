@@ -1043,50 +1043,54 @@ class bslHelper {
 	 */
 	getVariablesCompetition(suggestions) {
 
-		const matches = this.model.findMatches('([a-zA-Z0-9\u0410-\u044F_]+)\\s?=\\s?.*(?:;|\\()\\s*$', true, true, false, null, true);
+		if (this.word) {
 
-		for (let idx = 0; idx < matches.length; idx++) {
+			const matches = this.model.findMatches('([a-zA-Z0-9\u0410-\u044F_]+)\\s?=\\s?.*(?:;|\\()\\s*$', true, true, false, null, true);
 
-			let match = matches[idx];
+			for (let idx = 0; idx < matches.length; idx++) {
 
-			if (match.range.startLineNumber < this.lineNumber) {
+				let match = matches[idx];
 
-				let varName = match.matches[match.matches.length - 1];			
+				if (match.range.startLineNumber < this.lineNumber) {
 
-				if (varName.toLowerCase().startsWith(this.word)) {
-					suggestions.push({
-						label: varName,
-						kind: monaco.languages.CompletionItemKind.Variable,
-						insertText: varName,
-						insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet					
-					});
+					let varName = match.matches[match.matches.length - 1];			
+
+					if (varName.toLowerCase().startsWith(this.word)) {
+						suggestions.push({
+							label: varName,
+							kind: monaco.languages.CompletionItemKind.Variable,
+							insertText: varName,
+							insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet					
+						});
+					}
+
 				}
 
 			}
 
-		}
+			const funcDef = editor.getModel().findPreviousMatch('(?:процедура|функция)\\s+[a-zA-Z0-9\u0410-\u044F_]+\\(([a-zA-Z0-9\u0410-\u044F_,\\s=]+)\\)', true, true, false, null, true);
 
-		const funcDef = editor.getModel().findPreviousMatch('(?:процедура|функция)\\s+[a-zA-Z0-9\u0410-\u044F_]+\\(([a-zA-Z0-9\u0410-\u044F_,\\s=]+)\\)', true, true, false, null, true);
-
-		if (funcDef && 1 < funcDef.matches.length) {
-			
-			const params = funcDef.matches[1].split(',');
-			let word = this.word;
-
-			params.forEach(function(param){
+			if (funcDef && 1 < funcDef.matches.length) {
 				
-				let paramName = param.split('=')[0].trim();
-				
-				if (paramName.toLowerCase().startsWith(word)) {
-					suggestions.push({
-						label: paramName,
-						kind: monaco.languages.CompletionItemKind.Variable,
-						insertText: paramName,
-						insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet					
-					});
-				}
+				const params = funcDef.matches[1].split(',');
+				let word = this.word;
 
-			});
+				params.forEach(function(param){
+					
+					let paramName = param.split('=')[0].trim();
+					
+					if (paramName.toLowerCase().startsWith(word)) {
+						suggestions.push({
+							label: paramName,
+							kind: monaco.languages.CompletionItemKind.Variable,
+							insertText: paramName,
+							insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet					
+						});
+					}
+
+				});
+
+			}
 
 		}
 
