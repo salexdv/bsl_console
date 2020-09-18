@@ -6,6 +6,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   engLang = false;
   decorations = [];
   contextData = new Map();
+  generateModificationEvent = false;
 
   sendEvent = function(eventName, eventParams) {
 
@@ -152,6 +153,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     
   }
 
+  enableModificationEvent = function (enabled) {
+
+    generateModificationEvent = enabled;
+
+  }
+
   // Register a new language
   monaco.languages.register({ id: language.id });
 
@@ -225,5 +232,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     });
 
   }
+
+  editor.onDidChangeModelContent(e => {
+    
+    if (generateModificationEvent)
+      sendEvent('EVENT_CONTENT_CHANGED', '');
+      
+  });
 
 });
