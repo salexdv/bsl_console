@@ -1898,7 +1898,7 @@ class bslHelper {
    	*/
 	getFormatString() {
 
-		const matches = this.model.findMatches("\"(.*?)\"", false, true, false, null, true)
+		const matches = this.model.findMatches('"(.+)?"', false, true, false, null, true)
 
 		let idx = 0;
 		let match = null;
