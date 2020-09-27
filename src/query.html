@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>BSL-editor</title>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8">  
+  <link href="./decorations.css" rel="stylesheet">
+  <style>
+    html,
+    body {
+      height: 100%;
+      margin: 0px;
+    }
+    #container {
+      height: 100%;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="container"></div>  
+
+  <script>
+    function getCode() {
+      setTimeout(function() {
+        setTheme('bsl-white-query');
+      }, 1000);      
+      return [        
+        'ВЫБРАТЬ',
+        '	АвансовыйОтчет.ВалютаДокумента КАК ВалютаДокумента,',
+        '	АвансовыйОтчет.ВидОперации КАК ВидОперации,',
+        '	АвансовыйОтчет.Комментарий КАК Комментарий,',
+        '	АвансовыйОтчет.КурсДокумента КАК КурсДокумента,',
+        '	"ИСТИНА" КАК Поле1,',
+        '	ВЫБОР',
+        '		КОГДА АвансовыйОтчет.ФизЛицо = ЗНАЧЕНИЕ(Справочник.ФизическиеЛица.ПустаяСсылка)',
+        '			ТОГДА ИСТИНА',
+        '		ИНАЧЕ "ЛОЖЬ"',
+        '	КОНЕЦ КАК Поле2',
+        'ИЗ',
+        '	Документ.АвансовыйОтчет КАК АвансовыйОтчет',        
+        'ГДЕ',
+        ' АвансовыйОтчет.Ссылка = &Ссылка',
+      ].join('\n');      
+    }
+  </script>
+  <script src="./vs/loader.js"></script>
+  <script src="./bsl_helper.js"></script>
+  <script src="./init.js"></script>
+
+</body>
+
+</html>
