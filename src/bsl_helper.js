@@ -417,28 +417,34 @@ class bslHelper {
 	getRefSuggestions(suggestions, wordContext) {
 
 		if (wordContext && wordContext.ref) {
-									
-			let refArray = wordContext.ref.split('.');
 			
-			if (refArray.length == 2) {
+			let arrRefs = wordContext.ref.split(',');
+						
+			for (let i = 0; i < arrRefs.length; i++) {
+			
+				let refArray = arrRefs[i].trim().split('.');
 
-				let itemName = refArray[0];
-				let subItemName = refArray[1];
+				if (refArray.length == 2) {
 
-				if (itemName == 'classes' || itemName == 'types') {
-					if (this.objectHasProperties(bslGlobals, itemName, subItemName)) {
-						this.getClassSuggestions(suggestions, bslGlobals[itemName][subItemName]);
+					let itemName = refArray[0];
+					let subItemName = refArray[1];
+
+					if (itemName == 'classes' || itemName == 'types') {
+						if (this.objectHasProperties(bslGlobals, itemName, subItemName)) {
+							this.getClassSuggestions(suggestions, bslGlobals[itemName][subItemName]);
+						}
 					}
-				}
-				else {
-				
-					if (this.objectHasProperties(bslMetadata, itemName, 'items', subItemName, 'properties')) {
-						this.fillSuggestionsForMetadataItem(suggestions, bslMetadata[itemName].items[subItemName]);
-						this.getMetadataMethods(suggestions, bslMetadata[itemName], 'refMethods');
+					else {
+
+						if (this.objectHasProperties(bslMetadata, itemName, 'items', subItemName, 'properties')) {
+							this.fillSuggestionsForMetadataItem(suggestions, bslMetadata[itemName].items[subItemName]);
+							this.getMetadataMethods(suggestions, bslMetadata[itemName], 'refMethods');
+						}
+
 					}
 
 				}
-											
+
 			}
 		}
 

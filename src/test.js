@@ -480,6 +480,18 @@ describe("Проверка автокомлита и подсказок реда
         assert.equal(suggestions.some(suggest => suggest.label === "Парам1"), true);
       });
 
+      it("проверка подсказки для реквизитов составного типа", function () {              	                                
+        bsl = helper('_ОстаткиТовара.Номенклатура.');
+        let suggestions = [];
+        contextData = new Map([
+          [1, new Map([["номенклатура", { "ref": "catalogs.Товары, documents.ПриходнаяНакладная", "sig": null }]])]
+        ]);
+        bsl.getRefCompletition(suggestions);
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "СтавкаНДС") && suggestions.some(suggest => suggest.label === "СуммаДокумента"), true);
+        contextData = new Map();
+      });
+
     }
 
     mocha.run();
