@@ -183,6 +183,22 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  addContextMenuItem = function(label, eventName) {
+
+    let id = new Date().getTime().toString();
+    editor.addAction({
+      id: id + "_bsl",
+      label: label,
+      contextMenuGroupId: 'navigation',
+      contextMenuOrder: id,
+      run: function () {     
+          sendEvent(eventName, "");
+          return null;
+      }
+    });
+
+  }
+
   // Register a new language
   monaco.languages.register({ id: language.id });
 
