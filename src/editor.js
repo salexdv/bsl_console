@@ -7,6 +7,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   decorations = [];
   contextData = new Map();
   generateModificationEvent = false;
+  readOnlyMode = false;
 
   sendEvent = function(eventName, eventParams) {
 
@@ -19,6 +20,28 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   setText = function(txt, range, usePadding) {
 
     bslHelper.setText(txt, range, usePadding);    
+
+  }
+
+  updateText = function(txt, range, usePadding) {
+
+    readOnly = readOnlyMode;
+    modEvent = generateModificationEvent;
+    
+    if (readOnly)
+      setReadOnly(false);
+
+    if (modEvent)    
+      enableModificationEvent(false);
+
+    eraseText();
+    setText(txt, range, usePadding);
+
+    if (modEvent)    
+      enableModificationEvent(true);
+
+    if (readOnly)
+      setReadOnly(true);
 
   }
 
@@ -74,6 +97,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   setReadOnly = function (readOnly) {
 
+    readOnlyMode = readOnly;
     editor.updateOptions({ readOnly: readOnly })
     
   }
