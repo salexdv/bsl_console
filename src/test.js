@@ -492,6 +492,16 @@ describe("Проверка автокомлита и подсказок реда
         contextData = new Map();
       });
 
+      it("проверка подсказки ключевых слов запроса", function () {                                               
+        switchQueryMode();        
+        bsl = helper('Выра');        
+        let suggestions = bsl.getQueryCompletition(languages.query.languageDef);
+        expect(suggestions).to.be.an('object');
+        expect(suggestions.suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.suggestions.some(suggest => suggest.label === "ВЫРАЗИТЬ"), true);        
+        switchQueryMode();
+      });
+
     }
 
     mocha.run();

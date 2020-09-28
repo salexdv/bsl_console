@@ -1171,6 +1171,52 @@ class bslHelper {
 	}
 
 	/**
+	 * Completition provider for query language
+	 * 
+	 * @param {object} langDef - query language definition
+	 * 
+	 * @returns {array} array of completition
+	 */
+	getQueryCompletition(langDef) {
+
+		let suggestions = [];
+		let word = this.word;
+
+		if (word) {
+
+			let values = []
+
+			for (const [key, keyword] of Object.entries(langDef.rules.keywords)) {
+				values.push(keyword);
+			}
+
+			for (const [key, keyword] of Object.entries(langDef.rules.expressions)) {
+				values.push(keyword);
+			}
+
+			values.forEach(function (value) {
+
+				if (value.toLowerCase().startsWith(word)) {
+					suggestions.push({
+						label: value.toUpperCase(),
+						kind: monaco.languages.CompletionItemKind.Function,
+						insertText: value.toUpperCase(),
+						insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet						
+					});
+				}
+
+			});
+
+		}
+
+		if (suggestions.length)
+			return { suggestions: suggestions }
+		else
+			return [];
+
+	}
+
+	/**
 	 * Returns array of parametrs as described in JSON-dictionary
 	 * for current node (method)
 	 *  

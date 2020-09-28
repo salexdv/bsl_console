@@ -87,7 +87,7 @@ define([], function () {
         }
     }
 
-    language = {
+    let bsl_language = {
 
         id: 'bsl',
         rules: {
@@ -266,7 +266,7 @@ define([], function () {
         }        
     }
 
-    query_language = {
+    let query_language = {
 
         id: 'bsl_query',
         rules: {
@@ -309,7 +309,58 @@ define([], function () {
                 ]
             },
         },        
-        themes: language.themes        
+        themes: bsl_language.themes        
     }
+
+    languages = {
+        bsl: {
+            languageDef: bsl_language,
+            completionProvider: {
+                triggerCharacters: ['.', '"'],
+                provideCompletionItems: function (model, position) {
+                    let bsl = new bslHelper(model, position);
+                    return bsl.getCompletition();
+                }
+            },
+            foldingProvider: {
+                provideFoldingRanges: function (model, context, token) {
+                    return bslHelper.getFoldingRanges(model);
+                }
+            },
+            signatureProvider: {
+                signatureHelpTriggerCharacters: ['(', ','],
+                signatureHelpRetriggerCharacters: [')'],
+                provideSignatureHelp: (model, position) => {
+                    let bsl = new bslHelper(model, position);
+                    return bsl.getSigHelp();
+                }
+            },
+            hoverProvider: {
+                provideHover: function (model, position) {
+                    let bsl = new bslHelper(model, position);
+                    return bsl.getHover();
+                }
+            }
+        },
+        query: {
+            languageDef: query_language,
+            completionProvider: {
+                triggerCharacters: ['.', '"'],
+                provideCompletionItems: function (model, position) {
+                    let bsl = new bslHelper(model, position);
+                    return bsl.getQueryCompletition(query_language);
+                }
+            },
+            foldingProvider: {
+                provideFoldingRanges: () => {}
+            },
+            signatureProvider: {
+                provideSignatureHelp: () => {}
+            },
+            hoverProvider: {
+                provideHover: () => {}
+            }
+        }
+    };
 
 });

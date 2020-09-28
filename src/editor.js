@@ -8,6 +8,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   contextData = new Map();
   generateModificationEvent = false;
   readOnlyMode = false;
+  queryMode = false;
 
   sendEvent = function(eventName, eventParams) {
 
@@ -199,65 +200,54 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
-  // Register a new language
-  monaco.languages.register({ id: language.id });
+  switchQueryMode = function() {
+    
+    queryMode = !queryMode;
 
-  // Register a tokens provider for the language
-  monaco.languages.setMonarchTokensProvider(language.id, language.rules);
+    if (queryMode) {
+      monaco.editor.setModelLanguage(editor.getModel(), "bsl_query");
+      setTheme('bsl-white-query');
+    }      
+    else
+      monaco.editor.setModelLanguage(editor.getModel(), "bsl");
 
-
-  // Register a completion item provider for the new language
-  monaco.languages.registerCompletionItemProvider(language.id, {
-
-    triggerCharacters: ['.', '"'],
-
-    provideCompletionItems: function (model, position) {
-      let bsl = new bslHelper(model, position);
-      return bsl.getCompletition();
-    }
-
-  });
-
-  monaco.languages.registerFoldingRangeProvider(language.id, {
-
-    provideFoldingRanges: function (model, context, token) {
-      return bslHelper.getFoldingRanges(model);
-    }
-
-  });
-
-  monaco.languages.registerSignatureHelpProvider(language.id, {
-
-    signatureHelpTriggerCharacters: ['(', ','],
-    signatureHelpRetriggerCharacters: [')'],
-
-    provideSignatureHelp: (model, position) => {
-      let bsl = new bslHelper(model, position);
-      return bsl.getSigHelp();
-    }
-
-  });
-
-  monaco.languages.registerHoverProvider(language.id, {
-
-    provideHover: function (model, position) {      
-      let bsl = new bslHelper(model, position);
-      return bsl.getHover();
-    }
-
-  });  
-
-  for (const [key, value] of Object.entries(language.themes)) {
-    monaco.editor.defineTheme(value.name, value);
-    monaco.editor.setTheme(value.name);
   }
 
-  editor = monaco.editor.create(document.getElementById("container"), {
-    theme: "bsl-white",
-    value: getCode(),
-    language: language.id,
-    contextmenu: true
-  });
+  editor = undefined;
+
+  // Register languages
+  for (const [key, lang] of Object.entries(languages)) {
+  
+    let language = lang.languageDef;
+
+    monaco.languages.register({ id: language.id });
+
+    // Register a tokens provider for the language
+    monaco.languages.setMonarchTokensProvider(language.id, language.rules);
+
+    // Register providers for the new language
+    monaco.languages.registerCompletionItemProvider(language.id, lang.completionProvider);
+    monaco.languages.registerFoldingRangeProvider(language.id, lang.foldingProvider);      
+    monaco.languages.registerSignatureHelpProvider(language.id, lang.signatureProvider);
+    monaco.languages.registerHoverProvider(language.id, lang.hoverProvider);    
+
+    if (!editor) {
+
+      for (const [key, value] of Object.entries(language.themes)) {
+        monaco.editor.defineTheme(value.name, value);
+        monaco.editor.setTheme(value.name);
+      }
+
+      editor = monaco.editor.create(document.getElementById("container"), {
+        theme: "bsl-white",
+        value: getCode(),
+        language: language.id,
+        contextmenu: true
+      });
+
+    }
+
+  };
   
   for (const [action_id, action] of Object.entries(permanentActions)) {
     editor.addAction({
