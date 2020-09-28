@@ -9,6 +9,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   generateModificationEvent = false;
   readOnlyMode = false;
   queryMode = false;
+  contextActions = [];
 
   sendEvent = function(eventName, eventParams) {
 
@@ -148,10 +149,15 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   init = function(version1C) {
 
+    contextActions.forEach(action => {
+      action.dispose();
+    });
+
     const actions = getActions(version1C);
 
     for (const [action_id, action] of Object.entries(actions)) {
-      editor.addAction({
+      
+      let menuAction = editor.addAction({
         id: action_id,
         label: action.label,
         keybindings: [action.key, action.cmd],
@@ -160,8 +166,9 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         contextMenuGroupId: 'navigation',
         contextMenuOrder: action.order,
         run: action.callback
-      });
-  
+      });      
+
+      contextActions.push(menuAction)
     }
 
   }

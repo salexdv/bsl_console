@@ -292,8 +292,7 @@ define([], function () {
             tokenPostfix: 'bsl',
             ignoreCase: true,            
             keywords: bsl_language.rules.queryWords,
-            expressions: bsl_language.rules.queryExp,
-            as : '\u041A\u0410\u041A',
+            expressions: bsl_language.rules.queryExp,            
             operators: /[=><+\-*\/%;,]+/,
             tokenizer: {
                 root: [
