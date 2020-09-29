@@ -551,7 +551,13 @@ class bslHelper {
 				for (const [ikey, ivalue] of Object.entries(value)) {
 					
 					if (ikey.toLowerCase() == objName) {
+						
 						this.fillSuggestionsForMetadataItem(suggestions, ivalue);
+						this.getMetadataMethods(suggestions, ivalue, 'methods');
+
+						if (ivalue.hasOwnProperty('ref'))
+							this.getRefSuggestions(suggestions, ivalue)
+
 					}
 					
 				}
