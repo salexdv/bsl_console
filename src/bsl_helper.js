@@ -1671,6 +1671,24 @@ class bslHelper {
 	}
 
 	/**
+	 * Signature help provider for query language
+	 * 
+	 * @returns {object} helper
+	 */
+	getQuerySigHelp() {
+		
+		if (this.lastOperator != ')') {
+			
+			let helper = this.getCommonSigHelp(bslQuery.functions);
+			
+			if (helper)
+				return new SignatureHelpResult(helper);
+
+		}
+
+	}
+
+	/**
 	 * Updates bslMetadata from JSON-string which
 	 * was received from 1C
 	 * 

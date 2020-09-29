@@ -367,7 +367,12 @@ define([], function () {
                 provideFoldingRanges: () => {}
             },
             signatureProvider: {
-                provideSignatureHelp: () => {}
+                signatureHelpTriggerCharacters: ['(', ','],
+                signatureHelpRetriggerCharacters: [')'],
+                provideSignatureHelp: (model, position) => {
+                    let bsl = new bslHelper(model, position);
+                    return bsl.getQuerySigHelp();
+                }
             },
             hoverProvider: {
                 provideHover: () => {}

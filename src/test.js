@@ -502,6 +502,14 @@ describe("Проверка автокомлита и подсказок реда
         switchQueryMode();
       });
 
+      it("проверка подсказки параметров для функции запроса", function () {                                               
+        switchQueryMode();
+        bsl = helper('РАЗНОСТЬДАТ(');
+        let help = bsl.getCommonSigHelp(bslQuery.functions);
+        expect(help).to.have.property('activeParameter');        
+        switchQueryMode();
+      });
+
     }
 
     mocha.run();
