@@ -1197,12 +1197,26 @@ class bslHelper {
 			values.forEach(function (value) {
 
 				if (value.toLowerCase().startsWith(word)) {
-					suggestions.push({
-						label: value.toUpperCase(),
-						kind: monaco.languages.CompletionItemKind.Function,
-						insertText: value.toUpperCase(),
-						insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet						
-					});
+
+					let expression = value.toUpperCase();
+
+					if (engLang) {
+						if (!/^[A-Za-z]*$/.test(expression))
+							expression = '';
+					}
+					else {
+						if (/^[A-Za-z]*$/.test(expression) && expression.indexOf('NULL') == -1)
+							expression = '';
+					}
+
+					if (expression) {
+						suggestions.push({
+							label: expression,
+							kind: monaco.languages.CompletionItemKind.Function,
+							insertText: expression,
+							insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet						
+						});
+					}
 				}
 
 			});
