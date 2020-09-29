@@ -263,6 +263,23 @@ class bslHelper {
 	}
 
 	/**
+	 * Removes from array of suggestions duplicated items
+	 * 
+	 * @returns {array} suggestions
+	 */
+	deleteSuggesstionsDuplicate(suggestions) {
+		
+		let i = 0;
+		while (i < suggestions.length) {					
+			if (suggestions.some(suggest => (suggest.label === suggestions[i].label && suggest != suggestions[i])))
+				suggestions.splice(i, 1)
+			else
+				i++;
+		}		
+
+	}
+
+	/**
 	 * Fills array of completition for language keywords, classes, global functions,
 	 * global variables and system enumarations
 	 * 
@@ -459,6 +476,10 @@ class bslHelper {
 				}
 
 			}
+
+			if (1 < arrRefs.length)
+				this.deleteSuggesstionsDuplicate(suggestions);
+			
 		}
 
 	}
