@@ -1171,15 +1171,15 @@ class bslHelper {
 	}
 
 	/**
-	 * Completition provider for query language
+	 * Fills array of completition for query language`s keywords
+	 * and expressions
 	 * 
-	 * @param {object} langDef - query language definition
-	 * 
-	 * @returns {array} array of completition
+	 * @param {array} suggestions array of suggestions for provideCompletionItems
+	 * @param {object} langDef query language definition
+	 * @param {CompletionItemKind} kind - monaco.languages.CompletionItemKind (class, function, constructor etc.)
 	 */
-	getQueryCompletition(langDef) {
+	getQueryCommonCompletition(suggestions, langDef, kind) {	
 
-		let suggestions = [];
 		let word = this.word;
 
 		if (word) {
@@ -1209,10 +1209,10 @@ class bslHelper {
 							expression = '';
 					}
 
-					if (expression) {
+					if (expression && !suggestions.some(suggest => suggest.label === expression)) {						
 						suggestions.push({
 							label: expression,
-							kind: monaco.languages.CompletionItemKind.Function,
+							kind: kind,
 							insertText: expression,
 							insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet						
 						});
@@ -1222,6 +1222,24 @@ class bslHelper {
 			});
 
 		}
+
+	}
+
+	/**
+	 * Completition provider for query language
+	 * 
+	 * @param {object} langDef - query language definition
+	 * 
+	 * @returns {array} array of completition
+	 */
+	getQueryCompletition(langDef) {
+
+		let suggestions = [];
+
+		if (this.lastOperator != '"')
+			this.getCommonCompletition(suggestions, bslQuery.functions, monaco.languages.CompletionItemKind.Function, true);
+
+		this.getQueryCommonCompletition(suggestions, langDef, monaco.languages.CompletionItemKind.Module);		
 
 		if (suggestions.length)
 			return { suggestions: suggestions }
