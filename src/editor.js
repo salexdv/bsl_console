@@ -9,6 +9,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   generateModificationEvent = false;
   readOnlyMode = false;
   queryMode = false;
+  version1C = '';
   contextActions = [];
 
   sendEvent = function(eventName, eventParams) {
@@ -147,7 +148,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     return bsl.findText(string);
   }
 
-  init = function(version1C) {
+  initContextMenuActions = function() {
 
     contextActions.forEach(action => {
       action.dispose();
@@ -170,6 +171,13 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
       contextActions.push(menuAction)
     }
+
+  }
+
+  init = function(version) {
+
+    version1C = version;
+    initContextMenuActions();
 
   }
 
@@ -217,6 +225,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     }      
     else
       monaco.editor.setModelLanguage(editor.getModel(), "bsl");
+
+    initContextMenuActions();
 
   }
 
