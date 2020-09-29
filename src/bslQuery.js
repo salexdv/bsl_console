@@ -425,6 +425,17 @@ define([], function () {
                     }
                 }
             }
+        },
+        "values" : {
+            "Справочник": {
+                "ref": "catalogs"
+            },
+            "Документ": {
+                "ref": "documents"
+            },
+            "Перечисление": {
+                "ref": "enums"
+            }
         }
     }
 });

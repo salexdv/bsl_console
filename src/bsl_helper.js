@@ -250,6 +250,19 @@ class bslHelper {
 	}
 
 	/**
+	 * Determines if string contain query value constructor (ЗНАЧЕНИЕ|VALUE)
+	 * 
+	 * 
+	 * @returns {bool}
+	 */
+	requireQueryValue() {
+
+		let exp = this.getFuncName();
+		return (exp == 'value' || exp == 'значение');
+
+	}
+
+	/**
 	 * Fills array of completition for language keywords, classes, global functions,
 	 * global variables and system enumarations
 	 * 
@@ -1171,6 +1184,123 @@ class bslHelper {
 	}
 
 	/**
+	 * Fills array of completition for query values	 
+	 * 
+	 * @param {array} suggestions array of suggestions for provideCompletionItems
+	 * @param {object} data objects from BSL-JSON dictionary
+	 * @param {CompletionItemKind} kind - monaco.languages.CompletionItemKind (class, function, constructor etc.)
+	 */
+	getQueryValuesCompletition(suggestions, data, kind) {
+
+		let expArray = this.getExpressioArray();
+
+		if (expArray) {
+
+			let regex = /\((.*?)\.(?:(.*?)\.)?/.exec(expArray[expArray.length - 1]);
+			let metadataName = regex && 1 < regex.length ? regex[1] : '';
+			let metadataItem = regex && 2 < regex.length ? regex[2] : '';			
+
+			for (const [key, value] of Object.entries(data)) {
+
+				if (!metadataName) {
+
+					let suggestion = {
+						label: key,
+						kind: kind,
+						insertText: key,
+						insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+					}
+
+					if (value.hasOwnProperty('ref')) {
+						suggestion.insertText += '.';
+						suggestion['command'] = { id: 'editor.action.triggerSuggest', title: 'suggest_type' };
+					}
+					else {
+						suggestion.insertText += '"';
+					}
+
+					suggestions.push(suggestion);
+
+				}
+				else {
+
+					if (key.toLowerCase() == metadataName) {
+
+						if (value.hasOwnProperty('ref') && bslMetadata.hasOwnProperty(value.ref) && bslMetadata[value.ref].hasOwnProperty('items')) {
+
+							if (metadataItem) {
+
+								for (const [mkey, mvalue] of Object.entries(bslMetadata[value.ref].items)) {
+
+									if (mkey.toLowerCase() == metadataItem) {
+
+										if (value.ref == 'enums' && mvalue.hasOwnProperty('properties')) {
+
+											for (const [ikey, ivalue] of Object.entries(bslMetadata[value.ref].items[mkey].properties)) {
+												suggestions.push({
+													label:  ikey,
+													kind: kind,
+													insertText: ikey + ')',
+													insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,											
+												});
+											}
+
+										}
+										else if (mvalue.hasOwnProperty('predefined')) {
+											
+											for (const [pkey, pvalue] of Object.entries(bslMetadata[value.ref].items[mkey].predefined)) {
+												suggestions.push({
+													label:  pkey,
+													kind: kind,
+													insertText: pkey + ')',
+													insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,											
+												});
+											}
+										}
+
+										let EmptyRef = engLang ? 'EmptyRef' : 'ПустаяСсылка';
+
+										suggestions.push({
+											label:  EmptyRef,
+											kind: kind,
+											insertText: EmptyRef + ')',
+											insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,											
+										});
+
+									}
+
+								}
+
+							}
+							else {
+
+
+								for (const [mkey, mvalue] of Object.entries(bslMetadata[value.ref].items)) {
+
+									suggestions.push({
+										label: mkey,
+										kind: kind,
+										insertText: mkey + '.',
+										insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+										command: { id: 'editor.action.triggerSuggest', title: 'suggest_type' }
+									});
+
+								}
+
+							}
+						}
+
+					}
+
+				}
+
+			}
+
+		}
+
+	}
+
+	/**
 	 * Fills array of completition for query language`s keywords
 	 * and expressions
 	 * 
@@ -1268,11 +1398,18 @@ class bslHelper {
 
 		let suggestions = [];
 
-		if (this.lastOperator != '"')
-			this.getCommonCompletition(suggestions, bslQuery.functions, monaco.languages.CompletionItemKind.Function, true);
+		if (!this.requireQueryValue()) {
 
-		this.getQueryCommonCompletition(suggestions, langDef, monaco.languages.CompletionItemKind.Module);		
-		this.getQueryParamsCompletition(suggestions, monaco.languages.CompletionItemKind.Enum);				
+			if (this.lastOperator != '"')
+				this.getCommonCompletition(suggestions, bslQuery.functions, monaco.languages.CompletionItemKind.Function, true);
+
+			this.getQueryCommonCompletition(suggestions, langDef, monaco.languages.CompletionItemKind.Module);		
+			this.getQueryParamsCompletition(suggestions, monaco.languages.CompletionItemKind.Enum);				
+
+		}
+		else {
+			this.getQueryValuesCompletition(suggestions, bslQuery.values, monaco.languages.CompletionItemKind.Enum);
+		}
 
 		if (suggestions.length)
 			return { suggestions: suggestions }
@@ -1728,7 +1865,7 @@ class bslHelper {
 	 */
 	getQuerySigHelp() {
 		
-		if (this.lastOperator != ')') {
+		if (this.lastOperator != ')' && !this.requireQueryValue()) {
 			
 			let helper = this.getCommonSigHelp(bslQuery.functions);
 			

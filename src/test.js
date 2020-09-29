@@ -510,6 +510,21 @@ describe("Проверка автокомлита и подсказок реда
         switchQueryMode();
       });
 
+      it("проверка подсказки для функции запроса ЗНАЧЕНИЕ", function () {                                               
+        switchQueryMode();
+        bsl = helper('ЗНАЧЕНИЕ(Справочник.Товары.');
+        let suggestions = bsl.getQueryCompletition(languages.query.languageDef);
+        expect(suggestions).to.be.an('object');
+        expect(suggestions.suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.suggestions.some(suggest => suggest.label === "Услуга") && suggestions.suggestions.some(suggest => suggest.label === "ПустаяСсылка"), true);
+        bsl = helper('ЗНАЧЕНИЕ(Перечисление.ТестовыйЭлемент.');
+        suggestions = bsl.getQueryCompletition(languages.query.languageDef);
+        expect(suggestions).to.be.an('object');
+        expect(suggestions.suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.suggestions.some(suggest => suggest.label === "Реквизит1"), true);
+        switchQueryMode();
+      });
+
     }
 
     mocha.run();

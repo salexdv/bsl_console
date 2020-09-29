@@ -357,7 +357,7 @@ define([], function () {
         query: {
             languageDef: query_language,
             completionProvider: {
-                triggerCharacters: ['.', '"', '&'],
+                triggerCharacters: ['.', '(', '&'],
                 provideCompletionItems: function (model, position) {
                     let bsl = new bslHelper(model, position);
                     return bsl.getQueryCompletition(query_language);
