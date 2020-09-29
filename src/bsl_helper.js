@@ -1226,6 +1226,38 @@ class bslHelper {
 	}
 
 	/**
+	 * Fills array of completition for params of query
+	 * 
+	 * @param {array} suggestions array of suggestions for provideCompletionItems	 
+	 * @param {CompletionItemKind} kind - monaco.languages.CompletionItemKind (class, function, constructor etc.)
+	 */
+	getQueryParamsCompletition(suggestions, kind) {	
+
+		if (this.lastRawExpression.startsWith('&')) {
+		
+			const matches = this.model.findMatches('&(.*?)[\\b\\s\\n,]', true, true, false, null, true)
+
+			for (let idx = 0; idx < matches.length; idx++) {
+
+				let match = matches[idx];
+				let paramName = match.matches[match.matches.length - 1];
+				
+				if (paramName && !suggestions.some(suggest => suggest.insertText === paramName)) {
+					suggestions.push({
+						label: '&' + paramName,
+						kind: kind,
+						insertText: paramName,
+						insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet						
+					});
+				}
+
+			}
+
+		}
+
+	}
+
+	/**
 	 * Completition provider for query language
 	 * 
 	 * @param {object} langDef - query language definition
@@ -1240,6 +1272,7 @@ class bslHelper {
 			this.getCommonCompletition(suggestions, bslQuery.functions, monaco.languages.CompletionItemKind.Function, true);
 
 		this.getQueryCommonCompletition(suggestions, langDef, monaco.languages.CompletionItemKind.Module);		
+		this.getQueryParamsCompletition(suggestions, monaco.languages.CompletionItemKind.Enum);				
 
 		if (suggestions.length)
 			return { suggestions: suggestions }

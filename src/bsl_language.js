@@ -151,7 +151,7 @@ define([], function () {
                 'РАЗНОСТЬДАТ', 'DATEDIFF', 'СЕКУНДА', 'SECOND', 'СПЕЦСИМВОЛ',
                 'ESCAPE', 'СРЕДНЕЕ', 'AVG', 'ССЫЛКА', 'REFS', 'СТРОКА', 'STRING',
                 'СУММА', 'SUM', 'ТОГДА', 'THEN', 'УБЫВ', 'DESC', 'ЧАС', 'HOUR',
-                'ЧИСЛО', 'NUMBER', 'NULL'
+                'ЧИСЛО', 'NUMBER', 'NULL', 'КОГДА', 'WHEN'
             ],
             queryOperators: /[=><+\-*\/%;,]+/,
             // The main tokenizer for our languages
@@ -357,7 +357,7 @@ define([], function () {
         query: {
             languageDef: query_language,
             completionProvider: {
-                triggerCharacters: ['.', '"'],
+                triggerCharacters: ['.', '"', '&'],
                 provideCompletionItems: function (model, position) {
                     let bsl = new bslHelper(model, position);
                     return bsl.getQueryCompletition(query_language);
