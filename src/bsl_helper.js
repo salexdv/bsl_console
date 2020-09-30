@@ -472,7 +472,7 @@ class bslHelper {
 					}
 					else {
 
-						let methodsName = (refArray.length == 3 && refArray[2] == 'ref') ? 'refMethods' : 'objMethods'
+						let methodsName = (refArray.length == 3 && refArray[2] == 'obj') ? 'objMethods' : 'refMethods'
 
 						if (this.objectHasProperties(bslMetadata, itemName, 'items', subItemName, 'properties')) {
 							this.fillSuggestionsForMetadataItem(suggestions, bslMetadata[itemName].items[subItemName]);
@@ -929,7 +929,7 @@ class bslHelper {
 									if (ikey.toLowerCase() == metadataItem) {
 
 										let methodDef = this.getMetadataMethodByName(value, metadataFunc);
-										let methodsName = (methodDef && methodDef.hasOwnProperty('ref') && methodDef.ref.indexOf(':ref') != -1) ? 'refMethods' : 'objMethods';
+										let methodsName = (methodDef && methodDef.hasOwnProperty('ref') && methodDef.ref.indexOf(':obj') != -1) ? 'objMethods' : 'refMethods';
 
 										itemExists = true;
 										this.fillSuggestionsForMetadataItem(suggestions, ivalue);
