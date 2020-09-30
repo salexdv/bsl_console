@@ -397,7 +397,7 @@ class bslHelper {
 	 * @param {object} obj object from BSL-JSON dictionary
 	 * @param {sting} methodsName the name of node (objMethods, refMethods)
 	 */
-	getMetadataMethods(suggestions, obj, methodsName) {
+	getMetadataMethods(suggestions, obj, methodsName, metadataKey, medatadaName) {
 
 		if (obj.hasOwnProperty(methodsName)) {
 			
@@ -416,6 +416,12 @@ class bslHelper {
 				let ref = null;
 				if (mvalue.hasOwnProperty('ref'))
 					ref = mvalue.ref;
+
+				if (ref && ref.indexOf(':') != -1) {
+					if (metadataKey && medatadaName) {
+						ref = metadataKey + '.' + medatadaName + '.' +((ref.indexOf(':obj') != -1) ? 'obj' : 'ref');
+					}
+				}
 
 				if (ref || signatures.length) {
 					// If the attribute contains a ref, we need to run the command to save the position of ref
@@ -454,7 +460,7 @@ class bslHelper {
 			
 				let refArray = arrRefs[i].trim().split('.');
 
-				if (refArray.length == 2) {
+				if (refArray.length >= 2) {
 
 					let itemName = refArray[0];
 					let subItemName = refArray[1];
@@ -466,9 +472,11 @@ class bslHelper {
 					}
 					else {
 
+						let methodsName = (refArray.length == 3 && refArray[2] == 'ref') ? 'refMethods' : 'objMethods'
+
 						if (this.objectHasProperties(bslMetadata, itemName, 'items', subItemName, 'properties')) {
 							this.fillSuggestionsForMetadataItem(suggestions, bslMetadata[itemName].items[subItemName]);
-							this.getMetadataMethods(suggestions, bslMetadata[itemName], 'refMethods');
+							this.getMetadataMethods(suggestions, bslMetadata[itemName], methodsName, itemName, subItemName);
 						}
 
 					}
@@ -488,7 +496,7 @@ class bslHelper {
 	 * Fills the suggestions for reference-type object
 	 * if a reference was found in the previous position
 	 * 
-	 * @param {aaray} suggestions the list of suggestions
+	 * @param {array} suggestions the list of suggestions
 	 */
 	getRefCompletition(suggestions) {
 		
@@ -574,7 +582,7 @@ class bslHelper {
 					if (ikey.toLowerCase() == objName) {
 						
 						this.fillSuggestionsForMetadataItem(suggestions, ivalue);
-						this.getMetadataMethods(suggestions, ivalue, 'methods');
+						this.getMetadataMethods(suggestions, ivalue, 'methods', null, null);
 
 						if (ivalue.hasOwnProperty('ref'))
 							this.getRefSuggestions(suggestions, ivalue)
@@ -825,6 +833,57 @@ class bslHelper {
 	}
 
 	/**
+	 * Looks metadata's method by name in certain types of methods
+	 * like 'methods' (CatalogsManager, DocumentsManages),
+	 * 'objMethods' - methods belong to the object
+	 * 'refMethods' - methods belong to the ref
+	 * 
+	 * @param {object} metadataObj metadata objects from BSL-JSON dictionary
+	 * @param {string} metadataFunc name of method (func)
+	 * 
+	 * @returns {object} object of method or false
+	 */
+	findMetadataMethodByName(metadataObj, methodsName, metadataFunc) {
+
+		if (metadataObj.hasOwnProperty(methodsName)) {
+
+			for (const [key, value] of Object.entries(metadataObj[methodsName])) {
+				
+				if (value[this.nameField].toLowerCase() == metadataFunc) {
+					return value;
+				}
+
+			}
+
+		}
+
+		return false;
+
+	}
+
+	/**
+	 * Finds metadata's method by name
+	 * 
+	 * @param {object} metadataObj metadata objects from BSL-JSON dictionary
+	 * @param {string} metadataFunc name of method (func)
+	 * 
+	 * @returns {object} object of method or false
+	 */
+	getMetadataMethodByName(metadataObj, metadataFunc) {
+
+		let method = this.findMetadataMethodByName(metadataObj, 'methods', metadataFunc);
+
+		if (!method)
+			method = this.findMetadataMethodByName(metadataObj, 'objMethods', metadataFunc);
+
+		if (!method)
+			method = this.findMetadataMethodByName(metadataObj, 'refMethods', metadataFunc);
+
+		return method;
+
+	}
+
+	/**
 	 * Fills array of completition for metadata subitem	like catalog of products
 	 * 
 	 * @param {array} suggestions array of suggestions for provideCompletionItems
@@ -868,9 +927,13 @@ class bslHelper {
 								for (const [ikey, ivalue] of Object.entries(value.items)) {
 
 									if (ikey.toLowerCase() == metadataItem) {
+
+										let methodDef = this.getMetadataMethodByName(value, metadataFunc);
+										let methodsName = (methodDef && methodDef.hasOwnProperty('ref') && methodDef.ref.indexOf(':ref') != -1) ? 'refMethods' : 'objMethods';
+
 										itemExists = true;
 										this.fillSuggestionsForMetadataItem(suggestions, ivalue);
-										this.getMetadataMethods(suggestions, value, 'objMethods');										
+										this.getMetadataMethods(suggestions, value, methodsName, key, ikey);
 									}
 
 								}

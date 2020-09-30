@@ -564,6 +564,18 @@ describe("Проверка автокомлита и подсказок реда
         switchQueryMode();
       });
 
+      it("проверка подсказки объекта, полученного методом ПолучитьОбъект()", function () {              	                                
+        bsl = helper('СправочникСсылка = Справочник.Товары.НайтиПоКоду(1);\nСправочникОбъект = СправочникСсылка.ПолучитьОбъект();\nСправочникОбъект.');
+        let suggestions = [];        
+        contextData = new Map([
+          [2, new Map([["получитьобъект", { "ref": "catalogs.Товары.obj", "sig": null }]])],          
+        ]);        
+        bsl.getRefCompletition(suggestions);
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "Заблокирован"), true);        
+        contextData = new Map();
+      });
+
     }
 
     mocha.run();
