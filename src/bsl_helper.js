@@ -1455,7 +1455,7 @@ class bslHelper {
 
 		if (this.lastRawExpression.startsWith('&')) {
 		
-			const matches = this.model.findMatches('&(.*?)[\\b\\s\\n,]', true, true, false, null, true)
+			const matches = this.model.findMatches('&(.*?)[\\s\\n,]', true, true, false, null, true)
 
 			for (let idx = 0; idx < matches.length; idx++) {
 
