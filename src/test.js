@@ -360,6 +360,7 @@ describe("Проверка автокомлита и подсказок реда
         let strJSON = `{
           "customObjects":{
              "_СтруктураВыгрузки":{
+                "ref": "classes.Структура",
                 "properties":{
                    "Номенклатура":{
                       "name":"Номенклатура",
@@ -369,6 +370,28 @@ describe("Проверка автокомлита и подсказок реда
                    "Остаток":{
                       "name":"Остаток"
                    }
+                },
+                "methods":{
+                  "ВставитьВСтруктуру": {
+                    "name": "ВставитьВСтруктуру",
+                    "name_en": "InsertToStructure",
+                    "description": "Устанавливает значение элемента структуры по ключу. Если элемент с переданным значением ключа существует, то его значение заменяется, в противном случае добавляется новый элемент.",
+                    "signature": {
+                        "default": {
+                            "СтрокаПараметров": "(Ключ: Строка, Значение?: Произвольный)",
+                            "Параметры": {
+                                "Ключ": "Ключ устанавливаемого элемента. Ключ должен соответствовать правилам, установленным для идентификаторов:   - Первым символом ключа должна быть буква или символ подчеркивания (_).  - Каждый из последующих символов может быть буквой, цифрой или символом подчеркивания (_).",
+                                "Значение": "Значение устанавливаемого элемента."
+                            }
+                        }
+                      }
+                  },
+                  "КоличествоЗаписейВВыгрузке": {
+                      "name": "КоличествоЗаписейВВыгрузке",
+                      "name_en": "CountItemsToUpload",
+                      "description": "Получает количество элементов структуры.",
+                      "returns": "Тип: Число. "
+                  }
                 }
              },
              "_ОстаткиТовара":{
@@ -396,6 +419,22 @@ describe("Проверка автокомлита и подсказок реда
         bsl.getCustomObjectsCompletition(suggestions, bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
         expect(suggestions).to.be.an('array').that.not.is.empty;
         assert.equal(suggestions.some(suggest => suggest.label === "_ОстаткиТовара"), true);        
+      });
+
+      it("проверка подсказки методов, когда у пользовательского объекта явна задана ссылка", function () {
+        bsl = helper('_СтруктураВыгрузки.');
+        let suggestions = [];
+        bsl.getCustomObjectsCompletition(suggestions, bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "Вставить"), true);
+      });
+
+      it("проверка подсказки собственных методов для пользовательского объекта", function () {
+        bsl = helper('_СтруктураВыгрузки.');
+        let suggestions = [];
+        bsl.getCustomObjectsCompletition(suggestions, bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "КоличествоЗаписейВВыгрузке"), true);
       });
 
       it("проверка подсказки ссылочных реквизитов", function () {              	                                
@@ -500,6 +539,41 @@ describe("Проверка автокомлита и подсказок реда
         expect(suggestions.suggestions).to.be.an('array').that.not.is.empty;
         assert.equal(suggestions.suggestions.some(suggest => suggest.label === "ВЫРАЗИТЬ"), true);        
         switchQueryMode();
+      });
+
+      it("проверка подсказки параметров для функции запроса", function () {                                               
+        switchQueryMode();
+        bsl = helper('РАЗНОСТЬДАТ(');
+        let help = bsl.getCommonSigHelp(bslQuery.functions);
+        expect(help).to.have.property('activeParameter');        
+        switchQueryMode();
+      });
+
+      it("проверка подсказки для функции запроса ЗНАЧЕНИЕ", function () {                                               
+        switchQueryMode();
+        bsl = helper('ЗНАЧЕНИЕ(Справочник.Товары.');
+        let suggestions = bsl.getQueryCompletition(languages.query.languageDef);
+        expect(suggestions).to.be.an('object');
+        expect(suggestions.suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.suggestions.some(suggest => suggest.label === "Услуга") && suggestions.suggestions.some(suggest => suggest.label === "ПустаяСсылка"), true);
+        bsl = helper('ЗНАЧЕНИЕ(Перечисление.ТестовыйЭлемент.');
+        suggestions = bsl.getQueryCompletition(languages.query.languageDef);
+        expect(suggestions).to.be.an('object');
+        expect(suggestions.suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.suggestions.some(suggest => suggest.label === "Реквизит1"), true);
+        switchQueryMode();
+      });
+
+      it("проверка подсказки объекта, полученного методом ПолучитьОбъект()", function () {              	                                
+        bsl = helper('СправочникСсылка = Справочник.Товары.НайтиПоКоду(1);\nСправочникОбъект = СправочникСсылка.ПолучитьОбъект();\nСправочникОбъект.');
+        let suggestions = [];        
+        contextData = new Map([
+          [2, new Map([["получитьобъект", { "ref": "catalogs.Товары.obj", "sig": null }]])],          
+        ]);        
+        bsl.getRefCompletition(suggestions);
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "Заблокирован"), true);        
+        contextData = new Map();
       });
 
     }

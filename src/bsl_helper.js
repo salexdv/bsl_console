@@ -250,6 +250,36 @@ class bslHelper {
 	}
 
 	/**
+	 * Determines if string contain query value constructor (ЗНАЧЕНИЕ|VALUE)
+	 * 
+	 * 
+	 * @returns {bool}
+	 */
+	requireQueryValue() {
+
+		let exp = this.getFuncName();
+		return (exp == 'value' || exp == 'значение');
+
+	}
+
+	/**
+	 * Removes from array of suggestions duplicated items
+	 * 
+	 * @returns {array} suggestions
+	 */
+	deleteSuggesstionsDuplicate(suggestions) {
+		
+		let i = 0;
+		while (i < suggestions.length) {					
+			if (suggestions.some(suggest => (suggest.label === suggestions[i].label && suggest != suggestions[i])))
+				suggestions.splice(i, 1)
+			else
+				i++;
+		}		
+
+	}
+
+	/**
 	 * Fills array of completition for language keywords, classes, global functions,
 	 * global variables and system enumarations
 	 * 
@@ -367,7 +397,7 @@ class bslHelper {
 	 * @param {object} obj object from BSL-JSON dictionary
 	 * @param {sting} methodsName the name of node (objMethods, refMethods)
 	 */
-	getMetadataMethods(suggestions, obj, methodsName) {
+	getMetadataMethods(suggestions, obj, methodsName, metadataKey, medatadaName) {
 
 		if (obj.hasOwnProperty(methodsName)) {
 			
@@ -386,6 +416,12 @@ class bslHelper {
 				let ref = null;
 				if (mvalue.hasOwnProperty('ref'))
 					ref = mvalue.ref;
+
+				if (ref && ref.indexOf(':') != -1) {
+					if (metadataKey && medatadaName) {
+						ref = metadataKey + '.' + medatadaName + '.' +((ref.indexOf(':obj') != -1) ? 'obj' : 'ref');
+					}
+				}
 
 				if (ref || signatures.length) {
 					// If the attribute contains a ref, we need to run the command to save the position of ref
@@ -424,7 +460,7 @@ class bslHelper {
 			
 				let refArray = arrRefs[i].trim().split('.');
 
-				if (refArray.length == 2) {
+				if (refArray.length >= 2) {
 
 					let itemName = refArray[0];
 					let subItemName = refArray[1];
@@ -436,9 +472,11 @@ class bslHelper {
 					}
 					else {
 
+						let methodsName = (refArray.length == 3 && refArray[2] == 'obj') ? 'objMethods' : 'refMethods'
+
 						if (this.objectHasProperties(bslMetadata, itemName, 'items', subItemName, 'properties')) {
 							this.fillSuggestionsForMetadataItem(suggestions, bslMetadata[itemName].items[subItemName]);
-							this.getMetadataMethods(suggestions, bslMetadata[itemName], 'refMethods');
+							this.getMetadataMethods(suggestions, bslMetadata[itemName], methodsName, itemName, subItemName);
 						}
 
 					}
@@ -446,6 +484,10 @@ class bslHelper {
 				}
 
 			}
+
+			if (1 < arrRefs.length)
+				this.deleteSuggesstionsDuplicate(suggestions);
+			
 		}
 
 	}
@@ -454,7 +496,7 @@ class bslHelper {
 	 * Fills the suggestions for reference-type object
 	 * if a reference was found in the previous position
 	 * 
-	 * @param {aaray} suggestions the list of suggestions
+	 * @param {array} suggestions the list of suggestions
 	 */
 	getRefCompletition(suggestions) {
 		
@@ -538,7 +580,13 @@ class bslHelper {
 				for (const [ikey, ivalue] of Object.entries(value)) {
 					
 					if (ikey.toLowerCase() == objName) {
+						
 						this.fillSuggestionsForMetadataItem(suggestions, ivalue);
+						this.getMetadataMethods(suggestions, ivalue, 'methods', null, null);
+
+						if (ivalue.hasOwnProperty('ref'))
+							this.getRefSuggestions(suggestions, ivalue)
+
 					}
 					
 				}
@@ -785,6 +833,57 @@ class bslHelper {
 	}
 
 	/**
+	 * Looks metadata's method by name in certain types of methods
+	 * like 'methods' (CatalogsManager, DocumentsManages),
+	 * 'objMethods' - methods belong to the object
+	 * 'refMethods' - methods belong to the ref
+	 * 
+	 * @param {object} metadataObj metadata objects from BSL-JSON dictionary
+	 * @param {string} metadataFunc name of method (func)
+	 * 
+	 * @returns {object} object of method or false
+	 */
+	findMetadataMethodByName(metadataObj, methodsName, metadataFunc) {
+
+		if (metadataObj.hasOwnProperty(methodsName)) {
+
+			for (const [key, value] of Object.entries(metadataObj[methodsName])) {
+				
+				if (value[this.nameField].toLowerCase() == metadataFunc) {
+					return value;
+				}
+
+			}
+
+		}
+
+		return false;
+
+	}
+
+	/**
+	 * Finds metadata's method by name
+	 * 
+	 * @param {object} metadataObj metadata objects from BSL-JSON dictionary
+	 * @param {string} metadataFunc name of method (func)
+	 * 
+	 * @returns {object} object of method or false
+	 */
+	getMetadataMethodByName(metadataObj, metadataFunc) {
+
+		let method = this.findMetadataMethodByName(metadataObj, 'methods', metadataFunc);
+
+		if (!method)
+			method = this.findMetadataMethodByName(metadataObj, 'objMethods', metadataFunc);
+
+		if (!method)
+			method = this.findMetadataMethodByName(metadataObj, 'refMethods', metadataFunc);
+
+		return method;
+
+	}
+
+	/**
 	 * Fills array of completition for metadata subitem	like catalog of products
 	 * 
 	 * @param {array} suggestions array of suggestions for provideCompletionItems
@@ -828,9 +927,13 @@ class bslHelper {
 								for (const [ikey, ivalue] of Object.entries(value.items)) {
 
 									if (ikey.toLowerCase() == metadataItem) {
+
+										let methodDef = this.getMetadataMethodByName(value, metadataFunc);
+										let methodsName = (methodDef && methodDef.hasOwnProperty('ref') && methodDef.ref.indexOf(':obj') != -1) ? 'objMethods' : 'refMethods';
+
 										itemExists = true;
 										this.fillSuggestionsForMetadataItem(suggestions, ivalue);
-										this.getMetadataMethods(suggestions, value, 'objMethods');										
+										this.getMetadataMethods(suggestions, value, methodsName, key, ikey);
 									}
 
 								}
@@ -1171,15 +1274,132 @@ class bslHelper {
 	}
 
 	/**
-	 * Completition provider for query language
+	 * Fills array of completition for query values	 
 	 * 
-	 * @param {object} langDef - query language definition
-	 * 
-	 * @returns {array} array of completition
+	 * @param {array} suggestions array of suggestions for provideCompletionItems
+	 * @param {object} data objects from BSL-JSON dictionary
+	 * @param {CompletionItemKind} kind - monaco.languages.CompletionItemKind (class, function, constructor etc.)
 	 */
-	getQueryCompletition(langDef) {
+	getQueryValuesCompletition(suggestions, data, kind) {
 
-		let suggestions = [];
+		let expArray = this.getExpressioArray();
+
+		if (expArray) {
+
+			let regex = /\((.*?)\.(?:(.*?)\.)?/.exec(expArray[expArray.length - 1]);
+			let metadataName = regex && 1 < regex.length ? regex[1] : '';
+			let metadataItem = regex && 2 < regex.length ? regex[2] : '';			
+
+			for (const [key, value] of Object.entries(data)) {
+
+				if (!metadataName) {
+
+					let suggestion = {
+						label: key,
+						kind: kind,
+						insertText: key,
+						insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+					}
+
+					if (value.hasOwnProperty('ref')) {
+						suggestion.insertText += '.';
+						suggestion['command'] = { id: 'editor.action.triggerSuggest', title: 'suggest_type' };
+					}
+					else {
+						suggestion.insertText += '"';
+					}
+
+					suggestions.push(suggestion);
+
+				}
+				else {
+
+					if (key.toLowerCase() == metadataName) {
+
+						if (value.hasOwnProperty('ref') && bslMetadata.hasOwnProperty(value.ref) && bslMetadata[value.ref].hasOwnProperty('items')) {
+
+							if (metadataItem) {
+
+								for (const [mkey, mvalue] of Object.entries(bslMetadata[value.ref].items)) {
+
+									if (mkey.toLowerCase() == metadataItem) {
+
+										if (value.ref == 'enums' && mvalue.hasOwnProperty('properties')) {
+
+											for (const [ikey, ivalue] of Object.entries(bslMetadata[value.ref].items[mkey].properties)) {
+												suggestions.push({
+													label:  ikey,
+													kind: kind,
+													insertText: ikey + ')',
+													insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,											
+												});
+											}
+
+										}
+										else if (mvalue.hasOwnProperty('predefined')) {
+											
+											for (const [pkey, pvalue] of Object.entries(bslMetadata[value.ref].items[mkey].predefined)) {
+												suggestions.push({
+													label:  pkey,
+													kind: kind,
+													insertText: pkey + ')',
+													insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,											
+												});
+											}
+										}
+
+										let EmptyRef = engLang ? 'EmptyRef' : 'ПустаяСсылка';
+
+										suggestions.push({
+											label:  EmptyRef,
+											kind: kind,
+											insertText: EmptyRef + ')',
+											insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,											
+										});
+
+									}
+
+								}
+
+							}
+							else {
+
+
+								for (const [mkey, mvalue] of Object.entries(bslMetadata[value.ref].items)) {
+
+									suggestions.push({
+										label: mkey,
+										kind: kind,
+										insertText: mkey + '.',
+										insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+										command: { id: 'editor.action.triggerSuggest', title: 'suggest_type' }
+									});
+
+								}
+
+							}
+						}
+
+					}
+
+				}
+
+			}
+
+		}
+
+	}
+
+	/**
+	 * Fills array of completition for query language`s keywords
+	 * and expressions
+	 * 
+	 * @param {array} suggestions array of suggestions for provideCompletionItems
+	 * @param {object} langDef query language definition
+	 * @param {CompletionItemKind} kind - monaco.languages.CompletionItemKind (class, function, constructor etc.)
+	 */
+	getQueryCommonCompletition(suggestions, langDef, kind) {	
+
 		let word = this.word;
 
 		if (word) {
@@ -1209,10 +1429,10 @@ class bslHelper {
 							expression = '';
 					}
 
-					if (expression) {
+					if (expression && !suggestions.some(suggest => suggest.label === expression)) {						
 						suggestions.push({
 							label: expression,
-							kind: monaco.languages.CompletionItemKind.Function,
+							kind: kind,
 							insertText: expression,
 							insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet						
 						});
@@ -1221,6 +1441,64 @@ class bslHelper {
 
 			});
 
+		}
+
+	}
+
+	/**
+	 * Fills array of completition for params of query
+	 * 
+	 * @param {array} suggestions array of suggestions for provideCompletionItems	 
+	 * @param {CompletionItemKind} kind - monaco.languages.CompletionItemKind (class, function, constructor etc.)
+	 */
+	getQueryParamsCompletition(suggestions, kind) {	
+
+		if (this.lastRawExpression.startsWith('&')) {
+		
+			const matches = this.model.findMatches('&(.*?)[\\s\\n,]', true, true, false, null, true)
+
+			for (let idx = 0; idx < matches.length; idx++) {
+
+				let match = matches[idx];
+				let paramName = match.matches[match.matches.length - 1];
+				
+				if (paramName && !suggestions.some(suggest => suggest.insertText === paramName)) {
+					suggestions.push({
+						label: '&' + paramName,
+						kind: kind,
+						insertText: paramName,
+						insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet						
+					});
+				}
+
+			}
+
+		}
+
+	}
+
+	/**
+	 * Completition provider for query language
+	 * 
+	 * @param {object} langDef - query language definition
+	 * 
+	 * @returns {array} array of completition
+	 */
+	getQueryCompletition(langDef) {
+
+		let suggestions = [];
+
+		if (!this.requireQueryValue()) {
+
+			if (this.lastOperator != '"')
+				this.getCommonCompletition(suggestions, bslQuery.functions, monaco.languages.CompletionItemKind.Function, true);
+
+			this.getQueryCommonCompletition(suggestions, langDef, monaco.languages.CompletionItemKind.Module);		
+			this.getQueryParamsCompletition(suggestions, monaco.languages.CompletionItemKind.Enum);				
+
+		}
+		else {
+			this.getQueryValuesCompletition(suggestions, bslQuery.values, monaco.languages.CompletionItemKind.Enum);
 		}
 
 		if (suggestions.length)
@@ -1663,6 +1941,24 @@ class bslHelper {
 			if (!helper)
 				helper = this.getCommonSigHelp(bslGlobals.customFunctions);
 
+			if (helper)
+				return new SignatureHelpResult(helper);
+
+		}
+
+	}
+
+	/**
+	 * Signature help provider for query language
+	 * 
+	 * @returns {object} helper
+	 */
+	getQuerySigHelp() {
+		
+		if (this.lastOperator != ')' && !this.requireQueryValue()) {
+			
+			let helper = this.getCommonSigHelp(bslQuery.functions);
+			
 			if (helper)
 				return new SignatureHelpResult(helper);
 
