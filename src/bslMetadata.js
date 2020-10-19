@@ -528,6 +528,15 @@ define([], function () {
                   "СуммаДокумента":{
                      "name": "Сумма (руб.коп)"
                   }
+               },
+               "registerRecords":{
+                  "name": "Движения",
+                  "name_en": "RegisterRecords",
+                  "registers":[
+                     "infoRegs.ТестовыйЭлемент",
+                     "accumRegs.ОстаткиТоваров",
+                     "accountRegs.Хозрасчетный"
+                  ]
                }
             },
             "АвансовыйОтчет":{
@@ -945,7 +954,7 @@ define([], function () {
          "name":"РегистрыСведений",
          "name_en":"InformationRegisters",
          "items":{
-            "ТестовыйЭлемент":{
+            "ЦеныНоменклатуры":{
                "properties":{
                   "Реквизит1":{
                      "name": "Реквизит №1"
@@ -1217,7 +1226,7 @@ define([], function () {
          "name":"РегистрыНакопления",
          "name_en":"AccumulationRegisters",
          "items":{
-            "ТестовыйЭлемент":{
+            "ОстаткиТоваров":{
                "properties":{
                   "Реквизит1":{
                      "name": "Реквизит №1"
@@ -1615,7 +1624,7 @@ define([], function () {
          "name":"РегистрыБухгалтерии",
          "name_en":"AccountingRegisters",
          "items":{
-            "ТестовыйЭлемент":{
+            "Хозрасчетный":{
                "properties":{
                   "Реквизит1":{
                      "name": "Реквизит №1"

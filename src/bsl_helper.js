@@ -438,9 +438,66 @@ class bslHelper {
 				});
 
 			}
+
+			if (methodsName == 'objMethods' && this.objectHasProperties(obj, 'items', medatadaName, 'registerRecords')) {
+				
+				let recName = obj.items[medatadaName].registerRecords[this.nameField];
+				let list = [];
+
+				obj.items[medatadaName].registerRecords.registers.forEach(function (regName) {
+					list.push({
+						name: regName.split('.')[1],
+						ref: regName,
+						kind: monaco.languages.CompletionItemKind.Function,
+					});
+				});
+
+				let command = { id: 'vs.editor.ICodeEditor:1:saveref', arguments: [{ "name": recName, "data": { "list": list } }] }
+
+				suggestions.push({
+					label: recName,
+					kind: monaco.languages.CompletionItemKind.Function,
+					insertText: recName,
+					insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+					command: command
+				});
+
+			}
 			
 		}
 			
+
+	}
+
+	/**
+	 * Fills suggestions from saved list
+	 * 
+	 * @param {array} suggestions the list of suggestions
+	 * @param {string} wordRef reference string like classes.HTTPОтвет
+	 */
+	getListSuggestions(suggestions, wordContext) {
+
+		if (wordContext && wordContext.list) {
+			
+			wordContext.list.forEach(function(listItem) {
+
+				let command = null;
+
+				if (listItem.hasOwnProperty('ref')) {
+					command = { id: 'vs.editor.ICodeEditor:1:saveref', arguments: [{ "name": listItem.name, "data": { "ref": listItem.ref, "sig": null } }] }
+				}
+
+				suggestions.push({
+					label: listItem.name,
+					kind: listItem.kind,
+					insertText: listItem.name,
+					insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+					command: command
+				});
+
+			});
+							
+		}
 
 	}
 
@@ -489,6 +546,8 @@ class bslHelper {
 				this.deleteSuggesstionsDuplicate(suggestions);
 			
 		}
+
+		this.getListSuggestions(suggestions, wordContext);
 
 	}
 
