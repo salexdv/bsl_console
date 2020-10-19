@@ -247,6 +247,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     monaco.languages.registerFoldingRangeProvider(language.id, lang.foldingProvider);      
     monaco.languages.registerSignatureHelpProvider(language.id, lang.signatureProvider);
     monaco.languages.registerHoverProvider(language.id, lang.hoverProvider);    
+    monaco.languages.registerDocumentFormattingEditProvider(language.id, lang.formatProvider);
 
     if (!editor) {
 

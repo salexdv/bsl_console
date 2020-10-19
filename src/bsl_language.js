@@ -352,6 +352,14 @@ define([], function () {
                     let bsl = new bslHelper(model, position);
                     return bsl.getHover();
                 }
+            },
+            formatProvider: {
+                provideDocumentFormattingEdits: function (model, options, token) {
+                    return [{
+                        text: bslHelper.formatCode(model),
+                        range: model.getFullModelRange()
+                    }];
+                }
             }
         },
         query: {
@@ -375,6 +383,9 @@ define([], function () {
                 }
             },
             hoverProvider: {
+                provideHover: () => {}
+            },
+            formatProvider: {
                 provideHover: () => {}
             }
         }

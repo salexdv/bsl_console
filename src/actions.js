@@ -78,6 +78,17 @@ define(['vs/editor/editor.main'], function () {
                     removeComment();
                     return null;
                 }
+            };
+
+            actions.format_bsl = {
+                label: 'Форматировать',
+                key: monaco.KeyMod.Alt | monaco.KeyMod.Shift | monaco.KeyCode.KEY_F,
+                cmd: monaco.KeyMod.chord(monaco.KeyMod.Alt | monaco.KeyMod.Shift | monaco.KeyCode.KEY_F),
+                order: 1.7,
+                callback: function (ed) {                
+                    editor.trigger('', 'editor.action.formatDocument');
+                    return null;
+                }
             };  
 
         }

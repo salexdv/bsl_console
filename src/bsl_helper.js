@@ -2432,4 +2432,69 @@ class bslHelper {
 
 	}
 
+	/**
+	 * Code formatter
+	 * 
+	 * @param {ITextModel} model current model of editor
+	 * 
+	 * @returns {string} formated text
+	 */
+	static formatCode(model) {
+
+		let result = '';
+
+		const startWords = [
+			'если', 'для', 'пока', 'функция', 'процедура',
+			'if', 'for', 'while', 'function', 'procedure'
+		];
+
+		const stopWords = [
+			'конецесли', 'конеццикла', 'конецфункции', 'конецпроцедуры',
+			'endif', 'enddo', 'endfunction', 'endprocedure'
+		];
+
+		const strings = model.getValue().split('\n');
+
+		let offset = 0;
+
+		strings.forEach(function (str, index) {
+
+			let original = str;
+			let comment = str.indexOf('//');
+
+			if (0 <= comment)
+				str = str.substr(0, comment);			
+
+			let semi = str.indexOf(';');
+
+			if (0 <= semi)
+				str = str.substr(0, semi);			
+
+			let words = str.trim().split(' ');
+			let word_i = 0;
+			let delta = offset;
+
+			while (word_i < words.length) {
+				
+				let word = words[word_i].toLowerCase();
+				
+				if (startWords.includes(word))
+					offset++;
+				
+					if (stopWords.includes(word))
+					offset = Math.max(0, offset - 1);
+
+				word_i++;
+			}
+
+			delta = offset - delta;
+			let strOffset = 0 < delta ? offset - 1 : offset;			
+			result = result + '\t'.repeat(strOffset) + original.trim() + '\n';						
+
+
+		});
+
+		return result;
+	}
+
 }
