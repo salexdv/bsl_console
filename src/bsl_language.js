@@ -386,7 +386,7 @@ define([], function () {
                 provideHover: () => {}
             },
             formatProvider: {
-                provideHover: () => {}
+                provideDocumentFormattingEdits: () => {}
             }
         }
     };
