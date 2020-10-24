@@ -2503,13 +2503,18 @@ class bslHelper {
 		let result = '';
 
 		const startWords = [
-			'если', 'для', 'пока', 'функция', 'процедура',
-			'if', 'for', 'while', 'function', 'procedure'
+			'если', 'для', 'пока', 'функция', 'процедура', 'попытка',
+			'if', 'for', 'while', 'function', 'procedure', 'try'			
 		];
 
 		const stopWords = [
-			'конецесли', 'конеццикла', 'конецфункции', 'конецпроцедуры',
-			'endif', 'enddo', 'endfunction', 'endprocedure'
+			'конецесли', 'конеццикла', 'конецфункции', 'конецпроцедуры', 'конецпопытки',
+			'endif', 'enddo', 'endfunction', 'endprocedure', 'endtry'
+		];
+
+		const complexWords = [
+			'исключение', 'иначе', 'иначеесли',
+			'except', 'else', 'elseif'
 		];
 
 		const strings = model.getValue().split('\n');
@@ -2540,7 +2545,10 @@ class bslHelper {
 				if (startWords.includes(word))
 					offset++;
 				
-					if (stopWords.includes(word))
+				if (stopWords.includes(word))
+					offset = Math.max(0, offset - 1);
+
+				if (complexWords.includes(word))
 					offset = Math.max(0, offset - 1);
 
 				word_i++;
@@ -2550,6 +2558,8 @@ class bslHelper {
 			let strOffset = 0 < delta ? offset - 1 : offset;			
 			result = result + '\t'.repeat(strOffset) + original.trim() + '\n';						
 
+			if (words.length && complexWords.includes(words[0].toLowerCase()))
+				offset++;
 
 		});
 
