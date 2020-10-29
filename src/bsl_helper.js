@@ -2369,10 +2369,12 @@ class bslHelper {
 	addComment() {
 
 		let selection = editor.getSelection();
-		let minColumn = this.getMinColumn(selection);		
+		let minColumn = this.getMinColumn(selection);
+		let oneLine = (selection.startLineNumber == selection.endLineNumber);
+		let maxLine = 0;
 
 		for (let line = selection.startLineNumber; line <= selection.endLineNumber; line++) {
-			if (editor.getModel().getLineContent(line).trim() && !(line == selection.endLineNumber && this.column == 1)) {
+			if (editor.getModel().getLineContent(line).trim() && !(line == selection.endLineNumber && this.column == 1 && this.lineNumber == line) || oneLine) {
 				bslHelper.setText(
 					'//' +
 					this.model.getValueInRange({
@@ -2389,8 +2391,12 @@ class bslHelper {
 					},
 					false
 				)
+				maxLine = line;
 			}
-		}		
+		}
+
+		if (0 < maxLine)
+			editor.setSelection(new monaco.Range(selection.startLineNumber, 1, maxLine, this.model.getLineMaxColumn(maxLine)));
 
 	}
 
@@ -2399,7 +2405,8 @@ class bslHelper {
 	 */
 	removeComment() {
 
-		let selection = editor.getSelection();		
+		let selection = editor.getSelection();
+		let maxLine = 0;		
 
 		for (let line = selection.startLineNumber; line <= selection.endLineNumber; line++) {
 			
@@ -2427,8 +2434,12 @@ class bslHelper {
 					},
 					false
 				)
+				maxLine = line;
 			}			
 		}		
+
+		if (0 < maxLine)
+			editor.setSelection(new monaco.Range(selection.startLineNumber, 1, maxLine, this.model.getLineMaxColumn(maxLine)));
 
 	}
 
