@@ -2369,25 +2369,27 @@ class bslHelper {
 	addComment() {
 
 		let selection = editor.getSelection();
-		let minColumn = this.getMinColumn(selection);
+		let minColumn = this.getMinColumn(selection);		
 
 		for (let line = selection.startLineNumber; line <= selection.endLineNumber; line++) {
-			bslHelper.setText(
-				'//' +
-				this.model.getValueInRange({
-					startLineNumber: line,
-					startColumn: minColumn,
-					endLineNumber: line,
-					endColumn: this.model.getLineMaxColumn(line)
-				}),
-				{
-					startLineNumber: line,
-					startColumn: minColumn,
-					endLineNumber: line,
-					endColumn: this.model.getLineMaxColumn(line) + 2
-				},
-				false
-			)
+			if (editor.getModel().getLineContent(line).trim() && !(line == selection.endLineNumber && this.column == 1)) {
+				bslHelper.setText(
+					'//' +
+					this.model.getValueInRange({
+						startLineNumber: line,
+						startColumn: minColumn,
+						endLineNumber: line,
+						endColumn: this.model.getLineMaxColumn(line)
+					}),
+					{
+						startLineNumber: line,
+						startColumn: minColumn,
+						endLineNumber: line,
+						endColumn: this.model.getLineMaxColumn(line) + 2
+					},
+					false
+				)
+			}
 		}		
 
 	}
