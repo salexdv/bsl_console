@@ -533,9 +533,9 @@ define([], function () {
                   "name": "Движения",
                   "name_en": "RegisterRecords",
                   "registers":[
-                     "infoRegs.ТестовыйЭлемент",
-                     "accumRegs.ОстаткиТоваров",
-                     "accountRegs.Хозрасчетный"
+                     "infoRegs.ТестовыйЭлемент.obj",
+                     "accumRegs.ОстаткиТоваров.obj",
+                     "accountRegs.Хозрасчетный.obj"
                   ]
                }
             },
