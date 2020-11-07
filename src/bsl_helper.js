@@ -2299,7 +2299,7 @@ class bslHelper {
 	 * 
 	 * @returns {array} - array of folding ranges
 	 */
-	static getRangesForQueryBlock(model, regexps, includeStartString) {
+	static getRangesForQueryBlock(model, regexps, includeStartString, includeEndString) {
 
 		let ranges = [];				
 		let match = null;
@@ -2320,7 +2320,7 @@ class bslHelper {
 							{
 								kind: monaco.languages.FoldingRangeKind.Region,
 								start: match.range.startLineNumber + (includeStartString ? 0 : 1),
-								end: match.range.endLineNumber - 1
+								end: match.range.endLineNumber - (includeEndString ? 0 : 1)
 							}
 						)
 					}
@@ -2350,6 +2350,7 @@ class bslHelper {
 			[
 				'(?:выбрать|select)\\n(?:(?:.|\\n|\\r)*?)\\n(?:\s|\t)*(?:из|from|поместить|into)'
 			],
+			false,
 			false
 		));
 		ranges = ranges.concat(this.getRangesForQueryBlock(
@@ -2357,8 +2358,17 @@ class bslHelper {
 			[
 				'(?:где|where)\\n(?:(?:.|\\n|\\r)*?)\\n(?:\\s|\\t)*(?:сгруппировать|объединить|упорядочить|group|union|order|;|\\))'
 			],
-			true
+			true,
+			false
 		));		
+		ranges = ranges.concat(this.getRangesForQueryBlock(
+			model,
+			[
+				'(?:выбор|case)\\n(?:(?:.|\\n|\\r)*?)\\n(?:\\s|\\t)*(?:конец|end)'
+			],
+			true,
+			true
+		));
 				
 		return ranges;
 
