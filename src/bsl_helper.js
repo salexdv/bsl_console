@@ -2295,29 +2295,40 @@ class bslHelper {
 	 * Finds blocks with query's fields
 	 * 
 	 * @param {ITextModel} current model of editor	 
+	 * @param {array} regexps array of regexp patterns for detecting blocks
 	 * 
 	 * @returns {array} - array of folding ranges
 	 */
-	static getRangesForQueryFields(model) {
+	static getRangesForQueryBlock(model, regexps, includeStartString) {
 
 		let ranges = [];				
-		let match = null;		
-		const matches = model.findMatches('(?:выбрать|select)\\n(?:(?:.|\\n|\\r)*?)\\n(?:\s|\t)*(?:из|from|поместить|into)', false, true, false, null, true);
+		let match = null;
+		let matches = [];
+
+		let pat_idx = 0;
+		
+		while (pat_idx < regexps.length && !matches.length) {
+
+			matches = model.findMatches(regexps[pat_idx], false, true, false, null, true);
     	
-    	if (matches) {
-			
-      		for (let idx = 0; idx < matches.length; idx++) {
-				match = matches[idx];
-				if (1 < match.range.endLineNumber - match.range.startLineNumber) {
-					ranges.push(
-						{
-							kind: monaco.languages.FoldingRangeKind.Region,
-							start: match.range.startLineNumber + 1,
-							end: match.range.endLineNumber - 1
-						}
-					)
+			if (matches) {
+				
+				for (let idx = 0; idx < matches.length; idx++) {
+					match = matches[idx];
+					if (1 < match.range.endLineNumber - match.range.startLineNumber) {
+						ranges.push(
+							{
+								kind: monaco.languages.FoldingRangeKind.Region,
+								start: match.range.startLineNumber + (includeStartString ? 0 : 1),
+								end: match.range.endLineNumber - 1
+							}
+						)
+					}
 				}
-      		}
+
+			}
+
+			pat_idx++;
 
 		}
 
@@ -2332,9 +2343,22 @@ class bslHelper {
 	 * @returns {array} - array of folding ranges 
 	 */
 	static getQueryFoldingRanges(model) {
-		
-		let ranges = this.getRangesForQuery(model);
-		ranges = ranges.concat(this.getRangesForQueryFields(model));
+				
+		let ranges = this.getRangesForQuery(model);		
+		ranges = ranges.concat(this.getRangesForQueryBlock(
+			model,
+			[
+				'(?:выбрать|select)\\n(?:(?:.|\\n|\\r)*?)\\n(?:\s|\t)*(?:из|from|поместить|into)'
+			],
+			false
+		));
+		ranges = ranges.concat(this.getRangesForQueryBlock(
+			model,
+			[
+				'(?:где|where)\\n(?:(?:.|\\n|\\r)*?)\\n(?:\\s|\\t)*(?:сгруппировать|объединить|упорядочить|group|union|order|;|\\))'
+			],
+			true
+		));		
 				
 		return ranges;
 
