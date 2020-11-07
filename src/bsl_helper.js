@@ -2246,6 +2246,101 @@ class bslHelper {
 	}
 
 	/**
+	 * Finds query's blocks
+	 * 
+	 * @param {ITextModel} current model of editor	 
+	 * 
+	 * @returns {array} - array of folding ranges
+	 */
+	static getRangesForQuery(model) {
+
+		let ranges = [];
+				
+		let match = null;
+		let matches = model.findMatches('(?:выбрать|select)(?:.|\\n|\\r)*?;', false, true, false, null, true);
+		
+		if (!matches.length)
+			matches = model.findMatches('(?:выбрать|select)(?:.|\\n|\\r)*', false, true, false, null, true);
+		
+    	if (matches) {
+			
+      		for (let idx = 0; idx < matches.length; idx++) {
+				
+				match = matches[idx];				
+				let end = match.range.endLineNumber;
+				let context = model.getLineContent(end).trim();
+
+				while (!context) {
+					end--;
+					context = model.getLineContent(end).trim();
+				}					
+				
+				ranges.push(
+					{
+						kind: monaco.languages.FoldingRangeKind.Region,
+						start: match.range.startLineNumber,
+						end: end
+					}
+				)				
+
+      		}
+
+		}
+				
+		return ranges;
+	
+	}
+
+	/**
+	 * Finds blocks with query's fields
+	 * 
+	 * @param {ITextModel} current model of editor	 
+	 * 
+	 * @returns {array} - array of folding ranges
+	 */
+	static getRangesForQueryFields(model) {
+
+		let ranges = [];				
+		let match = null;		
+		const matches = model.findMatches('(?:выбрать|select)\\n(?:(?:.|\\n|\\r)*?)\\n(?:\s|\t)*(?:из|from|поместить|into)', false, true, false, null, true);
+    	
+    	if (matches) {
+			
+      		for (let idx = 0; idx < matches.length; idx++) {
+				match = matches[idx];
+				if (1 < match.range.endLineNumber - match.range.startLineNumber) {
+					ranges.push(
+						{
+							kind: monaco.languages.FoldingRangeKind.Region,
+							start: match.range.startLineNumber + 1,
+							end: match.range.endLineNumber - 1
+						}
+					)
+				}
+      		}
+
+		}
+
+		return ranges;
+
+	}
+
+	/**
+	 * Provider for folding query's blocks
+	 * @param {ITextModel} current model of editor
+	 * 
+	 * @returns {array} - array of folding ranges 
+	 */
+	static getQueryFoldingRanges(model) {
+		
+		let ranges = this.getRangesForQuery(model);
+		ranges = ranges.concat(this.getRangesForQueryFields(model));
+				
+		return ranges;
+
+	}
+
+	/**
 	 * Provider for hover popoup
 	 * 
 	 * @returns {object} - hover object or null

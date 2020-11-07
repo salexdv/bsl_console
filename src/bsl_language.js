@@ -372,7 +372,9 @@ define([], function () {
                 }
             },
             foldingProvider: {
-                provideFoldingRanges: () => {}
+                provideFoldingRanges: function (model, context, token) {
+                    return bslHelper.getQueryFoldingRanges(model);
+                }
             },
             signatureProvider: {
                 signatureHelpTriggerCharacters: ['(', ','],
