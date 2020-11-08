@@ -2254,14 +2254,10 @@ class bslHelper {
 	 */
 	static getRangesForQuery(model) {
 
-		let ranges = [];
-				
+		let ranges = [];		
 		let match = null;
-		let matches = model.findMatches('(?:выбрать|select)(?:.|\\n|\\r)*?;', false, true, false, null, true);
-		
-		if (!matches.length)
-			matches = model.findMatches('(?:выбрать|select)(?:.|\\n|\\r)*', false, true, false, null, true);
-		
+		const matches = model.findMatches('(?:выбрать|select)[\\w\\s\u0410-\u044F&<>=*+-./,()]+', false, true, false, null, true);
+				
     	if (matches) {
 			
       		for (let idx = 0; idx < matches.length; idx++) {
@@ -2296,6 +2292,8 @@ class bslHelper {
 	 * 
 	 * @param {ITextModel} current model of editor	 
 	 * @param {array} regexps array of regexp patterns for detecting blocks
+	 * @param {boolean} includeStartString include or not the first string of match in block
+	 * @param {boolean} includeEndString include or not the last string of match in block
 	 * 
 	 * @returns {array} - array of folding ranges
 	 */
