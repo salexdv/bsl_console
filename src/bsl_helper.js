@@ -2288,6 +2288,58 @@ class bslHelper {
 	}
 
 	/**
+	 * Finds nested query's blocks
+	 * 
+	 * @param {ITextModel} current model of editor	 
+	 * 
+	 * @returns {array} - array of folding ranges
+	 */
+	static getRangesForNestedQuery(model) {
+
+		let ranges = [];		
+		let match = null;
+		const matches = model.findMatches('\\((?:\\s|\\r)*(?:выбрать|select)', false, true, false, null, true);		
+				
+    	if (matches) {
+			
+			let last_line = editor.getModel().getLineCount();
+
+      		for (let idx = 0; idx < matches.length; idx++) {
+				
+				match = matches[idx];
+				let braces_level = 0;
+				let braces_match = false;
+				let line = match.range.startLineNumber;				
+
+				while (!braces_match && line <= last_line) {
+					let str = model.getLineContent(line)
+					let str_match = str.match(/\(/);
+					braces_level += str_match != null ? str_match.length : 0;
+					str_match = str.match(/\)/);
+					braces_level -= str_match != null ? str_match.length : 0;
+					braces_match = braces_level < 1;
+					line++;
+				}
+				
+				if (braces_match) {
+					ranges.push(
+						{
+							kind: monaco.languages.FoldingRangeKind.Region,
+							start: match.range.startLineNumber,
+							end: match.range.startLineNumber < line ? line - 1 : line
+						}
+					)				
+				}				
+
+      		}
+
+		}
+				
+		return ranges;
+	
+	}
+
+	/**
 	 * Finds blocks with query's fields
 	 * 
 	 * @param {ITextModel} current model of editor	 
@@ -2343,6 +2395,7 @@ class bslHelper {
 	static getQueryFoldingRanges(model) {
 				
 		let ranges = this.getRangesForQuery(model);		
+		ranges = ranges.concat(this.getRangesForNestedQuery(model));
 		ranges = ranges.concat(this.getRangesForQueryBlock(
 			model,
 			[
