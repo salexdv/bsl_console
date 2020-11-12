@@ -2399,7 +2399,7 @@ class bslHelper {
 		ranges = ranges.concat(this.getRangesForQueryBlock(
 			model,
 			[
-				'(?:выбрать|select)\\n(?:(?:.|\\n|\\r)*?)\\n(?:\s|\t)*(?:из|from|поместить|into)'
+				'(?:выбрать|select)\\s+(?:(?:.|\\n|\\r)*?)\\n(?:\s|\t)*(?:из|from|поместить|into)'
 			],
 			false,
 			false
@@ -2407,7 +2407,7 @@ class bslHelper {
 		ranges = ranges.concat(this.getRangesForQueryBlock(
 			model,
 			[
-				'(?:где|where)\\n(?:(?:.|\\n|\\r)*?)\\n(?:\\s|\\t)*(?:сгруппировать|объединить|упорядочить|group|union|order|;|\\))'
+				'(?:где|where)\\s+(?:(?:.|\\n|\\r)*?)\\n(?:\\s|\\t)*(?:сгруппировать|объединить|упорядочить|group|union|order|;|\\))'
 			],
 			true,
 			false
@@ -2415,7 +2415,7 @@ class bslHelper {
 		ranges = ranges.concat(this.getRangesForQueryBlock(
 			model,
 			[
-				'(?:выбор|case)\\n(?:(?:.|\\n|\\r)*?)\\n(?:\\s|\\t)*(?:конец|end)'
+				'(?:выбор|case)\\s+(?:(?:.|\\n|\\r)*?)\\n(?:\\s|\\t)*(?:конец|end)'
 			],
 			true,
 			true
@@ -2423,7 +2423,7 @@ class bslHelper {
 		ranges = ranges.concat(this.getRangesForQueryBlock(
 			model,
 			[
-				'(?:левое|внешнее|правое|полное|left|outer|right|full)\\s+(?:соединение|join).*\\n(?:(?:.|\\n|\\r)*?)\\n(?:\\s|\\t)*(?:где|сгруппировать|объединить|упорядочить|where|group|union|order|;|\\))'
+				'(?:левое|внешнее|правое|полное|left|outer|right|full)\\s+(?:соединение|join).*\\s+(?:(?:.|\\n|\\r)*?)\\n(?:\\s|\\t)*(?:где|сгруппировать|объединить|упорядочить|where|group|union|order|;|\\))'
 			],
 			true,
 			false
