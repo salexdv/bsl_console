@@ -91,6 +91,24 @@ define(['vs/editor/editor.main'], function () {
                 }
             };  
 
+            actions.wordwrap_bsl = {
+                label: 'Добавить перенос строки',                
+                order: 1.8,
+                callback: function (ed) {                
+                    addWordWrap();
+                    return null;
+                }
+            };
+
+            actions.unwordwrap_bsl = {
+                label: 'Удалить перенос строки',                
+                order: 1.8,
+                callback: function (ed) {                
+                    removeWordWrap();
+                    return null;
+                }
+            };
+
         }
         
         return actions;

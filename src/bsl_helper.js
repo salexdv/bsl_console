@@ -2546,9 +2546,12 @@ class bslHelper {
 	}
 
 	/**
-	 * Add comment for every selected lines
+	 * Add prefix for every selected lines
+	 * 
+	 * @param {string} prefix
+	 * 
 	 */
-	addComment() {
+	addPrefix(prefix) {
 
 		let selection = editor.getSelection();
 		let minColumn = this.getMinColumn(selection);
@@ -2558,7 +2561,7 @@ class bslHelper {
 		for (let line = selection.startLineNumber; line <= selection.endLineNumber; line++) {
 			if (editor.getModel().getLineContent(line).trim() && !(line == selection.endLineNumber && this.column == 1 && this.lineNumber == line) || oneLine) {
 				bslHelper.setText(
-					'//' +
+					prefix +
 					this.model.getValueInRange({
 						startLineNumber: line,
 						startColumn: minColumn,
@@ -2569,7 +2572,7 @@ class bslHelper {
 						startLineNumber: line,
 						startColumn: minColumn,
 						endLineNumber: line,
-						endColumn: this.model.getLineMaxColumn(line) + 2
+						endColumn: this.model.getLineMaxColumn(line) + prefix.length
 					},
 					false
 				)
@@ -2583,9 +2586,12 @@ class bslHelper {
 	}
 
 	/**
-	 * Removes comment from every selected lines
+	 * Removes prefix from every selected lines
+	 * 
+	 * @param {string} prefix
+	 * 
 	 */
-	removeComment() {
+	removePrefix(prefix) {
 
 		let selection = editor.getSelection();
 		let maxLine = 0;		
@@ -2597,14 +2603,14 @@ class bslHelper {
 				startLineNumber: line,
 				startColumn: firsColumn,
 				endLineNumber: line,
-				endColumn: Math.min(firsColumn + 2, this.model.getLineMaxColumn(line))
+				endColumn: Math.min(firsColumn + prefix.length, this.model.getLineMaxColumn(line))
 			});
 
-			if (startChars == '//') {
+			if (startChars == prefix) {
 				bslHelper.setText(					
 					this.model.getValueInRange({
 						startLineNumber: line,
-						startColumn: firsColumn + 2,
+						startColumn: firsColumn + prefix.length,
 						endLineNumber: line,
 						endColumn: this.model.getLineMaxColumn(line)
 					}),
@@ -2622,6 +2628,42 @@ class bslHelper {
 
 		if (0 < maxLine)
 			editor.setSelection(new monaco.Range(selection.startLineNumber, 1, maxLine, this.model.getLineMaxColumn(maxLine)));
+
+	}
+
+	/**
+	 * Add comment for every selected lines
+	 */
+	addComment() {
+		
+		this.addPrefix('//');
+
+	}
+
+	/**
+	 * Removes comment from every selected lines
+	 */
+	removeComment() {
+
+		this.removePrefix('//');
+
+	}
+
+	/**
+	 * Add word wrap for every selected lines
+	 */
+	addWordWrap() {
+		
+		this.addPrefix('|');
+
+	}
+
+	/**
+	 * Removes word wrap from every selected lines
+	 */
+	removeWordWrap() {
+
+		this.removePrefix('|');
 
 	}
 

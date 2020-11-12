@@ -236,6 +236,20 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  addWordWrap = function () {
+    
+    let bsl = new bslHelper(editor.getModel(), editor.getPosition());		
+    bsl.addWordWrap();
+
+  }
+
+  removeWordWrap = function () {
+    
+    let bsl = new bslHelper(editor.getModel(), editor.getPosition());		
+    bsl.removeWordWrap();
+    
+  }
+
   editor = undefined;
 
   // Register languages
