@@ -2420,6 +2420,14 @@ class bslHelper {
 			true,
 			true
 		));
+		ranges = ranges.concat(this.getRangesForQueryBlock(
+			model,
+			[
+				'(?:левое|внешнее|правое|полное|left|outer|right|full)\\s+(?:соединение|join).*\\n(?:(?:.|\\n|\\r)*?)\\n(?:\\s|\\t)*(?:где|сгруппировать|объединить|упорядочить|where|group|union|order|;|\\))'
+			],
+			true,
+			false
+		));
 				
 		return ranges;
 
