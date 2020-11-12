@@ -2751,7 +2751,10 @@ class bslHelper {
 
 			delta = offset - delta;
 			let strOffset = 0 < delta ? offset - 1 : offset;			
-			result = result + '\t'.repeat(strOffset) + original.trim() + '\n';						
+			result = result + '\t'.repeat(strOffset) + original.trim();
+			
+			if (index < strings.length - 1)
+				result += '\n';
 
 			if (words.length && complexWords.includes(words[0].toLowerCase()))
 				offset++;
