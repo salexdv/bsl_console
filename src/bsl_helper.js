@@ -2343,42 +2343,50 @@ class bslHelper {
 	 * Finds blocks with query's fields
 	 * 
 	 * @param {ITextModel} current model of editor	 
-	 * @param {array} regexps array of regexp patterns for detecting blocks
+	 * @param {string} regexp regexp pattern for detecting blocks
+	 * @param {array/false} scopes search scope
 	 * @param {boolean} includeStartString include or not the first string of match in block
 	 * @param {boolean} includeEndString include or not the last string of match in block
 	 * 
 	 * @returns {array} - array of folding ranges
 	 */
-	static getRangesForQueryBlock(model, regexps, includeStartString, includeEndString) {
+	static getRangesForQueryBlock(model, regexp, scopes, includeStartString, includeEndString) {
 
-		let ranges = [];				
+		let ranges = [];
 		let match = null;
 		let matches = [];
 
 		let pat_idx = 0;
-		
-		while (pat_idx < regexps.length && !matches.length) {
 
-			matches = model.findMatches(regexps[pat_idx], false, true, false, null, true);
-    	
-			if (matches) {
-				
-				for (let idx = 0; idx < matches.length; idx++) {
-					match = matches[idx];
-					if (1 < match.range.endLineNumber - match.range.startLineNumber) {
-						ranges.push(
-							{
-								kind: monaco.languages.FoldingRangeKind.Region,
-								start: match.range.startLineNumber + (includeStartString ? 0 : 1),
-								end: match.range.endLineNumber - (includeEndString ? 0 : 1)
-							}
-						)
-					}
-				}
+		if (scopes) {
 
+			let scope_idx = 0;
+
+			while (scope_idx < scopes.length) {
+				let scope = scopes[scope_idx];
+				matches = matches.concat(model.findMatches(regexp, new monaco.Range(scope.start, 1, scope.end + 1, 1), true, false, null, true));
+				scope_idx++;
 			}
 
-			pat_idx++;
+		}
+		else {
+			matches = model.findMatches(regexp, false, true, false, null, true);
+		}
+
+		if (matches) {
+
+			for (let idx = 0; idx < matches.length; idx++) {
+				match = matches[idx];
+				if (1 < match.range.endLineNumber - match.range.startLineNumber) {
+					ranges.push(
+						{
+							kind: monaco.languages.FoldingRangeKind.Region,
+							start: match.range.startLineNumber + (includeStartString ? 0 : 1),
+							end: match.range.endLineNumber - (includeEndString ? 0 : 1)
+						}
+					)
+				}
+			}
 
 		}
 
@@ -2395,39 +2403,14 @@ class bslHelper {
 	static getQueryFoldingRanges(model) {
 				
 		let ranges = this.getRangesForQuery(model);		
-		ranges = ranges.concat(this.getRangesForNestedQuery(model));
-		ranges = ranges.concat(this.getRangesForQueryBlock(
-			model,
-			[
-				'(?:выбрать|select)\\s+(?:(?:.|\\n|\\r)*?)\\n(?:\s|\t)*(?:из|from|поместить|into)'
-			],
-			false,
-			false
-		));
-		ranges = ranges.concat(this.getRangesForQueryBlock(
-			model,
-			[
-				'(?:где|where)\\s+(?:(?:.|\\n|\\r)*?)\\n(?:\\s|\\t)*(?:сгруппировать|объединить|упорядочить|group|union|order|;|\\))'
-			],
-			true,
-			false
-		));		
-		ranges = ranges.concat(this.getRangesForQueryBlock(
-			model,
-			[
-				'(?:выбор|case)\\s+(?:(?:.|\\n|\\r)*?)\\n(?:\\s|\\t)*(?:конец|end)'
-			],
-			true,
-			true
-		));
-		ranges = ranges.concat(this.getRangesForQueryBlock(
-			model,
-			[
-				'(?:левое|внешнее|правое|полное|left|outer|right|full)\\s+(?:соединение|join).*\\s+(?:(?:.|\\n|\\r)*?)\\n(?:\\s|\\t)*(?:где|сгруппировать|объединить|упорядочить|where|group|union|order|;|\\))'
-			],
-			true,
-			false
-		));
+		let nestedQueries = this.getRangesForNestedQuery(model);
+		ranges = ranges.concat(nestedQueries);
+		ranges = ranges.concat(this.getRangesForQueryBlock(model, '(?:выбрать|select)\\s+(?:(?:.|\\n|\\r)*?)\\n(?:\s|\t)*(?:из|from|поместить|into)', false, false, false));	
+		ranges = ranges.concat(this.getRangesForQueryBlock(model, '(?:где|where)\\s+(?:(?:.|\\n|\\r)*?)\\s*(?:\\s|\\t)*(?:сгруппировать|объединить|упорядочить|group|union|order|;)', false, true, false));		
+		ranges = ranges.concat(this.getRangesForQueryBlock(model, '(?:где|where)\\s+(?:(?:.|\\n|\\r)*?)\\s*(?:\\s|\\t)*(?:сгруппировать|объединить|упорядочить|group|union|order|;|\\))', nestedQueries, true, true));
+		ranges = ranges.concat(this.getRangesForQueryBlock(model, '(?:выбор|case)\\s+(?:(?:.|\\n|\\r)*?)\\n(?:\\s|\\t)*(?:конец|end)', false, true, true));
+		ranges = ranges.concat(this.getRangesForQueryBlock(model, '(?:левое|внешнее|правое|полное|left|outer|right|full)\\s+(?:соединение|join).*\\s+(?:(?:.|\\n|\\r)*?)\\n(?:\\s|\\t)*(?:где|сгруппировать|объединить|упорядочить|where|group|union|order|;)', false, true, false));
+		ranges = ranges.concat(this.getRangesForQueryBlock(model, '(?:левое|внешнее|правое|полное|left|outer|right|full)\\s+(?:соединение|join).*\\s+(?:(?:.|\\n|\\r)*?)\\n(?:\\s|\\t)*(?:где|сгруппировать|объединить|упорядочить|where|group|union|order|;|\\))', nestedQueries, true, true));
 				
 		return ranges;
 
