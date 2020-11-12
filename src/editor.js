@@ -219,12 +219,20 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     
     queryMode = !queryMode;
 
-    if (queryMode) {
+    let queryPostfix = '-query';
+    let currentTheme = editor._themeService.getTheme().themeName;
+
+    if (queryMode && currentTheme.indexOf(queryPostfix) == -1)
+      currentTheme += queryPostfix;
+    else if (!queryMode && currentTheme.indexOf(queryPostfix) >= 0)
+      currentTheme = currentTheme.replace(queryPostfix, '');
+
+    if (queryMode)
       monaco.editor.setModelLanguage(editor.getModel(), "bsl_query");
-      setTheme('bsl-white-query');
-    }      
     else
       monaco.editor.setModelLanguage(editor.getModel(), "bsl");
+    
+    setTheme(currentTheme);
 
     initContextMenuActions();
 
