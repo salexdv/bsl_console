@@ -360,6 +360,10 @@ define([], function () {
                         range: model.getFullModelRange()
                     }];
                 }
+            },
+            codeLenses: {
+                provider: () => {},                
+                resolver: () => {}
             }
         },
         query: {
@@ -389,6 +393,10 @@ define([], function () {
             },
             formatProvider: {
                 provideDocumentFormattingEdits: () => {}
+            },
+            codeLenses: {
+                provider: () => {},                
+                resolver: () => {}
             }
         }
     };
