@@ -11,6 +11,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   queryMode = false;
   version1C = '';
   contextActions = [];
+  customHovers = {};
 
   sendEvent = function(eventName, eventParams) {
 
@@ -256,6 +257,18 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     let bsl = new bslHelper(editor.getModel(), editor.getPosition());		
     bsl.removeWordWrap();
     
+  }
+
+  setCustomHovers = function (variables) {
+        
+    try {
+			customHovers = JSON.parse(variables);			
+			return true;
+		}
+		catch (e) {
+			return { errorDescription: e.message };
+		}
+
   }
 
   editor = undefined;
