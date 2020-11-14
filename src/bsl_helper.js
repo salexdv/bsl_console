@@ -1207,7 +1207,52 @@ class bslHelper {
 
 	}
 
-	
+	/**
+	 * Fills and returns array of variables names
+	 * 
+	 * @param {int} currentLine the last line below which we don't search variables
+	 * 
+	 * @returns {array} array with variables names
+	 */
+	getVarsNames(currentLine) {
+
+		let names = [];
+
+		const matches = this.model.findMatches('([a-zA-Z0-9\u0410-\u044F_]+)\\s?=\\s?.*(?:;|\\()\\s*$', true, true, false, null, true);
+
+		for (let idx = 0; idx < matches.length; idx++) {
+
+			let match = matches[idx];
+			
+			if (match.range.startLineNumber < currentLine) {
+
+				let varName = match.matches[match.matches.length - 1]
+
+				if (!names.some(name => name === varName))
+					names.push(varName);
+
+			}
+
+		}
+
+		const funcDef = editor.getModel().findPreviousMatch('(?:процедура|функция)\\s+[a-zA-Z0-9\u0410-\u044F_]+\\(([a-zA-Z0-9\u0410-\u044F_,\\s=]+)\\)', true, true, false, null, true);
+
+		if (funcDef && 1 < funcDef.matches.length) {
+			
+			const params = funcDef.matches[1].split(',');
+			
+			params.forEach(function(param) {
+				let paramName = param.split('=')[0].trim();
+				if (!names.some(name => name === paramName))
+					names.push(paramName);
+			});
+
+		}
+
+		return names;
+
+	}
+
 	/**
 	 * Fills array of completition for variables
 	 * 
@@ -1217,50 +1262,20 @@ class bslHelper {
 
 		if (this.word) {
 
-			const matches = this.model.findMatches('([a-zA-Z0-9\u0410-\u044F_]+)\\s?=\\s?.*(?:;|\\()\\s*$', true, true, false, null, true);
+			let names = this.getVarsNames(this.lineNumber);
 
-			for (let idx = 0; idx < matches.length; idx++) {
+			for (let idx = 0; idx < names.length; idx++) {
 
-				let match = matches[idx];
+				let varName = names[idx];
 
-				if (match.range.startLineNumber < this.lineNumber) {
-
-					let varName = match.matches[match.matches.length - 1];			
-
-					if (varName.toLowerCase().startsWith(this.word)) {
-						suggestions.push({
-							label: varName,
-							kind: monaco.languages.CompletionItemKind.Variable,
-							insertText: varName,
-							insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet					
-						});
-					}
-
-				}
-
-			}
-
-			const funcDef = editor.getModel().findPreviousMatch('(?:процедура|функция)\\s+[a-zA-Z0-9\u0410-\u044F_]+\\(([a-zA-Z0-9\u0410-\u044F_,\\s=]+)\\)', true, true, false, null, true);
-
-			if (funcDef && 1 < funcDef.matches.length) {
-				
-				const params = funcDef.matches[1].split(',');
-				let word = this.word;
-
-				params.forEach(function(param){
-					
-					let paramName = param.split('=')[0].trim();
-					
-					if (paramName.toLowerCase().startsWith(word)) {
-						suggestions.push({
-							label: paramName,
-							kind: monaco.languages.CompletionItemKind.Variable,
-							insertText: paramName,
-							insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet					
-						});
-					}
-
-				});
+				if (varName.toLowerCase().startsWith(this.word)) {
+					suggestions.push({
+						label: varName,
+						kind: monaco.languages.CompletionItemKind.Variable,
+						insertText: varName,
+						insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet					
+					});
+				}				
 
 			}
 
