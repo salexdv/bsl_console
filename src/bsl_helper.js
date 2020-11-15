@@ -1217,29 +1217,55 @@ class bslHelper {
 	getVarsNames(currentLine) {
 
 		let names = [];
+		let comments = new Map();
 
-		const matches = this.model.findMatches('([a-zA-Z0-9\u0410-\u044F_]+)\\s?=\\s?.*(?:;|\\()\\s*$', true, true, false, null, true);
+		const commentMatches = this.model.findMatches('\\/\\/', true, true, false, null, true);
+
+		for (let idx = 0; idx < commentMatches.length; idx++) {
+			comments.set(commentMatches[idx].range.startLineNumber, commentMatches[idx].range.startColumn);
+		}
+
+		let matches = this.model.findMatches('([a-zA-Z0-9\u0410-\u044F_]+)\\s?=\\s?.*(?:;|\\()\\s*$', true, true, false, null, true);
 
 		for (let idx = 0; idx < matches.length; idx++) {
 
 			let match = matches[idx];
 			
-			if (match.range.startLineNumber < currentLine) {
+			if (match.range.startLineNumber < currentLine || currentLine == 0) {
 
-				let varName = match.matches[match.matches.length - 1]
+				let comment = comments.get(match.range.startLineNumber);
 
-				if (!names.some(name => name === varName))
-					names.push(varName);
+				if (!comment || match.range.startColumn < comment) {
+					
+					let varName = match.matches[match.matches.length - 1]
+
+					if (!names.some(name => name === varName))
+						names.push(varName);
+
+				}
 
 			}
 
 		}
+		
+		matches = [];
+		let funcDef = [];
+		let funcLine = 0;
 
-		const funcDef = editor.getModel().findPreviousMatch('(?:процедура|функция)\\s+[a-zA-Z0-9\u0410-\u044F_]+\\(([a-zA-Z0-9\u0410-\u044F_,\\s=]+)\\)', true, true, false, null, true);
+		if (currentLine == 0)
+			matches = editor.getModel().findMatches('(?:процедура|функция)\\s+[a-zA-Z0-9\u0410-\u044F_]+\\(([a-zA-Z0-9\u0410-\u044F_,\\s=]+)\\)', true, true, false, null, true);					
+		else {
+			funcDef = editor.getModel().findPreviousMatch('(?:процедура|функция)\\s+[a-zA-Z0-9\u0410-\u044F_]+\\(([a-zA-Z0-9\u0410-\u044F_,\\s=]+)\\)', true, true, false, null, true);
+			if (funcDef) {
+				funcLine = funcDef.range.startLineNumber;
+				matches.push(funcDef);
+			}			
+		}
 
-		if (funcDef && 1 < funcDef.matches.length) {
-			
-			const params = funcDef.matches[1].split(',');
+		for (let idx = 0; idx < matches.length; idx++) {
+		
+			let match = matches[idx];
+			let params = match.matches[1].split(',');
 			
 			params.forEach(function(param) {
 				let paramName = param.split('=')[0].trim();
@@ -1248,7 +1274,29 @@ class bslHelper {
 			});
 
 		}
+				
+		matches = editor.getModel().findMatches('(?:перем|var)\\s+([a-zA-Z0-9\u0410-\u044F_,\\s]+);', true, true, false, null, true);
 
+		for (let idx = 0; idx < matches.length; idx++) {
+
+			let match = matches[idx];
+			
+			if (currentLine == 0 || funcLine < match.range.startLineNumber) {
+
+				let varDef = match.matches[match.matches.length - 1];
+
+				const params = varDef.split(',');
+			
+				params.forEach(function(param) {
+					let paramName = param.split('=')[0].trim();
+					if (!names.some(name => name === paramName))
+						names.push(paramName);
+				});
+
+			}
+
+		}
+				
 		return names;
 
 	}

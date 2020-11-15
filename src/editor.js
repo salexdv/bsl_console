@@ -274,7 +274,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   getVarsNames = function () {
     
     let bsl = new bslHelper(editor.getModel(), editor.getPosition());		
-    return bsl.getVarsNames(editor.getModel().getLineCount());
+    return bsl.getVarsNames(0);    
     
   }
 

@@ -3,6 +3,8 @@ describe("Проверка автокомлита и подсказок реда
 
   require(['editor'], function () {
 
+    init('8.3.18.1');
+
     var assert = chai.assert;
     var expect = chai.expect;
     chai.should();
