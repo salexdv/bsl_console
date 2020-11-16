@@ -448,6 +448,15 @@ describe("Проверка автокомлита и подсказок реда
         assert.equal(suggestions.some(suggest => suggest.label === "_ОстаткиТовара"), true);        
       });
 
+      it("проверка подсказки для вложенного пользовательского объекта", function () {
+        bsl = helper('_ОбъектСВложениями.ВложенныйОбъект.');
+        let suggestions = [];
+        bsl.getCustomObjectsCompletition(suggestions, bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "Вставить"), true);
+        assert.equal(suggestions.some(suggest => suggest.label === "ПервыйРеквизитОбъекта"), true);        
+      });
+
       it("проверка подсказки методов, когда у пользовательского объекта явна задана ссылка", function () {
         bsl = helper('_СтруктураВыгрузки.');
         let suggestions = [];
