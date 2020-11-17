@@ -429,9 +429,40 @@ describe("Проверка автокомлита и подсказок реда
                         "name":"ПервыйРеквизитОбъекта",                       
                         "ref":"documents.ПриходнаяНакладная"
                       },
-                      "ВтороййРеквизитОбъекта":{
+                      "ВторойРеквизитОбъекта":{
                         "name":"ВторойРеквизитОбъекта",                       
                         "ref":"classes.Соответствие"
+                      },
+                      "ТретийРеквизитОбъекта":{
+                        "name":"ТретийРеквизитОбъекта",                       
+                        "ref":"classes.Структура",
+                        "properties":{
+                          "Партия":{
+                            "name":"Партия",
+                            "description":"Ссылка на приходный документ",
+                            "ref":"documents.ПриходнаяНакладная"
+                          },
+                          "Номенклатура":{
+                            "name":"Номенклатура",
+                            "ref":"catalogs.Товары"
+                          }
+                        }                        
+                      }
+                    },
+                    "methods":{
+                      "ВложенныйМетод": {
+                        "name": "ВложенныйМетод",
+                        "name_en": "NestedMethod",
+                        "description": "Устанавливает значение элемента структуры по ключу. Если элемент с переданным значением ключа существует, то его значение заменяется, в противном случае добавляется новый элемент.",
+                        "signature": {
+                            "default": {
+                                "СтрокаПараметров": "(Ключ: Строка, Значение?: Произвольный)",
+                                "Параметры": {
+                                    "Ключ": "Ключ устанавливаемого элемента. Ключ должен соответствовать правилам, установленным для идентификаторов:   - Первым символом ключа должна быть буква или символ подчеркивания (_).  - Каждый из последующих символов может быть буквой, цифрой или символом подчеркивания (_).",
+                                    "Значение": "Значение устанавливаемого элемента."
+                                }
+                            }
+                          }
                       }
                     }
                   }
@@ -449,12 +480,24 @@ describe("Проверка автокомлита и подсказок реда
       });
 
       it("проверка подсказки для вложенного пользовательского объекта", function () {
-        bsl = helper('_ОбъектСВложениями.ВложенныйОбъект.');
+        bsl = helper('_ОбъектСВложениями.');
         let suggestions = [];
         bsl.getCustomObjectsCompletition(suggestions, bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
         expect(suggestions).to.be.an('array').that.not.is.empty;
-        assert.equal(suggestions.some(suggest => suggest.label === "Вставить"), true);
-        assert.equal(suggestions.some(suggest => suggest.label === "ПервыйРеквизитОбъекта"), true);        
+        assert.equal(suggestions.some(suggest => suggest.label === "ВложенныйОбъект"), true);
+        suggestions.forEach(function (suggestion) {
+          if (suggestion.label == "ВложенныйОбъект") {
+            let command = suggestion.command.arguments[0];
+            contextData = new Map([
+              [1, new Map([[command.name.toLowerCase(), command.data]])]
+            ]);
+            suggestions = [];
+            bsl = helper('_ОбъектСВложениями.ВложенныйОбъект.');
+            bsl.getRefCompletition(suggestions);
+            assert.equal(suggestions.some(suggest => suggest.label === "ПервыйРеквизитОбъекта"), true);        
+            contextData = new Map();
+          }
+        });                                
       });
 
       it("проверка подсказки методов, когда у пользовательского объекта явна задана ссылка", function () {

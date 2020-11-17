@@ -483,14 +483,18 @@ class bslHelper {
 
 				let command = null;
 
-				if (listItem.hasOwnProperty('ref')) {
-					command = { id: 'vs.editor.ICodeEditor:1:saveref', arguments: [{ "name": listItem.name, "data": { "ref": listItem.ref, "sig": null } }] }
-				}
+				if (listItem.hasOwnProperty('command'))
+					command = listItem.command;
+				else if (listItem.hasOwnProperty('ref'))
+					command = { id: 'vs.editor.ICodeEditor:1:saveref', arguments: [{ "name": listItem.name, "data": { "ref": listItem.ref, "sig": null } }] }				
+				
+
+				let name = listItem.hasOwnProperty('name') ? listItem.name : listItem.label;
 
 				suggestions.push({
-					label: listItem.name,
+					label: name,
 					kind: listItem.kind,
-					insertText: listItem.name,
+					insertText: name,
 					insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
 					command: command
 				});
@@ -864,18 +868,26 @@ class bslHelper {
 				}
 
 				let command = null;
+				let ref = pvalue.hasOwnProperty('ref') ? pvalue.ref : null;
+				let nestedSuggestions = [];
 								
-				if (pvalue.hasOwnProperty('ref')) {					
-					// If the attribute contains a ref, we need to run the command to save the position of ref
-					command = { id: 'vs.editor.ICodeEditor:1:saveref', arguments: [{'name': pkey, "data": { "ref": pvalue.ref, "sig": null } }]}
-				}
-
 				let detail = pvalue;
 
 				if (pvalue.hasOwnProperty('description'))
 					detail = pvalue.description;				
 				else if (pvalue.hasOwnProperty('name'))
-					detail = pvalue.name;					
+					detail = pvalue.name;
+
+				if (pvalue.hasOwnProperty('properties'))
+					this.fillSuggestionsForMetadataItem(nestedSuggestions, pvalue);
+
+				if (pvalue.hasOwnProperty('methods'))
+					this.getMetadataMethods(nestedSuggestions, pvalue, 'methods', null, null);
+
+				if (ref || nestedSuggestions.length) {					
+					// If the attribute contains a ref, we need to run the command to save the position of ref
+					command = { id: 'vs.editor.ICodeEditor:1:saveref', arguments: [{'name': pkey, "data": { "ref": ref, "sig": null, "list" : nestedSuggestions } }]}
+				}
 
 				suggestions.push({
 					label: pkey,
