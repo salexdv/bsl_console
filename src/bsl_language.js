@@ -295,12 +295,8 @@ define([], function () {
             expressions: bsl_language.rules.queryExp,            
             operators: /[=><+\-*\/%;,]+/,
             tokenizer: {
-                root: [
-                    [/(как|as\s)(.+)(,?)/, [
-                        {token: 'query.keyword'},
-                        {token: 'query'},
-                        {token: 'query.operator'}
-                    ]],
+                root: [                    
+                    [/([a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]+)(\.)([a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]+)/, 'query'],
                     [/[a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]*/, { cases: {
                         '@keywords': 'query.keyword',
                         '@expressions': 'query.exp',
@@ -311,13 +307,10 @@ define([], function () {
                     [/&/, 'query.param'],
                     [/[()]/, 'query.brackets'],
                     [/\/\/.*$/, 'comment'],
-                    [/\..*?\s/, 'query'],
-                    [/[^ ]+\.[^ ]+/, 'query'],
                     [/@operators/, 'query.operator'],
                     [/[0-9_]*\.[0-9_]+([eE][\-+]?\d+)?[fFdD]?/, 'query.float'],
                     [/[0-9_]+/, 'query.int'],
-                    [/\|/, 'query'],
-                    [/[?!@#$^*_]+/, 'query']                    
+                    [/\|/, 'query']                    
                 ]
             },
         },        
