@@ -308,6 +308,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  getLineContent = function(lineNumber) {
+
+    return editor.getModel().getLineContent(lineNumber)
+
+  }
+
   editor = undefined;
 
   // Register languages
