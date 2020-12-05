@@ -296,6 +296,16 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  setSelectionByLength = function(start, end) {
+    
+    let startPosition = editor.getModel().getPositionAt(start - 1);
+    let endPosition = editor.getModel().getPositionAt(end - 1);
+    let range = new monaco.Range(startPosition.lineNumber, startPosition.column, endPosition.lineNumber, endPosition.column);    
+    editor.setSelection(range);
+    return true;
+
+  }
+
   selectedText = function(text) {
 
     if (!text)
