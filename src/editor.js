@@ -302,6 +302,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  getLineCount = function() {
+    
+    return editor.getModel().getLineCount();
+
+  }
+
   editor = undefined;
 
   // Register languages
