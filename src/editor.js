@@ -278,6 +278,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     
   }
 
+  getSelection = function() {
+
+    return editor.getSelection();
+
+  }
+
   editor = undefined;
 
   // Register languages
