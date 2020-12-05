@@ -284,6 +284,13 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  setSelection = function(startLineNumber, startColumn, endLineNumber, endColumn) {
+    
+    let range = new monaco.Range(startLineNumber, startColumn, endLineNumber, endColumn);
+    editor.setSelection(range);
+
+  }
+
   selectedText = function(text) {
 
     if (!text)
