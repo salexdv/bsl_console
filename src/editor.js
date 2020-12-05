@@ -314,6 +314,19 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  setLineContent = function(lineNumber, text) {
+
+    if (lineNumber <= getLineCount()) {
+      let range = new monaco.Range(lineNumber, 1, lineNumber, editor.getModel().getLineMaxColumn(lineNumber));
+      setText(text, range, false);
+      return true;      
+    }
+    else {
+      return false;
+    }
+
+  }
+
   editor = undefined;
 
   // Register languages
