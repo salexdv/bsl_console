@@ -284,6 +284,17 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  selectedText = function(text) {
+
+    if (!text)
+      return getSelectedText();    
+    else if (getSelectedText())
+      setText(text, getSelection(), false);
+    else
+      setText(text, undefined, false);
+
+  }
+
   editor = undefined;
 
   // Register languages
