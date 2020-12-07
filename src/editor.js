@@ -12,6 +12,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   version1C = '';
   contextActions = [];
   customHovers = {};
+  originalText = '';
 
   sendEvent = function(eventName, eventParams) {
 
@@ -340,6 +341,40 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       return false;
     }
 
+  }
+
+  compare = function (text, sideBySide, highlight) {
+    
+    document.getElementById("container").innerHTML = ''
+    let language_id = '';
+    if (highlight)
+      language_id = queryMode ? 'bls_query' : 'bsl';
+    
+    if (text) {
+      let originalModel = originalText ? monaco.editor.createModel(originalText, language_id) : monaco.editor.createModel(editor.getModel().getValue(), language_id);
+      let modifiedModel = monaco.editor.createModel(text, language_id);
+      originalText = originalModel.getValue();
+      editor = monaco.editor.createDiffEditor(document.getElementById("container"), {
+        theme: "bsl-white",        
+        language: queryMode ? 'bls_query' : 'bsl',
+        contextmenu: false,	  
+	      renderSideBySide: sideBySide
+      });    
+      editor.setModel({
+        original: originalModel,
+        modified: modifiedModel
+      });
+    }
+    else
+    {
+      editor = monaco.editor.create(document.getElementById("container"), {
+        theme: "bsl-white",
+        value: originalText,
+        language: queryMode ? 'bls_query' : 'bsl',
+        contextmenu: true
+      });
+      originalText = '';
+    }
   }
 
   editor = undefined;
