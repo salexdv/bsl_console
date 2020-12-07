@@ -346,20 +346,31 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   compare = function (text, sideBySide, highlight) {
     
     document.getElementById("container").innerHTML = ''
-    let language_id = '';
-    if (highlight)
-      language_id = queryMode ? 'bls_query' : 'bsl';
-    
-    if (text) {
-      let originalModel = originalText ? monaco.editor.createModel(originalText, language_id) : monaco.editor.createModel(editor.getModel().getValue(), language_id);
-      let modifiedModel = monaco.editor.createModel(text, language_id);
+    let language_id = queryMode ? 'bsl_query' : 'bsl';    
+
+    let queryPostfix = '-query';
+    let currentTheme = editor._themeService.getTheme().themeName;
+
+    if (queryMode && currentTheme.indexOf(queryPostfix) == -1)
+      currentTheme += queryPostfix;
+    else if (!queryMode && currentTheme.indexOf(queryPostfix) >= 0)
+      currentTheme = currentTheme.replace(queryPostfix, '');
+
+    if (text) {      
+      let originalModel = originalText ? monaco.editor.createModel(originalText) : monaco.editor.createModel(editor.getModel().getValue());
+      let modifiedModel = monaco.editor.createModel(text);
       originalText = originalModel.getValue();
       editor = monaco.editor.createDiffEditor(document.getElementById("container"), {
-        theme: "bsl-white",        
-        language: queryMode ? 'bls_query' : 'bsl',
-        contextmenu: false,	  
-	      renderSideBySide: sideBySide
+        theme: currentTheme,
+        language: language_id,
+        contextmenu: false,
+        automaticLayout: true,
+        renderSideBySide: sideBySide        
       });    
+      if (highlight) {
+        monaco.editor.setModelLanguage(originalModel, language_id);
+        monaco.editor.setModelLanguage(modifiedModel, language_id);
+      }
       editor.setModel({
         original: originalModel,
         modified: modifiedModel
@@ -368,10 +379,11 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     else
     {
       editor = monaco.editor.create(document.getElementById("container"), {
-        theme: "bsl-white",
+        theme: currentTheme,
         value: originalText,
-        language: queryMode ? 'bls_query' : 'bsl',
-        contextmenu: true
+        language: language_id,
+        contextmenu: true,
+        automaticLayout: true
       });
       originalText = '';
     }
