@@ -43,7 +43,29 @@ define(['vs/editor/editor.main'], function () {
                 sendEvent('EVENT_QUERY_CONSTRUCT', queryMode ? getText() : getQuery());
                 return null;
             }
+        };
+
+        actions.comment_bsl = {
+            label: 'Добавить комментарий',
+            key: monaco.KeyMod.CtrlCmd | monaco.KeyCode.NUMPAD_DIVIDE,
+            cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.NUMPAD_DIVIDE),
+            order: 1.5,
+            callback: function (ed) {                
+                addComment();
+                return null;
+            }
         };        
+
+        actions.uncomment_bsl = {
+            label: 'Удалить комментарий',
+            key: monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.NUMPAD_DIVIDE,
+            cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.NUMPAD_DIVIDE),
+            order: 1.6,
+            callback: function (ed) {                
+                removeComment();
+                return null;
+            }
+        };
         
         if (!queryMode) {
 
@@ -57,28 +79,6 @@ define(['vs/editor/editor.main'], function () {
                     return null;
                 }
             };        
-
-            actions.comment_bsl = {
-                label: 'Добавить комментарий',
-                key: monaco.KeyMod.CtrlCmd | monaco.KeyCode.NUMPAD_DIVIDE,
-                cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.NUMPAD_DIVIDE),
-                order: 1.5,
-                callback: function (ed) {                
-                    addComment();
-                    return null;
-                }
-            };        
-
-            actions.uncomment_bsl = {
-                label: 'Удалить комментарий',
-                key: monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.NUMPAD_DIVIDE,
-                cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.NUMPAD_DIVIDE),
-                order: 1.6,
-                callback: function (ed) {                
-                    removeComment();
-                    return null;
-                }
-            };
 
             actions.format_bsl = {
                 label: 'Форматировать',
