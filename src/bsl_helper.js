@@ -1632,6 +1632,8 @@ class bslHelper {
 			this.getQueryCommonCompletition(suggestions, langDef, monaco.languages.CompletionItemKind.Module);		
 			this.getQueryParamsCompletition(suggestions, monaco.languages.CompletionItemKind.Enum);				
 
+			this.getSnippets(suggestions, querySnippets);
+
 		}
 		else {
 			this.getQueryValuesCompletition(suggestions, bslQuery.values, monaco.languages.CompletionItemKind.Enum);

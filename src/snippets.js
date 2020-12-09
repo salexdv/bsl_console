@@ -1,4 +1,5 @@
 define([], function () {
+  
   snippets = {
     "Если": {
       "prefix": "Если",
@@ -1096,4 +1097,13 @@ define([], function () {
       "description": "Type check"
     }
   }
+
+  querySnippets = {
+    "Выбор": {
+      "prefix": "Выбор",
+      "body": "ВЫБОР\n\tКОГДА ${1:Условие}\n\t\tТОГДА $2\n\tИНАЧЕ $0\nКОНЕЦ",
+      "description": "Выбор"
+    }
+  }
+
 });
