@@ -1614,6 +1614,23 @@ class bslHelper {
 	}
 
 	/**
+	 * Fills array of completition for fields of querie's table
+	 * 
+	 * @param {array} suggestions array of suggestions for provideCompletionItems	 
+	 */
+	getQueryFieldsCompletition(suggestions) {
+
+		if (this.lastExpression.endsWith('.')) {
+			
+			// Let's find start of current query
+			let match = this.model.findPreviousMatch('(?:выбрать|select)', this.position, true);
+			console.log(match.range);
+			
+		}
+
+	}
+
+	/**
 	 * Completition provider for query language
 	 * 
 	 * @param {object} langDef - query language definition
@@ -1631,7 +1648,7 @@ class bslHelper {
 
 			this.getQueryCommonCompletition(suggestions, langDef, monaco.languages.CompletionItemKind.Module);		
 			this.getQueryParamsCompletition(suggestions, monaco.languages.CompletionItemKind.Enum);				
-
+			this.getQueryFieldsCompletition(suggestions);
 			this.getSnippets(suggestions, querySnippets);
 
 		}
