@@ -1614,6 +1614,25 @@ class bslHelper {
 	}
 
 	/**
+	 * Fills array of completition for metadata source in query
+	 * 
+	 * @param {array} suggestions array of suggestions for provideCompletionItems	 
+	 * @param {string} sourceDefinition source string definition
+	 */
+	getQueryFieldsCompletitionForMetadata(suggestions, sourceDefinition) {
+
+		let metadataExists = false;
+
+		let sourceArray = sourceDefinition.split('.');
+
+		if (1 < sourceArray.length) {						
+		}
+
+		return metadataExists;
+
+	}
+
+	/**
 	 * Fills array of completition for fields of querie's table
 	 * 
 	 * @param {array} suggestions array of suggestions for provideCompletionItems	 
@@ -1624,7 +1643,24 @@ class bslHelper {
 			
 			// Let's find start of current query
 			let match = this.model.findPreviousMatch('(?:выбрать|select)', this.position, true);
-			console.log(match.range);
+			
+			if (match) {
+				
+				// Now we need to find lastExpression definition
+				let position =  new monaco.Position(match.range.startLineNumber, match.range.startColumn);
+				match = this.model.findNextMatch('(.*)\\s+(?:как|as)\\s+' + this.lastRawExpression, position, true, false, null, true);
+				
+				if (match) {					
+					let sourceDefinition = match.matches[1];
+					sourceDefinition = sourceDefinition.replace(/(из|левое|правое|внутреннее|внешнее|полное|from|left|right|inner|outer|full)?\s?(соединение|join)?/gi, '').trim();
+
+					if (!this.getQueryFieldsCompletitionForMetadata(suggestions, sourceDefinition)) {
+						
+					}
+
+				}
+
+			}
 			
 		}
 
