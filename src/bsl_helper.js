@@ -527,20 +527,27 @@ class bslHelper {
 					let itemName = refArray[0];
 					let subItemName = refArray[1];
 
-					if (itemName == 'classes' || itemName == 'types') {
-						if (this.objectHasProperties(bslGlobals, itemName, subItemName)) {
-							this.getClassSuggestions(suggestions, bslGlobals[itemName][subItemName]);
+					if (queryMode) {
+						if (this.objectHasProperties(bslMetadata, itemName, 'items', subItemName, 'properties')) {
+							this.fillSuggestionsForMetadataItem(suggestions, bslMetadata[itemName].items[subItemName]);
 						}
 					}
 					else {
-
-						let methodsName = (refArray.length == 3 && refArray[2] == 'obj') ? 'objMethods' : 'refMethods'
-
-						if (this.objectHasProperties(bslMetadata, itemName, 'items', subItemName, 'properties')) {
-							this.fillSuggestionsForMetadataItem(suggestions, bslMetadata[itemName].items[subItemName]);
-							this.getMetadataMethods(suggestions, bslMetadata[itemName], methodsName, itemName, subItemName);
+						if (itemName == 'classes' || itemName == 'types') {
+							if (this.objectHasProperties(bslGlobals, itemName, subItemName)) {
+								this.getClassSuggestions(suggestions, bslGlobals[itemName][subItemName]);
+							}
 						}
+						else {
 
+							let methodsName = (refArray.length == 3 && refArray[2] == 'obj') ? 'objMethods' : 'refMethods'
+
+							if (this.objectHasProperties(bslMetadata, itemName, 'items', subItemName, 'properties')) {
+								this.fillSuggestionsForMetadataItem(suggestions, bslMetadata[itemName].items[subItemName]);
+								this.getMetadataMethods(suggestions, bslMetadata[itemName], methodsName, itemName, subItemName);
+							}
+
+						}
 					}
 
 				}
@@ -1703,8 +1710,10 @@ class bslHelper {
 
 		if (!this.requireQueryValue()) {
 
-			if (this.lastOperator != '"')
+			if (this.lastOperator != '"') {
 				this.getCommonCompletition(suggestions, bslQuery.functions, monaco.languages.CompletionItemKind.Function, true);
+				this.getRefCompletition(suggestions);
+			}
 
 			this.getQueryCommonCompletition(suggestions, langDef, monaco.languages.CompletionItemKind.Module);		
 			this.getQueryParamsCompletition(suggestions, monaco.languages.CompletionItemKind.Enum);				
