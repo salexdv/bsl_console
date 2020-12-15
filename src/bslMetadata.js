@@ -3,6 +3,8 @@ define([], function () {
       "catalogs":{
          "name":"Справочники",
          "name_en":"Catalogs",
+         "query_name":"Справочник",
+         "query_name_en":"Catalog",
          "items":{
             "Товары":{
                "properties":{

@@ -36,6 +36,7 @@ class bslHelper {
 		this.lastRawExpression = this.getLastRawExpression();
 		
 		this.nameField = engLang ? 'name_en': 'name';
+		this.queryNameField = engLang ? 'query_name_en' : 'query_name';
 
 	}
 
@@ -1626,6 +1627,29 @@ class bslHelper {
 		let sourceArray = sourceDefinition.split('.');
 
 		if (1 < sourceArray.length) {						
+			
+			metadataExists = true;
+
+			let metadataType = sourceArray[0].toLowerCase();
+			let metadataName = sourceArray[1].toLowerCase();
+
+			for (const [key, value] of Object.entries(bslMetadata)) {
+				
+				if (value.hasOwnProperty(this.queryNameField) && value[this.queryNameField].toLowerCase() == metadataType) {
+				
+					for (const [ikey, ivalue] of Object.entries(value.items)) {
+
+						if (ikey.toLowerCase() == metadataName) {
+							this.fillSuggestionsForMetadataItem(suggestions, ivalue);
+							
+						}
+
+					}
+
+				}
+				
+			}
+			
 		}
 
 		return metadataExists;
@@ -1655,7 +1679,7 @@ class bslHelper {
 					sourceDefinition = sourceDefinition.replace(/(из|левое|правое|внутреннее|внешнее|полное|from|left|right|inner|outer|full)?\s?(соединение|join)?/gi, '').trim();
 
 					if (!this.getQueryFieldsCompletitionForMetadata(suggestions, sourceDefinition)) {
-						
+
 					}
 
 				}
