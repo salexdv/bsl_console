@@ -1683,8 +1683,9 @@ class bslHelper {
 			if (startMatch) {
 				
 				// Searching field's definition between select...into
-				let searchRange = new monaco.Range(startMatch.range.startLineNumber, 1, intoMatch.range.startLineNumber, 1);
-				let matches = this.model.findMatches('^.*\\.(.*?),?\\s?(?:(?:как|as)\\s+(.*?),?)?$', searchRange, true, false, null, true);
+				let searchRange = new monaco.Range(startMatch.range.startLineNumber, 1, intoMatch.range.startLineNumber, 1);				
+				let matches = this.model.findMatches('^.*(?:как|as)\\s+([a-zA-Z0-9\u0410-\u044F_]*?),?$', searchRange, true, false, null, true);				
+				matches = matches.concat(this.model.findMatches('^\\s*[a-zA-Z0-9\u0410-\u044F_]*\\.([a-zA-Z0-9\u0410-\u044F_]*?)[,\\s]*$', searchRange, true, false, null, true));
 				
 				if (matches) {
 					
