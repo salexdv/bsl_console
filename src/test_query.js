@@ -15,6 +15,13 @@ describe("Проверка автокомлита и подсказок реда
 
     }
 
+    function getPositionByModel(model) {
+
+      let strings = model.getValue().split('\n');
+      return new monaco.Position(strings.length, strings[strings.length - 1].length + 1);
+
+    }
+
     function getModel(string) {
 
       return monaco.editor.createModel(string, 'bsl');
@@ -23,7 +30,7 @@ describe("Проверка автокомлита и подсказок реда
 
     function helper(string, line, column) {
       let model = getModel(string);
-      let position = getPosition(line, column);
+      let position = line != undefined ? getPosition(line, column) : getPositionByModel(model);
       return new bslHelper(model, position);
     }
 
@@ -58,6 +65,19 @@ describe("Проверка автокомлита и подсказок реда
       bsl.getQueryFieldsCompletition(suggestions)
       expect(suggestions).to.be.an('array').that.not.is.empty;
       assert.equal(suggestions.some(suggest => suggest.label === "СтавкаНДС"), true);
+    });
+
+    it("проверка подсказки ссылочных реквизитов", function () {              	                                
+      bsl = helper('Товары.СтавкаНДС.');
+      helperToConsole(bsl);
+      let suggestions = [];
+      contextData = new Map([
+        [1, new Map([["ставкандс", { "ref": "catalogs.СтавкиНДС", "sig": null }]])]
+      ]);
+      bsl.getRefCompletition(suggestions);
+      expect(suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(suggestions.some(suggest => suggest.label === "Ставка"), true);
+      contextData = new Map();
     });
 
     switchQueryMode();
