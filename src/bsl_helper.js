@@ -1648,7 +1648,6 @@ class bslHelper {
 
 						if (ikey.toLowerCase() == metadataName) {
 							this.fillSuggestionsForMetadataItem(suggestions, ivalue);
-							
 						}
 
 					}
@@ -1661,6 +1660,58 @@ class bslHelper {
 
 		return metadataExists;
 
+	}
+
+	/**
+	 * Fills array of completition for temporary table
+	 * 
+	 * @param {array} suggestions array of suggestions for provideCompletionItems
+	 * @param {string} sourceDefinition source string definition
+	 * @param {position} startPosition the begining of current query
+	 */
+	getQueryFieldsCompletitionForTempTable(suggestions, sourceDefinition, startPosition) {
+
+		// Let's find definition for temporary table
+		let intoMatch = this.model.findPreviousMatch('(?:поместить|into)\\s+' + sourceDefinition, startPosition, true);
+
+		if (intoMatch) {
+			
+			// Now we need to find start of this query
+			let position =  new monaco.Position(intoMatch.range.startLineNumber, intoMatch.range.startColumn);
+			let startMatch = this.model.findPreviousMatch('(?:выбрать|select)', position, true);
+
+			if (startMatch) {
+				
+				// Searching field's definition between select...into
+				let searchRange = new monaco.Range(startMatch.range.startLineNumber, 1, intoMatch.range.startLineNumber, 1);
+				let matches = this.model.findMatches('^.*\\.(.*?),?\\s?(?:(?:как|as)\\s+(.*?),?)?$', searchRange, true, false, null, true);
+				
+				if (matches) {
+					
+					for (let idx = 0; idx < matches.length; idx++) {
+						
+						let match = matches[idx];
+						let field = match.matches[match.matches.length - 1];
+						
+						if (field) {
+
+							suggestions.push({
+								label: field,
+								kind: monaco.languages.CompletionItemKind.Enum,
+								insertText: field,
+								insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet						
+							});
+
+						}
+
+					}					
+
+				}
+
+			}
+
+		}
+		
 	}
 
 	/**
@@ -1686,7 +1737,7 @@ class bslHelper {
 					sourceDefinition = sourceDefinition.replace(/(из|левое|правое|внутреннее|внешнее|полное|from|left|right|inner|outer|full)?\s?(соединение|join)?/gi, '').trim();
 
 					if (!this.getQueryFieldsCompletitionForMetadata(suggestions, sourceDefinition)) {
-
+						this.getQueryFieldsCompletitionForTempTable(suggestions, sourceDefinition, position);
 					}
 
 				}
