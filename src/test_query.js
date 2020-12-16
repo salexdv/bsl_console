@@ -67,9 +67,16 @@ describe("Проверка автокомлита и подсказок реда
       assert.equal(suggestions.some(suggest => suggest.label === "СтавкаНДС"), true);
     });
 
+    it("проверка автокомплита для таблицы запроса, полученной из временной таблицы", function () {
+      bsl = helper(getCode(), 209, 26);
+      let suggestions = [];
+      bsl.getQueryFieldsCompletition(suggestions)
+      expect(suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(suggestions.some(suggest => suggest.label === "ПФРПоСуммарномуТарифу"), true);
+    });
+
     it("проверка подсказки ссылочных реквизитов", function () {              	                                
-      bsl = helper('Товары.СтавкаНДС.');
-      helperToConsole(bsl);
+      bsl = helper('Товары.СтавкаНДС.');      
       let suggestions = [];
       contextData = new Map([
         [1, new Map([["ставкандс", { "ref": "catalogs.СтавкиНДС", "sig": null }]])]
