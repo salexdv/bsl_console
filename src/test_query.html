@@ -2,35 +2,25 @@
 <html>
 
 <head>
-  <title>BSL-editor</title>
-  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-  <meta http-equiv="Content-Type" content="text/html;charset=utf-8">  
-  <link href="./decorations.css" rel="stylesheet">
-  <style>
-    html,
-    body {
-      height: 100%;
-      margin: 0px;
-    }
-    #container {
-      height: 100%;
-    }
-  </style>
+	<title>Test BSL-editor (query mode)</title>
+	<meta charset="utf-8">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/mocha/2.1.0/mocha.css">
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/mocha/2.1.0/mocha.js"></script>
+	<script>
+		mocha.setup('bdd');
+	</script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/chai/2.0.0/chai.js"></script>	
 </head>
 
 <body>
 
-  <div id="container"></div>  
-
   <script>
-    function getCode() {
-      setTimeout(function() {
-        switchQueryMode();
-      }, 1000);      
+    function getCode() {            
       return [
 	  	'ВЫБРАТЬ',
 		'	Товары.Код КАК Код,',
-		'	Товары.Наименование КАК Наименование',
+		'	Товары.Наименование КАК Наименование,',
+		'	Товары.СтавкаНДС КАК СтавкаНДС',
 		'ИЗ',
 		'	Справочник.Товары КАК Товары',
 		'ГДЕ',
@@ -1115,9 +1105,15 @@
       ].join('\n');      
     }
   </script>
+
+  <div id="container" style="width:100%;height:600px;border:1px solid grey"></div>  
+
   <script src="./vs/loader.js"></script>
   <script src="./bsl_helper.js"></script>
+  <script src="./test_query.js"></script>
   <script src="./init.js"></script>
+
+  <div id="mocha"></div>
 
 </body>
 
