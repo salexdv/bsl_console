@@ -514,6 +514,8 @@ define([], function () {
       "documents":{
          "name":"Документы",
          "name_en":"Documents",
+         "query_name":"Документ",
+         "query_name_en":"Document",
          "items":{
             "ПриходнаяНакладная":{
                "properties":{
@@ -955,6 +957,8 @@ define([], function () {
       "infoRegs":{
          "name":"РегистрыСведений",
          "name_en":"InformationRegisters",
+         "query_name":"РегистрСведений",
+         "query_name_en":"InformationRegister",
          "items":{
             "ЦеныНоменклатуры":{
                "properties":{
@@ -1227,6 +1231,8 @@ define([], function () {
       "accumRegs":{
          "name":"РегистрыНакопления",
          "name_en":"AccumulationRegisters",
+         "query_name":"РегистрНакопления",
+         "query_name_en":"AccumulationRegister",
          "items":{
             "ОстаткиТоваров":{
                "properties":{
@@ -1625,6 +1631,8 @@ define([], function () {
       "accountRegs":{
          "name":"РегистрыБухгалтерии",
          "name_en":"AccountingRegisters",
+         "query_name":"РегистрБухгалтерии",
+         "query_name_en":"AccountingRegister",
          "items":{
             "Хозрасчетный":{
                "properties":{
@@ -2076,6 +2084,8 @@ define([], function () {
       "enums":{
          "name":"Перечисления",
          "name_en":"Enums",
+         "query_name":"Перечисленик",
+         "query_name_en":"Enum",
          "items":{
             "ТестовыйЭлемент":{
                "properties":{
@@ -2101,6 +2111,8 @@ define([], function () {
       "сhartsOfAccounts": {
          "name":"ПланыСчетов",
          "name_en":"ChartsOfAccounts",
+         "query_name":"ПланСчетов",
+         "query_name_en":"ChartOfAccounts",
          "items":{
             "Хозрасчетный":{
                "properties":{
@@ -2600,6 +2612,8 @@ define([], function () {
       "businessProcesses": {
          "name":"БизнесПроцессы",
          "name_en":"BusinessProcesses",
+         "query_name":"БизнесПроцесс",
+         "query_name_en":"BusinessProcess",
          "items":{
             "ВыполнениеЗаказа":{
                "Реквизит1":{
@@ -3035,6 +3049,8 @@ define([], function () {
       "tasks": {
          "name":"Задачи",
          "name_en":"Tasks",
+         "query_name":"Задач",
+         "query_name_en":"Task",
          "items":{
             "СогласованиеДоговора":{
                "Реквизит1":{
@@ -3469,6 +3485,8 @@ define([], function () {
       "exchangePlans": {
          "name":"ПланыОбмена",
          "name_en":"ExchangePlans",
+         "query_name":"ПланОбмена",
+         "query_name_en":"ExchangePlan",
          "items":{
             "ОбменСЧемНибудь":{
                "Реквизит1":{
@@ -3825,6 +3843,8 @@ define([], function () {
       "chartsOfCharacteristicTypes": {
          "name":"ПланыВидовХарактеристик",
          "name_en":"ChartsOfCharacteristicTypes",
+         "query_name":"ПланВидовХарактеристик",
+         "query_name_en":"ChartOfCharacteristicTypes",
          "items":{
             "ХозрасчеВидыСубконтоХозрасчетныетный":{
                "properties":{
@@ -4354,6 +4374,8 @@ define([], function () {
       "chartsOfCalculationTypes": {
          "name":"ПланыВидовРасчета",
          "name_en":"ChartsOfCalculationTypes",
+         "query_name":"ПланВидовРасчета",
+         "query_name_en":"ChartOfCalculationTypes",
          "items":{
             "ОсновныеНачисленияОрганизаций":{
                "properties":{
@@ -4791,6 +4813,8 @@ define([], function () {
       "constants": {
          "name":"Константы",
          "name_en":"Constants",
+         "query_name":"Константа",
+         "query_name_en":"Constant",
          "items":{
             "КонстантаНомер1":{},
             "КонстантаНомер2":{}
