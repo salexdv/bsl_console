@@ -214,6 +214,52 @@ class bslHelper {
 	}
 
 	/**
+	 * Returns last word before position
+	 * @returns {string} last word 
+	 */
+	getLastSeparatedWord() {
+		
+		let match = this.model.findPreviousMatch('[\\s\\n]', this.position, true)
+		
+		if (match) {
+			
+			let position = new monaco.Position(match.range.startLineNumber, match.range.startColumn);
+			match = this.model.findPreviousMatch('[a-zA-Z0-9\u0410-\u044F]+', position, true, false, null, true);
+
+			if (match) {
+				return match.matches[0];
+			}
+
+		}
+
+	}
+
+	/**
+	 * Returns lasts N word before position
+	 * 
+	 * @returns {array} array with words
+	 */
+	getLastSeparatedWords(nstep) {
+		
+		let words = [];
+
+		let pattern = '[a-zA-Z0-9\u0410-\u044F]+';
+		let position = this.position;
+		let match = this.model.findPreviousMatch(pattern, position, true, false, null, true);
+		let step = 0;
+
+		while (match && step < nstep) {			
+			words.push(match.matches[0]);
+			position = new monaco.Position(match.range.startLineNumber, match.range.startColumn);
+			match = this.model.findPreviousMatch(pattern, position, true, false, null, true);
+			step++;
+		}
+
+		return words;
+
+	}
+
+	/**
 	 * Determines if string contain class constructor (New|Новый)	 	 
 	 * 
 	 * @returns {bool}
@@ -1750,6 +1796,105 @@ class bslHelper {
 	}
 
 	/**
+	 * Fills array of completition for source of table
+	 * 
+	 * @param {array} suggestions array of suggestions for provideCompletionItems	 
+	 * @param {CompletionItemKind} kind - monaco.languages.CompletionItemKind (class, function, constructor etc.)
+	 */
+	getQuerySourceMetadataCompletition(metadataName, metadataItem, metadataFunc, suggestions, kind) {
+	
+		let sourceExist = false;
+
+		for (const [key, value] of Object.entries(bslMetadata)) {
+
+			if (value.hasOwnProperty(this.queryNameField) && value[this.queryNameField].toLowerCase() == metadataName.toLowerCase()) {
+
+				sourceExist = true;
+
+				if (!metadataItem) {
+
+					for (const [ikey, ivalue] of Object.entries(value.items)) {
+
+						let label = ikey;
+
+						suggestions.push({
+							label: ikey,
+							kind: kind,
+							insertText: label,
+							insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+						});
+
+					}
+
+				}
+
+			}
+
+		}
+
+		return sourceExist;
+
+	}
+
+	/**
+	 * Fills array of completition for source of table
+	 * 
+	 * @param {array} suggestions array of suggestions for provideCompletionItems	 
+	 * @param {CompletionItemKind} kind - monaco.languages.CompletionItemKind (class, function, constructor etc.)
+	 */
+	getQuerySourceCompletition(suggestions, kind) {
+
+		let sourceExist = false;
+
+		let fromTriggers = ['из', 'соединение', 'from', 'join'];
+		let lastWord = this.getLastSeparatedWord()
+		
+		if (lastWord) {
+				
+			if (0 <= fromTriggers.indexOf(lastWord.toLowerCase())) {
+
+				let pattern = /(.+?)(?:\.(.*?))?\.?(?:\.(.*?))?$/;
+				let unclosed = this.unclosedString(this.textBeforePosition);						
+				let regex = pattern.exec(unclosed.string ? unclosed.string.slice(1) : this.lastExpression);			
+				
+				let metadataName = regex && 1 < regex.length ? regex[1] : '';
+				let metadataItem = regex && 2 < regex.length ? regex[2] : '';
+				let metadataFunc = regex && 3 < regex.length ? regex[3] : '';
+				
+				sourceExist = this.getQuerySourceMetadataCompletition(metadataName, metadataItem, metadataFunc, suggestions, kind);
+
+				if (!sourceExist) {
+				
+					for (const [key, value] of Object.entries(bslMetadata)) {
+
+						if (value.hasOwnProperty(this.queryNameField)) {
+
+							let source = value[this.queryNameField];
+
+							suggestions.push({
+								label: source,
+								kind: kind,
+								insertText: source,
+								insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+							});
+
+							sourceExist = true;
+							
+						}
+
+					}	
+				
+				}
+
+			}
+
+		}
+
+		return sourceExist;
+
+	}	
+
+	/**
 	 * Completition provider for query language
 	 * 
 	 * @param {object} langDef - query language definition
@@ -1762,15 +1907,19 @@ class bslHelper {
 
 		if (!this.requireQueryValue()) {
 
-			if (this.lastOperator != '"') {
-				this.getCommonCompletition(suggestions, bslQuery.functions, monaco.languages.CompletionItemKind.Function, true);
-				this.getRefCompletition(suggestions);
-			}
+			if (!this.getQuerySourceCompletition(suggestions, monaco.languages.CompletionItemKind.Enum)) {
 
-			this.getQueryCommonCompletition(suggestions, langDef, monaco.languages.CompletionItemKind.Module);		
-			this.getQueryParamsCompletition(suggestions, monaco.languages.CompletionItemKind.Enum);				
-			this.getQueryFieldsCompletition(suggestions);
-			this.getSnippets(suggestions, querySnippets);
+				if (this.lastOperator != '"') {
+					this.getCommonCompletition(suggestions, bslQuery.functions, monaco.languages.CompletionItemKind.Function, true);
+					this.getRefCompletition(suggestions);
+				}
+
+				this.getQueryCommonCompletition(suggestions, langDef, monaco.languages.CompletionItemKind.Module);					
+				this.getQueryParamsCompletition(suggestions, monaco.languages.CompletionItemKind.Enum);				
+				this.getQueryFieldsCompletition(suggestions);
+				this.getSnippets(suggestions, querySnippets);
+
+			}
 
 		}
 		else {
