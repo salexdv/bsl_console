@@ -1892,7 +1892,59 @@ class bslHelper {
 
 		return sourceExist;
 
-	}	
+	}
+
+	/**
+	 * Fills array of completition for tables in the current query
+	 * 
+	 * @param {array} suggestions array of suggestions for provideCompletionItems	 
+	 * @param {CompletionItemKind} kind - monaco.languages.CompletionItemKind (class, function, constructor etc.)
+	 */
+	getQueryTablesCompletition(suggestions, kind) {
+
+		if (!this.lastExpression.endsWith('.')) {
+
+			// Let's find start of current query
+			let startMatch = this.model.findPreviousMatch('(?:выбрать|select)', this.position, true);
+
+			if (startMatch) {
+
+				let template = '(?:из|from)\\s+(?:(?:.|\\n|\\r)*?)\\s*(?:\\s|\\t)*(?:сгруппировать|объединить|упорядочить|имеющие|где|индексировать|havin|where|index|group|union|order|;)'
+				let position = new monaco.Position(startMatch.range.startLineNumber, startMatch.range.startColumn);
+				let fromMatch = this.model.findNextMatch(template, position, true);
+
+				if (fromMatch && fromMatch.range.startLineNumber < startMatch.range.startLineNumber) {								
+					// This is loops to the beginning. Trying another template
+					fromMatch = this.model.findNextMatch('(?:из|from)\\s+(?:(?:.|\\n|\\r)+)$', position, true);
+				}
+
+				if (fromMatch) {
+					
+					// Now we need to find tables definitions
+					let range = new monaco.Range(fromMatch.range.startLineNumber, 1, fromMatch.range.endLineNumber, fromMatch.range.endColumn);
+					let matches = this.model.findMatches('\\s+(?:как|as)\\s+([a-zA-Z0-9\u0410-\u044F_]+)', range, true, false, null, true);
+					
+					for (let idx = 0; idx < matches.length; idx++) {
+
+						let match = matches[idx];
+						let tableName = match.matches[match.matches.length - 1];
+											
+						suggestions.push({
+							label: tableName,
+							kind: kind,
+							insertText: tableName,
+							insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+						});					
+		
+					}
+
+				}
+
+			}
+
+		}
+
+	}
 
 	/**
 	 * Completition provider for query language
@@ -1912,6 +1964,7 @@ class bslHelper {
 				if (this.lastOperator != '"') {
 					this.getCommonCompletition(suggestions, bslQuery.functions, monaco.languages.CompletionItemKind.Function, true);
 					this.getRefCompletition(suggestions);
+					this.getQueryTablesCompletition(suggestions, monaco.languages.CompletionItemKind.Class);
 				}
 
 				this.getQueryCommonCompletition(suggestions, langDef, monaco.languages.CompletionItemKind.Module);					
