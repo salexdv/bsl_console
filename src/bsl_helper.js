@@ -1837,6 +1837,51 @@ class bslHelper {
 	}
 
 	/**
+	 * Fills array of completition for temporary tables in source
+	 * 
+	 * @param {array} suggestions array of suggestions for provideCompletionItems	 	 
+	 */
+	getQuerySourceTempraryTablesCompletition(suggestions) {
+
+		let sourceExist = false;
+		let startMatch = this.model.findPreviousMatch('(?:выбрать|select)', this.position, true);
+
+		if (startMatch) {
+
+			let matches = editor.getModel().findMatches('(?:поместить|into)\\s+([a-zA-Z0-9\u0410-\u044F_]+)', null, true, false, null, true);
+
+			if (matches) {
+				
+				for (let idx = 0; idx < matches.length; idx++) {
+				
+					let match = matches[idx];
+
+					if (match.range.startLineNumber < startMatch.range.startLineNumber) {
+
+						let tableName = match.matches[match.matches.length - 1];
+							
+						suggestions.push({
+							label: tableName,
+							kind: monaco.languages.CompletionItemKind.Unit,
+							insertText: tableName,
+							insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet						
+						});
+
+						sourceExist = true;
+						
+					}
+
+				}
+
+			}
+
+		}
+
+		return sourceExist;
+
+	}
+
+	/**
 	 * Fills array of completition for source of table
 	 * 
 	 * @param {array} suggestions array of suggestions for provideCompletionItems	 
@@ -1883,10 +1928,13 @@ class bslHelper {
 						}
 
 					}	
+
+					// suggestion for temporary tables
+					sourceExist = Math.max(sourceExist, this.getQuerySourceTempraryTablesCompletition(suggestions));
 				
 				}
-
-			}
+												
+			}			
 
 		}
 

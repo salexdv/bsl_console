@@ -127,7 +127,7 @@ describe("Проверка автокомлита и подсказок реда
     });
 
     it("проверка подсказки для временных таблиц в конструкции ИЗ ИЛИ СОЕДИНЕНИЕ ", function () {
-      bsl = helper(getCode(), 70, 4);
+      bsl = helper(getCode(), 72, 20);
       let suggestions = [];
       bsl.getQuerySourceCompletition(suggestions, null);
       expect(suggestions).to.be.an('array').that.not.is.empty;
