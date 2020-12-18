@@ -104,6 +104,17 @@ describe("Проверка автокомлита и подсказок реда
       assert.equal(suggestions.some(suggest => suggest.label === "ИсчисленныеСтраховыеВзносы"), false);      
     });
 
+    it("проверка подсказки для метаданных в конструкции ИЗ ИЛИ СОЕДИНЕНИЕ ", function () {
+      bsl = helper(`ВЫБРАТЬ
+      *
+      ИЗ      
+      `);      
+      let suggestions = [];
+      bsl.getQuerySourceCompletition(suggestions, null);
+      expect(suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(suggestions.some(suggest => suggest.label === "Справочник"), true);      
+    });
+
     switchQueryMode();
         
     mocha.run();
