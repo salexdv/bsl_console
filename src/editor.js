@@ -423,7 +423,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         theme: "bsl-white",
         value: getCode(),
         language: language.id,
-        contextmenu: true
+        contextmenu: true,
+        wordBasedSuggestions: false
       });
 
     }
