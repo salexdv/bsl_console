@@ -87,6 +87,23 @@ describe("Проверка автокомлита и подсказок реда
       contextData = new Map();
     });
 
+    it("проверка подсказки для таблицы запроса", function () {
+      bsl = helper(getCode(), 36, 9);      
+      let suggestions = [];
+      bsl.getQueryTablesCompletition(suggestions, null);
+      expect(suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(suggestions.some(suggest => suggest.label === "ИсчисленныеСтраховыеВзносы"), true);
+      assert.equal(suggestions.some(suggest => suggest.label === "ФизлицаБезОблагаемойБазы"), true);
+    });
+
+    it("проверка отсутствия подсказки для таблицы запроса там, где её быть не должно", function () {
+      bsl = helper(getCode(), 144, 9);      
+      let suggestions = [];
+      bsl.getQueryTablesCompletition(suggestions, null);
+      expect(suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(suggestions.some(suggest => suggest.label === "ИсчисленныеСтраховыеВзносы"), false);      
+    });
+
     switchQueryMode();
         
     mocha.run();
