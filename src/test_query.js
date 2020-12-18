@@ -97,7 +97,7 @@ describe("Проверка автокомлита и подсказок реда
     });
 
     it("проверка отсутствия подсказки для таблицы запроса там, где её быть не должно", function () {
-      bsl = helper(getCode(), 144, 9);      
+      bsl = helper(getCode(), 144, 9);
       let suggestions = [];
       bsl.getQueryTablesCompletition(suggestions, null);
       expect(suggestions).to.be.an('array').that.not.is.empty;
@@ -124,6 +124,14 @@ describe("Проверка автокомлита и подсказок реда
       bsl.getQuerySourceCompletition(suggestions, null);
       expect(suggestions).to.be.an('array').that.not.is.empty;
       assert.equal(suggestions.some(suggest => suggest.label === "Товары"), true);      
+    });
+
+    it("проверка подсказки для временных таблиц в конструкции ИЗ ИЛИ СОЕДИНЕНИЕ ", function () {
+      bsl = helper(getCode(), 70, 4);
+      let suggestions = [];
+      bsl.getQuerySourceCompletition(suggestions, null);
+      expect(suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(suggestions.some(suggest => suggest.label === "ВТФизлицаБезОблагаемойБазы"), true);      
     });
 
     switchQueryMode();
