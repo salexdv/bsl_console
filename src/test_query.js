@@ -134,6 +134,14 @@ describe("Проверка автокомлита и подсказок реда
       assert.equal(suggestions.some(suggest => suggest.label === "ВТФизлицаБезОблагаемойБазы"), true);      
     });
 
+    it("проверка подсказки для функции ЗНАЧЕНИЕ", function () {
+      bsl = helper("ЗНАЧЕНИЕ(");
+      let suggestions = [];
+      bsl.getQueryValuesCompletition(suggestions, bslQuery.values, null)
+      expect(suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(suggestions.some(suggest => suggest.label === "Справочник"), true);      
+    });
+
     switchQueryMode();
         
     mocha.run();
