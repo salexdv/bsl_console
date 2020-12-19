@@ -217,20 +217,37 @@ class bslHelper {
 	 * Returns last word before position
 	 * @returns {string} last word 
 	 */
-	getLastSeparatedWord() {
+	getLastSeparatedWord(position) {
 		
-		let match = this.model.findPreviousMatch('[\\s\\n]', this.position, true)
+		let word = '';
+
+		if (position == undefined)
+			position = this.position;
+
+		let match = this.model.findPreviousMatch('[\\s\\n]', position, true)
 		
 		if (match) {
 			
-			let position = new monaco.Position(match.range.startLineNumber, match.range.startColumn);
+			position = new monaco.Position(match.range.startLineNumber, match.range.startColumn);
 			match = this.model.findPreviousMatch('[a-zA-Z0-9\u0410-\u044F]+', position, true, false, null, true);
 
 			if (match) {
-				return match.matches[0];
+				
+				let range = new monaco.Range(match.range.startLineNumber, match.range.startColumn - 1, match.range.startLineNumber, match.range.startColumn);
+				let prevChar = this.getLastCharacter(range);
+
+				if (prevChar == '.') {
+					position = new monaco.Position(match.range.startLineNumber, match.range.startColumn);
+					return this.getLastSeparatedWord(position);
+				}
+				else
+					word = match.matches[0];				
+
 			}
 
 		}
+
+		return word;
 
 	}
 
@@ -264,9 +281,11 @@ class bslHelper {
 	 * 
 	 * @returns {array} array with words
 	 */
-	getLastCharacter() {
+	getLastCharacter(range) {
 		
-		let range = new monaco.Range(this.lineNumber, this.column - 1, this.lineNumber, this.column);
+		if (range == undefined)
+			range = new monaco.Range(this.lineNumber, this.column - 1, this.lineNumber, this.column);
+		
 		let content = this.model.getValueInRange(range);		
 
 		return content ? content : '';
@@ -2048,7 +2067,7 @@ class bslHelper {
 		let metadataName = regex && 1 < regex.length ? regex[1] : '';
 		let metadataItem = regex && 2 < regex.length ? regex[2] : '';
 
-		if (!metadataName)
+		if (!metadataItem && this.getLastCharacter() != '.')
 			this.getQueryMetadataSources(suggestions, kind);
 		else
 			this.getQuerySourceMetadataCompletition(metadataName, metadataItem, '', suggestions, kind, 2);		
