@@ -88,7 +88,7 @@ describe("Проверка автокомлита и подсказок реда
     });
 
     it("проверка подсказки для таблицы запроса", function () {
-      bsl = helper(getCode(), 36, 9);      
+      bsl = helper(getCode(), 38, 9);      
       let suggestions = [];
       bsl.getQueryTablesCompletition(suggestions, null);
       expect(suggestions).to.be.an('array').that.not.is.empty;
@@ -127,7 +127,7 @@ describe("Проверка автокомлита и подсказок реда
     });
 
     it("проверка подсказки для временных таблиц в конструкции ИЗ ИЛИ СОЕДИНЕНИЕ ", function () {
-      bsl = helper(getCode(), 72, 20);
+      bsl = helper(getCode(), 74, 20);
       let suggestions = [];
       bsl.getQuerySourceCompletition(suggestions, null);
       expect(suggestions).to.be.an('array').that.not.is.empty;

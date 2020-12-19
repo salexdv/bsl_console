@@ -295,7 +295,16 @@ define([], function () {
             expressions: bsl_language.rules.queryExp,            
             operators: /[=><+\-*\/%;,]+/,
             tokenizer: {
-                root: [                    
+                root: [                               
+                    [/(как|as\s+)(.+)(,?)/, [
+                        {token: 'query.keyword'},
+                        {token: 'query'},
+                        {token: 'query.operator'}
+                    ]],
+                    [/(\.)([a-zA-Z\u0410-\u044F_]+)/, [
+                        {token: 'query'},
+                        {token: 'query'}                        
+                    ]],
                     [/([a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]+)(\.)([a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]+)/, 'query'],
                     [/[a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]*/, { cases: {
                         '@keywords': 'query.keyword',
