@@ -260,6 +260,20 @@ class bslHelper {
 	}
 
 	/**
+	 * Returns last character
+	 * 
+	 * @returns {array} array with words
+	 */
+	getLastCharacter() {
+		
+		let range = new monaco.Range(this.lineNumber, this.column - 1, this.lineNumber, this.column);
+		let content = this.model.getValueInRange(range);		
+
+		return content ? content : '';
+
+	}
+
+	/**
 	 * Determines if string contain class constructor (New|Новый)	 	 
 	 * 
 	 * @returns {bool}
@@ -1768,7 +1782,7 @@ class bslHelper {
 	 */
 	getQueryFieldsCompletition(suggestions) {
 
-		if (this.lastExpression.endsWith('.')) {
+		if (this.getLastCharacter() == '.') {
 			
 			// Let's find start of current query
 			let match = this.model.findPreviousMatch('(?:выбрать|select)', this.position, true);
@@ -1949,8 +1963,8 @@ class bslHelper {
 	 * @param {CompletionItemKind} kind - monaco.languages.CompletionItemKind (class, function, constructor etc.)
 	 */
 	getQueryTablesCompletition(suggestions, kind) {
-
-		if (!this.lastExpression.endsWith('.')) {
+		
+		if (this.getLastCharacter() != '.') {
 
 			// Let's find start of current query
 			let startMatch = this.model.findPreviousMatch('(?:выбрать|select)', this.position, true);
