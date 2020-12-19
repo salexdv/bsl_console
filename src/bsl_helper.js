@@ -36,6 +36,7 @@ class bslHelper {
 		this.lastRawExpression = this.getLastRawExpression();
 		
 		this.nameField = engLang ? 'name_en': 'name';
+		this.queryNameField = engLang ? 'query_name_en' : 'query_name';
 
 	}
 
@@ -213,6 +214,85 @@ class bslHelper {
 	}
 
 	/**
+	 * Returns last word before position
+	 * @returns {string} last word 
+	 */
+	getLastSeparatedWord(position) {
+		
+		let word = '';
+
+		if (position == undefined)
+			position = this.position;
+
+		let match = this.model.findPreviousMatch('[\\s\\n]', position, true)
+		
+		if (match) {
+			
+			position = new monaco.Position(match.range.startLineNumber, match.range.startColumn);
+			match = this.model.findPreviousMatch('[a-zA-Z0-9\u0410-\u044F]+', position, true, false, null, true);
+
+			if (match) {
+				
+				let range = new monaco.Range(match.range.startLineNumber, match.range.startColumn - 1, match.range.startLineNumber, match.range.startColumn);
+				let prevChar = this.getLastCharacter(range);
+
+				if (prevChar == '.') {
+					position = new monaco.Position(match.range.startLineNumber, match.range.startColumn);
+					return this.getLastSeparatedWord(position);
+				}
+				else
+					word = match.matches[0];				
+
+			}
+
+		}
+
+		return word;
+
+	}
+
+	/**
+	 * Returns lasts N word before position
+	 * 
+	 * @returns {array} array with words
+	 */
+	getLastSeparatedWords(nstep) {
+		
+		let words = [];
+
+		let pattern = '[a-zA-Z0-9\u0410-\u044F]+';
+		let position = this.position;
+		let match = this.model.findPreviousMatch(pattern, position, true, false, null, true);
+		let step = 0;
+
+		while (match && step < nstep) {			
+			words.push(match.matches[0]);
+			position = new monaco.Position(match.range.startLineNumber, match.range.startColumn);
+			match = this.model.findPreviousMatch(pattern, position, true, false, null, true);
+			step++;
+		}
+
+		return words;
+
+	}
+
+	/**
+	 * Returns last character
+	 * 
+	 * @returns {array} array with words
+	 */
+	getLastCharacter(range) {
+		
+		if (range == undefined)
+			range = new monaco.Range(this.lineNumber, this.column - 1, this.lineNumber, this.column);
+		
+		let content = this.model.getValueInRange(range);		
+
+		return content ? content : '';
+
+	}
+
+	/**
 	 * Determines if string contain class constructor (New|Новый)	 	 
 	 * 
 	 * @returns {bool}
@@ -261,6 +341,19 @@ class bslHelper {
 		return (exp == 'value' || exp == 'значение');
 
 	}
+
+	/**
+	 * Checks if string contain ref constructor (ССЫЛКА|REFS)
+	 * 
+	 * 
+	 * @returns {bool}
+	 */
+	requireQueryRef() {
+
+		let word = this.getLastSeparatedWord().toLowerCase();
+		return (word == 'ссылка' || word == 'refs') && (this.lastOperator == '');
+
+	}	
 
 	/**
 	 * Removes from array of suggestions duplicated items
@@ -438,9 +531,70 @@ class bslHelper {
 				});
 
 			}
+
+			if (methodsName == 'objMethods' && this.objectHasProperties(obj, 'items', medatadaName, 'registerRecords')) {
+				
+				let recName = obj.items[medatadaName].registerRecords[this.nameField];
+				let list = [];
+
+				obj.items[medatadaName].registerRecords.registers.forEach(function (regName) {
+					list.push({
+						name: regName.split('.')[1],
+						ref: regName,
+						kind: monaco.languages.CompletionItemKind.Function,
+					});
+				});
+
+				let command = { id: 'vs.editor.ICodeEditor:1:saveref', arguments: [{ "name": recName, "data": { "list": list } }] }
+
+				suggestions.push({
+					label: recName,
+					kind: monaco.languages.CompletionItemKind.Function,
+					insertText: recName,
+					insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+					command: command
+				});
+
+			}
 			
 		}
 			
+
+	}
+
+	/**
+	 * Fills suggestions from saved list
+	 * 
+	 * @param {array} suggestions the list of suggestions
+	 * @param {string} wordRef reference string like classes.HTTPОтвет
+	 */
+	getListSuggestions(suggestions, wordContext) {
+
+		if (wordContext && wordContext.list) {
+			
+			wordContext.list.forEach(function(listItem) {
+
+				let command = null;
+
+				if (listItem.hasOwnProperty('command'))
+					command = listItem.command;
+				else if (listItem.hasOwnProperty('ref'))
+					command = { id: 'vs.editor.ICodeEditor:1:saveref', arguments: [{ "name": listItem.name, "data": { "ref": listItem.ref, "sig": null } }] }				
+				
+
+				let name = listItem.hasOwnProperty('name') ? listItem.name : listItem.label;
+
+				suggestions.push({
+					label: name,
+					kind: listItem.kind,
+					insertText: name,
+					insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+					command: command
+				});
+
+			});
+							
+		}
 
 	}
 
@@ -465,20 +619,27 @@ class bslHelper {
 					let itemName = refArray[0];
 					let subItemName = refArray[1];
 
-					if (itemName == 'classes' || itemName == 'types') {
-						if (this.objectHasProperties(bslGlobals, itemName, subItemName)) {
-							this.getClassSuggestions(suggestions, bslGlobals[itemName][subItemName]);
+					if (queryMode) {
+						if (this.objectHasProperties(bslMetadata, itemName, 'items', subItemName, 'properties')) {
+							this.fillSuggestionsForMetadataItem(suggestions, bslMetadata[itemName].items[subItemName]);
 						}
 					}
 					else {
-
-						let methodsName = (refArray.length == 3 && refArray[2] == 'obj') ? 'objMethods' : 'refMethods'
-
-						if (this.objectHasProperties(bslMetadata, itemName, 'items', subItemName, 'properties')) {
-							this.fillSuggestionsForMetadataItem(suggestions, bslMetadata[itemName].items[subItemName]);
-							this.getMetadataMethods(suggestions, bslMetadata[itemName], methodsName, itemName, subItemName);
+						if (itemName == 'classes' || itemName == 'types') {
+							if (this.objectHasProperties(bslGlobals, itemName, subItemName)) {
+								this.getClassSuggestions(suggestions, bslGlobals[itemName][subItemName]);
+							}
 						}
+						else {
 
+							let methodsName = (refArray.length == 3 && refArray[2] == 'obj') ? 'objMethods' : 'refMethods'
+
+							if (this.objectHasProperties(bslMetadata, itemName, 'items', subItemName, 'properties')) {
+								this.fillSuggestionsForMetadataItem(suggestions, bslMetadata[itemName].items[subItemName]);
+								this.getMetadataMethods(suggestions, bslMetadata[itemName], methodsName, itemName, subItemName);
+							}
+
+						}
 					}
 
 				}
@@ -489,6 +650,8 @@ class bslHelper {
 				this.deleteSuggesstionsDuplicate(suggestions);
 			
 		}
+
+		this.getListSuggestions(suggestions, wordContext);
 
 	}
 
@@ -805,18 +968,26 @@ class bslHelper {
 				}
 
 				let command = null;
+				let ref = pvalue.hasOwnProperty('ref') ? pvalue.ref : null;
+				let nestedSuggestions = [];
 								
-				if (pvalue.hasOwnProperty('ref')) {					
-					// If the attribute contains a ref, we need to run the command to save the position of ref
-					command = { id: 'vs.editor.ICodeEditor:1:saveref', arguments: [{'name': pkey, "data": { "ref": pvalue.ref, "sig": null } }]}
-				}
-
 				let detail = pvalue;
 
 				if (pvalue.hasOwnProperty('description'))
 					detail = pvalue.description;				
 				else if (pvalue.hasOwnProperty('name'))
-					detail = pvalue.name;					
+					detail = pvalue.name;
+
+				if (pvalue.hasOwnProperty('properties'))
+					this.fillSuggestionsForMetadataItem(nestedSuggestions, pvalue);
+
+				if (pvalue.hasOwnProperty('methods'))
+					this.getMetadataMethods(nestedSuggestions, pvalue, 'methods', null, null);
+
+				if (ref || nestedSuggestions.length) {					
+					// If the attribute contains a ref, we need to run the command to save the position of ref
+					command = { id: 'vs.editor.ICodeEditor:1:saveref', arguments: [{'name': pkey, "data": { "ref": ref, "sig": null, "list" : nestedSuggestions } }]}
+				}
 
 				suggestions.push({
 					label: pkey,
@@ -1148,7 +1319,100 @@ class bslHelper {
 
 	}
 
-	
+	/**
+	 * Fills and returns array of variables names
+	 * 
+	 * @param {int} currentLine the last line below which we don't search variables
+	 * 
+	 * @returns {array} array with variables names
+	 */
+	getVarsNames(currentLine) {
+
+		let names = [];
+		let comments = new Map();
+
+		const commentMatches = this.model.findMatches('\\/\\/', true, true, false, null, true);
+
+		for (let idx = 0; idx < commentMatches.length; idx++) {
+			comments.set(commentMatches[idx].range.startLineNumber, commentMatches[idx].range.startColumn);
+		}
+
+		let matches = this.model.findMatches('([a-zA-Z0-9\u0410-\u044F_]+)\\s?=\\s?.*(?:;|\\()\\s*$', true, true, false, null, true);
+
+		for (let idx = 0; idx < matches.length; idx++) {
+
+			let match = matches[idx];
+			
+			if (match.range.startLineNumber < currentLine || currentLine == 0) {
+
+				let comment = comments.get(match.range.startLineNumber);
+
+				if (!comment || match.range.startColumn < comment) {
+					
+					let varName = match.matches[match.matches.length - 1]
+
+					if (!names.some(name => name === varName))
+						names.push(varName);
+
+				}
+
+			}
+
+		}
+		
+		matches = [];
+		let funcDef = [];
+		let funcLine = 0;
+
+		if (currentLine == 0)
+			matches = editor.getModel().findMatches('(?:процедура|функция)\\s+[a-zA-Z0-9\u0410-\u044F_]+\\(([a-zA-Z0-9\u0410-\u044F_,\\s=]+)\\)', true, true, false, null, true);					
+		else {
+			funcDef = editor.getModel().findPreviousMatch('(?:процедура|функция)\\s+[a-zA-Z0-9\u0410-\u044F_]+\\(([a-zA-Z0-9\u0410-\u044F_,\\s=]+)\\)', true, true, false, null, true);
+			if (funcDef) {
+				funcLine = funcDef.range.startLineNumber;
+				matches.push(funcDef);
+			}			
+		}
+
+		for (let idx = 0; idx < matches.length; idx++) {
+		
+			let match = matches[idx];
+			let params = match.matches[1].split(',');
+			
+			params.forEach(function(param) {
+				let paramName = param.split('=')[0].trim();
+				if (!names.some(name => name === paramName))
+					names.push(paramName);
+			});
+
+		}
+				
+		matches = editor.getModel().findMatches('(?:перем|var)\\s+([a-zA-Z0-9\u0410-\u044F_,\\s]+);', true, true, false, null, true);
+
+		for (let idx = 0; idx < matches.length; idx++) {
+
+			let match = matches[idx];
+			
+			if (currentLine == 0 || funcLine < match.range.startLineNumber) {
+
+				let varDef = match.matches[match.matches.length - 1];
+
+				const params = varDef.split(',');
+			
+				params.forEach(function(param) {
+					let paramName = param.split('=')[0].trim();
+					if (!names.some(name => name === paramName))
+						names.push(paramName);
+				});
+
+			}
+
+		}
+				
+		return names;
+
+	}
+
 	/**
 	 * Fills array of completition for variables
 	 * 
@@ -1158,50 +1422,20 @@ class bslHelper {
 
 		if (this.word) {
 
-			const matches = this.model.findMatches('([a-zA-Z0-9\u0410-\u044F_]+)\\s?=\\s?.*(?:;|\\()\\s*$', true, true, false, null, true);
+			let names = this.getVarsNames(this.lineNumber);
 
-			for (let idx = 0; idx < matches.length; idx++) {
+			for (let idx = 0; idx < names.length; idx++) {
 
-				let match = matches[idx];
+				let varName = names[idx];
 
-				if (match.range.startLineNumber < this.lineNumber) {
-
-					let varName = match.matches[match.matches.length - 1];			
-
-					if (varName.toLowerCase().startsWith(this.word)) {
-						suggestions.push({
-							label: varName,
-							kind: monaco.languages.CompletionItemKind.Variable,
-							insertText: varName,
-							insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet					
-						});
-					}
-
-				}
-
-			}
-
-			const funcDef = editor.getModel().findPreviousMatch('(?:процедура|функция)\\s+[a-zA-Z0-9\u0410-\u044F_]+\\(([a-zA-Z0-9\u0410-\u044F_,\\s=]+)\\)', true, true, false, null, true);
-
-			if (funcDef && 1 < funcDef.matches.length) {
-				
-				const params = funcDef.matches[1].split(',');
-				let word = this.word;
-
-				params.forEach(function(param){
-					
-					let paramName = param.split('=')[0].trim();
-					
-					if (paramName.toLowerCase().startsWith(word)) {
-						suggestions.push({
-							label: paramName,
-							kind: monaco.languages.CompletionItemKind.Variable,
-							insertText: paramName,
-							insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet					
-						});
-					}
-
-				});
+				if (varName.toLowerCase().startsWith(this.word)) {
+					suggestions.push({
+						label: varName,
+						kind: monaco.languages.CompletionItemKind.Variable,
+						insertText: varName,
+						insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet					
+					});
+				}				
 
 			}
 
@@ -1235,8 +1469,10 @@ class bslHelper {
 								if (!suggestions.length)
 									this.getVariablesCompetition(suggestions);
 
-								this.getCommonCompletition(suggestions, bslGlobals.keywords, monaco.languages.CompletionItemKind.Keyword.ru, true);
-								this.getCommonCompletition(suggestions, bslGlobals.keywords, monaco.languages.CompletionItemKind.Keyword.en, true);
+								if (engLang)
+									this.getCommonCompletition(suggestions, bslGlobals.keywords, monaco.languages.CompletionItemKind.Keyword, true);
+								else
+									this.getCommonCompletition(suggestions, bslGlobals.keywords, monaco.languages.CompletionItemKind.Keyword, true);
 
 								if (this.requireClass()) {
 									this.getCommonCompletition(suggestions, bslGlobals.classes, monaco.languages.CompletionItemKind.Constructor, false);
@@ -1478,6 +1714,367 @@ class bslHelper {
 	}
 
 	/**
+	 * Fills array of completition for metadata source in query
+	 * 
+	 * @param {array} suggestions array of suggestions for provideCompletionItems	 
+	 * @param {string} sourceDefinition source string definition
+	 */
+	getQueryFieldsCompletitionForMetadata(suggestions, sourceDefinition) {
+
+		let metadataExists = false;
+
+		let sourceArray = sourceDefinition.split('.');
+
+		if (1 < sourceArray.length) {						
+			
+			metadataExists = true;
+
+			let metadataType = sourceArray[0].toLowerCase();
+			let metadataName = sourceArray[1].toLowerCase();
+
+			for (const [key, value] of Object.entries(bslMetadata)) {
+				
+				if (value.hasOwnProperty(this.queryNameField) && value[this.queryNameField].toLowerCase() == metadataType) {
+				
+					for (const [ikey, ivalue] of Object.entries(value.items)) {
+
+						if (ikey.toLowerCase() == metadataName) {
+							this.fillSuggestionsForMetadataItem(suggestions, ivalue);
+						}
+
+					}
+
+				}
+				
+			}
+			
+		}
+
+		return metadataExists;
+
+	}
+
+	/**
+	 * Fills array of completition for temporary table
+	 * 
+	 * @param {array} suggestions array of suggestions for provideCompletionItems
+	 * @param {string} sourceDefinition source string definition
+	 * @param {position} startPosition the begining of current query
+	 */
+	getQueryFieldsCompletitionForTempTable(suggestions, sourceDefinition, startPosition) {
+
+		// Let's find definition for temporary table
+		let intoMatch = this.model.findPreviousMatch('(?:поместить|into)\\s+' + sourceDefinition, startPosition, true);
+
+		if (intoMatch) {
+			
+			// Now we need to find start of this query
+			let position =  new monaco.Position(intoMatch.range.startLineNumber, intoMatch.range.startColumn);
+			let startMatch = this.model.findPreviousMatch('(?:выбрать|select)', position, true);
+
+			if (startMatch) {
+				
+				// Searching field's definition between select...into
+				let searchRange = new monaco.Range(startMatch.range.startLineNumber, 1, intoMatch.range.startLineNumber, 1);				
+				let matches = this.model.findMatches('^.*(?:как|as)\\s+([a-zA-Z0-9\u0410-\u044F_]*?),?$', searchRange, true, false, null, true);				
+				matches = matches.concat(this.model.findMatches('^\\s*[a-zA-Z0-9\u0410-\u044F_]*\\.([a-zA-Z0-9\u0410-\u044F_]*?)[,\\s]*$', searchRange, true, false, null, true));
+				
+				if (matches) {
+					
+					for (let idx = 0; idx < matches.length; idx++) {
+						
+						let match = matches[idx];
+						let field = match.matches[match.matches.length - 1];
+						
+						if (field) {
+
+							suggestions.push({
+								label: field,
+								kind: monaco.languages.CompletionItemKind.Enum,
+								insertText: field,
+								insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet						
+							});
+
+						}
+
+					}					
+
+				}
+
+			}
+
+		}
+		
+	}
+
+	/**
+	 * Fills array of completition for fields of querie's table
+	 * 
+	 * @param {array} suggestions array of suggestions for provideCompletionItems	 
+	 */
+	getQueryFieldsCompletition(suggestions) {
+
+		if (this.getLastCharacter() == '.') {
+			
+			// Let's find start of current query
+			let match = this.model.findPreviousMatch('(?:выбрать|select)', this.position, true);
+			
+			if (match) {
+				
+				// Now we need to find lastExpression definition
+				let position =  new monaco.Position(match.range.startLineNumber, match.range.startColumn);
+				match = this.model.findNextMatch('(.*)\\s+(?:как|as)\\s+' + this.lastRawExpression, position, true, false, null, true);
+				
+				if (match) {					
+					let sourceDefinition = match.matches[1];
+					sourceDefinition = sourceDefinition.replace(/(из|левое|правое|внутреннее|внешнее|полное|from|left|right|inner|outer|full)?\s?(соединение|join)?/gi, '').trim();
+
+					if (!this.getQueryFieldsCompletitionForMetadata(suggestions, sourceDefinition)) {
+						this.getQueryFieldsCompletitionForTempTable(suggestions, sourceDefinition, position);
+					}
+
+				}
+
+			}
+			
+		}
+
+	}
+
+	/**
+	 * Fills array of completition for source of table
+	 * 
+	 * @param {array} suggestions array of suggestions for provideCompletionItems	 
+	 * @param {CompletionItemKind} kind - monaco.languages.CompletionItemKind (class, function, constructor etc.)
+	 */
+	getQuerySourceMetadataCompletition(metadataName, metadataItem, metadataFunc, suggestions, kind, maxLevel) {
+	
+		let sourceExist = false;
+
+		for (const [key, value] of Object.entries(bslMetadata)) {
+
+			if (value.hasOwnProperty(this.queryNameField) && value[this.queryNameField].toLowerCase() == metadataName.toLowerCase()) {
+
+				sourceExist = true;
+
+				if (!metadataItem) {
+
+					for (const [ikey, ivalue] of Object.entries(value.items)) {
+
+						let label = ikey;
+
+						suggestions.push({
+							label: ikey,
+							kind: kind,
+							insertText: label,
+							insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+						});
+
+					}
+
+				}
+
+			}
+
+		}
+
+		return sourceExist;
+
+	}
+
+	/**
+	 * Fills array of completition for temporary tables in source
+	 * 
+	 * @param {array} suggestions array of suggestions for provideCompletionItems	 	 
+	 */
+	getQuerySourceTempraryTablesCompletition(suggestions) {
+
+		let sourceExist = false;
+		let startMatch = this.model.findPreviousMatch('(?:выбрать|select)', this.position, true);
+
+		if (startMatch) {
+
+			let matches = editor.getModel().findMatches('(?:поместить|into)\\s+([a-zA-Z0-9\u0410-\u044F_]+)', null, true, false, null, true);
+
+			if (matches) {
+				
+				for (let idx = 0; idx < matches.length; idx++) {
+				
+					let match = matches[idx];
+
+					if (match.range.startLineNumber < startMatch.range.startLineNumber) {
+
+						let tableName = match.matches[match.matches.length - 1];
+							
+						suggestions.push({
+							label: tableName,
+							kind: monaco.languages.CompletionItemKind.Unit,
+							insertText: tableName,
+							insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet						
+						});
+
+						sourceExist = true;
+						
+					}
+
+				}
+
+			}
+
+		}
+
+		return sourceExist;
+
+	}
+
+	getQueryMetadataSources(suggestions, kind) {
+
+		let sourceExist = false;
+
+		for (const [key, value] of Object.entries(bslMetadata)) {
+
+			if (value.hasOwnProperty(this.queryNameField)) {
+
+				let source = value[this.queryNameField];
+
+				suggestions.push({
+					label: source,
+					kind: kind,
+					insertText: source,
+					insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+				});
+
+				sourceExist = true;
+				
+			}
+
+		}
+
+		return sourceExist;
+
+	}
+
+	/**
+	 * Fills array of completition for source of table
+	 * 
+	 * @param {array} suggestions array of suggestions for provideCompletionItems	 
+	 * @param {CompletionItemKind} kind - monaco.languages.CompletionItemKind (class, function, constructor etc.)
+	 */
+	getQuerySourceCompletition(suggestions, kind) {
+
+		let sourceExist = false;
+
+		let fromTriggers = ['из', 'соединение', 'from', 'join'];
+		let lastWord = this.getLastSeparatedWord()
+		
+		if (lastWord) {
+				
+			if (0 <= fromTriggers.indexOf(lastWord.toLowerCase())) {
+
+				let pattern = /(.+?)(?:\.(.*?))?\.?(?:\.(.*?))?$/;
+				let unclosed = this.unclosedString(this.textBeforePosition);						
+				let regex = pattern.exec(unclosed.string ? unclosed.string.slice(1) : this.lastExpression);			
+				
+				let metadataName = regex && 1 < regex.length ? regex[1] : '';
+				let metadataItem = regex && 2 < regex.length ? regex[2] : '';
+				let metadataFunc = regex && 3 < regex.length ? regex[3] : '';
+				
+				sourceExist = this.getQuerySourceMetadataCompletition(metadataName, metadataItem, metadataFunc, suggestions, kind, 3);
+
+				if (!sourceExist) {
+				
+					// suggestion for metadata sources like (catalog, document, etc.)
+					sourceExist = this.getQueryMetadataSources(suggestions, kind);
+					// suggestion for temporary tables
+					sourceExist = Math.max(sourceExist, this.getQuerySourceTempraryTablesCompletition(suggestions));
+				
+				}
+												
+			}			
+
+		}
+
+		return sourceExist;
+
+	}
+
+	/**
+	 * Fills array of completition for tables in the current query
+	 * 
+	 * @param {array} suggestions array of suggestions for provideCompletionItems	 
+	 * @param {CompletionItemKind} kind - monaco.languages.CompletionItemKind (class, function, constructor etc.)
+	 */
+	getQueryTablesCompletition(suggestions, kind) {
+		
+		if (this.getLastCharacter() != '.') {
+
+			// Let's find start of current query
+			let startMatch = this.model.findPreviousMatch('(?:выбрать|select)', this.position, true);
+
+			if (startMatch) {
+
+				let template = '(?:из|from)\\s+(?:(?:.|\\n|\\r)*?)\\s*(?:\\s|\\t)*(?:сгруппировать|объединить|упорядочить|имеющие|где|индексировать|havin|where|index|group|union|order|;)'
+				let position = new monaco.Position(startMatch.range.startLineNumber, startMatch.range.startColumn);
+				let fromMatch = this.model.findNextMatch(template, position, true);
+
+				if (fromMatch && fromMatch.range.startLineNumber < startMatch.range.startLineNumber) {								
+					// This is loops to the beginning. Trying another template
+					fromMatch = this.model.findNextMatch('(?:из|from)\\s+(?:(?:.|\\n|\\r)+)$', position, true);
+				}
+
+				if (fromMatch) {
+					
+					// Now we need to find tables definitions
+					let range = new monaco.Range(fromMatch.range.startLineNumber, 1, fromMatch.range.endLineNumber, fromMatch.range.endColumn);
+					let matches = this.model.findMatches('\\s+(?:как|as)\\s+([a-zA-Z0-9\u0410-\u044F_]+)', range, true, false, null, true);
+					
+					for (let idx = 0; idx < matches.length; idx++) {
+
+						let match = matches[idx];
+						let tableName = match.matches[match.matches.length - 1];
+											
+						suggestions.push({
+							label: tableName,
+							kind: kind,
+							insertText: tableName,
+							insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+						});					
+		
+					}
+
+				}
+
+			}
+
+		}
+
+	}
+
+	/**
+	 * Fills array of completition for refs constructor (ССЫЛКА|REFS)
+	 * 
+	 * @param {array} suggestions array of suggestions for provideCompletionItems	 
+	 * @param {CompletionItemKind} kind - monaco.languages.CompletionItemKind (class, function, constructor etc.)
+	 */
+	getQueryRefCompletition(suggestions, kind) {
+
+		let pattern = /(.+?)(?:\.(.*?))?$/;
+		let unclosed = this.unclosedString(this.textBeforePosition);						
+		let lastExpression = this.lastExpression;
+		lastExpression = lastExpression.replace(/(ссылка|refs)/gi, '');
+		let regex = pattern.exec(unclosed.string ? unclosed.string.slice(1) : lastExpression);			
+				
+		let metadataName = regex && 1 < regex.length ? regex[1] : '';
+		let metadataItem = regex && 2 < regex.length ? regex[2] : '';
+
+		if (!metadataItem && this.getLastCharacter() != '.')
+			this.getQueryMetadataSources(suggestions, kind);
+		else
+			this.getQuerySourceMetadataCompletition(metadataName, metadataItem, '', suggestions, kind, 2);		
+
+	}
+
+	/**
 	 * Completition provider for query language
 	 * 
 	 * @param {object} langDef - query language definition
@@ -1490,15 +2087,35 @@ class bslHelper {
 
 		if (!this.requireQueryValue()) {
 
-			if (this.lastOperator != '"')
-				this.getCommonCompletition(suggestions, bslQuery.functions, monaco.languages.CompletionItemKind.Function, true);
+			if (!this.requireQueryRef()) {
 
-			this.getQueryCommonCompletition(suggestions, langDef, monaco.languages.CompletionItemKind.Module);		
-			this.getQueryParamsCompletition(suggestions, monaco.languages.CompletionItemKind.Enum);				
+				if (!this.getQuerySourceCompletition(suggestions, monaco.languages.CompletionItemKind.Enum)) {
+
+					if (this.lastOperator != '"') {
+						this.getCommonCompletition(suggestions, bslQuery.functions, monaco.languages.CompletionItemKind.Function, true);
+						this.getRefCompletition(suggestions);
+						this.getQueryTablesCompletition(suggestions, monaco.languages.CompletionItemKind.Class);
+					}
+
+					this.getQueryCommonCompletition(suggestions, langDef, monaco.languages.CompletionItemKind.Module);					
+					this.getQueryParamsCompletition(suggestions, monaco.languages.CompletionItemKind.Enum);				
+					this.getQueryFieldsCompletition(suggestions);
+					this.getSnippets(suggestions, querySnippets);
+
+				}
+
+			}
+			else {
+				
+				this.getQueryRefCompletition(suggestions, monaco.languages.CompletionItemKind.Enum);
+
+			}
 
 		}
 		else {
+			
 			this.getQueryValuesCompletition(suggestions, bslQuery.values, monaco.languages.CompletionItemKind.Enum);
+
 		}
 
 		if (suggestions.length)
@@ -2185,6 +2802,191 @@ class bslHelper {
 	}
 
 	/**
+	 * Finds query's blocks
+	 * 
+	 * @param {ITextModel} current model of editor	 
+	 * 
+	 * @returns {array} - array of folding ranges
+	 */
+	static getRangesForQuery(model) {
+
+		let ranges = [];		
+		let match = null;
+		const matches = model.findMatches('(?:выбрать|select)[\\w\\s\u0410-\u044F&<>=*+-./,()]+', false, true, false, null, true);
+				
+    	if (matches) {
+			
+      		for (let idx = 0; idx < matches.length; idx++) {
+				
+				match = matches[idx];				
+				let end = match.range.endLineNumber;
+				let context = model.getLineContent(end).trim();
+
+				while (!context) {
+					end--;
+					context = model.getLineContent(end).trim();
+				}					
+				
+				ranges.push(
+					{
+						kind: monaco.languages.FoldingRangeKind.Region,
+						start: match.range.startLineNumber,
+						end: end
+					}
+				)				
+
+      		}
+
+		}
+				
+		return ranges;
+	
+	}
+
+	/**
+	 * Finds nested blocks like quries or aggregate functions
+	 * 
+	 * @param {ITextModel} current model of editor	 
+	 * @param {string} regexp regexp pattern for detecting blocks
+	 * 
+	 * @returns {array} - array of folding ranges
+	 */
+	static getRangesForNesteBlock(model, regexp) {
+
+		let ranges = [];		
+		let match = null;
+		const matches = model.findMatches(regexp, false, true, false, null, true);		
+				
+    	if (matches) {
+			
+			let last_line = editor.getModel().getLineCount();
+
+      		for (let idx = 0; idx < matches.length; idx++) {
+				
+				match = matches[idx];
+				let braces_level = 0;
+				let braces_match = false;
+				let line = match.range.startLineNumber;				
+
+				while (!braces_match && line <= last_line) {
+					let str = model.getLineContent(line)
+					let str_match = str.match(/\(/);
+					braces_level += str_match != null ? str_match.length : 0;
+					str_match = str.match(/\)/);
+					braces_level -= str_match != null ? str_match.length : 0;
+					braces_match = braces_level < 1;
+					line++;
+				}
+				
+				if (braces_match) {
+					ranges.push(
+						{
+							kind: monaco.languages.FoldingRangeKind.Region,
+							start: match.range.startLineNumber,
+							end: match.range.startLineNumber < line ? line - 1 : line
+						}
+					)				
+				}				
+
+      		}
+
+		}
+				
+		return ranges;
+	
+	}
+
+	/**
+	 * Finds blocks with query's fields
+	 * 
+	 * @param {ITextModel} current model of editor	 
+	 * @param {string} regexp regexp pattern for detecting blocks
+	 * @param {array/false} scopes search scope
+	 * @param {boolean} includeStartString include or not the first string of match in block
+	 * @param {boolean} includeEndString include or not the last string of match in block
+	 * 
+	 * @returns {array} - array of folding ranges
+	 */
+	static getRangesForQueryBlock(model, regexp, scopes, includeStartString, includeEndString) {
+
+		let ranges = [];
+		let match = null;
+		let matches = [];
+
+		let pat_idx = 0;
+
+		if (scopes) {
+
+			let scope_idx = 0;
+
+			while (scope_idx < scopes.length) {
+				let scope = scopes[scope_idx];
+				matches = matches.concat(model.findMatches(regexp, new monaco.Range(scope.start, 1, scope.end + 1, 1), true, false, null, true));
+				scope_idx++;
+			}
+
+		}
+		else {
+			matches = model.findMatches(regexp, false, true, false, null, true);
+		}
+
+		if (matches) {
+
+			for (let idx = 0; idx < matches.length; idx++) {
+				match = matches[idx];
+				if (1 < match.range.endLineNumber - match.range.startLineNumber) {
+					ranges.push(
+						{
+							kind: monaco.languages.FoldingRangeKind.Region,
+							start: match.range.startLineNumber + (includeStartString ? 0 : 1),
+							end: match.range.endLineNumber - (includeEndString ? 0 : 1)
+						}
+					)
+				}
+			}
+
+		}
+
+		return ranges;
+
+	}
+
+	/**
+	 * Provider for folding query's blocks
+	 * @param {ITextModel} current model of editor
+	 * 
+	 * @returns {array} - array of folding ranges 
+	 */
+	static getQueryFoldingRanges(model) {
+		
+		let ranges = [];
+
+		let nestedQueries = this.getRangesForNesteBlock(model, '\\((?:\\s|\\r)*(?:выбрать|select)');
+
+		ranges = this.getRangesForQuery(model);				
+		ranges = ranges.concat(nestedQueries);
+		ranges = ranges.concat(this.getRangesForQueryBlock(model, '(?:выбрать|select)\\s+(?:(?:.|\\n|\\r)*?)\\n(?:\s|\t)*(?:из|from|поместить|into)', false, false, false));	
+		ranges = ranges.concat(this.getRangesForQueryBlock(model, '(?:где|where)\\s+(?:(?:.|\\n|\\r)*?)\\s*(?:\\s|\\t)*(?:сгруппировать|объединить|упорядочить|group|union|order|;)', false, true, false));		
+		ranges = ranges.concat(this.getRangesForQueryBlock(model, '(?:где|where)\\s+(?:(?:.|\\n|\\r)*?)\\s*(?:\\s|\\t)*(?:сгруппировать|объединить|упорядочить|group|union|order|;|\\))', nestedQueries, true, true));
+		ranges = ranges.concat(this.getRangesForQueryBlock(model, '(?:выбор|case)\\s+(?:(?:.|\\n|\\r)*?)\\n(?:\\s|\\t)*(?:конец|end)', false, true, true));
+		ranges = ranges.concat(this.getRangesForQueryBlock(model, '(?:иначе|else)\\s+(?:(?:.|\\n|\\r)*?)\\n(?:\\s|\\t)*(?:конец|end)', false, true, false));
+		ranges = ranges.concat(this.getRangesForQueryBlock(model, '(?:когда|when)\\s+(?:(?:.|\\n|\\r)*?)\\n(?:\\s|\\t)*(?:тогда|then)', false, true, true));
+		ranges = ranges.concat(this.getRangesForQueryBlock(model, '(?:левое|внешнее|правое|полное|left|outer|right|full)\\s+(?:соединение|join).*\\s+(?:(?:.|\\n|\\r)*?)\\n(?:\\s|\\t)*(?:где|сгруппировать|объединить|упорядочить|where|group|union|order|;)', false, true, false));
+		ranges = ranges.concat(this.getRangesForQueryBlock(model, '(?:левое|внешнее|правое|полное|left|outer|right|full)\\s+(?:соединение|join).*\\s+(?:(?:.|\\n|\\r)*?)\\n(?:\\s|\\t)*(?:где|сгруппировать|объединить|упорядочить|where|group|union|order|;|\\))', nestedQueries, true, true));
+		ranges = ranges.concat(this.getRangesForQueryBlock(model, '(?:имеющие|havin)\\s+(?:(?:.|\\n|\\r)*?)\\s*(?:\\s|\\t)*(?:индексировать|индекс|;)', false, true, false));		
+		ranges = ranges.concat(this.getRangesForQueryBlock(model, '(?:имеющие|havin)\\s+(?:(?:.|\\n|\\r)*?)\\s*(?:\\s|\\t)*(?:индексировать|индекс|;|\\))', nestedQueries, true, false));		
+		ranges = ranges.concat(this.getRangesForQueryBlock(model, '(?:сгруппировать|group)\\s+(?:(?:.|\\n|\\r)*?)\\s*(?:\\s|\\t)*(?:имеющие|having|индексировать|index|;)', false, true, false));		
+		ranges = ranges.concat(this.getRangesForQueryBlock(model, '(?:сгруппировать|group)\\s+(?:(?:.|\\n|\\r)*?)\\s*(?:\\s|\\t)*(?:имеющие|having|индексировать|index|;|\\))', nestedQueries, true, true));
+		ranges = ranges.concat(this.getRangesForQueryBlock(model, '(?:из|from)\\s+(?:(?:.|\\n|\\r)*?)\\s*(?:\\s|\\t)*(?:сгруппировать|объединить|упорядочить|имеющие|где|индексировать|havin|where|index|group|union|order|;)', false, true, false));		
+		ranges = ranges.concat(this.getRangesForQueryBlock(model, '(?:из|from)\\s+(?:(?:.|\\n|\\r)*?)\\s*(?:\\s|\\t)*(?:сгруппировать|объединить|упорядочить|имеющие|где|индексировать|havin|where|index|group|union|order|;|\\))', nestedQueries, true, true));
+		ranges = ranges.concat(this.getRangesForQueryBlock(model, '(?:индексировать|index)\\s+(?:(?:.|\\n|\\r)*?)\\s*(?:\\s|\\t)*;', false, true, true));
+		ranges = ranges.concat(this.getRangesForNesteBlock(model, '(?:сумма|максимум|минимум|sum|min|max)\\s*\\('));
+				
+		return ranges;
+
+	}
+
+	/**
 	 * Provider for hover popoup
 	 * 
 	 * @returns {object} - hover object or null
@@ -2220,6 +3022,21 @@ class bslHelper {
 				
 			}
 	
+		}
+		
+		for (const [key, value] of Object.entries(customHovers)) {			
+			
+			if (key.toLowerCase() == this.word && value) {
+									
+				return {
+					range: new monaco.Range(this.lineNumber, this.column, this.lineNumber, this.model.getLineMaxColumn(this.lineNumber)),
+					contents: [							
+						{ value: value }
+					]
+				};				
+
+			}
+
 		}		
 
 		return null;
@@ -2305,40 +3122,55 @@ class bslHelper {
 	}
 
 	/**
-	 * Add comment for every selected lines
+	 * Add prefix for every selected lines
+	 * 
+	 * @param {string} prefix
+	 * 
 	 */
-	addComment() {
+	addPrefix(prefix) {
 
 		let selection = editor.getSelection();
 		let minColumn = this.getMinColumn(selection);
+		let oneLine = (selection.startLineNumber == selection.endLineNumber);
+		let maxLine = 0;
 
 		for (let line = selection.startLineNumber; line <= selection.endLineNumber; line++) {
-			bslHelper.setText(
-				'//' +
-				this.model.getValueInRange({
-					startLineNumber: line,
-					startColumn: minColumn,
-					endLineNumber: line,
-					endColumn: this.model.getLineMaxColumn(line)
-				}),
-				{
-					startLineNumber: line,
-					startColumn: minColumn,
-					endLineNumber: line,
-					endColumn: this.model.getLineMaxColumn(line) + 2
-				},
-				false
-			)
-		}		
+			if (editor.getModel().getLineContent(line).trim() && !(line == selection.endLineNumber && this.column == 1 && this.lineNumber == line) || oneLine) {
+				bslHelper.setText(
+					prefix +
+					this.model.getValueInRange({
+						startLineNumber: line,
+						startColumn: minColumn,
+						endLineNumber: line,
+						endColumn: this.model.getLineMaxColumn(line)
+					}),
+					{
+						startLineNumber: line,
+						startColumn: minColumn,
+						endLineNumber: line,
+						endColumn: this.model.getLineMaxColumn(line) + prefix.length
+					},
+					false
+				)
+				maxLine = line;
+			}
+		}
+
+		if (0 < maxLine)
+			editor.setSelection(new monaco.Range(selection.startLineNumber, 1, maxLine, this.model.getLineMaxColumn(maxLine)));
 
 	}
 
 	/**
-	 * Removes comment from every selected lines
+	 * Removes prefix from every selected lines
+	 * 
+	 * @param {string} prefix
+	 * 
 	 */
-	removeComment() {
+	removePrefix(prefix) {
 
-		let selection = editor.getSelection();		
+		let selection = editor.getSelection();
+		let maxLine = 0;		
 
 		for (let line = selection.startLineNumber; line <= selection.endLineNumber; line++) {
 			
@@ -2347,14 +3179,14 @@ class bslHelper {
 				startLineNumber: line,
 				startColumn: firsColumn,
 				endLineNumber: line,
-				endColumn: Math.min(firsColumn + 2, this.model.getLineMaxColumn(line))
+				endColumn: Math.min(firsColumn + prefix.length, this.model.getLineMaxColumn(line))
 			});
 
-			if (startChars == '//') {
+			if (startChars == prefix) {
 				bslHelper.setText(					
 					this.model.getValueInRange({
 						startLineNumber: line,
-						startColumn: firsColumn + 2,
+						startColumn: firsColumn + prefix.length,
 						endLineNumber: line,
 						endColumn: this.model.getLineMaxColumn(line)
 					}),
@@ -2366,8 +3198,48 @@ class bslHelper {
 					},
 					false
 				)
+				maxLine = line;
 			}			
 		}		
+
+		if (0 < maxLine)
+			editor.setSelection(new monaco.Range(selection.startLineNumber, 1, maxLine, this.model.getLineMaxColumn(maxLine)));
+
+	}
+
+	/**
+	 * Add comment for every selected lines
+	 */
+	addComment() {
+		
+		this.addPrefix('//');
+
+	}
+
+	/**
+	 * Removes comment from every selected lines
+	 */
+	removeComment() {
+
+		this.removePrefix('//');
+
+	}
+
+	/**
+	 * Add word wrap for every selected lines
+	 */
+	addWordWrap() {
+		
+		this.addPrefix('|');
+
+	}
+
+	/**
+	 * Removes word wrap from every selected lines
+	 */
+	removeWordWrap() {
+
+		this.removePrefix('|');
 
 	}
 
@@ -2430,6 +3302,84 @@ class bslHelper {
 
 		return lineNumber;
 
+	}
+
+	/**
+	 * Code formatter
+	 * 
+	 * @param {ITextModel} model current model of editor
+	 * 
+	 * @returns {string} formated text
+	 */
+	static formatCode(model) {
+
+		let result = '';
+
+		const startWords = [
+			'если', 'для', 'пока', 'функция', 'процедура', 'попытка',
+			'if', 'for', 'while', 'function', 'procedure', 'try'			
+		];
+
+		const stopWords = [
+			'конецесли', 'конеццикла', 'конецфункции', 'конецпроцедуры', 'конецпопытки',
+			'endif', 'enddo', 'endfunction', 'endprocedure', 'endtry'
+		];
+
+		const complexWords = [
+			'исключение', 'иначе', 'иначеесли',
+			'except', 'else', 'elseif'
+		];
+
+		const strings = model.getValue().split('\n');
+
+		let offset = 0;
+
+		strings.forEach(function (str, index) {
+
+			let original = str;
+			let comment = str.indexOf('//');
+
+			if (0 <= comment)
+				str = str.substr(0, comment);			
+
+			let semi = str.indexOf(';');
+
+			if (0 <= semi)
+				str = str.substr(0, semi);			
+
+			let words = str.trim().split(' ');
+			let word_i = 0;
+			let delta = offset;
+
+			while (word_i < words.length) {
+				
+				let word = words[word_i].toLowerCase();
+				
+				if (startWords.includes(word))
+					offset++;
+				
+				if (stopWords.includes(word))
+					offset = Math.max(0, offset - 1);
+
+				if (complexWords.includes(word))
+					offset = Math.max(0, offset - 1);
+
+				word_i++;
+			}
+
+			delta = offset - delta;
+			let strOffset = 0 < delta ? offset - 1 : offset;			
+			result = result + '\t'.repeat(strOffset) + original.trim();
+			
+			if (index < strings.length - 1)
+				result += '\n';
+
+			if (words.length && complexWords.includes(words[0].toLowerCase()))
+				offset++;
+
+		});
+
+		return result;
 	}
 
 }

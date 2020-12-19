@@ -11,6 +11,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   queryMode = false;
   version1C = '';
   contextActions = [];
+  customHovers = {};
+  originalText = '';
 
   sendEvent = function(eventName, eventParams) {
 
@@ -219,15 +221,172 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     
     queryMode = !queryMode;
 
-    if (queryMode) {
+    let queryPostfix = '-query';
+    let currentTheme = editor._themeService.getTheme().themeName;
+
+    if (queryMode && currentTheme.indexOf(queryPostfix) == -1)
+      currentTheme += queryPostfix;
+    else if (!queryMode && currentTheme.indexOf(queryPostfix) >= 0)
+      currentTheme = currentTheme.replace(queryPostfix, '');
+
+    if (queryMode)
       monaco.editor.setModelLanguage(editor.getModel(), "bsl_query");
-      setTheme('bsl-white-query');
-    }      
     else
       monaco.editor.setModelLanguage(editor.getModel(), "bsl");
+    
+    setTheme(currentTheme);
 
     initContextMenuActions();
 
+  }
+
+  getSelectedText = function() {
+
+    return editor.getModel().getValueInRange(editor.getSelection());
+
+  }
+
+  addWordWrap = function () {
+    
+    let bsl = new bslHelper(editor.getModel(), editor.getPosition());		
+    bsl.addWordWrap();
+
+  }
+
+  removeWordWrap = function () {
+    
+    let bsl = new bslHelper(editor.getModel(), editor.getPosition());		
+    bsl.removeWordWrap();
+    
+  }
+
+  setCustomHovers = function (variables) {
+        
+    try {
+			customHovers = JSON.parse(variables);			
+			return true;
+		}
+		catch (e) {
+			return { errorDescription: e.message };
+		}
+
+  }
+
+  getVarsNames = function () {
+    
+    let bsl = new bslHelper(editor.getModel(), editor.getPosition());		
+    return bsl.getVarsNames(0);    
+    
+  }
+
+  getSelection = function() {
+
+    return editor.getSelection();
+
+  }
+
+  setSelection = function(startLineNumber, startColumn, endLineNumber, endColumn) {
+    
+    if (endLineNumber <= getLineCount()) {
+      let range = new monaco.Range(startLineNumber, startColumn, endLineNumber, endColumn);
+      editor.setSelection(range);
+      return true;
+    }
+    else
+      return false;
+
+  }
+
+  setSelectionByLength = function(start, end) {
+    
+    let startPosition = editor.getModel().getPositionAt(start - 1);
+    let endPosition = editor.getModel().getPositionAt(end - 1);
+    let range = new monaco.Range(startPosition.lineNumber, startPosition.column, endPosition.lineNumber, endPosition.column);    
+    editor.setSelection(range);
+    return true;
+
+  }
+
+  selectedText = function(text) {
+
+    if (!text)
+      return getSelectedText();    
+    else if (getSelectedText())
+      setText(text, getSelection(), false);
+    else
+      setText(text, undefined, false);
+
+  }
+
+  getLineCount = function() {
+    
+    return editor.getModel().getLineCount();
+
+  }
+
+  getLineContent = function(lineNumber) {
+
+    return editor.getModel().getLineContent(lineNumber)
+
+  }
+
+  setLineContent = function(lineNumber, text) {
+
+    if (lineNumber <= getLineCount()) {
+      let range = new monaco.Range(lineNumber, 1, lineNumber, editor.getModel().getLineMaxColumn(lineNumber));
+      setText(text, range, false);
+      return true;      
+    }
+    else {
+      return false;
+    }
+
+  }
+
+  compare = function (text, sideBySide, highlight) {
+    
+    document.getElementById("container").innerHTML = ''
+    let language_id = queryMode ? 'bsl_query' : 'bsl';    
+
+    let queryPostfix = '-query';
+    let currentTheme = editor._themeService.getTheme().themeName;
+
+    if (queryMode && currentTheme.indexOf(queryPostfix) == -1)
+      currentTheme += queryPostfix;
+    else if (!queryMode && currentTheme.indexOf(queryPostfix) >= 0)
+      currentTheme = currentTheme.replace(queryPostfix, '');
+
+    if (text) {      
+      let originalModel = originalText ? monaco.editor.createModel(originalText) : monaco.editor.createModel(editor.getModel().getValue());
+      let modifiedModel = monaco.editor.createModel(text);
+      originalText = originalModel.getValue();
+      editor = monaco.editor.createDiffEditor(document.getElementById("container"), {
+        theme: currentTheme,
+        language: language_id,
+        contextmenu: false,
+        automaticLayout: true,
+        renderSideBySide: sideBySide        
+      });    
+      if (highlight) {
+        monaco.editor.setModelLanguage(originalModel, language_id);
+        monaco.editor.setModelLanguage(modifiedModel, language_id);
+      }
+      editor.setModel({
+        original: originalModel,
+        modified: modifiedModel
+      });
+    }
+    else
+    {
+      editor = monaco.editor.create(document.getElementById("container"), {
+        theme: currentTheme,
+        value: originalText,
+        language: language_id,
+        contextmenu: true,
+        automaticLayout: true
+      });
+      originalText = '';
+    }
   }
 
   editor = undefined;
@@ -247,6 +406,11 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     monaco.languages.registerFoldingRangeProvider(language.id, lang.foldingProvider);      
     monaco.languages.registerSignatureHelpProvider(language.id, lang.signatureProvider);
     monaco.languages.registerHoverProvider(language.id, lang.hoverProvider);    
+    monaco.languages.registerDocumentFormattingEditProvider(language.id, lang.formatProvider);
+    monaco.languages.registerCodeLensProvider(language.id, {
+      provideCodeLenses: lang.codeLenses.provider, 
+      resolveCodeLens: lang.codeLenses.resolver
+    });
 
     if (!editor) {
 
@@ -259,7 +423,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         theme: "bsl-white",
         value: getCode(),
         language: language.id,
-        contextmenu: true
+        contextmenu: true,
+        wordBasedSuggestions: false
       });
 
     }

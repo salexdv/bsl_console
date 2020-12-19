@@ -295,12 +295,17 @@ define([], function () {
             expressions: bsl_language.rules.queryExp,            
             operators: /[=><+\-*\/%;,]+/,
             tokenizer: {
-                root: [
-                    [/(как|as\s)(.+)(,?)/, [
+                root: [                               
+                    [/(как|as\s+)(.+)(,?)/, [
                         {token: 'query.keyword'},
                         {token: 'query'},
                         {token: 'query.operator'}
                     ]],
+                    [/(\.)([a-zA-Z\u0410-\u044F_]+)/, [
+                        {token: 'query'},
+                        {token: 'query'}                        
+                    ]],
+                    [/([a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]+)(\.)([a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]+)/, 'query'],
                     [/[a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]*/, { cases: {
                         '@keywords': 'query.keyword',
                         '@expressions': 'query.exp',
@@ -311,13 +316,10 @@ define([], function () {
                     [/&/, 'query.param'],
                     [/[()]/, 'query.brackets'],
                     [/\/\/.*$/, 'comment'],
-                    [/\..*?\s/, 'query'],
-                    [/[^ ]+\.[^ ]+/, 'query'],
                     [/@operators/, 'query.operator'],
                     [/[0-9_]*\.[0-9_]+([eE][\-+]?\d+)?[fFdD]?/, 'query.float'],
                     [/[0-9_]+/, 'query.int'],
-                    [/\|/, 'query'],
-                    [/[?!@#$^*_]+/, 'query']                    
+                    [/\|/, 'query']                    
                 ]
             },
         },        
@@ -352,6 +354,18 @@ define([], function () {
                     let bsl = new bslHelper(model, position);
                     return bsl.getHover();
                 }
+            },
+            formatProvider: {
+                provideDocumentFormattingEdits: function (model, options, token) {
+                    return [{
+                        text: bslHelper.formatCode(model),
+                        range: model.getFullModelRange()
+                    }];
+                }
+            },
+            codeLenses: {
+                provider: () => {},                
+                resolver: () => {}
             }
         },
         query: {
@@ -364,7 +378,9 @@ define([], function () {
                 }
             },
             foldingProvider: {
-                provideFoldingRanges: () => {}
+                provideFoldingRanges: function (model, context, token) {
+                    return bslHelper.getQueryFoldingRanges(model);
+                }
             },
             signatureProvider: {
                 signatureHelpTriggerCharacters: ['(', ','],
@@ -376,6 +392,13 @@ define([], function () {
             },
             hoverProvider: {
                 provideHover: () => {}
+            },
+            formatProvider: {
+                provideDocumentFormattingEdits: () => {}
+            },
+            codeLenses: {
+                provider: () => {},                
+                resolver: () => {}
             }
         }
     };
