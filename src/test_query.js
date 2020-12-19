@@ -157,6 +157,22 @@ describe("Проверка автокомлита и подсказок реда
 
     });
 
+    it("проверка подсказки для конструкции ССЫЛКА", function () {
+      
+      bsl = helper("ССЫЛКА ");
+      let suggestions = [];
+      bsl.getQueryRefCompletition(suggestions, null)
+      expect(suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(suggestions.some(suggest => suggest.label === "Справочник"), true);
+
+      bsl = helper("ССЫЛКА Справочник.");
+      suggestions = [];
+      bsl.getQueryRefCompletition(suggestions, null)
+      expect(suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(suggestions.some(suggest => suggest.label === "Товары"), true);
+
+    });
+
     switchQueryMode();
         
     mocha.run();

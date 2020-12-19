@@ -324,6 +324,19 @@ class bslHelper {
 	}
 
 	/**
+	 * Checks if string contain ref constructor (ССЫЛКА|REFS)
+	 * 
+	 * 
+	 * @returns {bool}
+	 */
+	requireQueryRef() {
+
+		let word = this.getLastSeparatedWord().toLowerCase();
+		return (word == 'ссылка' || word == 'refs') && (this.lastOperator == '');
+
+	}	
+
+	/**
 	 * Removes from array of suggestions duplicated items
 	 * 
 	 * @returns {array} suggestions
@@ -1815,7 +1828,7 @@ class bslHelper {
 	 * @param {array} suggestions array of suggestions for provideCompletionItems	 
 	 * @param {CompletionItemKind} kind - monaco.languages.CompletionItemKind (class, function, constructor etc.)
 	 */
-	getQuerySourceMetadataCompletition(metadataName, metadataItem, metadataFunc, suggestions, kind) {
+	getQuerySourceMetadataCompletition(metadataName, metadataItem, metadataFunc, suggestions, kind, maxLevel) {
 	
 		let sourceExist = false;
 
@@ -1895,6 +1908,33 @@ class bslHelper {
 
 	}
 
+	getQueryMetadataSources(suggestions, kind) {
+
+		let sourceExist = false;
+
+		for (const [key, value] of Object.entries(bslMetadata)) {
+
+			if (value.hasOwnProperty(this.queryNameField)) {
+
+				let source = value[this.queryNameField];
+
+				suggestions.push({
+					label: source,
+					kind: kind,
+					insertText: source,
+					insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+				});
+
+				sourceExist = true;
+				
+			}
+
+		}
+
+		return sourceExist;
+
+	}
+
 	/**
 	 * Fills array of completition for source of table
 	 * 
@@ -1920,29 +1960,12 @@ class bslHelper {
 				let metadataItem = regex && 2 < regex.length ? regex[2] : '';
 				let metadataFunc = regex && 3 < regex.length ? regex[3] : '';
 				
-				sourceExist = this.getQuerySourceMetadataCompletition(metadataName, metadataItem, metadataFunc, suggestions, kind);
+				sourceExist = this.getQuerySourceMetadataCompletition(metadataName, metadataItem, metadataFunc, suggestions, kind, 3);
 
 				if (!sourceExist) {
 				
-					for (const [key, value] of Object.entries(bslMetadata)) {
-
-						if (value.hasOwnProperty(this.queryNameField)) {
-
-							let source = value[this.queryNameField];
-
-							suggestions.push({
-								label: source,
-								kind: kind,
-								insertText: source,
-								insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
-							});
-
-							sourceExist = true;
-							
-						}
-
-					}	
-
+					// suggestion for metadata sources like (catalog, document, etc.)
+					sourceExist = this.getQueryMetadataSources(suggestions, kind);
 					// suggestion for temporary tables
 					sourceExist = Math.max(sourceExist, this.getQuerySourceTempraryTablesCompletition(suggestions));
 				
@@ -2009,6 +2032,30 @@ class bslHelper {
 	}
 
 	/**
+	 * Fills array of completition for refs constructor (ССЫЛКА|REFS)
+	 * 
+	 * @param {array} suggestions array of suggestions for provideCompletionItems	 
+	 * @param {CompletionItemKind} kind - monaco.languages.CompletionItemKind (class, function, constructor etc.)
+	 */
+	getQueryRefCompletition(suggestions, kind) {
+
+		let pattern = /(.+?)(?:\.(.*?))?$/;
+		let unclosed = this.unclosedString(this.textBeforePosition);						
+		let lastExpression = this.lastExpression;
+		lastExpression = lastExpression.replace(/(ссылка|refs)/gi, '');
+		let regex = pattern.exec(unclosed.string ? unclosed.string.slice(1) : lastExpression);			
+				
+		let metadataName = regex && 1 < regex.length ? regex[1] : '';
+		let metadataItem = regex && 2 < regex.length ? regex[2] : '';
+
+		if (!metadataName)
+			this.getQueryMetadataSources(suggestions, kind);
+		else
+			this.getQuerySourceMetadataCompletition(metadataName, metadataItem, '', suggestions, kind, 2);		
+
+	}
+
+	/**
 	 * Completition provider for query language
 	 * 
 	 * @param {object} langDef - query language definition
@@ -2021,24 +2068,35 @@ class bslHelper {
 
 		if (!this.requireQueryValue()) {
 
-			if (!this.getQuerySourceCompletition(suggestions, monaco.languages.CompletionItemKind.Enum)) {
+			if (!this.requireQueryRef()) {
 
-				if (this.lastOperator != '"') {
-					this.getCommonCompletition(suggestions, bslQuery.functions, monaco.languages.CompletionItemKind.Function, true);
-					this.getRefCompletition(suggestions);
-					this.getQueryTablesCompletition(suggestions, monaco.languages.CompletionItemKind.Class);
+				if (!this.getQuerySourceCompletition(suggestions, monaco.languages.CompletionItemKind.Enum)) {
+
+					if (this.lastOperator != '"') {
+						this.getCommonCompletition(suggestions, bslQuery.functions, monaco.languages.CompletionItemKind.Function, true);
+						this.getRefCompletition(suggestions);
+						this.getQueryTablesCompletition(suggestions, monaco.languages.CompletionItemKind.Class);
+					}
+
+					this.getQueryCommonCompletition(suggestions, langDef, monaco.languages.CompletionItemKind.Module);					
+					this.getQueryParamsCompletition(suggestions, monaco.languages.CompletionItemKind.Enum);				
+					this.getQueryFieldsCompletition(suggestions);
+					this.getSnippets(suggestions, querySnippets);
+
 				}
 
-				this.getQueryCommonCompletition(suggestions, langDef, monaco.languages.CompletionItemKind.Module);					
-				this.getQueryParamsCompletition(suggestions, monaco.languages.CompletionItemKind.Enum);				
-				this.getQueryFieldsCompletition(suggestions);
-				this.getSnippets(suggestions, querySnippets);
+			}
+			else {
+				
+				this.getQueryRefCompletition(suggestions, monaco.languages.CompletionItemKind.Enum);
 
 			}
 
 		}
 		else {
+			
 			this.getQueryValuesCompletition(suggestions, bslQuery.values, monaco.languages.CompletionItemKind.Enum);
+
 		}
 
 		if (suggestions.length)
