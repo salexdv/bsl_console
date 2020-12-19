@@ -135,11 +135,26 @@ describe("Проверка автокомлита и подсказок реда
     });
 
     it("проверка подсказки для функции ЗНАЧЕНИЕ", function () {
+      
       bsl = helper("ЗНАЧЕНИЕ(");
       let suggestions = [];
       bsl.getQueryValuesCompletition(suggestions, bslQuery.values, null)
       expect(suggestions).to.be.an('array').that.not.is.empty;
-      assert.equal(suggestions.some(suggest => suggest.label === "Справочник"), true);      
+      assert.equal(suggestions.some(suggest => suggest.label === "Справочник"), true);
+
+      bsl = helper("ЗНАЧЕНИЕ(Справочник.");
+      suggestions = [];
+      bsl.getQueryValuesCompletition(suggestions, bslQuery.values, null)
+      expect(suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(suggestions.some(suggest => suggest.label === "Товары"), true);
+
+      bsl = helper("ЗНАЧЕНИЕ(Справочник.Товары.");
+      suggestions = [];
+      bsl.getQueryValuesCompletition(suggestions, bslQuery.values, null)
+      expect(suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(suggestions.some(suggest => suggest.label === "ПустаяСсылка"), true);
+      assert.equal(suggestions.some(suggest => suggest.label === "Услуга"), true);
+
     });
 
     switchQueryMode();
