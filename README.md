@@ -64,6 +64,7 @@
 | `enableModificationEvent`	     | Включает/выключает генерацию события, возникающего при изменении содержимого редактора        |
 | `switchQueryMode`	     	 	 | Переключение между режимом запроса и режимом редактирования кода                              |
 | [`compare`](docs/compare.md) 	 | Включает/выключает режим сравнения текстов 						                             |
+| `getVarsNames`	     	 	 | Возвращает имена всех объявленных в коде переменных                     				         |
 
 ### Взаимодействие
 | Функция                        | Описание                                                                                      |
@@ -92,6 +93,7 @@ init('8.3.18.891');
 ## Продукты, использующие консоль:
 * [Infostart Toolkit](https://infostart.ru/journal/news/news/infostart-toolkit-1-3-teper-s-novym-redaktorom-koda-na-baze-monaco-editor_1303095/)
 * [Конвертация данных 3 расширение](https://infostart.ru/public/1289837/)
+* [Контекстная подсказка в 1С КД3](https://github.com/GenVP/TipsInCD3)
 
 ## Проверенные платформы:
 * 8.3.15.1830
