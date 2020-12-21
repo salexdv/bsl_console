@@ -58,6 +58,24 @@ describe("Проверка автокомлита и подсказок реда
     it("проверка загрузки bslMetadata", function () {
       assert.notEqual(bslMetadata, undefined);
     });
+    
+    it("проверка подсказки ключевых слов запроса", function () {                                               
+      switchQueryMode();        
+      bsl = helper('Выра');        
+      let suggestions = bsl.getQueryCompletition(languages.query.languageDef);
+      expect(suggestions).to.be.an('object');
+      expect(suggestions.suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(suggestions.suggestions.some(suggest => suggest.label === "ВЫРАЗИТЬ"), true);        
+      switchQueryMode();
+    });
+
+    it("проверка подсказки параметров для функции запроса", function () {                                               
+      switchQueryMode();
+      bsl = helper('РАЗНОСТЬДАТ(');
+      let help = bsl.getCommonSigHelp(bslQuery.functions);
+      expect(help).to.have.property('activeParameter');        
+      switchQueryMode();
+    });
 
     it("проверка автокомплита для таблицы запроса, являющейся справочником", function () {
       bsl = helper(getCode(), 4, 9);      

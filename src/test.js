@@ -611,39 +611,6 @@ describe("Проверка автокомлита и подсказок реда
         contextData = new Map();
       });
 
-      it("проверка подсказки ключевых слов запроса", function () {                                               
-        switchQueryMode();        
-        bsl = helper('Выра');        
-        let suggestions = bsl.getQueryCompletition(languages.query.languageDef);
-        expect(suggestions).to.be.an('object');
-        expect(suggestions.suggestions).to.be.an('array').that.not.is.empty;
-        assert.equal(suggestions.suggestions.some(suggest => suggest.label === "ВЫРАЗИТЬ"), true);        
-        switchQueryMode();
-      });
-
-      it("проверка подсказки параметров для функции запроса", function () {                                               
-        switchQueryMode();
-        bsl = helper('РАЗНОСТЬДАТ(');
-        let help = bsl.getCommonSigHelp(bslQuery.functions);
-        expect(help).to.have.property('activeParameter');        
-        switchQueryMode();
-      });
-
-      it("проверка подсказки для функции запроса ЗНАЧЕНИЕ", function () {                                               
-        switchQueryMode();
-        bsl = helper('ЗНАЧЕНИЕ(Справочник.Товары.');
-        let suggestions = bsl.getQueryCompletition(languages.query.languageDef);
-        expect(suggestions).to.be.an('object');
-        expect(suggestions.suggestions).to.be.an('array').that.not.is.empty;
-        assert.equal(suggestions.suggestions.some(suggest => suggest.label === "Услуга") && suggestions.suggestions.some(suggest => suggest.label === "ПустаяСсылка"), true);
-        bsl = helper('ЗНАЧЕНИЕ(Перечисление.ТестовыйЭлемент.');
-        suggestions = bsl.getQueryCompletition(languages.query.languageDef);
-        expect(suggestions).to.be.an('object');
-        expect(suggestions.suggestions).to.be.an('array').that.not.is.empty;
-        assert.equal(suggestions.suggestions.some(suggest => suggest.label === "Реквизит1"), true);
-        switchQueryMode();
-      });
-
       it("проверка подсказки объекта, полученного методом ПолучитьОбъект()", function () {              	                                
         bsl = helper('СправочникСсылка = Справочник.Товары.НайтиПоКоду(1);\nСправочникОбъект = СправочникСсылка.ПолучитьОбъект();\nСправочникОбъект.');
         let suggestions = [];        
