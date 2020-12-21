@@ -1681,6 +1681,7 @@ define([], function () {
          "query_name_en":"AccountingRegister",
          "items":{
             "Хозрасчетный":{
+               "type": "accounting",
                "dimensionCount": "3",
                "properties":{
                   "Организация":{

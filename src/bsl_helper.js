@@ -1857,7 +1857,29 @@ class bslHelper {
 			if (type == 'periodical') {
 				tables = {				
 					"SliceLast": "SliceLast",
-					"SliceFirst": "SliceFirst",
+					"SliceFirst": "SliceFirst"
+				};
+			}
+			else if (type == 'balance') {
+				tables = {					
+					"Turnovers": "Turnovers",
+					"Balance": "Balance",
+					"BalanceAndTurnovers": "BalanceAndTurnovers"
+				};
+			}
+			else if (type == 'turnovers') {
+				tables = {					
+					"Turnovers": "Turnovers"					
+				};
+			}
+			else if (type == 'accounting') {
+				tables = {					
+					"RecordsWithExtDimensions": "RecordsWithExtDimensions",
+					"Turnovers": "Turnovers",
+					"DrCrTurnovers": "DrCrTurnovers",
+					"Balance": "Balance",
+					"BalanceAndTurnovers": "BalanceAndTurnovers",
+					"ExtDimensions": "ExtDimensions"
 				};
 			}
 
@@ -1867,7 +1889,29 @@ class bslHelper {
 			if (type == 'periodical') {
 				tables = {					
 					"СрезПоследних": "СрезПоследних",
-					"СрезПервых": "СрезПервых",
+					"СрезПервых": "СрезПервых"
+				};
+			}
+			else if (type == 'balance') {
+				tables = {					
+					"Обороты": "Обороты",
+					"Остатки": "Остатки",
+					"ОстаткиИОбороты": "ОстаткиИОбороты"
+				};
+			}
+			else if (type == 'turnovers') {
+				tables = {					
+					"Обороты": "Обороты"
+				};
+			}
+			else if (type == 'accounting') {
+				tables = {					
+					"ДвиженияССубконто": "ДвиженияССубконто",
+					"Обороты": "Обороты",
+					"ОборотыДт": "ОборотыДт",
+					"Остатки": "Остатки",
+					"ОстаткиИОбороты": "ОстаткиИОбороты",
+					"Субконто": "Субконто"
 				};
 			}
 
