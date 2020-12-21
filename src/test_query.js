@@ -187,6 +187,17 @@ describe("Проверка автокомлита и подсказок реда
 
     });
 
+    it("проверка подсказки временной таблицы СрезПоследних в конструкции ИЗ ИЛИ СОЕДИНЕНИЕ", function () {
+      bsl = helper(`ВЫБРАТЬ
+      *
+      ИЗ      
+      РегистрСведений.ЦеныНоменклатуры.`);      
+      let suggestions = [];
+      bsl.getQuerySourceCompletition(suggestions, null);
+      expect(suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(suggestions.some(suggest => suggest.label === "СрезПоследних"), true);      
+    });
+
     switchQueryMode();
         
     mocha.run();
