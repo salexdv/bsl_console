@@ -961,7 +961,7 @@ define([], function () {
          "query_name_en":"InformationRegister",
          "items":{            
             "ЦеныНоменклатуры":{
-               "type": "Periodical",
+               "type": "periodical",
                "properties":{
                   "Номенклатура":{
                      "name": "Номенклатура"
@@ -975,7 +975,7 @@ define([], function () {
                }
             },
             "ВерсииОбъектов":{
-               "type": "Nonperiodical",
+               "type": "nonperiodical",
                "properties":{
                   "Объект":{
                      "name": "Объект"

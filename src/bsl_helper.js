@@ -1842,6 +1842,74 @@ class bslHelper {
 	}
 
 	/**
+	 * Returns temporary tables of register depending on the register's type
+	 * 
+	 * @param {string} type of register like balance, turnovers, periodical
+	 *	 
+	 * @returns {array} array of names
+	 */
+	getRegisterTempraryTables(type) {
+
+		let tables = {};
+
+		if (engLang) {
+
+			if (type == 'periodical') {
+				tables = {				
+					"SliceLast": "SliceLast",
+					"SliceFirst": "SliceFirst",
+				};
+			}
+
+		}
+		else {
+
+			if (type == 'periodical') {
+				tables = {					
+					"СрезПоследних": "СрезПоследних",
+					"СрезПервых": "СрезПервых",
+				};
+			}
+
+		}
+
+		return tables;
+
+	}
+
+	/**
+	 * Fills array of completition for temporary tables of registers in source
+	 * 
+	 * @param {object} data objects from BSL-JSON dictionary
+	 * @param {string} metadataItem name of metadata item like (ЦеныНоменклатуры/ProductPrices, СвободныеОстатки/AvailableStock)
+	 * @param {array} suggestions array of suggestions for provideCompletionItems	 	 
+	 */
+	getQuerySourceMetadataRegTempraryTablesCompletition(data, metadataItem, suggestions) {
+
+		for (const [ikey, ivalue] of Object.entries(data.items)) {
+
+			if (ikey.toLowerCase() == metadataItem.toLowerCase() && ivalue.hasOwnProperty('type')) {
+
+				let tables = this.getRegisterTempraryTables(ivalue.type);
+
+				for (const [tkey, tvalue] of Object.entries(tables)) {
+
+					suggestions.push({
+						label: tkey,
+						kind:  monaco.languages.CompletionItemKind.Unit,
+						insertText: tvalue,
+						insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+					});
+
+				}				
+
+			}
+
+		}
+
+	}
+
+	/**
 	 * Fills array of completition for source of table
 	 * 
 	 * @param {array} suggestions array of suggestions for provideCompletionItems	 
@@ -1871,6 +1939,11 @@ class bslHelper {
 						});
 
 					}
+
+				}
+				else if (!metadataFunc && 2 < maxLevel) {
+					
+					this.getQuerySourceMetadataRegTempraryTablesCompletition(value, metadataItem, suggestions)
 
 				}
 
