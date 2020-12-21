@@ -187,7 +187,8 @@ describe("Проверка автокомлита и подсказок реда
 
     });
 
-    it("проверка подсказки временной таблицы СрезПоследних в конструкции ИЗ ИЛИ СОЕДИНЕНИЕ", function () {
+    it("проверка подсказки временной таблицы регистра в конструкции ИЗ ИЛИ СОЕДИНЕНИЕ", function () {
+      
       bsl = helper(`ВЫБРАТЬ
       *
       ИЗ      
@@ -195,7 +196,18 @@ describe("Проверка автокомлита и подсказок реда
       let suggestions = [];
       bsl.getQuerySourceCompletition(suggestions, null);
       expect(suggestions).to.be.an('array').that.not.is.empty;
-      assert.equal(suggestions.some(suggest => suggest.label === "СрезПоследних"), true);      
+      assert.equal(suggestions.some(suggest => suggest.label === "СрезПоследних"), true);
+      assert.equal(suggestions.some(suggest => suggest.label === "ОстаткиИОбороты"), false);
+
+      bsl = helper(`ВЫБРАТЬ
+      *
+      ИЗ      
+      РегистрНакопления.ОстаткиТоваров.`);      
+      suggestions = [];
+      bsl.getQuerySourceCompletition(suggestions, null);
+      expect(suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(suggestions.some(suggest => suggest.label === "ОстаткиИОбороты"), true);      
+
     });
 
     switchQueryMode();
