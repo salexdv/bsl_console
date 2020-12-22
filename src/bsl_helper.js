@@ -1714,6 +1714,52 @@ class bslHelper {
 	}
 
 	/**
+	 * Gets the list of properties (attributes) owned by object
+	 * (Catalog, Document, etc) and fills the suggestions by it
+	 * Used only for query-mode
+	 * 
+	 * @param {array} suggestions the list of suggestions
+	 * @param {object} obj object from BSL-JSON dictionary
+	 * @param {metadataSubtable} string name of subtable such as tabular sections
+	 * or virtual table
+	 */
+	fillSuggestionsForMetadataItemInQuery(suggestions, obj, metadataSubtable) {
+
+		if (obj.hasOwnProperty('properties')) {
+
+			for (const [pkey, pvalue] of Object.entries(obj.properties)) {
+								
+				let command = null;
+				let ref = pvalue.hasOwnProperty('ref') ? pvalue.ref : null;
+				let nestedSuggestions = [];
+								
+				let detail = pvalue;
+
+				if (pvalue.hasOwnProperty('description'))
+					detail = pvalue.description;				
+				else if (pvalue.hasOwnProperty('name'))
+					detail = pvalue.name;
+				
+				if (ref || nestedSuggestions.length) {					
+					// If the attribute contains a ref, we need to run the command to save the position of ref
+					command = { id: 'vs.editor.ICodeEditor:1:saveref', arguments: [{'name': pkey, "data": { "ref": ref, "sig": null, "list" : nestedSuggestions } }]}
+				}
+
+				suggestions.push({
+					label: pkey,
+					kind: monaco.languages.CompletionItemKind.Field,
+					insertText: pkey,
+					insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+					detail: detail,
+					command: command
+				});
+			}
+
+		}
+
+	}
+
+	/**
 	 * Fills array of completition for metadata source in query
 	 * 
 	 * @param {array} suggestions array of suggestions for provideCompletionItems	 
@@ -1731,6 +1777,7 @@ class bslHelper {
 
 			let metadataType = sourceArray[0].toLowerCase();
 			let metadataName = sourceArray[1].toLowerCase();
+			let metadataSubtable = (2 < sourceArray.length) ? sourceArray[2].toLowerCase() : '';
 
 			for (const [key, value] of Object.entries(bslMetadata)) {
 				
@@ -1739,7 +1786,7 @@ class bslHelper {
 					for (const [ikey, ivalue] of Object.entries(value.items)) {
 
 						if (ikey.toLowerCase() == metadataName) {
-							this.fillSuggestionsForMetadataItem(suggestions, ivalue);
+							this.fillSuggestionsForMetadataItemInQuery(suggestions, ivalue, metadataSubtable);
 						}
 
 					}
