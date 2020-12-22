@@ -1829,58 +1829,36 @@ class bslHelper {
 								
 				// Now we need to find lastExpression definition
 				let position =  new monaco.Position(startMatch.range.startLineNumber, startMatch.range.startColumn);
-				let match = this.model.findNextMatch('(.*)\\s+(?:как|as)\\s+' + this.lastRawExpression, position, true, false, null, true);
-				
-				if (match) {										
-					let sourceDefinition = match.matches[1];
-					sourceDefinition = sourceDefinition.replace(/(из|левое|правое|внутреннее|внешнее|полное|from|left|right|inner|outer|full)?\s?(соединение|join)?/gi, '').trim();
 
-					if (!this.getQueryFieldsCompletitionForMetadata(suggestions, sourceDefinition)) {
-						
-						if (!this.getQueryFieldsCompletitionForTempTable(suggestions, sourceDefinition, position)) {
+				// Temp table definition
+				let sourceDefinition = '';
+				let match = this.model.findNextMatch('^[\\s\\t]*([a-zA-Z0-9\u0410-\u044F_]+)\\s+(?:как|as)\\s+' + this.lastRawExpression, position, true, false, null, true);
 
-							position =  new monaco.Position(startMatch.range.startLineNumber, startMatch.range.startColumn);
-							let endMatch = this.model.findNextMatch('(?:из|from)[\\s\\S\\n]*?(?:как|as)\\s+' +  this.lastRawExpression , position, true);
+				if (match) {
+
+					sourceDefinition = match.matches[1];
+					this.getQueryFieldsCompletitionForTempTable(suggestions, sourceDefinition, position);
+
+				}
+				else {
+					
+					// Metadata table definition
+					match = this.model.findNextMatch('(?:из|from)[\\s\\S\\n]*?(?:как|as)\\s+' +  this.lastRawExpression , position, true);
 											
-							if (endMatch) {					
-													
-								// Searching the source
-								position =  new monaco.Position(endMatch.range.endLineNumber, endMatch.range.endColumn);
-								let match = this.model.findPreviousMatch('[a-zA-Z0-9\u0410-\u044F]+\\.[a-zA-Z0-9\u0410-\u044F_]+(?:\\.[a-zA-Z0-9\u0410-\u044F]+)?', position, true, false, null, true);
-						
-								if (match) {									
-									sourceDefinition = match.matches[0];
-									this.getQueryFieldsCompletitionForMetadata(suggestions, sourceDefinition);																			
-								}
-
-							}
-
-						}
-					}
-
-				}
-
-				/*
-				let position =  new monaco.Position(startMatch.range.startLineNumber, startMatch.range.startColumn);
-				let endMatch = this.model.findNextMatch('(?:из|from)[\\s\\S\\n]*?(?:как|as)\\s+' +  this.lastRawExpression , position, true);
-								
-				if (endMatch) {					
-										
-					// Searching the source
-					position =  new monaco.Position(endMatch.range.endLineNumber, endMatch.range.endColumn);
-					let match = this.model.findPreviousMatch('[a-zA-Z0-9\u0410-\u044F]+\\.[a-zA-Z0-9\u0410-\u044F_]+(?:\\.[a-zA-Z0-9\u0410-\u044F]+)?', position, true, false, null, true);
-			
-					if (match) {
-						
-						let sourceDefinition = match.matches[0];
-						if (!this.getQueryFieldsCompletitionForMetadata(suggestions, sourceDefinition)) {
-							this.getQueryFieldsCompletitionForTempTable(suggestions, sourceDefinition, position);
+					if (match) {					
+											
+						// Searching the source
+						position =  new monaco.Position(match.range.endLineNumber, match.range.endColumn);
+						match = this.model.findPreviousMatch('[a-zA-Z0-9\u0410-\u044F]+\\.[a-zA-Z0-9\u0410-\u044F_]+(?:\\.[a-zA-Z0-9\u0410-\u044F]+)?', position, true, false, null, true);
+				
+						if (match) {									
+							sourceDefinition = match.matches[0];
+							this.getQueryFieldsCompletitionForMetadata(suggestions, sourceDefinition);																			
 						}
 
 					}
 
-				}
-				*/
+				}				
 
 			}
 			
