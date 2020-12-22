@@ -350,8 +350,8 @@ class bslHelper {
 	 */
 	requireQueryRef() {
 
-		let word = this.getLastSeparatedWord().toLowerCase();
-		return (word == 'ссылка' || word == 'refs') && (this.lastOperator == '');
+		let match = editor.getModel().findPreviousMatch('\\s+(ссылка|refs)\\s+' , editor.getPosition(), true);		
+		return (match && match.range.startLineNumber == this.lineNumber);
 
 	}	
 
@@ -1763,6 +1763,8 @@ class bslHelper {
 	 */
 	getQueryFieldsCompletitionForTempTable(suggestions, sourceDefinition, startPosition) {
 
+		let tableExists = false;
+
 		// Let's find definition for temporary table
 		let intoMatch = this.model.findPreviousMatch('(?:поместить|into)\\s+' + sourceDefinition, startPosition, true);
 
@@ -1795,6 +1797,8 @@ class bslHelper {
 								insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet						
 							});
 
+							tableExists = true;
+
 						}
 
 					}					
@@ -1804,6 +1808,8 @@ class bslHelper {
 			}
 
 		}
+
+		return tableExists;
 		
 	}
 
@@ -1817,23 +1823,64 @@ class bslHelper {
 		if (this.getLastCharacter() == '.') {
 			
 			// Let's find start of current query
-			let match = this.model.findPreviousMatch('(?:выбрать|select)', this.position, true);
+			let startMatch = this.model.findPreviousMatch('(?:выбрать|select)', this.position, true);
 			
-			if (match) {
-				
+			if (startMatch) {
+								
 				// Now we need to find lastExpression definition
-				let position =  new monaco.Position(match.range.startLineNumber, match.range.startColumn);
-				match = this.model.findNextMatch('(.*)\\s+(?:как|as)\\s+' + this.lastRawExpression, position, true, false, null, true);
+				let position =  new monaco.Position(startMatch.range.startLineNumber, startMatch.range.startColumn);
+				let match = this.model.findNextMatch('(.*)\\s+(?:как|as)\\s+' + this.lastRawExpression, position, true, false, null, true);
 				
-				if (match) {					
+				if (match) {										
 					let sourceDefinition = match.matches[1];
 					sourceDefinition = sourceDefinition.replace(/(из|левое|правое|внутреннее|внешнее|полное|from|left|right|inner|outer|full)?\s?(соединение|join)?/gi, '').trim();
 
 					if (!this.getQueryFieldsCompletitionForMetadata(suggestions, sourceDefinition)) {
-						this.getQueryFieldsCompletitionForTempTable(suggestions, sourceDefinition, position);
+						
+						if (!this.getQueryFieldsCompletitionForTempTable(suggestions, sourceDefinition, position)) {
+
+							position =  new monaco.Position(startMatch.range.startLineNumber, startMatch.range.startColumn);
+							let endMatch = this.model.findNextMatch('(?:из|from)[\\s\\S\\n]*?(?:как|as)\\s+' +  this.lastRawExpression , position, true);
+											
+							if (endMatch) {					
+													
+								// Searching the source
+								position =  new monaco.Position(endMatch.range.endLineNumber, endMatch.range.endColumn);
+								let match = this.model.findPreviousMatch('[a-zA-Z0-9\u0410-\u044F]+\\.[a-zA-Z0-9\u0410-\u044F_]+(?:\\.[a-zA-Z0-9\u0410-\u044F]+)?', position, true, false, null, true);
+						
+								if (match) {									
+									sourceDefinition = match.matches[0];
+									this.getQueryFieldsCompletitionForMetadata(suggestions, sourceDefinition);																			
+								}
+
+							}
+
+						}
 					}
 
 				}
+
+				/*
+				let position =  new monaco.Position(startMatch.range.startLineNumber, startMatch.range.startColumn);
+				let endMatch = this.model.findNextMatch('(?:из|from)[\\s\\S\\n]*?(?:как|as)\\s+' +  this.lastRawExpression , position, true);
+								
+				if (endMatch) {					
+										
+					// Searching the source
+					position =  new monaco.Position(endMatch.range.endLineNumber, endMatch.range.endColumn);
+					let match = this.model.findPreviousMatch('[a-zA-Z0-9\u0410-\u044F]+\\.[a-zA-Z0-9\u0410-\u044F_]+(?:\\.[a-zA-Z0-9\u0410-\u044F]+)?', position, true, false, null, true);
+			
+					if (match) {
+						
+						let sourceDefinition = match.matches[0];
+						if (!this.getQueryFieldsCompletitionForMetadata(suggestions, sourceDefinition)) {
+							this.getQueryFieldsCompletitionForTempTable(suggestions, sourceDefinition, position);
+						}
+
+					}
+
+				}
+				*/
 
 			}
 			

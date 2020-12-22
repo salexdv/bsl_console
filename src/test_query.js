@@ -210,6 +210,14 @@ describe("Проверка автокомлита и подсказок реда
 
     });
 
+    it("проверка подсказки полей таблицы запроса, когда объявление таблицы многострочное", function () {
+      bsl = helper(getCode(), 1094, 7);      
+      let suggestions = [];
+      bsl.getQueryFieldsCompletition(suggestions);
+      expect(suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(suggestions.some(suggest => suggest.label === "ВидЦены"), true);
+    });
+
     switchQueryMode();
         
     mocha.run();
