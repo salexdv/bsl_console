@@ -1714,6 +1714,84 @@ class bslHelper {
 	}
 
 	/**
+	 * Returns subresources for the virtual table type
+	 * 
+	 * @param {string} subTable subtable name like balance, turnovers, periodical
+	 * @param {string} regType type of subtable like balance, turnovers, periodical
+	 *	 
+	 * @returns {array} array of subresources
+	 */
+	getGetVirtualTableSubresouces(subTable, regType) {
+
+		let subresouces = {};
+
+		if (engLang) {
+
+			if (subTable == 'balance') {
+				subresouces = {				
+					"Balance": "(balance)"
+				};
+			}
+			else if (subTable == 'turnovers') {
+				if (regType == 'balance')
+					subresouces = {
+						"Receipt": "(receipt)",
+						"Expense": "(expense)",
+						"Turnover": "(turnover)"
+					};
+				else
+					subresouces = {
+						"Turnover": "(turnover)"
+					};
+
+			}
+			else if (subTable == 'balanceandturnovers') {
+				subresouces = {
+					"OpeningBalance": "(opening balance)",
+					"Receipt": "(receipt)",
+					"Expense": "(expense)",
+					"Turnover": "(turnover)",
+					"ClosingBalance": "(closing balance)"
+				};
+			}			
+
+		}
+		else {
+
+			if (subTable == 'остатки') {
+				subresouces = {
+					"Остаток": "(остаток)"
+				};
+			}
+			else if (subTable == 'обороты') {
+				if (regType == 'balance')
+					subresouces = {					
+						"Приход": "(приход)",
+						"Расход": "(расход)",
+						"Оборот": "(оборот)"
+					};
+				else
+					subresouces = {
+						"Оборот": "(оборот)"
+					};
+			}
+			else if (subTable == 'остаткииобороты') {
+				subresouces = {					
+					"НачальныйОстаток": "(начальный остаток)",
+					"Приход": "(приход)",
+					"Расход": "(расход)",
+					"Оборот": "(оборот)",
+					"КонечныйОстаток": "(конечный остаток)"
+				};
+			}			
+
+		}
+
+		return subresouces;
+
+	}
+
+	/**
 	 * Gets the list of properties (attributes) owned by object
 	 * (Catalog, Document, etc) and fills the suggestions by it
 	 * Used only for query-mode
@@ -1753,6 +1831,49 @@ class bslHelper {
 					detail: detail,
 					command: command
 				});
+			}
+
+			let resources = [];
+
+			if (obj.hasOwnProperty('resources')) {
+
+				for (const [rkey, rvalue] of Object.entries(obj.resources)) {
+					resources.push({'label': rkey, 'name': rvalue.name});
+				}
+				
+				let regType = obj.hasOwnProperty('type') ? obj.type : '';
+				let subresouces = this.getGetVirtualTableSubresouces(metadataSubtable, regType);
+				let subExists = false;
+				let items = [];
+
+				for (let idx = 0; idx < resources.length; idx++) {					
+
+					let resource = resources[idx];
+
+					for (const [skey, svalue] of Object.entries(subresouces)) {
+						subExists = true;
+						items.push({'label': resource.label + skey, 'name': resource.name + ' ' + svalue});
+					}
+
+					if (!subExists)
+						items.push(resource);					
+
+				}
+
+				for (let idx = 0; idx < items.length; idx++) {					
+
+					let item = items[idx];
+
+					suggestions.push({
+						label: item.label,
+						kind: monaco.languages.CompletionItemKind.value,
+						insertText: item.label,
+						insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+						detail: item.name
+					});
+
+				}
+			
 			}
 
 		}
@@ -1914,13 +2035,13 @@ class bslHelper {
 	}
 
 	/**
-	 * Returns temporary tables of register depending on the register's type
+	 * Returns virtual tables of register depending on the register's type
 	 * 
 	 * @param {string} type of register like balance, turnovers, periodical
 	 *	 
 	 * @returns {array} array of names
 	 */
-	getRegisterTempraryTables(type) {
+	getRegisterVirtualTables(type) {
 
 		let tables = {};
 
@@ -1994,7 +2115,7 @@ class bslHelper {
 	}
 
 	/**
-	 * Fills array of completition for temporary tables of registers in source
+	 * Fills array of completition for virtual tables of registers in source
 	 * 
 	 * @param {object} data objects from BSL-JSON dictionary
 	 * @param {string} metadataItem name of metadata item like (ЦеныНоменклатуры/ProductPrices, СвободныеОстатки/AvailableStock)
@@ -2006,7 +2127,7 @@ class bslHelper {
 
 			if (ikey.toLowerCase() == metadataItem.toLowerCase() && ivalue.hasOwnProperty('type')) {
 
-				let tables = this.getRegisterTempraryTables(ivalue.type);
+				let tables = this.getRegisterVirtualTables(ivalue.type);
 
 				for (const [tkey, tvalue] of Object.entries(tables)) {
 

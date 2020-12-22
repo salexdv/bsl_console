@@ -218,6 +218,50 @@ describe("Проверка автокомлита и подсказок реда
       assert.equal(suggestions.some(suggest => suggest.label === "ВидЦены"), true);
     });
 
+    it("проверка подсказки полей виртуальной таблицы остатков", function () {
+      bsl = helper(getCode(), 1095, 10);      
+      let suggestions = [];
+      bsl.getQueryFieldsCompletition(suggestions);
+      expect(suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(suggestions.some(suggest => suggest.label === "КоличествоОстаток"), true);
+      assert.equal(suggestions.some(suggest => suggest.label === "КоличествоНачальныйОстаток"), false);
+      assert.equal(suggestions.some(suggest => suggest.label === "КоличествоПриход"), false);
+      assert.equal(suggestions.some(suggest => suggest.label === "КоличествоОборот"), false);
+    });
+
+    it("проверка подсказки полей виртуальной таблицы остатков и оборотов", function () {
+      bsl = helper(getCode(), 1097, 18);      
+      let suggestions = [];
+      bsl.getQueryFieldsCompletition(suggestions);
+      expect(suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(suggestions.some(suggest => suggest.label === "КоличествоПриход"), true);
+      assert.equal(suggestions.some(suggest => suggest.label === "КоличествоОборот"), true);
+      assert.equal(suggestions.some(suggest => suggest.label === "КоличествоНачальныйОстаток"), true);
+      assert.equal(suggestions.some(suggest => suggest.label === "КоличествоОстаток"), false);
+    });
+
+    it("проверка подсказки полей виртуальной таблицы оборотов (вид регистра 'Остатки')", function () {
+      bsl = helper(getCode(), 1096, 10);      
+      let suggestions = [];
+      bsl.getQueryFieldsCompletition(suggestions);
+      expect(suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(suggestions.some(suggest => suggest.label === "КоличествоПриход"), true);
+      assert.equal(suggestions.some(suggest => suggest.label === "КоличествоОборот"), true);
+      assert.equal(suggestions.some(suggest => suggest.label === "КоличествоОстаток"), false);
+      assert.equal(suggestions.some(suggest => suggest.label === "КоличествоНачальныйОстаток"), false);
+    });
+
+    it("проверка подсказки полей виртуальной таблицы оборотов (вид регистра 'Обороты')", function () {
+      bsl = helper(getCode(), 1098, 10);      
+      let suggestions = [];
+      bsl.getQueryFieldsCompletition(suggestions);
+      expect(suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(suggestions.some(suggest => suggest.label === "КоличествоОборот"), true);
+      assert.equal(suggestions.some(suggest => suggest.label === "КоличествоПриход"), false);      
+      assert.equal(suggestions.some(suggest => suggest.label === "КоличествоОстаток"), false);
+      assert.equal(suggestions.some(suggest => suggest.label === "КоличествоНачальныйОстаток"), false);
+    });
+
     switchQueryMode();
         
     mocha.run();
