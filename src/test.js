@@ -626,8 +626,7 @@ describe("Проверка автокомлита и подсказок реда
       it("проверка подсказки ресурсов регистра", function () {              	                                
         bsl = helper('Рег = РегистрыНакопления.ОстаткиТоваров.СоздатьНаборЗаписей();(1);\nРег.');
         let suggestions = [];                
-        bsl.getMetadataCompletition(suggestions, bslMetadata)
-        console.log(suggestions);
+        bsl.getMetadataCompletition(suggestions, bslMetadata);
         expect(suggestions).to.be.an('array').that.not.is.empty;
         assert.equal(suggestions.some(suggest => suggest.label === "Себестоимость"), true);
       });
