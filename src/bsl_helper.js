@@ -957,9 +957,19 @@ class bslHelper {
 	 */
 	fillSuggestionsForMetadataItem(suggestions, obj) {
 
-		if (obj.hasOwnProperty('properties')) {
+		let objects = [];
+		
+		if (obj.hasOwnProperty('properties'))
+			objects.push(obj.properties);
 
-			for (const [pkey, pvalue] of Object.entries(obj.properties)) {
+		if (obj.hasOwnProperty('resources'))
+			objects.push(obj.resources);
+
+		for (let idx = 0; idx < objects.length; idx++) {
+
+			let metadataObj = objects[idx];
+
+			for (const [pkey, pvalue] of Object.entries(metadataObj)) {
 				
 				let postfix = '';
 
