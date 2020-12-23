@@ -350,8 +350,8 @@ class bslHelper {
 	 */
 	requireQueryRef() {
 
-		let word = this.getLastSeparatedWord().toLowerCase();
-		return (word == 'ссылка' || word == 'refs') && (this.lastOperator == '');
+		let match = editor.getModel().findPreviousMatch('\\s+(ссылка|refs)\\s+' , editor.getPosition(), true);		
+		return (match && match.range.startLineNumber == this.lineNumber);
 
 	}	
 
@@ -957,9 +957,19 @@ class bslHelper {
 	 */
 	fillSuggestionsForMetadataItem(suggestions, obj) {
 
-		if (obj.hasOwnProperty('properties')) {
+		let objects = [];
+		
+		if (obj.hasOwnProperty('properties'))
+			objects.push(obj.properties);
 
-			for (const [pkey, pvalue] of Object.entries(obj.properties)) {
+		if (obj.hasOwnProperty('resources'))
+			objects.push(obj.resources);
+
+		for (let idx = 0; idx < objects.length; idx++) {
+
+			let metadataObj = objects[idx];
+
+			for (const [pkey, pvalue] of Object.entries(metadataObj)) {
 				
 				let postfix = '';
 
@@ -1714,6 +1724,173 @@ class bslHelper {
 	}
 
 	/**
+	 * Returns subresources for the virtual table type
+	 * 
+	 * @param {string} subTable subtable name like balance, turnovers, periodical
+	 * @param {string} regType type of subtable like balance, turnovers, periodical
+	 *	 
+	 * @returns {array} array of subresources
+	 */
+	getGetVirtualTableSubresouces(subTable, regType) {
+
+		let subresouces = {};
+
+		if (engLang) {
+
+			if (subTable == 'balance') {
+				subresouces = {				
+					"Balance": "(balance)"
+				};
+			}
+			else if (subTable == 'turnovers') {
+				if (regType == 'balance')
+					subresouces = {
+						"Receipt": "(receipt)",
+						"Expense": "(expense)",
+						"Turnover": "(turnover)"
+					};
+				else
+					subresouces = {
+						"Turnover": "(turnover)"
+					};
+
+			}
+			else if (subTable == 'balanceandturnovers') {
+				subresouces = {
+					"OpeningBalance": "(opening balance)",
+					"Receipt": "(receipt)",
+					"Expense": "(expense)",
+					"Turnover": "(turnover)",
+					"ClosingBalance": "(closing balance)"
+				};
+			}			
+
+		}
+		else {
+
+			if (subTable == 'остатки') {
+				subresouces = {
+					"Остаток": "(остаток)"
+				};
+			}
+			else if (subTable == 'обороты') {
+				if (regType == 'balance')
+					subresouces = {					
+						"Приход": "(приход)",
+						"Расход": "(расход)",
+						"Оборот": "(оборот)"
+					};
+				else
+					subresouces = {
+						"Оборот": "(оборот)"
+					};
+			}
+			else if (subTable == 'остаткииобороты') {
+				subresouces = {					
+					"НачальныйОстаток": "(начальный остаток)",
+					"Приход": "(приход)",
+					"Расход": "(расход)",
+					"Оборот": "(оборот)",
+					"КонечныйОстаток": "(конечный остаток)"
+				};
+			}			
+
+		}
+
+		return subresouces;
+
+	}
+
+	/**
+	 * Gets the list of properties (attributes) owned by object
+	 * (Catalog, Document, etc) and fills the suggestions by it
+	 * Used only for query-mode
+	 * 
+	 * @param {array} suggestions the list of suggestions
+	 * @param {object} obj object from BSL-JSON dictionary
+	 * @param {metadataSubtable} string name of subtable such as tabular sections
+	 * or virtual table
+	 */
+	fillSuggestionsForMetadataItemInQuery(suggestions, obj, metadataSubtable) {
+
+		if (obj.hasOwnProperty('properties')) {
+
+			for (const [pkey, pvalue] of Object.entries(obj.properties)) {
+								
+				let command = null;
+				let ref = pvalue.hasOwnProperty('ref') ? pvalue.ref : null;
+				let nestedSuggestions = [];
+								
+				let detail = pvalue;
+
+				if (pvalue.hasOwnProperty('description'))
+					detail = pvalue.description;				
+				else if (pvalue.hasOwnProperty('name'))
+					detail = pvalue.name;
+				
+				if (ref || nestedSuggestions.length) {					
+					// If the attribute contains a ref, we need to run the command to save the position of ref
+					command = { id: 'vs.editor.ICodeEditor:1:saveref', arguments: [{'name': pkey, "data": { "ref": ref, "sig": null, "list" : nestedSuggestions } }]}
+				}
+
+				suggestions.push({
+					label: pkey,
+					kind: monaco.languages.CompletionItemKind.Field,
+					insertText: pkey,
+					insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+					detail: detail,
+					command: command
+				});
+			}
+
+			let resources = [];
+
+			if (obj.hasOwnProperty('resources')) {
+
+				for (const [rkey, rvalue] of Object.entries(obj.resources)) {
+					resources.push({'label': rkey, 'name': rvalue.name});
+				}
+				
+				let regType = obj.hasOwnProperty('type') ? obj.type : '';
+				let subresouces = this.getGetVirtualTableSubresouces(metadataSubtable, regType);
+				let subExists = false;
+				let items = [];
+
+				for (let idx = 0; idx < resources.length; idx++) {					
+
+					let resource = resources[idx];
+
+					for (const [skey, svalue] of Object.entries(subresouces)) {
+						subExists = true;
+						items.push({'label': resource.label + skey, 'name': resource.name + ' ' + svalue});
+					}
+
+					if (!subExists)
+						items.push(resource);					
+
+				}
+
+				for (let idx = 0; idx < items.length; idx++) {					
+
+					let item = items[idx];
+
+					suggestions.push({
+						label: item.label,
+						kind: monaco.languages.CompletionItemKind.value,
+						insertText: item.label,
+						insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+						detail: item.name
+					});
+
+				}
+			
+			}
+
+		}
+
+	}
+
+	/**
 	 * Fills array of completition for metadata source in query
 	 * 
 	 * @param {array} suggestions array of suggestions for provideCompletionItems	 
@@ -1731,6 +1908,7 @@ class bslHelper {
 
 			let metadataType = sourceArray[0].toLowerCase();
 			let metadataName = sourceArray[1].toLowerCase();
+			let metadataSubtable = (2 < sourceArray.length) ? sourceArray[2].toLowerCase() : '';
 
 			for (const [key, value] of Object.entries(bslMetadata)) {
 				
@@ -1739,7 +1917,7 @@ class bslHelper {
 					for (const [ikey, ivalue] of Object.entries(value.items)) {
 
 						if (ikey.toLowerCase() == metadataName) {
-							this.fillSuggestionsForMetadataItem(suggestions, ivalue);
+							this.fillSuggestionsForMetadataItemInQuery(suggestions, ivalue, metadataSubtable);
 						}
 
 					}
@@ -1762,6 +1940,8 @@ class bslHelper {
 	 * @param {position} startPosition the begining of current query
 	 */
 	getQueryFieldsCompletitionForTempTable(suggestions, sourceDefinition, startPosition) {
+
+		let tableExists = false;
 
 		// Let's find definition for temporary table
 		let intoMatch = this.model.findPreviousMatch('(?:поместить|into)\\s+' + sourceDefinition, startPosition, true);
@@ -1795,6 +1975,8 @@ class bslHelper {
 								insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet						
 							});
 
+							tableExists = true;
+
 						}
 
 					}					
@@ -1804,6 +1986,8 @@ class bslHelper {
 			}
 
 		}
+
+		return tableExists;
 		
 	}
 
@@ -1817,26 +2001,157 @@ class bslHelper {
 		if (this.getLastCharacter() == '.') {
 			
 			// Let's find start of current query
-			let match = this.model.findPreviousMatch('(?:выбрать|select)', this.position, true);
+			let startMatch = this.model.findPreviousMatch('(?:выбрать|select)', this.position, true);
 			
-			if (match) {
-				
+			if (startMatch) {
+								
 				// Now we need to find lastExpression definition
-				let position =  new monaco.Position(match.range.startLineNumber, match.range.startColumn);
-				match = this.model.findNextMatch('(.*)\\s+(?:как|as)\\s+' + this.lastRawExpression, position, true, false, null, true);
-				
-				if (match) {					
-					let sourceDefinition = match.matches[1];
-					sourceDefinition = sourceDefinition.replace(/(из|левое|правое|внутреннее|внешнее|полное|from|left|right|inner|outer|full)?\s?(соединение|join)?/gi, '').trim();
+				let position =  new monaco.Position(startMatch.range.startLineNumber, startMatch.range.startColumn);
 
-					if (!this.getQueryFieldsCompletitionForMetadata(suggestions, sourceDefinition)) {
-						this.getQueryFieldsCompletitionForTempTable(suggestions, sourceDefinition, position);
-					}
+				// Temp table definition
+				let sourceDefinition = '';
+				let match = this.model.findNextMatch('^[\\s\\t]*([a-zA-Z0-9\u0410-\u044F_]+)\\s+(?:как|as)\\s+' + this.lastRawExpression, position, true, false, null, true);
+
+				if (match) {
+
+					sourceDefinition = match.matches[1];
+					this.getQueryFieldsCompletitionForTempTable(suggestions, sourceDefinition, position);
 
 				}
+				else {
+					
+					// Metadata table definition
+					match = this.model.findNextMatch('(?:из|from)[\\s\\S\\n]*?(?:как|as)\\s+' +  this.lastRawExpression , position, true);
+											
+					if (match) {					
+											
+						// Searching the source
+						position =  new monaco.Position(match.range.endLineNumber, match.range.endColumn);
+						match = this.model.findPreviousMatch('[a-zA-Z0-9\u0410-\u044F]+\\.[a-zA-Z0-9\u0410-\u044F_]+(?:\\.[a-zA-Z0-9\u0410-\u044F]+)?', position, true, false, null, true);
+				
+						if (match) {									
+							sourceDefinition = match.matches[0];
+							this.getQueryFieldsCompletitionForMetadata(suggestions, sourceDefinition);																			
+						}
+
+					}
+
+				}				
 
 			}
 			
+		}
+
+	}
+
+	/**
+	 * Returns virtual tables of register depending on the register's type
+	 * 
+	 * @param {string} type of register like balance, turnovers, periodical
+	 *	 
+	 * @returns {array} array of names
+	 */
+	getRegisterVirtualTables(type) {
+
+		let tables = {};
+
+		if (engLang) {
+
+			if (type == 'periodical') {
+				tables = {				
+					"SliceLast": "SliceLast",
+					"SliceFirst": "SliceFirst"
+				};
+			}
+			else if (type == 'balance') {
+				tables = {					
+					"Turnovers": "Turnovers",
+					"Balance": "Balance",
+					"BalanceAndTurnovers": "BalanceAndTurnovers"
+				};
+			}
+			else if (type == 'turnovers') {
+				tables = {					
+					"Turnovers": "Turnovers"					
+				};
+			}
+			else if (type == 'accounting') {
+				tables = {					
+					"RecordsWithExtDimensions": "RecordsWithExtDimensions",
+					"Turnovers": "Turnovers",
+					"DrCrTurnovers": "DrCrTurnovers",
+					"Balance": "Balance",
+					"BalanceAndTurnovers": "BalanceAndTurnovers",
+					"ExtDimensions": "ExtDimensions"
+				};
+			}
+
+		}
+		else {
+
+			if (type == 'periodical') {
+				tables = {					
+					"СрезПоследних": "СрезПоследних",
+					"СрезПервых": "СрезПервых"
+				};
+			}
+			else if (type == 'balance') {
+				tables = {					
+					"Обороты": "Обороты",
+					"Остатки": "Остатки",
+					"ОстаткиИОбороты": "ОстаткиИОбороты"
+				};
+			}
+			else if (type == 'turnovers') {
+				tables = {					
+					"Обороты": "Обороты"
+				};
+			}
+			else if (type == 'accounting') {
+				tables = {					
+					"ДвиженияССубконто": "ДвиженияССубконто",
+					"Обороты": "Обороты",
+					"ОборотыДт": "ОборотыДт",
+					"Остатки": "Остатки",
+					"ОстаткиИОбороты": "ОстаткиИОбороты",
+					"Субконто": "Субконто"
+				};
+			}
+
+		}
+
+		return tables;
+
+	}
+
+	/**
+	 * Fills array of completition for virtual tables of registers in source
+	 * 
+	 * @param {object} data objects from BSL-JSON dictionary
+	 * @param {string} metadataItem name of metadata item like (ЦеныНоменклатуры/ProductPrices, СвободныеОстатки/AvailableStock)
+	 * @param {array} suggestions array of suggestions for provideCompletionItems	 	 
+	 */
+	getQuerySourceMetadataRegTempraryTablesCompletition(data, metadataItem, suggestions) {
+
+		for (const [ikey, ivalue] of Object.entries(data.items)) {
+
+			if (ikey.toLowerCase() == metadataItem.toLowerCase() && ivalue.hasOwnProperty('type')) {
+
+				let tables = this.getRegisterVirtualTables(ivalue.type);
+
+				for (const [tkey, tvalue] of Object.entries(tables)) {
+
+					suggestions.push({
+						label: tkey,
+						kind:  monaco.languages.CompletionItemKind.Unit,
+						insertText: tvalue,
+						insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+					});
+
+				}				
+
+			}
+
 		}
 
 	}
@@ -1871,6 +2186,11 @@ class bslHelper {
 						});
 
 					}
+
+				}
+				else if (!metadataFunc && 2 < maxLevel) {
+					
+					this.getQuerySourceMetadataRegTempraryTablesCompletition(value, metadataItem, suggestions)
 
 				}
 
