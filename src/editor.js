@@ -76,9 +76,10 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
-  updateMetadata = function (metadata) {
+  updateMetadata = function (metadata, path = '') {
         
-    return bslHelper.updateMetadata(metadata);    
+    let bsl = new bslHelper(editor.getModel(), editor.getPosition());		
+    return bsl.updateMetadata(metadata, path);
 
   }
 

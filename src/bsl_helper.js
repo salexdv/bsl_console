@@ -483,6 +483,53 @@ class bslHelper {
 	}
 
 	/**
+	 * Checks if the object contains properties from array
+	 * 
+	 * @param {object} obj the object for checking
+	 * @param {array} props array of properties	 
+	 * 
+	 * @returns {boolean} true - the object contains every poperty, fasle - otherwise
+	 */
+	objectHasPropertiesFromArray(obj, props) {
+
+		for (let i = 0; i < props.length; i++) {
+
+			if (!obj || !obj.hasOwnProperty(props[i])) {
+				return false;
+			}
+
+			obj = obj[props[i]];
+		}
+
+		return true;
+	}
+
+	/**
+	 * Sets property of object
+	 * 
+	 * @param {Object} obj the object to setting property
+	 * @param {string} path the path to property
+	 * @param {Object} value the value of property
+	 */
+	setObjectProperty(obj, path, value) {
+		
+		if (Object(obj) !== obj) return obj;
+	    
+		if (!Array.isArray(path))
+			path = path.toString().match(/[^.[\]]+/g) || []; 
+
+	    path.slice(0,-1).reduce((a, c, i) => 
+	         Object(a[c]) === a[c]	             
+	             ? a[c] 	             
+	             : a[c] = Math.abs(path[i+1])>>0 === +path[i+1] 
+	                   ? []
+	                   : {},
+			 obj)[path[path.length-1]] = value;
+			 
+	    return obj;
+	};
+
+	/**
 	 * Gets the list of methods owned by object
 	 * and fills the suggestions by it
 	 * 
@@ -2923,18 +2970,35 @@ class bslHelper {
 	 * 
 	 * @returns {true|object} true - metadata was updated, {errorDescription} - not
 	 */
-	static updateMetadata(metadata) {
+	updateMetadata(metadata, path) {
 
 		try {
+			
 			let metadataObj = JSON.parse(metadata);
-			if (metadataObj.hasOwnProperty('catalogs') || metadataObj.hasOwnProperty('customObjects')) {
-				for (const [key, value] of Object.entries(metadataObj)) {
-					bslMetadata[key].items = value;
+
+			if (path) {
+
+				if (this.objectHasPropertiesFromArray(bslMetadata, path.split('.'))) {
+					this.setObjectProperty(bslMetadata, path, metadataObj);
+					return true;
 				}
-				return true;
+				else {
+					throw new TypeError("Wrong path");
+				}
+
 			}
 			else {
-				throw new TypeError("Wrong structure of metadata");
+
+				if (metadataObj.hasOwnProperty('catalogs') || metadataObj.hasOwnProperty('customObjects')) {
+					for (const [key, value] of Object.entries(metadataObj)) {
+						bslMetadata[key].items = value;
+					}
+					return true;
+				}
+				else {
+					throw new TypeError("Wrong structure of metadata");
+				}
+
 			}
 
 		}
