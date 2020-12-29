@@ -1153,9 +1153,12 @@ class bslHelper {
 			regex = /(.+?)(?:\.(.*?))?\.?(?:\.(.*?))?\(?$/.exec(unclosed.string.slice(1));
 		else
 			regex = /(.+?)(?:\.(.*?))?\.?(?:\.(.*?))?\(?$/.exec(this.lastExpression);
+		
 		let metadataName = regex && 1 < regex.length ? regex[1] : '';
 		let metadataItem = regex && 2 < regex.length ? regex[2] : '';
 		let metadataFunc = regex && 3 < regex.length ? regex[3] : '';
+
+		let updateItemNode = false;
 		
 		if (metadataName && !metadataFunc) {
 
@@ -1183,6 +1186,8 @@ class bslHelper {
 						}
 
 						if (itemNode) {
+
+							updateItemNode = !itemNode.hasOwnProperty('properties');
 
 							if (itemNode.hasOwnProperty('predefined')) {
 
@@ -1259,6 +1264,13 @@ class bslHelper {
 				}
 
 			}
+
+			if (updateItemNode) {
+				sendEvent("EVENT_GET_METADATA", metadataName + '.' + metadataItem);
+				suggestions = [];
+			}
+			else if (metadataName && metadataExists && !metadataItem && !suggestions.length)				
+				sendEvent("EVENT_GET_METADATA", metadataName);
 
 		}
 
