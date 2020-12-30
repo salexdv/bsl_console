@@ -378,6 +378,10 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         original: originalModel,
         modified: modifiedModel
       });
+      editor.navi = monaco.editor.createDiffNavigator(editor, {
+        followsCaret: true,
+        ignoreCharChanges: true
+      });
     }
     else
     {
@@ -435,6 +439,20 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 		catch (e) {
 			return { errorDescription: e.message };
 		}
+
+  }
+
+  nextDiff = function() {
+
+    if (editor.navi)
+      editor.navi.next();
+
+  }
+
+  previousDiff = function() {
+
+    if (editor.navi)
+      editor.navi.previous();
 
   }
 
