@@ -483,6 +483,53 @@ class bslHelper {
 	}
 
 	/**
+	 * Checks if the object contains properties from array
+	 * 
+	 * @param {object} obj the object for checking
+	 * @param {array} props array of properties	 
+	 * 
+	 * @returns {boolean} true - the object contains every poperty, fasle - otherwise
+	 */
+	objectHasPropertiesFromArray(obj, props) {
+
+		for (let i = 0; i < props.length; i++) {
+
+			if (!obj || !obj.hasOwnProperty(props[i])) {
+				return false;
+			}
+
+			obj = obj[props[i]];
+		}
+
+		return true;
+	}
+
+	/**
+	 * Sets property of object
+	 * 
+	 * @param {Object} obj the object to setting property
+	 * @param {string} path the path to property
+	 * @param {Object} value the value of property
+	 */
+	setObjectProperty(obj, path, value) {
+		
+		if (Object(obj) !== obj) return obj;
+	    
+		if (!Array.isArray(path))
+			path = path.toString().match(/[^.[\]]+/g) || []; 
+
+	    path.slice(0,-1).reduce((a, c, i) => 
+	         Object(a[c]) === a[c]	             
+	             ? a[c] 	             
+	             : a[c] = Math.abs(path[i+1])>>0 === +path[i+1] 
+	                   ? []
+	                   : {},
+			 obj)[path[path.length-1]] = value;
+			 
+	    return obj;
+	};
+
+	/**
 	 * Gets the list of methods owned by object
 	 * and fills the suggestions by it
 	 * 
@@ -638,6 +685,10 @@ class bslHelper {
 								this.fillSuggestionsForMetadataItem(suggestions, bslMetadata[itemName].items[subItemName]);
 								this.getMetadataMethods(suggestions, bslMetadata[itemName], methodsName, itemName, subItemName);
 							}
+							else if (this.objectHasProperties(bslMetadata, itemName, 'items', subItemName))
+								requestMetadata(itemName + '.' + subItemName);
+							else if (this.objectHasProperties(bslMetadata, itemName, 'items'))
+								requestMetadata(itemName);
 
 						}
 					}
@@ -1153,9 +1204,12 @@ class bslHelper {
 			regex = /(.+?)(?:\.(.*?))?\.?(?:\.(.*?))?\(?$/.exec(unclosed.string.slice(1));
 		else
 			regex = /(.+?)(?:\.(.*?))?\.?(?:\.(.*?))?\(?$/.exec(this.lastExpression);
+		
 		let metadataName = regex && 1 < regex.length ? regex[1] : '';
 		let metadataItem = regex && 2 < regex.length ? regex[2] : '';
 		let metadataFunc = regex && 3 < regex.length ? regex[3] : '';
+
+		let updateItemNode = false;
 		
 		if (metadataName && !metadataFunc) {
 
@@ -1183,6 +1237,8 @@ class bslHelper {
 						}
 
 						if (itemNode) {
+
+							updateItemNode = !itemNode.hasOwnProperty('properties');
 
 							if (itemNode.hasOwnProperty('predefined')) {
 
@@ -1259,6 +1315,13 @@ class bslHelper {
 				}
 
 			}
+
+			if (updateItemNode) {
+				requestMetadata(metadataName + '.' + metadataItem);
+				suggestions = [];
+			}
+			else if (metadataName && metadataExists && !metadataItem && !suggestions.length)				
+				requestMetadata(metadataName);
 
 		}
 
@@ -1462,54 +1525,62 @@ class bslHelper {
 
 		let suggestions = [];
 
-		if (!this.requireType()) {
+		if (customSuggestions.length) {
+			suggestions = customSuggestions.slice();
+			customSuggestions = [];
+		}
+		else {
 
-			if (this.lastOperator != '"') {
+			if (!this.requireType()) {
 
-				this.getRefCompletition(suggestions);
+				if (this.lastOperator != '"') {
 
-				if (!suggestions.length) {
+					this.getRefCompletition(suggestions);
 
-					if (!this.getClassCompletition(suggestions, bslGlobals.classes)) {
+					if (!suggestions.length) {
 
-						if (!this.getClassCompletition(suggestions, bslGlobals.systemEnum)) {
+						if (!this.getClassCompletition(suggestions, bslGlobals.classes)) {
 
-							if (!this.getMetadataCompletition(suggestions, bslMetadata)) {
+							if (!this.getClassCompletition(suggestions, bslGlobals.systemEnum)) {
 
-								if (!suggestions.length)
-									this.getVariablesCompetition(suggestions);
+								if (!this.getMetadataCompletition(suggestions, bslMetadata)) {
 
-								if (engLang)
-									this.getCommonCompletition(suggestions, bslGlobals.keywords, monaco.languages.CompletionItemKind.Keyword, true);
-								else
-									this.getCommonCompletition(suggestions, bslGlobals.keywords, monaco.languages.CompletionItemKind.Keyword, true);
+									if (!suggestions.length)
+										this.getVariablesCompetition(suggestions);
 
-								if (this.requireClass()) {
-									this.getCommonCompletition(suggestions, bslGlobals.classes, monaco.languages.CompletionItemKind.Constructor, false);
+									if (engLang)
+										this.getCommonCompletition(suggestions, bslGlobals.keywords, monaco.languages.CompletionItemKind.Keyword, true);
+									else
+										this.getCommonCompletition(suggestions, bslGlobals.keywords, monaco.languages.CompletionItemKind.Keyword, true);
+
+									if (this.requireClass()) {
+										this.getCommonCompletition(suggestions, bslGlobals.classes, monaco.languages.CompletionItemKind.Constructor, false);
+									}
+									else {
+										this.getCommonCompletition(suggestions, bslGlobals.globalfunctions, monaco.languages.CompletionItemKind.Function, true);
+										this.getCommonCompletition(suggestions, bslGlobals.globalvariables, monaco.languages.CompletionItemKind.Class, false);
+										this.getCommonCompletition(suggestions, bslGlobals.systemEnum, monaco.languages.CompletionItemKind.Enum, false);
+										this.getCommonCompletition(suggestions, bslGlobals.customFunctions, monaco.languages.CompletionItemKind.Function, true);
+										this.getCommonCompletition(suggestions, bslMetadata.commonModules, monaco.languages.CompletionItemKind.Module, true);
+										this.getCustomObjectsCompletition(suggestions, bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
+									}
+
+									this.getSnippets(suggestions, snippets);
+
 								}
-								else {
-									this.getCommonCompletition(suggestions, bslGlobals.globalfunctions, monaco.languages.CompletionItemKind.Function, true);
-									this.getCommonCompletition(suggestions, bslGlobals.globalvariables, monaco.languages.CompletionItemKind.Class, false);
-									this.getCommonCompletition(suggestions, bslGlobals.systemEnum, monaco.languages.CompletionItemKind.Enum, false);
-									this.getCommonCompletition(suggestions, bslGlobals.customFunctions, monaco.languages.CompletionItemKind.Function, true);
-									this.getCommonCompletition(suggestions, bslMetadata.commonModules, monaco.languages.CompletionItemKind.Module, true);
-									this.getCustomObjectsCompletition(suggestions, bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
-								}
-
-								this.getSnippets(suggestions, snippets);
 
 							}
 
 						}
-
 					}
+
 				}
 
 			}
+			else {
+				this.getTypesCompletition(suggestions, bslGlobals.types, monaco.languages.CompletionItemKind.Enum);
+			}
 
-		}
-		else {
-			this.getTypesCompletition(suggestions, bslGlobals.types, monaco.languages.CompletionItemKind.Enum);
 		}
 
 		if (suggestions.length)
@@ -2911,18 +2982,35 @@ class bslHelper {
 	 * 
 	 * @returns {true|object} true - metadata was updated, {errorDescription} - not
 	 */
-	static updateMetadata(metadata) {
+	updateMetadata(metadata, path) {
 
 		try {
+			
 			let metadataObj = JSON.parse(metadata);
-			if (metadataObj.hasOwnProperty('catalogs') || metadataObj.hasOwnProperty('customObjects')) {
-				for (const [key, value] of Object.entries(metadataObj)) {
-					bslMetadata[key].items = value;
+
+			if (path) {
+
+				if (this.objectHasPropertiesFromArray(bslMetadata, path.split('.'))) {
+					this.setObjectProperty(bslMetadata, path, metadataObj);
+					return true;
 				}
-				return true;
+				else {
+					throw new TypeError("Wrong path");
+				}
+
 			}
 			else {
-				throw new TypeError("Wrong structure of metadata");
+
+				if (metadataObj.hasOwnProperty('catalogs') || metadataObj.hasOwnProperty('customObjects')) {
+					for (const [key, value] of Object.entries(metadataObj)) {
+						bslMetadata[key].items = value;
+					}
+					return true;
+				}
+				else {
+					throw new TypeError("Wrong structure of metadata");
+				}
+
 			}
 
 		}

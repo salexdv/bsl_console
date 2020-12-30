@@ -13,6 +13,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   contextActions = [];
   customHovers = {};
   originalText = '';
+  metadataRequests = new Map();
+  customSuggestions = [];
 
   sendEvent = function(eventName, eventParams) {
 
@@ -76,9 +78,10 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
-  updateMetadata = function (metadata) {
+  updateMetadata = function (metadata, path = '') {
         
-    return bslHelper.updateMetadata(metadata);    
+    let bsl = new bslHelper(editor.getModel(), editor.getPosition());		
+    return bsl.updateMetadata(metadata, path);
 
   }
 
@@ -103,7 +106,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   setReadOnly = function (readOnly) {
 
     readOnlyMode = readOnly;
-    editor.updateOptions({ readOnly: readOnly })
+    editor.updateOptions({ readOnly: readOnly, contextmenu: !readOnly });
     
   }
 
@@ -240,6 +243,23 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  switchXMLMode = function() {
+    
+    let identifier = editor.getModel().getLanguageIdentifier();
+    let language_id = 'xml';
+
+    if (identifier.language == 'xml') {
+      language_id = queryMode ? 'bsl_query' : 'bsl';    
+      setReadOnly(readOnlyMode);
+    }
+    else {
+      setReadOnly(true);
+    }
+
+    monaco.editor.setModelLanguage(editor.getModel(), language_id);
+      
+  }
+
   getSelectedText = function() {
 
     return editor.getModel().getValueInRange(editor.getSelection());
@@ -330,6 +350,24 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  getCurrentLineContent = function() {
+
+    return getLineContent(editor.getPosition().lineNumber);
+
+  }
+
+  getCurrentLine = function() {
+
+    return editor.getPosition().lineNumber;
+
+  }
+
+  getCurrentColumn = function() {
+
+    return editor.getPosition().column;
+
+  }
+
   setLineContent = function(lineNumber, text) {
 
     if (lineNumber <= getLineCount()) {
@@ -343,10 +381,10 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
-  compare = function (text, sideBySide, highlight) {
+  compare = function (text, sideBySide, highlight, xml = false) {
     
     document.getElementById("container").innerHTML = ''
-    let language_id = queryMode ? 'bsl_query' : 'bsl';    
+    let language_id = queryMode ? 'bsl_query' : 'bsl';
 
     let queryPostfix = '-query';
     let currentTheme = editor._themeService.getTheme().themeName;
@@ -357,6 +395,10 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       currentTheme = currentTheme.replace(queryPostfix, '');
 
     if (text) {      
+      if (xml) {
+        language_id = 'xml';
+        currentTheme = 'vs';
+      }
       let originalModel = originalText ? monaco.editor.createModel(originalText) : monaco.editor.createModel(editor.getModel().getValue());
       let modifiedModel = monaco.editor.createModel(text);
       originalText = originalModel.getValue();
@@ -375,6 +417,10 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         original: originalModel,
         modified: modifiedModel
       });
+      editor.navi = monaco.editor.createDiffNavigator(editor, {
+        followsCaret: true,
+        ignoreCharChanges: true
+      });
     }
     else
     {
@@ -387,6 +433,68 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       });
       originalText = '';
     }
+  }
+
+  triggerSuggestions = function() {
+    
+    editor.trigger('', 'editor.action.triggerSuggest', {});
+
+  }
+
+  requestMetadata = function(metadata) {
+
+    let request = metadataRequests.get(metadata);
+
+    if (!request) {
+      metadataRequests.set(metadata);
+      sendEvent("EVENT_GET_METADATA", metadata);
+    }
+
+  }
+
+  showCustomSuggestions = function(suggestions) {
+    
+    customSuggestions = [];
+    
+    try {
+            
+      let suggestObj = JSON.parse(suggestions);
+      
+      for (const [key, value] of Object.entries(suggestObj)) {
+
+        customSuggestions.push({
+          label: value.name,
+          kind: monaco.languages.CompletionItemKind[value.kind],
+          insertText: value.text,
+          insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+          detail: value.detail,
+          documentation: value.documentation
+        });
+
+      }
+
+      triggerSuggestions();
+      return true;
+      
+		}
+		catch (e) {
+			return { errorDescription: e.message };
+		}
+
+  }
+
+  nextDiff = function() {
+
+    if (editor.navi)
+      editor.navi.next();
+
+  }
+
+  previousDiff = function() {
+
+    if (editor.navi)
+      editor.navi.previous();
+
   }
 
   editor = undefined;
