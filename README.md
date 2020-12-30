@@ -39,12 +39,16 @@
 | `updateText`                   | Полностью заменяет весь текст редактора, игнорируя при этом режим *Только просмотр*           |
 | `getText`                      | Возвращает весь текст из окна редактора                                                       |
 | `eraseText`                    | Удаляет весь текст редактора                                                                  |
-| `selectedText(text)`           | функция без параметров возвращает выделенный текст, с параметром - устанавливает              |
-| `getSelection`                 | возвращает [selection](https://microsoft.github.io/monaco-editor/api/classes/monaco.selection.html), аналог GetTextSelectionBounds|
-| `setSelectionByLength`         | устанавливает выделение, аналог первой сигнатуры SetTextSelectionBounds                       |
-| `setSelection`                 | устанавливает выделение, аналог второй сигнатуры SetTextSelectionBounds                       |
-| `getLineCount`                 | возвращает количество строк                                                                   |
-| `getLineContent`               | возвращает содержимое строки по её номеру, аналог GetLine                                     |
+| `selectedText(text)`           | Функция без параметров возвращает выделенный текст, с параметром - устанавливает              |
+| `getSelection`                 | Возвращает [selection](https://microsoft.github.io/monaco-editor/api/classes/monaco.selection.html), аналог GetTextSelectionBounds|
+| `setSelectionByLength`         | Устанавливает выделение, аналог первой сигнатуры SetTextSelectionBounds                       |
+| `setSelection`                 | Устанавливает выделение, аналог второй сигнатуры SetTextSelectionBounds                       |
+| `getLineCount`                 | Возвращает количество строк                                                                   |
+| `getLineContent`               | Возвращает содержимое строки по её номеру, аналог GetLine                                     |
+| `setLineContent`               | Устанавливает содержимое строки по её номеру, аналог ReplaceLine                              |
+| `getCurrentLineContent`        | Возвращает содержимое текущей строки                                                          |
+| `getCurrentLine`               | Возвращает номер текущей строки                                                               |
+| `getCurrentColumn`             | Возвращает номер текущей колонки               							                     |
 | `setLineContent`               | устанавливает содержимое строки по её номеру, аналог ReplaceLine                              |
 | `getQuery`                     | Определяет текст запроса в текущей позиции и возвращает его вместе с областью текста          |
 | `getFormatString`              | Определяет текст форматной строки в текущей позиции                                           |
