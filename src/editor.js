@@ -453,9 +453,11 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   }
 
   showCustomSuggestions = function(suggestions) {
-        
+    
+    customSuggestions = [];
+    
     try {
-      
+            
       let suggestObj = JSON.parse(suggestions);
       
       for (const [key, value] of Object.entries(suggestObj)) {
