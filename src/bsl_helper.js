@@ -685,6 +685,10 @@ class bslHelper {
 								this.fillSuggestionsForMetadataItem(suggestions, bslMetadata[itemName].items[subItemName]);
 								this.getMetadataMethods(suggestions, bslMetadata[itemName], methodsName, itemName, subItemName);
 							}
+							else if (this.objectHasProperties(bslMetadata, itemName, 'items', subItemName))
+								requestMetadata(itemName + '.' + subItemName);
+							else if (this.objectHasProperties(bslMetadata, itemName, 'items'))
+								requestMetadata(itemName);
 
 						}
 					}
@@ -1313,11 +1317,11 @@ class bslHelper {
 			}
 
 			if (updateItemNode) {
-				sendEvent("EVENT_GET_METADATA", metadataName + '.' + metadataItem);
+				requestMetadata(metadataName + '.' + metadataItem);
 				suggestions = [];
 			}
 			else if (metadataName && metadataExists && !metadataItem && !suggestions.length)				
-				sendEvent("EVENT_GET_METADATA", metadataName);
+				requestMetadata(metadataName);
 
 		}
 

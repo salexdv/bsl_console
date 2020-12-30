@@ -13,6 +13,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   contextActions = [];
   customHovers = {};
   originalText = '';
+  metadataRequests = new Map();
 
   sendEvent = function(eventName, eventParams) {
 
@@ -393,6 +394,17 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   triggerSuggestions = function() {
     
     editor.trigger('', 'editor.action.triggerSuggest', {});
+
+  }
+
+  requestMetadata = function(metadata) {
+
+    let request = metadataRequests.get(metadata);
+    
+    if (!request) {
+      metadataRequests.set(metadata);
+      sendEvent("EVENT_GET_METADATA", metadata);
+    }
 
   }
 
