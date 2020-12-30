@@ -40,21 +40,10 @@ define(['vs/editor/editor.main'], function () {
             cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_D),
             order: 1.3,
             callback: function (ed) {     
-                sendEvent('EVENT_QUERY_CONSTRUCT', getQuery());
+                sendEvent('EVENT_QUERY_CONSTRUCT', queryMode ? getText() : getQuery());
                 return null;
             }
-        };        
-        
-        actions.formatstr_bsl = {
-            label: 'Конструктор форматной строки...',
-            key: null,
-            cmd: null,
-            order: 1.4,
-            callback: function (ed) {     
-                sendEvent('EVENT_FORMAT_CONSTRUCT', getFormatString());
-                return null;
-            }
-        };        
+        };
 
         actions.comment_bsl = {
             label: 'Добавить комментарий',
@@ -76,7 +65,51 @@ define(['vs/editor/editor.main'], function () {
                 removeComment();
                 return null;
             }
-        };  
+        };
+        
+        if (!queryMode) {
+
+            actions.formatstr_bsl = {
+                label: 'Конструктор форматной строки...',
+                key: null,
+                cmd: null,
+                order: 1.4,
+                callback: function (ed) {     
+                    sendEvent('EVENT_FORMAT_CONSTRUCT', getFormatString());
+                    return null;
+                }
+            };        
+
+            actions.format_bsl = {
+                label: 'Форматировать',
+                key: monaco.KeyMod.Alt | monaco.KeyMod.Shift | monaco.KeyCode.KEY_F,
+                cmd: monaco.KeyMod.chord(monaco.KeyMod.Alt | monaco.KeyMod.Shift | monaco.KeyCode.KEY_F),
+                order: 1.7,
+                callback: function (ed) {                
+                    editor.trigger('', 'editor.action.formatDocument');
+                    return null;
+                }
+            };  
+
+            actions.wordwrap_bsl = {
+                label: 'Добавить перенос строки',                
+                order: 1.8,
+                callback: function (ed) {                
+                    addWordWrap();
+                    return null;
+                }
+            };
+
+            actions.unwordwrap_bsl = {
+                label: 'Удалить перенос строки',                
+                order: 1.8,
+                callback: function (ed) {                
+                    removeWordWrap();
+                    return null;
+                }
+            };
+
+        }
         
         return actions;
 

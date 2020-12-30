@@ -30,6 +30,7 @@ define([], function () {
                 { token: 'query.commentbsl', foreground: '008000' }
             ],
             dark: [
+                { background: '1e1e1e' },
                 { token: 'commentbsl', foreground: '6A9955' },
                 { token: 'keywordbsl', foreground: '499caa' },
                 { token: 'delimiterbsl', foreground: 'd4d4d4' },
@@ -86,7 +87,7 @@ define([], function () {
         }
     }
 
-    language = {
+    let bsl_language = {
 
         id: 'bsl',
         rules: {
@@ -120,20 +121,37 @@ define([], function () {
             // escape sequences
             escapes: /\\(?:[abfnrtv\\"']|x[0-9A-Fa-f]{1,4}|u[0-9A-Fa-f]{4}|U[0-9A-Fa-f]{8})/,
             queryWords: [
-                'Выбрать', 'Из', 'Как', 'Значение', 'Различные', 'Тип', 'СгруппированоПо',
-                'Разрешенные', 'Первые', 'Поместить', 'Уничтожить', 'Упорядочить', 'По',
-                'Итоги', 'Общие', 'Автоупорядочивание', 'Сгруппировать', 'Объединить', 'Все',
+                'ВЫБРАТЬ', 'РАЗРЕШЕННЫЕ', 'РАЗЛИЧНЫЕ', 'ПЕРВЫЕ', 'КАК', 'ПУСТАЯТАБЛИЦА', 'ПОМЕСТИТЬ',
+                'ИЗ', 'ВНУТРЕННЕЕ', 'ЛЕВОЕ', 'ВНЕШНЕЕ', 'ПРАВОЕ', 'ПОЛНОЕ', 'СОЕДИНЕНИЕ',
+                'ГДЕ', 'СГРУППИРОВАТЬ', 'ПО', 'ИМЕЮЩИЕ', 'ОБЪЕДИНИТЬ', 'ВСЕ', 'УПОРЯДОЧИТЬ',
+                'АВТОУПОРЯДОЧИВАНИЕ', 'ИТОГИ', 'ОБЩИЕ', 'ТОЛЬКО', 'ИЕРАРХИЯ', 'ПЕРИОДАМИ', 'ДЛЯ',
+                'ИЗМЕНЕНИЯ', 'SELECT', 'ALLOWED', 'DISTINCT', 'TOP', 'AS', 'EMPTYTABLE',
+                'INTO', 'FROM', 'INNER', 'LEFT', ' OUTER', 'RIGHT', 'FULL',
+                'JOIN', 'ON', 'WHERE', 'GROUP', 'BY', 'HAVING', 'UNION',
+                'ALL', 'ORDER', 'AUTOORDER', 'TOTALS', 'OVERALL', 'ONLY', 'HIERARCHY',
+                'СГРУППИРОВАНОПО', 'GROUPEDBY', 'БУЛЕВО', 'BOOLEAN', 'ВОЗР', 'ASC',
+                'ГРУППИРУЮЩИМ', 'GROUPING', 'ЗНАЧЕНИЕ', 'VALUE', 'ИНДЕКСИРОВАТЬ', 'INDEX',
+                'НАБОРАМ', 'SETS', 'ТИП', 'TYPE', 'ТИПЗНАЧЕНИЯ', 'VALUETYPE',
+                'УБЫВ', 'DESC', 'УНИЧТОЖИТЬ', 'DROP'
             ],
             queryExp: [
-                'Выбор', 'Когда', 'Тогда', 'Иначе', 'Конец', 'Ложь', 'Истина', 'И', 'ИЛИ', 'НЕ',
-                'ЕстьNull', 'В', 'Секунда', 'Минута', 'Час', 'День', 'Неделя', 'Месяц',
-                'Квартал', 'Год', 'Декада', 'Полугодие', 'Подстрока', 'ДеньГода', 'ДеньНедели',
-                'НачалоПериода', 'КонецПериода', 'ДобавитьКДате', 'РазностьДат', 'Сумма',
-                'Минимум', 'Максимум', 'Среднее', 'Количество', 'Представление',
-                'ПредставлениеСсылки', 'ТипЗначения', 'АвтономерЗаписи', 'Подобно', 'ВИерархии',
-                'Есть', 'Null', 'Ссылка', 'Выразить', 'ДатаВремя', '', '', '',
-                '', '', '', '', '', '', '', '',
-                 'Сумма', 'Максимум', 'Минимум',
+                'АВТОНОМЕРЗАПИСИ', 'RECORDAUTONUMBER', 'В', 'IN', 'ВЫБОР', 'CASE',
+                'ВЫРАЗИТЬ', 'CAST', 'ГОД', 'YEAR', 'ДАТА', 'DATE', 'ДАТАВРЕМЯ',
+                'DATETIME', 'ДЕКАДА', 'TENDAYS', 'ДЕНЬ', 'DAY', 'ДЕНЬГОДА',
+                'DAYOFYEAR', 'ДЕНЬНЕДЕЛИ', 'WEEKDAY', 'ДОБАВИТЬКДАТЕ', 'DATEADD',
+                'ЕСТЬ', 'IS', 'ЕСТЬNULL', 'ISNULL', 'И', 'AND', 'ИЕРАРХИИ',
+                'HIERARCHY', 'ИЛИ', 'OR', 'ИНАЧЕ', 'ELSE', 'ИСТИНА', 'TRUE',
+                'КВАРТАЛ', 'QUARTER', 'КОЛИЧЕСТВО', 'COUNT', 'КОНЕЦПЕРИОДА',
+                'ENDOFPERIOD', 'КОНЕЦ', 'END', 'ЛОЖЬ', 'FALSE', 'МАКСИМУМ',
+                'MAX', 'МЕЖДУ', 'BETWEEN', 'МЕСЯЦ', 'MONTH', 'МИНИМУМ', 'MIN',
+                'МИНУТА', 'MINUTE', 'НАЧАЛОПЕРИОДА', 'BEGINOFPERIOD', 'НЕ', 'NOT',
+                'НЕДЕЛЯ', 'WEEK', 'НЕОПРЕДЕЛЕНО', 'UNDEFINED', 'ПОДОБНО', 'LIKE',
+                'ПОДСТРОКА', 'SUBSTRING', 'ПОЛУГОДИЕ', 'HALFYEAR', 'ПРЕДСТАВЛЕНИЕ',
+                'PRESENTATION', 'ПРЕДСТАВЛЕНИЕССЫЛКИ', 'REFPRESENTATION',
+                'РАЗНОСТЬДАТ', 'DATEDIFF', 'СЕКУНДА', 'SECOND', 'СПЕЦСИМВОЛ',
+                'ESCAPE', 'СРЕДНЕЕ', 'AVG', 'ССЫЛКА', 'REFS', 'СТРОКА', 'STRING',
+                'СУММА', 'SUM', 'ТОГДА', 'THEN', 'УБЫВ', 'DESC', 'ЧАС', 'HOUR',
+                'ЧИСЛО', 'NUMBER', 'NULL', 'КОГДА', 'WHEN'
             ],
             queryOperators: /[=><+\-*\/%;,]+/,
             // The main tokenizer for our languages
@@ -265,5 +283,124 @@ define([], function () {
             }
         }        
     }
+
+    let query_language = {
+
+        id: 'bsl_query',
+        rules: {
+            defaultToken: '',
+            tokenPostfix: 'bsl',
+            ignoreCase: true,            
+            keywords: bsl_language.rules.queryWords,
+            expressions: bsl_language.rules.queryExp,            
+            operators: /[=><+\-*\/%;,]+/,
+            tokenizer: {
+                root: [                               
+                    [/(как|as\s+)(.+)(,?)/, [
+                        {token: 'query.keyword'},
+                        {token: 'query'},
+                        {token: 'query.operator'}
+                    ]],
+                    [/(\.)([a-zA-Z\u0410-\u044F_]+)/, [
+                        {token: 'query'},
+                        {token: 'query'}                        
+                    ]],
+                    [/([a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]+)(\.)([a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]+)/, 'query'],
+                    [/[a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]*/, { cases: {
+                        '@keywords': 'query.keyword',
+                        '@expressions': 'query.exp',
+                        '@default': 'query'
+                    }}],
+                    [/".*"/, 'query.string'],
+                    [/&[a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]*/, 'query.param'],
+                    [/&/, 'query.param'],
+                    [/[()]/, 'query.brackets'],
+                    [/\/\/.*$/, 'comment'],
+                    [/@operators/, 'query.operator'],
+                    [/[0-9_]*\.[0-9_]+([eE][\-+]?\d+)?[fFdD]?/, 'query.float'],
+                    [/[0-9_]+/, 'query.int'],
+                    [/\|/, 'query']                    
+                ]
+            },
+        },        
+        themes: bsl_language.themes        
+    }
+
+    languages = {
+        bsl: {
+            languageDef: bsl_language,
+            completionProvider: {
+                triggerCharacters: ['.', '"'],
+                provideCompletionItems: function (model, position) {
+                    let bsl = new bslHelper(model, position);
+                    return bsl.getCompletition();
+                }
+            },
+            foldingProvider: {
+                provideFoldingRanges: function (model, context, token) {
+                    return bslHelper.getFoldingRanges(model);
+                }
+            },
+            signatureProvider: {
+                signatureHelpTriggerCharacters: ['(', ','],
+                signatureHelpRetriggerCharacters: [')'],
+                provideSignatureHelp: (model, position) => {
+                    let bsl = new bslHelper(model, position);
+                    return bsl.getSigHelp();
+                }
+            },
+            hoverProvider: {
+                provideHover: function (model, position) {
+                    let bsl = new bslHelper(model, position);
+                    return bsl.getHover();
+                }
+            },
+            formatProvider: {
+                provideDocumentFormattingEdits: function (model, options, token) {
+                    return [{
+                        text: bslHelper.formatCode(model),
+                        range: model.getFullModelRange()
+                    }];
+                }
+            },
+            codeLenses: {
+                provider: () => {},                
+                resolver: () => {}
+            }
+        },
+        query: {
+            languageDef: query_language,
+            completionProvider: {
+                triggerCharacters: ['.', '(', '&'],
+                provideCompletionItems: function (model, position) {
+                    let bsl = new bslHelper(model, position);
+                    return bsl.getQueryCompletition(query_language);
+                }
+            },
+            foldingProvider: {
+                provideFoldingRanges: function (model, context, token) {
+                    return bslHelper.getQueryFoldingRanges(model);
+                }
+            },
+            signatureProvider: {
+                signatureHelpTriggerCharacters: ['(', ','],
+                signatureHelpRetriggerCharacters: [')'],
+                provideSignatureHelp: (model, position) => {
+                    let bsl = new bslHelper(model, position);
+                    return bsl.getQuerySigHelp();
+                }
+            },
+            hoverProvider: {
+                provideHover: () => {}
+            },
+            formatProvider: {
+                provideDocumentFormattingEdits: () => {}
+            },
+            codeLenses: {
+                provider: () => {},                
+                resolver: () => {}
+            }
+        }
+    };
 
 });
