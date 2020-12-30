@@ -1525,54 +1525,62 @@ class bslHelper {
 
 		let suggestions = [];
 
-		if (!this.requireType()) {
+		if (customSuggestions.length) {
+			suggestions = customSuggestions.slice();
+			customSuggestions = [];
+		}
+		else {
 
-			if (this.lastOperator != '"') {
+			if (!this.requireType()) {
 
-				this.getRefCompletition(suggestions);
+				if (this.lastOperator != '"') {
 
-				if (!suggestions.length) {
+					this.getRefCompletition(suggestions);
 
-					if (!this.getClassCompletition(suggestions, bslGlobals.classes)) {
+					if (!suggestions.length) {
 
-						if (!this.getClassCompletition(suggestions, bslGlobals.systemEnum)) {
+						if (!this.getClassCompletition(suggestions, bslGlobals.classes)) {
 
-							if (!this.getMetadataCompletition(suggestions, bslMetadata)) {
+							if (!this.getClassCompletition(suggestions, bslGlobals.systemEnum)) {
 
-								if (!suggestions.length)
-									this.getVariablesCompetition(suggestions);
+								if (!this.getMetadataCompletition(suggestions, bslMetadata)) {
 
-								if (engLang)
-									this.getCommonCompletition(suggestions, bslGlobals.keywords, monaco.languages.CompletionItemKind.Keyword, true);
-								else
-									this.getCommonCompletition(suggestions, bslGlobals.keywords, monaco.languages.CompletionItemKind.Keyword, true);
+									if (!suggestions.length)
+										this.getVariablesCompetition(suggestions);
 
-								if (this.requireClass()) {
-									this.getCommonCompletition(suggestions, bslGlobals.classes, monaco.languages.CompletionItemKind.Constructor, false);
+									if (engLang)
+										this.getCommonCompletition(suggestions, bslGlobals.keywords, monaco.languages.CompletionItemKind.Keyword, true);
+									else
+										this.getCommonCompletition(suggestions, bslGlobals.keywords, monaco.languages.CompletionItemKind.Keyword, true);
+
+									if (this.requireClass()) {
+										this.getCommonCompletition(suggestions, bslGlobals.classes, monaco.languages.CompletionItemKind.Constructor, false);
+									}
+									else {
+										this.getCommonCompletition(suggestions, bslGlobals.globalfunctions, monaco.languages.CompletionItemKind.Function, true);
+										this.getCommonCompletition(suggestions, bslGlobals.globalvariables, monaco.languages.CompletionItemKind.Class, false);
+										this.getCommonCompletition(suggestions, bslGlobals.systemEnum, monaco.languages.CompletionItemKind.Enum, false);
+										this.getCommonCompletition(suggestions, bslGlobals.customFunctions, monaco.languages.CompletionItemKind.Function, true);
+										this.getCommonCompletition(suggestions, bslMetadata.commonModules, monaco.languages.CompletionItemKind.Module, true);
+										this.getCustomObjectsCompletition(suggestions, bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
+									}
+
+									this.getSnippets(suggestions, snippets);
+
 								}
-								else {
-									this.getCommonCompletition(suggestions, bslGlobals.globalfunctions, monaco.languages.CompletionItemKind.Function, true);
-									this.getCommonCompletition(suggestions, bslGlobals.globalvariables, monaco.languages.CompletionItemKind.Class, false);
-									this.getCommonCompletition(suggestions, bslGlobals.systemEnum, monaco.languages.CompletionItemKind.Enum, false);
-									this.getCommonCompletition(suggestions, bslGlobals.customFunctions, monaco.languages.CompletionItemKind.Function, true);
-									this.getCommonCompletition(suggestions, bslMetadata.commonModules, monaco.languages.CompletionItemKind.Module, true);
-									this.getCustomObjectsCompletition(suggestions, bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
-								}
-
-								this.getSnippets(suggestions, snippets);
 
 							}
 
 						}
-
 					}
+
 				}
 
 			}
+			else {
+				this.getTypesCompletition(suggestions, bslGlobals.types, monaco.languages.CompletionItemKind.Enum);
+			}
 
-		}
-		else {
-			this.getTypesCompletition(suggestions, bslGlobals.types, monaco.languages.CompletionItemKind.Enum);
 		}
 
 		if (suggestions.length)

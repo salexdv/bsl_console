@@ -14,6 +14,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   customHovers = {};
   originalText = '';
   metadataRequests = new Map();
+  customSuggestions = [];
 
   sendEvent = function(eventName, eventParams) {
 
@@ -400,11 +401,40 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   requestMetadata = function(metadata) {
 
     let request = metadataRequests.get(metadata);
-    
+
     if (!request) {
       metadataRequests.set(metadata);
       sendEvent("EVENT_GET_METADATA", metadata);
     }
+
+  }
+
+  showCustomSuggestions = function(suggestions) {
+        
+    try {
+      
+      let suggestObj = JSON.parse(suggestions);
+      
+      for (const [key, value] of Object.entries(suggestObj)) {
+
+        customSuggestions.push({
+          label: value.name,
+          kind: monaco.languages.CompletionItemKind[value.kind],
+          insertText: value.text,
+          insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+          detail: value.detail,
+          documentation: value.documentation
+        });
+
+      }
+
+      triggerSuggestions();
+      return true;
+      
+		}
+		catch (e) {
+			return { errorDescription: e.message };
+		}
 
   }
 
