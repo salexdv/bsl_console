@@ -333,6 +333,24 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  getCurrentLineContent = function() {
+
+    return getLineContent(editor.getPosition().lineNumber);
+
+  }
+
+  getCurrentLine = function() {
+
+    return editor.getPosition().lineNumber;
+
+  }
+
+  getCurrentColumn = function() {
+
+    return editor.getPosition().column;
+
+  }
+
   setLineContent = function(lineNumber, text) {
 
     if (lineNumber <= getLineCount()) {
