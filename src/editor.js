@@ -243,6 +243,23 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  switchXMLMode = function() {
+    
+    let identifier = editor.getModel().getLanguageIdentifier();
+    let language_id = 'xml';
+
+    if (identifier.language == 'xml') {
+      language_id = queryMode ? 'bsl_query' : 'bsl';    
+      setReadOnly(readOnlyMode);
+    }
+    else {
+      setReadOnly(true);
+    }
+
+    monaco.editor.setModelLanguage(editor.getModel(), language_id);
+      
+  }
+
   getSelectedText = function() {
 
     return editor.getModel().getValueInRange(editor.getSelection());
@@ -364,10 +381,10 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
-  compare = function (text, sideBySide, highlight) {
+  compare = function (text, sideBySide, highlight, xml = false) {
     
     document.getElementById("container").innerHTML = ''
-    let language_id = queryMode ? 'bsl_query' : 'bsl';    
+    let language_id = queryMode ? 'bsl_query' : 'bsl';
 
     let queryPostfix = '-query';
     let currentTheme = editor._themeService.getTheme().themeName;
@@ -378,6 +395,10 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       currentTheme = currentTheme.replace(queryPostfix, '');
 
     if (text) {      
+      if (xml) {
+        language_id = 'xml';
+        currentTheme = 'vs';
+      }
       let originalModel = originalText ? monaco.editor.createModel(originalText) : monaco.editor.createModel(editor.getModel().getValue());
       let modifiedModel = monaco.editor.createModel(text);
       originalText = originalModel.getValue();
