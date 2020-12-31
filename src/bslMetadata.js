@@ -2157,7 +2157,7 @@ define([], function () {
       "enums":{
          "name":"Перечисления",
          "name_en":"Enums",
-         "query_name":"Перечисленик",
+         "query_name":"Перечисление",
          "query_name_en":"Enum",
          "items":{
             "ТестовыйЭлемент":{
