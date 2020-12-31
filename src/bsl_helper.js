@@ -2245,22 +2245,29 @@ class bslHelper {
 
 				if (!metadataItem) {
 
-					for (const [ikey, ivalue] of Object.entries(value.items)) {
+					if (Object.keys(value.items).length != 0) {
 
-						let label = ikey;
+						for (const [ikey, ivalue] of Object.entries(value.items)) {
 
-						suggestions.push({
-							label: ikey,
-							kind: kind,
-							insertText: label,
-							insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
-						});
+							let label = ikey;
 
+							suggestions.push({
+								label: ikey,
+								kind: kind,
+								insertText: label,
+								insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+								command: { id: 'vs.editor.ICodeEditor:1:requestMetadata', arguments: [{ "metadata": value.name.toLowerCase() + '.' + label.toLowerCase()}] }
+							});
+
+						}
+
+					}
+					else {
+						requestMetadata(value.name.toLowerCase());
 					}
 
 				}
 				else if (!metadataFunc && 2 < maxLevel) {
-					
 					this.getQuerySourceMetadataRegTempraryTablesCompletition(value, metadataItem, suggestions)
 
 				}

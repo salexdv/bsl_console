@@ -134,6 +134,19 @@ define(['vs/editor/editor.main'], function () {
                 }
                 return null;
             }
+        },
+        requestMetadata: {
+            label: 'Запрос динамического обновления метаданных',
+            description: 'Служебное действие. Используется для запроса метаданных справочника/документа и т.п. при выборе его из списка подсказок',
+            key: 0,
+            cmd: 0,
+            order: 0,
+            callback: function (e, obj) {                                
+                if (obj && obj.hasOwnProperty('metadata')) {
+                    requestMetadata(obj.metadata);
+                }
+                return null;
+            }
         }
     }
 
