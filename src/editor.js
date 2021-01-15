@@ -497,6 +497,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  disableContextMenu = function() {
+    
+    editor.updateOptions({ contextmenu: false });
+
+  }
+
   editor = undefined;
 
   // Register languages
