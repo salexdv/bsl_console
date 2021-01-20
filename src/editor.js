@@ -447,7 +447,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     let request = metadataRequests.get(metadata);
 
     if (!request) {
-      metadataRequests.set(metadata);
+      metadataRequests.set(metadata, true);
       sendEvent("EVENT_GET_METADATA", metadata);
     }
 

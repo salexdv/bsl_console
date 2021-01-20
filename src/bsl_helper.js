@@ -1664,6 +1664,9 @@ class bslHelper {
 												});
 											}
 										}
+										else {
+											requestMetadata(bslMetadata[value.ref].name + '.' + metadataItem);
+										}
 
 										let EmptyRef = engLang ? 'EmptyRef' : 'ПустаяСсылка';
 
@@ -1682,15 +1685,22 @@ class bslHelper {
 							else {
 
 
-								for (const [mkey, mvalue] of Object.entries(bslMetadata[value.ref].items)) {
+								if (!Object.keys(bslMetadata[value.ref].items).length) {									
+									requestMetadata(bslMetadata[value.ref].name);
+								}
+								else {
+								
+									for (const [mkey, mvalue] of Object.entries(bslMetadata[value.ref].items)) {
 
-									suggestions.push({
-										label: mkey,
-										kind: kind,
-										insertText: mkey + '.',
-										insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-										command: { id: 'editor.action.triggerSuggest', title: 'suggest_type' }
-									});
+										suggestions.push({
+											label: mkey,
+											kind: kind,
+											insertText: mkey + '.',
+											insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+											command: { id: 'editor.action.triggerSuggest', title: 'suggest_type' }
+										});
+
+									}
 
 								}
 
