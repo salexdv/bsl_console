@@ -206,12 +206,13 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   addContextMenuItem = function(label, eventName) {
 
-    let id = new Date().getTime().toString();
+    let time = new Date().getTime();
+    let id = time.toString() + '.' + Math.random().toString(36).substring(8);
     editor.addAction({
       id: id + "_bsl",
       label: label,
       contextMenuGroupId: 'navigation',
-      contextMenuOrder: id,
+      contextMenuOrder: time,
       run: function () {     
           sendEvent(eventName, "");
           return null;
