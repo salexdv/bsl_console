@@ -1894,80 +1894,76 @@ class bslHelper {
 	 */
 	fillSuggestionsForMetadataItemInQuery(suggestions, obj, metadataSubtable) {
 
-		if (obj.hasOwnProperty('properties')) {
+		for (const [pkey, pvalue] of Object.entries(obj.properties)) {
+							
+			let command = null;
+			let ref = pvalue.hasOwnProperty('ref') ? pvalue.ref : null;
+			let nestedSuggestions = [];
+							
+			let detail = pvalue;
 
-			for (const [pkey, pvalue] of Object.entries(obj.properties)) {
-								
-				let command = null;
-				let ref = pvalue.hasOwnProperty('ref') ? pvalue.ref : null;
-				let nestedSuggestions = [];
-								
-				let detail = pvalue;
+			if (pvalue.hasOwnProperty('description'))
+				detail = pvalue.description;				
+			else if (pvalue.hasOwnProperty('name'))
+				detail = pvalue.name;
+			
+			if (ref || nestedSuggestions.length) {					
+				// If the attribute contains a ref, we need to run the command to save the position of ref
+				command = { id: 'vs.editor.ICodeEditor:1:saveref', arguments: [{'name': pkey, "data": { "ref": ref, "sig": null, "list" : nestedSuggestions } }]}
+			}
 
-				if (pvalue.hasOwnProperty('description'))
-					detail = pvalue.description;				
-				else if (pvalue.hasOwnProperty('name'))
-					detail = pvalue.name;
-				
-				if (ref || nestedSuggestions.length) {					
-					// If the attribute contains a ref, we need to run the command to save the position of ref
-					command = { id: 'vs.editor.ICodeEditor:1:saveref', arguments: [{'name': pkey, "data": { "ref": ref, "sig": null, "list" : nestedSuggestions } }]}
+			suggestions.push({
+				label: pkey,
+				kind: monaco.languages.CompletionItemKind.Field,
+				insertText: pkey,
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				detail: detail,
+				command: command
+			});
+		}
+
+		let resources = [];
+
+		if (obj.hasOwnProperty('resources')) {
+
+			for (const [rkey, rvalue] of Object.entries(obj.resources)) {
+				resources.push({'label': rkey, 'name': rvalue.name});
+			}
+			
+			let regType = obj.hasOwnProperty('type') ? obj.type : '';
+			let subresouces = this.getGetVirtualTableSubresouces(metadataSubtable, regType);
+			let subExists = false;
+			let items = [];
+
+			for (let idx = 0; idx < resources.length; idx++) {					
+
+				let resource = resources[idx];
+
+				for (const [skey, svalue] of Object.entries(subresouces)) {
+					subExists = true;
+					items.push({'label': resource.label + skey, 'name': resource.name + ' ' + svalue});
 				}
+
+				if (!subExists)
+					items.push(resource);					
+
+			}
+
+			for (let idx = 0; idx < items.length; idx++) {					
+
+				let item = items[idx];
 
 				suggestions.push({
-					label: pkey,
-					kind: monaco.languages.CompletionItemKind.Field,
-					insertText: pkey,
+					label: item.label,
+					kind: monaco.languages.CompletionItemKind.value,
+					insertText: item.label,
 					insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-					detail: detail,
-					command: command
+					detail: item.name
 				});
+
 			}
-
-			let resources = [];
-
-			if (obj.hasOwnProperty('resources')) {
-
-				for (const [rkey, rvalue] of Object.entries(obj.resources)) {
-					resources.push({'label': rkey, 'name': rvalue.name});
-				}
-				
-				let regType = obj.hasOwnProperty('type') ? obj.type : '';
-				let subresouces = this.getGetVirtualTableSubresouces(metadataSubtable, regType);
-				let subExists = false;
-				let items = [];
-
-				for (let idx = 0; idx < resources.length; idx++) {					
-
-					let resource = resources[idx];
-
-					for (const [skey, svalue] of Object.entries(subresouces)) {
-						subExists = true;
-						items.push({'label': resource.label + skey, 'name': resource.name + ' ' + svalue});
-					}
-
-					if (!subExists)
-						items.push(resource);					
-
-				}
-
-				for (let idx = 0; idx < items.length; idx++) {					
-
-					let item = items[idx];
-
-					suggestions.push({
-						label: item.label,
-						kind: monaco.languages.CompletionItemKind.value,
-						insertText: item.label,
-						insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-						detail: item.name
-					});
-
-				}
-			
-			}
-
-		}
+		
+		}		
 
 	}
 
@@ -1995,11 +1991,25 @@ class bslHelper {
 				
 				if (value.hasOwnProperty(this.queryNameField) && value[this.queryNameField].toLowerCase() == metadataType) {
 				
-					for (const [ikey, ivalue] of Object.entries(value.items)) {
+					if (0 < Object.keys(value.items).length) {
 
-						if (ikey.toLowerCase() == metadataName) {
-							this.fillSuggestionsForMetadataItemInQuery(suggestions, ivalue, metadataSubtable);
+						for (const [ikey, ivalue] of Object.entries(value.items)) {
+
+							if (ikey.toLowerCase() == metadataName) {
+								
+								if (ivalue.hasOwnProperty('properties'))
+									this.fillSuggestionsForMetadataItemInQuery(suggestions, ivalue, metadataSubtable);
+								else
+									requestMetadata(value.name.toLowerCase() + '.' + ikey.toLowerCase());
+
+							}
+
 						}
+
+					}
+					else {
+						
+						requestMetadata(value.name.toLowerCase());
 
 					}
 
