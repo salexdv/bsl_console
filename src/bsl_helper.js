@@ -1665,7 +1665,7 @@ class bslHelper {
 											}
 										}
 										else {
-											requestMetadata(bslMetadata[value.ref].name + '.' + metadataItem);
+											requestMetadata(bslMetadata[value.ref].name.toLowerCase() + '.' + metadataItem);
 										}
 
 										let EmptyRef = engLang ? 'EmptyRef' : 'ПустаяСсылка';
@@ -1686,7 +1686,7 @@ class bslHelper {
 
 
 								if (!Object.keys(bslMetadata[value.ref].items).length) {									
-									requestMetadata(bslMetadata[value.ref].name);
+									requestMetadata(bslMetadata[value.ref].name.toLowerCase());
 								}
 								else {
 								
