@@ -539,7 +539,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         value: getCode(),
         language: language.id,
         contextmenu: true,
-        wordBasedSuggestions: false
+        wordBasedSuggestions: false,
+        customOptions: true
       });
 
     }
