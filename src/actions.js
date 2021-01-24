@@ -10,6 +10,8 @@ define(['vs/editor/editor.main'], function () {
         if (3 < verArray.length) {
             overrideCopyPaste = !((8 <= parseInt(verArray[0])) && (3 <= parseInt(verArray[1])) && (18 <= parseInt(verArray[2])));
         }
+        
+        overrideCopyPaste = false;
 
         if (overrideCopyPaste) {
             actions.copy_bsl = {
