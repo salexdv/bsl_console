@@ -15,6 +15,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   originalText = '';
   metadataRequests = new Map();
   customSuggestions = [];
+  contextMenuEnabled = false;
 
   sendEvent = function(eventName, eventParams) {
 
@@ -106,7 +107,10 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   setReadOnly = function (readOnly) {
 
     readOnlyMode = readOnly;
-    editor.updateOptions({ readOnly: readOnly, contextmenu: !readOnly });
+    editor.updateOptions({ readOnly: readOnly });
+
+    if (contextMenuEnabled)
+      editor.updateOptions({ contextmenu: !readOnly });
     
   }
 
@@ -429,7 +433,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         theme: currentTheme,
         value: originalText,
         language: language_id,
-        contextmenu: true,
+        contextmenu: contextMenuEnabled,
         automaticLayout: true
       });
       originalText = '';
@@ -501,6 +505,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   disableContextMenu = function() {
     
     editor.updateOptions({ contextmenu: false });
+    contextMenuEnabled = false;
 
   }
 
@@ -542,6 +547,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         wordBasedSuggestions: false,
         customOptions: true
       });
+
+      contextMenuEnabled = editor.getRawOptions().contextmenu;
 
     }
 
