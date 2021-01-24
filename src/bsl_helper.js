@@ -3570,7 +3570,7 @@ class bslHelper {
 		let maxLine = 0;
 
 		for (let line = selection.startLineNumber; line <= selection.endLineNumber; line++) {
-			if (editor.getModel().getLineContent(line).trim() && !(line == selection.endLineNumber && this.column == 1 && this.lineNumber == line) || oneLine) {
+			if (!(line == selection.endLineNumber && this.column == 1 && this.lineNumber == line) || oneLine) {
 				bslHelper.setText(
 					prefix +
 					this.model.getValueInRange({
