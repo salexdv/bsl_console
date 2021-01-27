@@ -2424,7 +2424,7 @@ class bslHelper {
 	 */
 	getQueryTablesCompletition(suggestions, kind) {
 		
-		if (this.getLastCharacter() != '.') {
+		if (this.getLastCharacter() != '.' && this.lastExpression.indexOf('&') < 0) {
 
 			// Let's find start of current query
 			let startMatch = this.model.findPreviousMatch('(?:выбрать|select)', this.position, true);
