@@ -1156,17 +1156,35 @@ class bslHelper {
 
 							if (value[this.nameField].toLowerCase() == metadataName) {
 
-								for (const [ikey, ivalue] of Object.entries(value.items)) {
+								if (Object.keys(value.items).length) {
 
-									if (ikey.toLowerCase() == metadataItem) {
+									for (const [ikey, ivalue] of Object.entries(value.items)) {
 
-										let methodDef = this.getMetadataMethodByName(value, metadataFunc);
-										let methodsName = (methodDef && methodDef.hasOwnProperty('ref') && methodDef.ref.indexOf(':obj') != -1) ? 'objMethods' : 'refMethods';
+										if (ikey.toLowerCase() == metadataItem) {
 
-										itemExists = true;
-										this.fillSuggestionsForMetadataItem(suggestions, ivalue);
-										this.getMetadataMethods(suggestions, value, methodsName, key, ikey);
+											if (ivalue.hasOwnProperty('properties')) {
+
+												let methodDef = this.getMetadataMethodByName(value, metadataFunc);
+												let methodsName = (methodDef && methodDef.hasOwnProperty('ref') && methodDef.ref.indexOf(':obj') != -1) ? 'objMethods' : 'refMethods';
+
+												itemExists = true;
+												this.fillSuggestionsForMetadataItem(suggestions, ivalue);
+												this.getMetadataMethods(suggestions, value, methodsName, key, ikey);
+
+											}
+											else {
+
+												requestMetadata(metadataName.toLowerCase() + '.' + metadataItem.toLowerCase());
+												
+											}
+										}
+
 									}
+
+								}
+								else {
+
+									requestMetadata(metadataName.toLowerCase());
 
 								}
 
