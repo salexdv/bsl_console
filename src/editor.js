@@ -335,11 +335,29 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   selectedText = function(text) {
 
     if (!text)
+      
       return getSelectedText();    
-    else if (getSelectedText())
-      setText(text, getSelection(), false);
-    else
-      setText(text, undefined, false);
+
+    else {      
+      
+      if (getSelectedText()) {
+
+        let selection = getSelection();
+        let tempModel = monaco.editor.createModel(text);
+        let tempRange = tempModel.getFullModelRange();
+        
+        setText(text, getSelection(), false);
+
+        if (tempRange.startLineNumber == tempRange.endLineNumber)
+          setSelection(selection.startLineNumber, selection.startColumn, selection.startLineNumber, selection.startColumn + tempRange.endColumn - 1);
+        else
+          setSelection(selection.startLineNumber, selection.startColumn, selection.startLineNumber + tempRange.endLineNumber - tempRange.startLineNumber, tempRange.endColumn);          
+
+      }
+      else
+        setText(text, undefined, false);
+
+    }
 
   }
 
