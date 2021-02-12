@@ -296,8 +296,15 @@ define([], function () {
             operators: /[=><+\-*\/%;,]+/,
             tokenizer: {
                 root: [                               
-                    [/(как|as\s+)(.+)(,?)/, [
+                    [/(как|as)(\s+)([a-zA-Z\u0410-\u044F]+)(\()/, [
                         {token: 'query.keyword'},
+                        {token: 'query'},
+                        {token: 'query.exp'},
+                        {token: 'query.brackets'}
+                    ]],
+                    [/(как|as)(\s+)([a-zA-Z\u0410-\u044F_0-9]+)([,\s]*)/, [
+                        {token: 'query.keyword'},
+                        {token: 'query'},
                         {token: 'query'},
                         {token: 'query.operator'}
                     ]],
