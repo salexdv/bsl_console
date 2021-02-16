@@ -527,6 +527,13 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  scrollToTop = function () {
+    
+    document.body.scrollTop = 0;
+    document.documentElement.scrollTop = 0;
+
+  }
+
   editor = undefined;
 
   // Register languages
@@ -592,5 +599,21 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       sendEvent('EVENT_CONTENT_CHANGED', '');
       
   });
+
+  editor.onKeyDown(e => {
+    
+    if (e.code == 'ArrowUp' && editor.getPosition().lineNumber == 1)    
+      scrollToTop();
+
+  });
+
+  editor.onDidScrollChange(e => {
+        
+    if (e.scrollTop == 0) {
+      scrollToTop();
+    }
+
+  });
+  
 
 });
