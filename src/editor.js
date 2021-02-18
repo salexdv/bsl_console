@@ -534,6 +534,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  hideLineNumbers = function() {
+        
+    editor.updateOptions({ lineNumbers: false, lineDecorationsWidth: 0 })
+    
+  }
+
   editor = undefined;
 
   // Register languages
