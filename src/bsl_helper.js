@@ -2531,6 +2531,7 @@ class bslHelper {
 						this.getCommonCompletition(suggestions, bslQuery.functions, monaco.languages.CompletionItemKind.Function, true);
 						this.getRefCompletition(suggestions);
 						this.getQueryTablesCompletition(suggestions, monaco.languages.CompletionItemKind.Class);
+						this.getCustomObjectsCompletition(suggestions, bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
 					}
 
 					this.getQueryCommonCompletition(suggestions, langDef, monaco.languages.CompletionItemKind.Module);					
