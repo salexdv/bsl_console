@@ -546,6 +546,14 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     
   }
 
+  clearMetadata = function() {
+
+    for (let [key, value] of Object.entries(bslMetadata)) {
+      bslMetadata[key] = {};
+    }
+
+  }
+
   editor = undefined;
 
   // Register languages
