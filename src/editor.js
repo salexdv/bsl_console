@@ -18,6 +18,13 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   contextMenuEnabled = false;
   err_tid = 0;
 
+  reserMark = function() {
+
+    clearInterval(err_tid);
+    decorations = editor.deltaDecorations(decorations, []);
+
+  }
+
   sendEvent = function(eventName, eventParams) {
 
     let lastEvent = new MouseEvent('click');
@@ -27,8 +34,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   }
 
   setText = function(txt, range, usePadding) {
-
-    clearInterval(err_tid);
+    
+    reserMark();
     bslHelper.setText(txt, range, usePadding);    
 
   }
@@ -135,6 +142,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   }
 
   markError = function (line, column) {
+    reserMark();
     let count = 12;
     err_tid = setInterval(function() {
       let newDecor = [];
