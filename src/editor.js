@@ -16,6 +16,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   metadataRequests = new Map();
   customSuggestions = [];
   contextMenuEnabled = false;
+  err_tid = 0;
 
   sendEvent = function(eventName, eventParams) {
 
@@ -27,6 +28,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   setText = function(txt, range, usePadding) {
 
+    clearInterval(err_tid);
     bslHelper.setText(txt, range, usePadding);    
 
   }
@@ -134,7 +136,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   markError = function (line, column) {
     let count = 12;
-    let tid = setInterval(function() {
+    err_tid = setInterval(function() {
       let newDecor = [];
       if (!decorations.length) {
         newDecor = [            
@@ -145,7 +147,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       decorations = editor.deltaDecorations(decorations, newDecor);
       count--;
       if (count == 0) {
-        clearInterval(tid);
+        clearInterval(err_tid);
       }
     }, 300);
     editor.revealLineInCenter(line);
