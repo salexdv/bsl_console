@@ -228,20 +228,26 @@ class bslHelper {
 		
 		if (match) {
 			
-			position = new monaco.Position(match.range.startLineNumber, match.range.startColumn);
-			match = this.model.findPreviousMatch('[a-zA-Z0-9\u0410-\u044F]+', position, true, false, null, true);
+			let match_pos = new monaco.Position(match.range.startLineNumber, match.range.startColumn);
 
-			if (match) {
-				
-				let range = new monaco.Range(match.range.startLineNumber, match.range.startColumn - 1, match.range.startLineNumber, match.range.startColumn);
-				let prevChar = this.getLastCharacter(range);
+			if (match_pos.lineNumber < position.lineNumber || match_pos.lineNumber == position.lineNumber && match_pos.column < position.column) {
 
-				if (prevChar == '.') {
-					position = new monaco.Position(match.range.startLineNumber, match.range.startColumn);
-					return this.getLastSeparatedWord(position);
+				position = match_pos;
+				match = this.model.findPreviousMatch('[a-zA-Z0-9\u0410-\u044F]+', position, true, false, null, true);
+
+				if (match) {
+					
+					let range = new monaco.Range(match.range.startLineNumber, match.range.startColumn - 1, match.range.startLineNumber, match.range.startColumn);
+					let prevChar = this.getLastCharacter(range);
+
+					if (prevChar == '.') {
+						position = new monaco.Position(match.range.startLineNumber, match.range.startColumn);
+						return this.getLastSeparatedWord(position);
+					}
+					else
+						word = match.matches[0];				
+
 				}
-				else
-					word = match.matches[0];				
 
 			}
 
