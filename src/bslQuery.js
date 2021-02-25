@@ -435,7 +435,19 @@ define([], function () {
             },
             "Перечисление": {
                 "ref": "enums"
-            }
+            },
+            "ПланВидовХарактеристик": {
+                "ref": "chartsOfCharacteristicTypes"
+            },
+            "ПланСчетов": {
+                "ref": "сhartsOfAccounts"
+            },
+            "БизнесПроцесс": {
+                "ref": "businessProcesses"
+            },
+            "Задача": {
+                "ref": "tasks"
+            },
         }
     }
 });
