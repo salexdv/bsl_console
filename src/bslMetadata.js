@@ -3919,7 +3919,7 @@ define([], function () {
          "query_name":"ПланВидовХарактеристик",
          "query_name_en":"ChartOfCharacteristicTypes",
          "items":{
-            "ХозрасчеВидыСубконтоХозрасчетныетный":{
+            "ВидыСубконтоХозрасчетные":{
                "properties":{
                   "Реквизит1":{
                      "name": "Реквизит №1"
