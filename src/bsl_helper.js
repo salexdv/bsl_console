@@ -1642,12 +1642,9 @@ class bslHelper {
 						insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
 					}
 
-					if (value.hasOwnProperty('ref')) {
+					if (value.hasOwnProperty('ref') || value.hasOwnProperty('items')) {
 						suggestion.insertText += '.';
 						suggestion['command'] = { id: 'editor.action.triggerSuggest', title: 'suggest_type' };
-					}
-					else {
-						suggestion.insertText += '"';
 					}
 
 					suggestions.push(suggestion);
@@ -1729,6 +1726,18 @@ class bslHelper {
 								}
 
 							}
+						}
+						else if (value.hasOwnProperty('items')) {
+							
+							for (const [ikey, ivalue] of Object.entries(value.items)) {							
+								suggestions.push({
+									label: ikey,
+									kind: kind,
+									insertText: ikey + ')',
+									insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet									
+								});
+							};
+														
 						}
 
 					}
