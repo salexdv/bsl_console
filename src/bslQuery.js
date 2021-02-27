@@ -439,6 +439,12 @@ define([], function () {
             "ПланВидовХарактеристик": {
                 "ref": "chartsOfCharacteristicTypes"
             },
+            "ПланВидовРасчета": {
+                "ref": "chartsOfCalculationTypes"
+            },
+            "ПланОбмена": {
+                "ref": "exchangePlans"
+            },
             "ПланСчетов": {
                 "ref": "сhartsOfAccounts"
             },
