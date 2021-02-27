@@ -1269,7 +1269,8 @@ class bslHelper {
 								for (const [pkey, pvalue] of Object.entries(itemNode.predefined)) {
 															
 									values.push({
-										name: pkey,
+										name: pvalue ? pvalue : pkey,
+										insertText: pkey,
 										postfix: '',
 										detail: '',
 										description: '',
@@ -1327,7 +1328,7 @@ class bslHelper {
 							suggestions.push({
 								label: value.name,
 								kind: value.kind,
-								insertText: value.name + value.postfix,
+								insertText: value.insertText ? value.insertText : value.name + value.postfix,
 								insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
 								detail: value.detail,
 								documentation: value.description
