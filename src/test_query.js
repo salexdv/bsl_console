@@ -169,6 +169,12 @@ describe("Проверка автокомлита и подсказок реда
       assert.equal(suggestions.some(suggest => suggest.label === "ПустаяСсылка"), true);
       assert.equal(suggestions.some(suggest => suggest.label === "Услуга"), true);
 
+      bsl = helper("ЗНАЧЕНИЕ(ВидДвиженияБухгалтерии.");
+      suggestions = [];
+      bsl.getQueryValuesCompletition(suggestions, bslQuery.values, null)
+      expect(suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(suggestions.some(suggest => suggest.label === "Дебет"), true);
+
     });
 
     it("проверка подсказки для конструкции ССЫЛКА", function () {
