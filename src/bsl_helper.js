@@ -2210,6 +2210,18 @@ class bslHelper {
 					"ExtDimensions": "ExtDimensions"
 				};
 			}
+			else if (type == 'action_period') {
+				tables = {					
+					"Base": "Base",
+					"ScheduleData": "ScheduleData",
+					"ActualActionPeriod": "ActualActionPeriod"					
+				};
+			}
+			else if (type == 'noaction_period') {
+				tables = {					
+					"Base": "Base"					
+				};
+			}
 
 		}
 		else {
@@ -2240,6 +2252,18 @@ class bslHelper {
 					"Остатки": "Остатки",
 					"ОстаткиИОбороты": "ОстаткиИОбороты",
 					"Субконто": "Субконто"
+				};
+			}
+			else if (type == 'action_period') {
+				tables = {					
+					"БазаНачисления": "БазаНачисления",
+					"ДанныеГрафика": "ДанныеГрафика",
+					"ФактическийПериодДействия": "ФактическийПериодДействия"					
+				};
+			}
+			else if (type == 'noaction_period') {
+				tables = {					
+					"БазаНачисления": "БазаНачисления"					
 				};
 			}
 

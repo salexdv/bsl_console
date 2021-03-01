@@ -2047,7 +2047,7 @@ define([], function () {
          "query_name_en":"CalculationRegister",
          "items":{
             "Начисления":{
-               "ActionPeriod": "true",
+               "type": "action_period",
                "properties":{
                   "Сотрудник":{
                      "name": "Сотрудник"
@@ -2066,7 +2066,7 @@ define([], function () {
                }
             },
             "Удержания":{
-               "ActionPeriod": "false",
+               "type": "noaction_period",
                "properties":{                  
                   "ФизическоеЛицо":{
                      "name": "ФизическоеЛицо"
