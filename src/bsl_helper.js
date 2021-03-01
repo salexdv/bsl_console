@@ -1679,7 +1679,7 @@ class bslHelper {
 											
 											for (const [pkey, pvalue] of Object.entries(bslMetadata[value.ref].items[mkey].predefined)) {
 												suggestions.push({
-													label:  pkey,
+													label:  pvalue ? pvalue : pkey,
 													kind: kind,
 													insertText: pkey + ')',
 													insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,											
