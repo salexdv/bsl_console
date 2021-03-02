@@ -15,6 +15,15 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   originalText = '';
   metadataRequests = new Map();
   customSuggestions = [];
+  contextMenuEnabled = false;
+  err_tid = 0;
+
+  reserMark = function() {
+
+    clearInterval(err_tid);
+    decorations = editor.deltaDecorations(decorations, []);
+
+  }
 
   sendEvent = function(eventName, eventParams) {
 
@@ -25,7 +34,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   }
 
   setText = function(txt, range, usePadding) {
-
+    
+    reserMark();
     bslHelper.setText(txt, range, usePadding);    
 
   }
@@ -106,7 +116,10 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   setReadOnly = function (readOnly) {
 
     readOnlyMode = readOnly;
-    editor.updateOptions({ readOnly: readOnly, contextmenu: !readOnly });
+    editor.updateOptions({ readOnly: readOnly });
+
+    if (contextMenuEnabled)
+      editor.updateOptions({ contextmenu: !readOnly });
     
   }
 
@@ -129,8 +142,9 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   }
 
   markError = function (line, column) {
+    reserMark();
     let count = 12;
-    let tid = setInterval(function() {
+    err_tid = setInterval(function() {
       let newDecor = [];
       if (!decorations.length) {
         newDecor = [            
@@ -141,7 +155,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       decorations = editor.deltaDecorations(decorations, newDecor);
       count--;
       if (count == 0) {
-        clearInterval(tid);
+        clearInterval(err_tid);
       }
     }, 300);
     editor.revealLineInCenter(line);
@@ -206,12 +220,13 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   addContextMenuItem = function(label, eventName) {
 
-    let id = new Date().getTime().toString();
+    let time = new Date().getTime();
+    let id = time.toString() + '.' + Math.random().toString(36).substring(8);
     editor.addAction({
       id: id + "_bsl",
       label: label,
       contextMenuGroupId: 'navigation',
-      contextMenuOrder: id,
+      contextMenuOrder: time,
       run: function () {     
           sendEvent(eventName, "");
           return null;
@@ -330,11 +345,29 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   selectedText = function(text) {
 
     if (!text)
+      
       return getSelectedText();    
-    else if (getSelectedText())
-      setText(text, getSelection(), false);
-    else
-      setText(text, undefined, false);
+
+    else {      
+      
+      if (getSelectedText()) {
+
+        let selection = getSelection();
+        let tempModel = monaco.editor.createModel(text);
+        let tempRange = tempModel.getFullModelRange();
+        
+        setText(text, getSelection(), false);
+
+        if (tempRange.startLineNumber == tempRange.endLineNumber)
+          setSelection(selection.startLineNumber, selection.startColumn, selection.startLineNumber, selection.startColumn + tempRange.endColumn - 1);
+        else
+          setSelection(selection.startLineNumber, selection.startColumn, selection.startLineNumber + tempRange.endLineNumber - tempRange.startLineNumber, tempRange.endColumn);          
+
+      }
+      else
+        setText(text, undefined, false);
+
+    }
 
   }
 
@@ -428,7 +461,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         theme: currentTheme,
         value: originalText,
         language: language_id,
-        contextmenu: true,
+        contextmenu: contextMenuEnabled,
         automaticLayout: true
       });
       originalText = '';
@@ -446,7 +479,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     let request = metadataRequests.get(metadata);
 
     if (!request) {
-      metadataRequests.set(metadata);
+      metadataRequests.set(metadata, true);
       sendEvent("EVENT_GET_METADATA", metadata);
     }
 
@@ -497,6 +530,41 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  disableContextMenu = function() {
+    
+    editor.updateOptions({ contextmenu: false });
+    contextMenuEnabled = false;
+
+  }
+
+  scrollToTop = function () {
+    
+    document.body.scrollTop = 0;
+    document.documentElement.scrollTop = 0;
+
+  }
+
+  hideLineNumbers = function() {
+        
+    editor.updateOptions({ lineNumbers: false, lineDecorationsWidth: 0 });
+
+  }
+
+  showLineNumbers = function() {
+        
+    editor.updateOptions({ lineNumbers: true, lineDecorationsWidth: 10 });
+    
+  }
+
+  clearMetadata = function() {
+
+    for (let [key, value] of Object.entries(bslMetadata)) {
+      if (value.hasOwnProperty('items'))
+        bslMetadata[key].items = {};
+    }
+
+  }
+
   editor = undefined;
 
   // Register languages
@@ -532,8 +600,11 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         value: getCode(),
         language: language.id,
         contextmenu: true,
-        wordBasedSuggestions: false
+        wordBasedSuggestions: false,
+        customOptions: true
       });
+
+      contextMenuEnabled = editor.getRawOptions().contextmenu;
 
     }
 
@@ -559,5 +630,21 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       sendEvent('EVENT_CONTENT_CHANGED', '');
       
   });
+
+  editor.onKeyDown(e => {
+    
+    if (e.code == 'ArrowUp' && editor.getPosition().lineNumber == 1)    
+      scrollToTop();
+
+  });
+
+  editor.onDidScrollChange(e => {
+        
+    if (e.scrollTop == 0) {
+      scrollToTop();
+    }
+
+  });
+  
 
 });

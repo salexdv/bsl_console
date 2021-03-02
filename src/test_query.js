@@ -155,6 +155,7 @@ describe("Проверка автокомлита и подсказок реда
       bsl.getQueryValuesCompletition(suggestions, bslQuery.values, null)
       expect(suggestions).to.be.an('array').that.not.is.empty;
       assert.equal(suggestions.some(suggest => suggest.label === "Справочник"), true);
+      assert.equal(suggestions.some(suggest => suggest.label === "ВидДвиженияБухгалтерии"), true);
 
       bsl = helper("ЗНАЧЕНИЕ(Справочник.");
       suggestions = [];
@@ -168,6 +169,12 @@ describe("Проверка автокомлита и подсказок реда
       expect(suggestions).to.be.an('array').that.not.is.empty;
       assert.equal(suggestions.some(suggest => suggest.label === "ПустаяСсылка"), true);
       assert.equal(suggestions.some(suggest => suggest.label === "Услуга"), true);
+
+      bsl = helper("ЗНАЧЕНИЕ(ВидДвиженияБухгалтерии.");
+      suggestions = [];
+      bsl.getQueryValuesCompletition(suggestions, bslQuery.values, null)
+      expect(suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(suggestions.some(suggest => suggest.label === "Дебет"), true);
 
     });
 

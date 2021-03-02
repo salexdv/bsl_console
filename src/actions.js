@@ -10,6 +10,8 @@ define(['vs/editor/editor.main'], function () {
         if (3 < verArray.length) {
             overrideCopyPaste = !((8 <= parseInt(verArray[0])) && (3 <= parseInt(verArray[1])) && (18 <= parseInt(verArray[2])));
         }
+        
+        overrideCopyPaste = false;
 
         if (overrideCopyPaste) {
             actions.copy_bsl = {
@@ -131,6 +133,19 @@ define(['vs/editor/editor.main'], function () {
                     }
                     lineContextData = contextData.get(position.lineNumber);
                     lineContextData.set(obj.name.toLowerCase(), obj.data);
+                }
+                return null;
+            }
+        },
+        requestMetadata: {
+            label: 'Запрос динамического обновления метаданных',
+            description: 'Служебное действие. Используется для запроса метаданных справочника/документа и т.п. при выборе его из списка подсказок',
+            key: 0,
+            cmd: 0,
+            order: 0,
+            callback: function (e, obj) {                                
+                if (obj && obj.hasOwnProperty('metadata')) {
+                    requestMetadata(obj.metadata);
                 }
                 return null;
             }
