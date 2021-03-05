@@ -269,6 +269,17 @@ describe("Проверка автокомлита и подсказок реда
       assert.equal(suggestions.some(suggest => suggest.label === "КоличествоНачальныйОстаток"), false);
     });
 
+    it("проверка подсказки для ссылочного поля, когда поле не выбиралось руками (динамическое обновление ссылок) ", function () {
+      bsl = helper(`ВЫБРАТЬ
+      Товары.СтавкаНДС.
+      ИЗ      
+      Справочник.Товары КАК Товары`, 2, 24);      
+      let suggestions = [];
+      bsl.getQueryFieldsCompletition(suggestions);
+      expect(suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(suggestions.some(suggest => suggest.label === "Наименование"), true);
+    });
+
     switchQueryMode();
         
     mocha.run();
