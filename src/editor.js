@@ -476,11 +476,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   requestMetadata = function(metadata) {
 
-    let request = metadataRequests.get(metadata);
+    let metadata_name = metadata.toLowerCase();
+    let request = metadataRequests.get(metadata_name);
 
     if (!request) {
-      metadataRequests.set(metadata, true);
-      sendEvent("EVENT_GET_METADATA", metadata);
+      metadataRequests.set(metadata_name, true);
+      sendEvent("EVENT_GET_METADATA", metadata_name);
     }
 
   }
