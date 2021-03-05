@@ -276,14 +276,19 @@ class bslHelper {
 				if (match) {
 					
 					let range = new monaco.Range(match.range.startLineNumber, match.range.startColumn - 1, match.range.startLineNumber, match.range.startColumn);
-					let prevChar = this.getLastCharacter(range);
+					
+					if (range.startLineNumber < position.lineNumber || range.startLineNumber == position.lineNumber && range.startColumn < position.column) {
 
-					if (prevChar == '.') {
-						position = new monaco.Position(match.range.startLineNumber, match.range.startColumn);
-						return this.getLastSeparatedWord(position);
+						let prevChar = this.getLastCharacter(range);
+
+						if (prevChar == '.') {
+							position = new monaco.Position(match.range.startLineNumber, match.range.startColumn);
+							return this.getLastSeparatedWord(position);
+						}
+						else
+							word = match.matches[0];
+
 					}
-					else
-						word = match.matches[0];				
 
 				}
 
