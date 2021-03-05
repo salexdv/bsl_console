@@ -711,9 +711,12 @@ class bslHelper {
 					let subItemName = refArray[1];
 
 					if (queryMode) {
-						if (this.objectHasProperties(bslMetadata, itemName, 'items', subItemName, 'properties')) {
+						if (this.objectHasProperties(bslMetadata, itemName, 'items', subItemName, 'properties'))
 							this.fillSuggestionsForMetadataItem(suggestions, bslMetadata[itemName].items[subItemName]);
-						}
+						else if (this.objectHasProperties(bslMetadata, itemName, 'items', subItemName))
+							requestMetadata(itemName + '.' + subItemName);
+						else if (this.objectHasProperties(bslMetadata, itemName, 'items'))
+							requestMetadata(itemName);						
 					}
 					else {
 						if (itemName == 'classes' || itemName == 'types') {
@@ -2173,11 +2176,93 @@ class bslHelper {
 	}
 
 	/**
+	 * Updates context refs for chain of fields like
+	 * Номенклатура.НоменклатурнаяГруппа.Родитель.СпособУчетаНДС. <- there
+	 * It's nessasary for autocomplete complex fields in existing query
+	 * 
+	 * @param {array} suggestions array of suggestions for provideCompletionItems
+	 * @param {bool} allowChain allow or not call chain completition (to avoid looping)
+	 */
+	getQueryFieldsChainCompletion(suggestions) {
+
+		let match = this.model.findMatches('[a-zA-Z0-9\u0410-\u044F]+', new monaco.Range(this.lineNumber, 1, this.lineNumber, this.column), true, false, null, true);
+		
+		if (match.length) {
+
+			let back_pos = this.position;
+			let back_exp = this.lastRawExpression;
+
+			let prev_suggestions = [];
+
+			for (let i = 0; i < match.length; i++) {
+
+				let field = match[i];
+				let field_name = field.matches[0].toLowerCase();
+				let field_range = field.range;
+
+				this.position = new monaco.Position(this.lineNumber, field_range.endColumn + 1);
+				
+				if (i == 0) {
+					this.lastRawExpression = field_name; 
+					this.getQueryFieldsCompletition(prev_suggestions, false);					
+				}
+				else {
+					
+					let command = false;
+					let suggest_idx = 0;
+
+					while (suggest_idx < prev_suggestions.length && !command) {
+						
+						let suggestion = prev_suggestions[suggest_idx];
+						
+						if (suggestion.insertText.toLowerCase() == field_name && suggestion.command)
+							command = suggestion.command;
+
+						suggest_idx++;
+
+					}					
+					
+					prev_suggestions = [];
+
+					if (command && command.arguments.length) {
+					
+						let command_context = command.arguments[0];
+					
+						if (command_context.hasOwnProperty('data')) {							
+					
+							let lineContextData = contextData.get(this.position.lineNumber);
+					
+							if (!lineContextData) {
+								contextData.set(this.position.lineNumber, new Map());
+							}
+
+							lineContextData = contextData.get(this.position.lineNumber);
+							lineContextData.set(field_name, command_context.data);
+							this.getRefCompletition(prev_suggestions);
+
+						}
+
+					}
+
+				}
+
+			}
+
+			this.position = back_pos;
+			this.lastRawExpression = back_exp;
+			this.getRefCompletition(suggestions);
+
+		}		
+
+	}
+
+	/**
 	 * Fills array of completition for fields of querie's table
 	 * 
-	 * @param {array} suggestions array of suggestions for provideCompletionItems	 
+	 * @param {array} suggestions array of suggestions for provideCompletionItems
+	 * @param {bool} allowChain allow or not call chain completition (to avoid looping)
 	 */
-	getQueryFieldsCompletition(suggestions) {
+	getQueryFieldsCompletition(suggestions, allowChain = true) {
 
 		if (this.getLastCharacter() == '.') {
 			
@@ -2217,7 +2302,10 @@ class bslHelper {
 
 					}
 
-				}				
+				}
+
+				if (!suggestions.length && allowChain)
+					this.getQueryFieldsChainCompletion(suggestions);
 
 			}
 			
