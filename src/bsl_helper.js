@@ -2642,6 +2642,11 @@ class bslHelper {
 				let position = new monaco.Position(startMatch.range.startLineNumber, startMatch.range.startColumn);
 				let fromMatch = this.model.findNextMatch(template, position, true);
 
+				if (!fromMatch) {
+					template = '(?:из|from)\\s+(?:(?:.|\\n|\\r)*?)\\s*(?:\\s|\\t)*$';
+					fromMatch = this.model.findNextMatch(template, position, true);
+				}
+
 				if (fromMatch && fromMatch.range.startLineNumber < startMatch.range.startLineNumber) {								
 					// This is loops to the beginning. Trying another template
 					fromMatch = this.model.findNextMatch('(?:из|from)\\s+(?:(?:.|\\n|\\r)+)$', position, true);
