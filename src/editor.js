@@ -566,6 +566,25 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  hideScroll = function(type) {
+
+    document.getElementsByTagName('body')[0].style[type] = 'hidden';
+    document.getElementById('container').style[type] = 'hidden';
+
+  }
+
+  hideScrollX = function() {
+
+    hideScroll('overflowX');
+
+  }
+
+  hideScrollY = function() {
+
+    hideScroll('overflowY');
+
+  }
+
   editor = undefined;
 
   // Register languages
