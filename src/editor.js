@@ -264,11 +264,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     let language_id = 'xml';
 
     if (identifier.language == 'xml') {
-      language_id = queryMode ? 'bsl_query' : 'bsl';    
-      setReadOnly(readOnlyMode);
-    }
-    else {
-      setReadOnly(true);
+      language_id = queryMode ? 'bsl_query' : 'bsl';
     }
 
     monaco.editor.setModelLanguage(editor.getModel(), language_id);
