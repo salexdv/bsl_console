@@ -462,6 +462,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       });
       originalText = '';
     }
+    editor.updateOptions({ readOnly: readOnlyMode });
   }
 
   triggerSuggestions = function() {
