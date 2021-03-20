@@ -153,6 +153,11 @@ define([], function () {
                 'СУММА', 'SUM', 'ТОГДА', 'THEN', 'УБЫВ', 'DESC', 'ЧАС', 'HOUR',
                 'ЧИСЛО', 'NUMBER', 'NULL', 'КОГДА', 'WHEN'
             ],
+            DCSExp: [
+                'ВЫЧИСЛИТЬ', 'EVAL', 'ВЫЧИСЛИТЬВЫРАЖЕНИЕ', 'EVALEXPRESSION',
+                'ВЫЧИСЛИТЬВЫРАЖЕНИЕСГРУППИРОВКОЙМАССИВ', 'EVALEXPRESSIONWITHGROUPARRAY',
+                'ВЫЧИСЛИТЬВЫРАЖЕНИЕСГРУППИРОВКОЙТАБЛИЦАЗНАЧЕНИЙ', 'EVALEXPRESSIONWITHGROUPVALUETABLE'
+            ],
             queryOperators: /[=><+\-*\/%;,]+/,
             // The main tokenizer for our languages
             tokenizer: {
@@ -292,7 +297,7 @@ define([], function () {
             tokenPostfix: 'bsl',
             ignoreCase: true,            
             keywords: bsl_language.rules.queryWords,
-            expressions: bsl_language.rules.queryExp,            
+            expressions: bsl_language.rules.queryExp,
             operators: /[=><+\-*\/%;,]+/,
             tokenizer: {
                 root: [                               
@@ -332,6 +337,13 @@ define([], function () {
         },        
         themes: bsl_language.themes        
     }
+
+    let dcs_language = {
+        id: 'dcs_query',
+        rules: Object.assign({}, query_language.rules)
+    }
+    
+    dcs_language.rules.expressions = bsl_language.rules.queryExp.concat(bsl_language.rules.DCSExp);    
 
     languages = {
         bsl: {
@@ -407,7 +419,39 @@ define([], function () {
                 provider: () => {},                
                 resolver: () => {}
             }
+        },
+        dcs: {
+            languageDef: dcs_language,
+            completionProvider: {
+                triggerCharacters: ['.', '('],
+                provideCompletionItems: function (model, position) {
+                    let bsl = new bslHelper(model, position);
+                    return bsl.getDCSCompletition();
+                }
+            },
+            foldingProvider: {
+                provideFoldingRanges: () => {}
+            },
+            signatureProvider: {
+                signatureHelpTriggerCharacters: ['(', ','],
+                signatureHelpRetriggerCharacters: [')'],
+                provideSignatureHelp: (model, position) => {
+                    let bsl = new bslHelper(model, position);
+                    return bsl.getDCSSigHelp();
+                }
+            },
+            hoverProvider: {
+                provideHover: () => {}
+            },
+            formatProvider: {
+                provideDocumentFormattingEdits: () => {}
+            },
+            codeLenses: {
+                provider: () => {},                
+                resolver: () => {}
+            }
         }
+
     };
 
 });

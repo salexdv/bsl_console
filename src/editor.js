@@ -1,6 +1,6 @@
 require.config( { 'vs/nls': { availableLanguages: { '*': "ru" } } } );
 
-define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/editor.main', 'actions', 'bslQuery'], function () {
+define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/editor.main', 'actions', 'bslQuery', 'bslDCS'], function () {
 
   selectionText = '';
   engLang = false;
@@ -9,6 +9,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   generateModificationEvent = false;
   readOnlyMode = false;
   queryMode = false;
+  DCSMode = false;
   version1C = '';
   contextActions = [];
   customHovers = {};
@@ -235,26 +236,44 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
-  switchQueryMode = function() {
-    
-    queryMode = !queryMode;
+  switchLanguageMode = function(mode) {
 
     let queryPostfix = '-query';
     let currentTheme = editor._themeService.getTheme().themeName;
 
-    if (queryMode && currentTheme.indexOf(queryPostfix) == -1)
+    if ((queryMode || DCSMode) && currentTheme.indexOf(queryPostfix) == -1)
       currentTheme += queryPostfix;
-    else if (!queryMode && currentTheme.indexOf(queryPostfix) >= 0)
+    else if (!queryMode && !DCSMode && currentTheme.indexOf(queryPostfix) >= 0)
       currentTheme = currentTheme.replace(queryPostfix, '');
 
-    if (queryMode)
+    if (queryMode && mode == 'query')
       monaco.editor.setModelLanguage(editor.getModel(), "bsl_query");
+    else if (DCSMode && mode == 'dcs')
+      monaco.editor.setModelLanguage(editor.getModel(), "dcs_query");
+    else if (queryMode)
+      monaco.editor.setModelLanguage(editor.getModel(), "bsl_query");
+    else if (DCSMode)
+      monaco.editor.setModelLanguage(editor.getModel(), "dcs_query");
     else
       monaco.editor.setModelLanguage(editor.getModel(), "bsl");
     
     setTheme(currentTheme);
 
     initContextMenuActions();
+
+  }
+
+  switchQueryMode = function() {
+    
+    queryMode = !queryMode;
+    switchLanguageMode('query');
+
+  }
+
+  switchDCSMode = function() {
+
+    DCSMode = !DCSMode;
+    switchLanguageMode('dcs');
 
   }
 

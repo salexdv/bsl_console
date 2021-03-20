@@ -1667,7 +1667,7 @@ class bslHelper {
 		else {
 
 			if (!this.isItStringLiteral()) {				
-				suggestions = getCodeCompletition();
+				suggestions = this.getCodeCompletition();
 			}
 
 		}
@@ -2757,6 +2757,26 @@ class bslHelper {
 	}
 
 	/**
+	 * Completition provider for DCS language	 
+	 * 
+	 * @returns {array} array of completition
+	 */
+	 getDCSCompletition() {
+
+		let suggestions = [];
+
+		this.getCommonCompletition(suggestions, bslDCS.functions, monaco.languages.CompletionItemKind.Function, true);						
+		this.getCommonCompletition(suggestions, bslQuery.functions, monaco.languages.CompletionItemKind.Function, true);
+		this.getCustomObjectsCompletition(suggestions, bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
+
+		if (suggestions.length)
+			return { suggestions: suggestions }
+		else
+			return [];
+
+	}
+
+	/**
 	 * Returns array of parametrs as described in JSON-dictionary
 	 * for current node (method)
 	 *  
@@ -3207,6 +3227,27 @@ class bslHelper {
 			
 			let helper = this.getCommonSigHelp(bslQuery.functions);
 			
+			if (helper)
+				return new SignatureHelpResult(helper);
+
+		}
+
+	}
+
+	/**
+ 	 * Signature help provider for query language
+ 	 * 
+ 	 * @returns {object} helper
+ 	 */
+	getDCSSigHelp() {
+
+		if (this.lastOperator != ')') {
+
+			let helper = this.getCommonSigHelp(bslDCS.functions);
+
+			if (!helper)
+				helper = this.getCommonSigHelp(bslQuery.functions);
+
 			if (helper)
 				return new SignatureHelpResult(helper);
 
