@@ -280,6 +280,15 @@ describe("Проверка автокомлита и подсказок реда
       assert.equal(suggestions.some(suggest => suggest.label === "Наименование"), true);
     });
 
+    it("проверка подсказки для функций в режим СКД ", function () {
+      switchDCSMode();
+      bsl = helper("ВЫЧИСЛИТЬВЫРАЖЕНИЕСГРУПП");                  
+      result = bsl.getDCSCompletition();
+      expect(result.suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(result.suggestions.some(suggest => suggest.label === "ВЫЧИСЛИТЬВЫРАЖЕНИЕСГРУППИРОВКОЙМАССИВ"), true);
+      switchDCSMode();
+    });
+
     switchQueryMode();
         
     mocha.run();
