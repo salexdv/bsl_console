@@ -1826,32 +1826,36 @@ class bslHelper {
 
 		let word = this.word;
 
-		values.forEach(function (value) {
+		if (word) {
 
-			if (value.toLowerCase().startsWith(word)) {
+			values.forEach(function (value) {
 
-				let expression = value.toUpperCase();
+				if (value.toLowerCase().startsWith(word)) {
 
-				if (engLang) {
-					if (!/^[A-Za-z]*$/.test(expression))
-						expression = '';
+					let expression = value.toUpperCase();
+
+					if (engLang) {
+						if (!/^[A-Za-z]*$/.test(expression))
+							expression = '';
+					}
+					else {
+						if (/^[A-Za-z]*$/.test(expression) && expression.indexOf('NULL') == -1)
+							expression = '';
+					}
+
+					if (expression && !suggestions.some(suggest => suggest.label === expression)) {						
+						suggestions.push({
+							label: expression,
+							kind: kind,
+							insertText: expression,
+							insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet						
+						});
+					}
 				}
-				else {
-					if (/^[A-Za-z]*$/.test(expression) && expression.indexOf('NULL') == -1)
-						expression = '';
-				}
 
-				if (expression && !suggestions.some(suggest => suggest.label === expression)) {						
-					suggestions.push({
-						label: expression,
-						kind: kind,
-						insertText: expression,
-						insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet						
-					});
-				}
-			}
+			});
 
-		});
+		}
 
 	 }
 
@@ -2780,11 +2784,23 @@ class bslHelper {
 
 		let suggestions = [];
 
-		this.getFillSuggestionsFromArray(suggestions, languages.bsl.languageDef.rules.DCSExp, monaco.languages.CompletionItemKind.Module);
-		this.getCommonCompletition(suggestions, bslDCS.functions, monaco.languages.CompletionItemKind.Function, true);						
-		this.getCommonCompletition(suggestions, bslQuery.functions, monaco.languages.CompletionItemKind.Function, true);
-		this.getCustomObjectsCompletition(suggestions, bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
-		this.getSnippets(suggestions, DCSSnippets);
+		if (!this.requireQueryValue()) {
+
+			if (this.lastOperator != '"') {
+				this.getFillSuggestionsFromArray(suggestions, languages.bsl.languageDef.rules.DCSExp, monaco.languages.CompletionItemKind.Module);
+				this.getCommonCompletition(suggestions, bslDCS.functions, monaco.languages.CompletionItemKind.Function, true);						
+				this.getCommonCompletition(suggestions, bslQuery.functions, monaco.languages.CompletionItemKind.Function, true);
+				this.getCustomObjectsCompletition(suggestions, bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
+				this.getRefCompletition(suggestions);
+				this.getSnippets(suggestions, DCSSnippets);
+			}
+
+		}
+		else {
+			
+			this.getQueryValuesCompletition(suggestions, bslQuery.values, monaco.languages.CompletionItemKind.Enum);
+
+		}
 
 		if (suggestions.length)
 			return { suggestions: suggestions }
