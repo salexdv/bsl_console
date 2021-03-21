@@ -2768,6 +2768,7 @@ class bslHelper {
 		this.getCommonCompletition(suggestions, bslDCS.functions, monaco.languages.CompletionItemKind.Function, true);						
 		this.getCommonCompletition(suggestions, bslQuery.functions, monaco.languages.CompletionItemKind.Function, true);
 		this.getCustomObjectsCompletition(suggestions, bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
+		this.getSnippets(suggestions, DCSSnippets);
 
 		if (suggestions.length)
 			return { suggestions: suggestions }
