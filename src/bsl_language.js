@@ -154,6 +154,10 @@ define([], function () {
                 'ЧИСЛО', 'NUMBER', 'NULL', 'КОГДА', 'WHEN'
             ],
             DCSExp: [
+                'ВЫБОР', 'CASE', 'КОГДА', 'WHEN', 'ТОГДА', 'THEN', 'ИЛИ', 'OR',
+                'ИНАЧЕ', 'ELSE', 'ИСТИНА', 'TRUE', 'КОНЕЦ', 'END', 'ЛОЖЬ', 'FALSE'
+            ],
+            DCSFunctions: [
                 'ВЫЧИСЛИТЬ', 'EVAL', 'ВЫЧИСЛИТЬВЫРАЖЕНИЕ', 'EVALEXPRESSION',
                 'ВЫЧИСЛИТЬВЫРАЖЕНИЕСГРУППИРОВКОЙМАССИВ', 'EVALEXPRESSIONWITHGROUPARRAY',
                 'ВЫЧИСЛИТЬВЫРАЖЕНИЕСГРУППИРОВКОЙТАБЛИЦАЗНАЧЕНИЙ', 'EVALEXPRESSIONWITHGROUPVALUETABLE'
@@ -343,7 +347,7 @@ define([], function () {
         rules: Object.assign({}, query_language.rules)
     }
     
-    dcs_language.rules.expressions = bsl_language.rules.queryExp.concat(bsl_language.rules.DCSExp);    
+    dcs_language.rules.expressions = bsl_language.rules.queryExp.concat(bsl_language.rules.DCSFunctions);    
 
     languages = {
         bsl: {

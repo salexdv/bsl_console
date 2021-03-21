@@ -1816,6 +1816,46 @@ class bslHelper {
 	}
 
 	/**
+	 * Fills array of completition from array	 
+	 * 
+	 * @param {array} suggestions array of suggestions for provideCompletionItems
+	 * @param {array} values array of values
+	 * @param {CompletionItemKind} kind - monaco.languages.CompletionItemKind (class, function, constructor etc.)
+	 */
+	 getFillSuggestionsFromArray(suggestions, values, kind) {
+
+		let word = this.word;
+
+		values.forEach(function (value) {
+
+			if (value.toLowerCase().startsWith(word)) {
+
+				let expression = value.toUpperCase();
+
+				if (engLang) {
+					if (!/^[A-Za-z]*$/.test(expression))
+						expression = '';
+				}
+				else {
+					if (/^[A-Za-z]*$/.test(expression) && expression.indexOf('NULL') == -1)
+						expression = '';
+				}
+
+				if (expression && !suggestions.some(suggest => suggest.label === expression)) {						
+					suggestions.push({
+						label: expression,
+						kind: kind,
+						insertText: expression,
+						insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet						
+					});
+				}
+			}
+
+		});
+
+	 }
+
+	/**
 	 * Fills array of completition for query language`s keywords
 	 * and expressions
 	 * 
@@ -1839,32 +1879,7 @@ class bslHelper {
 				values.push(keyword);
 			}
 
-			values.forEach(function (value) {
-
-				if (value.toLowerCase().startsWith(word)) {
-
-					let expression = value.toUpperCase();
-
-					if (engLang) {
-						if (!/^[A-Za-z]*$/.test(expression))
-							expression = '';
-					}
-					else {
-						if (/^[A-Za-z]*$/.test(expression) && expression.indexOf('NULL') == -1)
-							expression = '';
-					}
-
-					if (expression && !suggestions.some(suggest => suggest.label === expression)) {						
-						suggestions.push({
-							label: expression,
-							kind: kind,
-							insertText: expression,
-							insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet						
-						});
-					}
-				}
-
-			});
+			this.getFillSuggestionsFromArray(suggestions, values, kind);
 
 		}
 
@@ -2765,6 +2780,7 @@ class bslHelper {
 
 		let suggestions = [];
 
+		this.getFillSuggestionsFromArray(suggestions, languages.bsl.languageDef.rules.DCSExp, monaco.languages.CompletionItemKind.Module);
 		this.getCommonCompletition(suggestions, bslDCS.functions, monaco.languages.CompletionItemKind.Function, true);						
 		this.getCommonCompletition(suggestions, bslQuery.functions, monaco.languages.CompletionItemKind.Function, true);
 		this.getCustomObjectsCompletition(suggestions, bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
