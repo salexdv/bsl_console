@@ -289,6 +289,15 @@ describe("Проверка автокомлита и подсказок реда
       switchDCSMode();
     });
 
+    it("проверка подсказки ключевых слов в режим СКД ", function () {
+      switchDCSMode();
+      bsl = helper("ТОГ");                  
+      result = bsl.getDCSCompletition();
+      expect(result.suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(result.suggestions.some(suggest => suggest.label === "ТОГДА"), true);
+      switchDCSMode();
+    });
+
     switchQueryMode();
         
     mocha.run();
