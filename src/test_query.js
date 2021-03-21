@@ -298,6 +298,34 @@ describe("Проверка автокомлита и подсказок реда
       switchDCSMode();
     });
 
+    it("проверка подсказки для функции ЗНАЧЕНИЕ в режиме СКД", function () {
+      
+      switchDCSMode();
+      
+      bsl = helper("ЗНАЧЕНИЕ(");
+      let suggestions = [];
+      bsl.getQueryValuesCompletition(suggestions, bslQuery.values, null)
+      expect(suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(suggestions.some(suggest => suggest.label === "Справочник"), true);
+      assert.equal(suggestions.some(suggest => suggest.label === "ВидДвиженияБухгалтерии"), true);
+
+      bsl = helper("ЗНАЧЕНИЕ(Справочник.");
+      suggestions = [];
+      bsl.getQueryValuesCompletition(suggestions, bslQuery.values, null)
+      expect(suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(suggestions.some(suggest => suggest.label === "Товары"), true);
+
+      bsl = helper("ЗНАЧЕНИЕ(Справочник.Товары.");
+      suggestions = [];
+      bsl.getQueryValuesCompletition(suggestions, bslQuery.values, null)
+      expect(suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(suggestions.some(suggest => suggest.label === "ПустаяСсылка"), true);
+      assert.equal(suggestions.some(suggest => suggest.label === "Услуга"), true);
+      
+      switchDCSMode();
+
+    });
+
     switchQueryMode();
         
     mocha.run();
