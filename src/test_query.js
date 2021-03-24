@@ -282,10 +282,10 @@ describe("Проверка автокомлита и подсказок реда
 
     it("проверка подсказки для функций в режим СКД ", function () {
       switchDCSMode();
-      bsl = helper("ВЫЧИСЛИТЬВЫРАЖЕНИЕСГРУПП");                  
+      bsl = helper("ВычислитьВыражениеСГрупп");                  
       result = bsl.getDCSCompletition();
       expect(result.suggestions).to.be.an('array').that.not.is.empty;
-      assert.equal(result.suggestions.some(suggest => suggest.label === "ВЫЧИСЛИТЬВЫРАЖЕНИЕСГРУППИРОВКОЙМАССИВ"), true);
+      assert.equal(result.suggestions.some(suggest => suggest.label === "ВычислитьВыражениеСГруппировкойМассив"), true);
       switchDCSMode();
     });
 
