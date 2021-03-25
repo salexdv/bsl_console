@@ -427,7 +427,7 @@ define([], function () {
         dcs: {
             languageDef: dcs_language,
             completionProvider: {
-                triggerCharacters: ['.', '('],
+                triggerCharacters: ['.', '(', '&'],
                 provideCompletionItems: function (model, position) {
                     let bsl = new bslHelper(model, position);
                     return bsl.getDCSCompletition();

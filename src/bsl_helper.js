@@ -867,11 +867,16 @@ class bslHelper {
 				for (const [ikey, ivalue] of Object.entries(value)) {
 					
 					if (ikey.toLowerCase().startsWith(word)) {
-									
+						
+						let insertText = ikey;
+
+						if (word == '&')
+							insertText = insertText.replace('&', '');
+						
 						suggestions.push({
 							label: ikey,
 							kind: kind,
-							insertText: ikey,
+							insertText: insertText,
 							insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet							
 						});
 					}
