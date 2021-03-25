@@ -715,7 +715,7 @@ class bslHelper {
 					let itemName = refArray[0];
 					let subItemName = refArray[1];
 
-					if (queryMode) {
+					if (queryMode || DCSMode) {
 						if (this.objectHasProperties(bslMetadata, itemName, 'items', subItemName, 'properties'))
 							this.fillSuggestionsForMetadataItem(suggestions, bslMetadata[itemName].items[subItemName]);
 						else if (this.objectHasProperties(bslMetadata, itemName, 'items', subItemName))
