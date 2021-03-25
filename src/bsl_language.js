@@ -327,7 +327,7 @@ define([], function () {
                         '@expressions': 'query.exp',
                         '@default': 'query'
                     }}],
-                    [/".*"/, 'query.string'],
+                    [/".*?"/, 'query.string'],
                     [/&[a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]*/, 'query.param'],
                     [/&/, 'query.param'],
                     [/[()]/, 'query.brackets'],
