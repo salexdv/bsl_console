@@ -317,7 +317,7 @@ define([], function () {
                         {token: 'query'},
                         {token: 'query.operator'}
                     ]],
-                    [/(\.)([a-zA-Z\u0410-\u044F_]+)/, [
+                    [/(\.)([a-zA-Z\u0410-\u044F_0-9]+)/, [
                         {token: 'query'},
                         {token: 'query'}                        
                     ]],
