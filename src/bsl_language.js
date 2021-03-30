@@ -223,6 +223,7 @@ define([], function () {
                     [/[0-9_]*\.[0-9_]+([eE][\-+]?\d+)?[fFdD]?/, 'query.float'],
                     [/[0-9_]+/, 'query.int'],
                     [/\|/, 'query'],
+                    [/\./, 'query'],
                     [/[?!@#$^*_]+/, 'query'],
                     [/"/, { token: 'query.quote', next: '@pop' }],
                 ],
