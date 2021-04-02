@@ -340,6 +340,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     if (endLineNumber <= getLineCount()) {
       let range = new monaco.Range(startLineNumber, startColumn, endLineNumber, endColumn);
       editor.setSelection(range);
+      editor.revealLineInCenterIfOutsideViewport(startLineNumber);
       return true;
     }
     else
