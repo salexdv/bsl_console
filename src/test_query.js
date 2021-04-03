@@ -269,6 +269,63 @@ describe("Проверка автокомлита и подсказок реда
       assert.equal(suggestions.some(suggest => suggest.label === "КоличествоНачальныйОстаток"), false);
     });
 
+    it("проверка подсказки для ссылочного поля, когда поле не выбиралось руками (динамическое обновление ссылок) ", function () {
+      bsl = helper(`ВЫБРАТЬ
+      Товары.СтавкаНДС.
+      ИЗ      
+      Справочник.Товары КАК Товары`, 2, 24);      
+      let suggestions = [];
+      bsl.getQueryFieldsCompletition(suggestions);
+      expect(suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(suggestions.some(suggest => suggest.label === "Наименование"), true);
+    });
+
+    it("проверка подсказки для функций в режим СКД ", function () {
+      switchDCSMode();
+      bsl = helper("ВычислитьВыражениеСГрупп");                  
+      result = bsl.getDCSCompletition();
+      expect(result.suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(result.suggestions.some(suggest => suggest.label === "ВычислитьВыражениеСГруппировкойМассив"), true);
+      switchDCSMode();
+    });
+
+    it("проверка подсказки ключевых слов в режим СКД ", function () {
+      switchDCSMode();
+      bsl = helper("ТОГ");                  
+      result = bsl.getDCSCompletition();
+      expect(result.suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(result.suggestions.some(suggest => suggest.label === "ТОГДА"), true);
+      switchDCSMode();
+    });
+
+    it("проверка подсказки для функции ЗНАЧЕНИЕ в режиме СКД", function () {
+      
+      switchDCSMode();
+      
+      bsl = helper("ЗНАЧЕНИЕ(");
+      let suggestions = [];
+      bsl.getQueryValuesCompletition(suggestions, bslQuery.values, null)
+      expect(suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(suggestions.some(suggest => suggest.label === "Справочник"), true);
+      assert.equal(suggestions.some(suggest => suggest.label === "ВидДвиженияБухгалтерии"), true);
+
+      bsl = helper("ЗНАЧЕНИЕ(Справочник.");
+      suggestions = [];
+      bsl.getQueryValuesCompletition(suggestions, bslQuery.values, null)
+      expect(suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(suggestions.some(suggest => suggest.label === "Товары"), true);
+
+      bsl = helper("ЗНАЧЕНИЕ(Справочник.Товары.");
+      suggestions = [];
+      bsl.getQueryValuesCompletition(suggestions, bslQuery.values, null)
+      expect(suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(suggestions.some(suggest => suggest.label === "ПустаяСсылка"), true);
+      assert.equal(suggestions.some(suggest => suggest.label === "Услуга"), true);
+      
+      switchDCSMode();
+
+    });
+
     switchQueryMode();
         
     mocha.run();

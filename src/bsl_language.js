@@ -153,6 +153,15 @@ define([], function () {
                 'СУММА', 'SUM', 'ТОГДА', 'THEN', 'УБЫВ', 'DESC', 'ЧАС', 'HOUR',
                 'ЧИСЛО', 'NUMBER', 'NULL', 'КОГДА', 'WHEN'
             ],
+            DCSExp: [
+                'ВЫБОР', 'CASE', 'КОГДА', 'WHEN', 'ТОГДА', 'THEN', 'ИЛИ', 'OR',
+                'ИНАЧЕ', 'ELSE', 'ИСТИНА', 'TRUE', 'КОНЕЦ', 'END', 'ЛОЖЬ', 'FALSE'
+            ],
+            DCSFunctions: [
+                'ВЫЧИСЛИТЬ', 'EVAL', 'ВЫЧИСЛИТЬВЫРАЖЕНИЕ', 'EVALEXPRESSION',
+                'ВЫЧИСЛИТЬВЫРАЖЕНИЕСГРУППИРОВКОЙМАССИВ', 'EVALEXPRESSIONWITHGROUPARRAY',
+                'ВЫЧИСЛИТЬВЫРАЖЕНИЕСГРУППИРОВКОЙТАБЛИЦАЗНАЧЕНИЙ', 'EVALEXPRESSIONWITHGROUPVALUETABLE'
+            ],
             queryOperators: /[=><+\-*\/%;,]+/,
             // The main tokenizer for our languages
             tokenizer: {
@@ -214,6 +223,7 @@ define([], function () {
                     [/[0-9_]*\.[0-9_]+([eE][\-+]?\d+)?[fFdD]?/, 'query.float'],
                     [/[0-9_]+/, 'query.int'],
                     [/\|/, 'query'],
+                    [/\./, 'query'],
                     [/[?!@#$^*_]+/, 'query'],
                     [/"/, { token: 'query.quote', next: '@pop' }],
                 ],
@@ -292,7 +302,7 @@ define([], function () {
             tokenPostfix: 'bsl',
             ignoreCase: true,            
             keywords: bsl_language.rules.queryWords,
-            expressions: bsl_language.rules.queryExp,            
+            expressions: bsl_language.rules.queryExp,
             operators: /[=><+\-*\/%;,]+/,
             tokenizer: {
                 root: [                               
@@ -308,7 +318,7 @@ define([], function () {
                         {token: 'query'},
                         {token: 'query.operator'}
                     ]],
-                    [/(\.)([a-zA-Z\u0410-\u044F_]+)/, [
+                    [/(\.)([a-zA-Z\u0410-\u044F_0-9]+)/, [
                         {token: 'query'},
                         {token: 'query'}                        
                     ]],
@@ -318,7 +328,7 @@ define([], function () {
                         '@expressions': 'query.exp',
                         '@default': 'query'
                     }}],
-                    [/".*"/, 'query.string'],
+                    [/".*?"/, 'query.string'],
                     [/&[a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]*/, 'query.param'],
                     [/&/, 'query.param'],
                     [/[()]/, 'query.brackets'],
@@ -333,14 +343,21 @@ define([], function () {
         themes: bsl_language.themes        
     }
 
+    let dcs_language = {
+        id: 'dcs_query',
+        rules: Object.assign({}, query_language.rules)
+    }
+    
+    dcs_language.rules.expressions = bsl_language.rules.queryExp.concat(bsl_language.rules.DCSFunctions);    
+
     languages = {
         bsl: {
             languageDef: bsl_language,
             completionProvider: {
-                triggerCharacters: ['.', '"'],
-                provideCompletionItems: function (model, position) {
+                triggerCharacters: ['.', '"', ' '],
+                provideCompletionItems: function (model, position, context, token) {
                     let bsl = new bslHelper(model, position);
-                    return bsl.getCompletition();
+                    return bsl.getCompletition(context, token);
                 }
             },
             foldingProvider: {
@@ -407,7 +424,39 @@ define([], function () {
                 provider: () => {},                
                 resolver: () => {}
             }
+        },
+        dcs: {
+            languageDef: dcs_language,
+            completionProvider: {
+                triggerCharacters: ['.', '(', '&'],
+                provideCompletionItems: function (model, position) {
+                    let bsl = new bslHelper(model, position);
+                    return bsl.getDCSCompletition();
+                }
+            },
+            foldingProvider: {
+                provideFoldingRanges: () => {}
+            },
+            signatureProvider: {
+                signatureHelpTriggerCharacters: ['(', ','],
+                signatureHelpRetriggerCharacters: [')'],
+                provideSignatureHelp: (model, position) => {
+                    let bsl = new bslHelper(model, position);
+                    return bsl.getDCSSigHelp();
+                }
+            },
+            hoverProvider: {
+                provideHover: () => {}
+            },
+            formatProvider: {
+                provideDocumentFormattingEdits: () => {}
+            },
+            codeLenses: {
+                provider: () => {},                
+                resolver: () => {}
+            }
         }
+
     };
 
 });

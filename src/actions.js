@@ -36,16 +36,20 @@ define(['vs/editor/editor.main'], function () {
             };            
         }
 
-        actions.query_bsl = {
-            label: 'Конструктор запроса...',
-            key: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_D,
-            cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_D),
-            order: 1.3,
-            callback: function (ed) {     
-                sendEvent('EVENT_QUERY_CONSTRUCT', queryMode ? getText() : getQuery());
-                return null;
-            }
-        };
+        if (!DCSMode) {
+
+            actions.query_bsl = {
+                label: 'Конструктор запроса...',
+                key: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_D,
+                cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_D),
+                order: 1.3,
+                callback: function (ed) {     
+                    sendEvent('EVENT_QUERY_CONSTRUCT', queryMode ? getText() : getQuery());
+                    return null;
+                }
+            };
+
+        }
 
         actions.comment_bsl = {
             label: 'Добавить комментарий',
@@ -69,7 +73,7 @@ define(['vs/editor/editor.main'], function () {
             }
         };
         
-        if (!queryMode) {
+        if (!queryMode && !DCSMode) {
 
             actions.formatstr_bsl = {
                 label: 'Конструктор форматной строки...',

@@ -1,6 +1,6 @@
 require.config( { 'vs/nls': { availableLanguages: { '*': "ru" } } } );
 
-define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/editor.main', 'actions', 'bslQuery'], function () {
+define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/editor.main', 'actions', 'bslQuery', 'bslDCS'], function () {
 
   selectionText = '';
   engLang = false;
@@ -9,6 +9,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   generateModificationEvent = false;
   readOnlyMode = false;
   queryMode = false;
+  DCSMode = false;
   version1C = '';
   contextActions = [];
   customHovers = {};
@@ -235,20 +236,24 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
-  switchQueryMode = function() {
-    
-    queryMode = !queryMode;
+  switchLanguageMode = function(mode) {
 
     let queryPostfix = '-query';
     let currentTheme = editor._themeService.getTheme().themeName;
 
-    if (queryMode && currentTheme.indexOf(queryPostfix) == -1)
+    if ((queryMode || DCSMode) && currentTheme.indexOf(queryPostfix) == -1)
       currentTheme += queryPostfix;
-    else if (!queryMode && currentTheme.indexOf(queryPostfix) >= 0)
+    else if (!queryMode && !DCSMode && currentTheme.indexOf(queryPostfix) >= 0)
       currentTheme = currentTheme.replace(queryPostfix, '');
 
-    if (queryMode)
+    if (queryMode && mode == 'query')
       monaco.editor.setModelLanguage(editor.getModel(), "bsl_query");
+    else if (DCSMode && mode == 'dcs')
+      monaco.editor.setModelLanguage(editor.getModel(), "dcs_query");
+    else if (queryMode)
+      monaco.editor.setModelLanguage(editor.getModel(), "bsl_query");
+    else if (DCSMode)
+      monaco.editor.setModelLanguage(editor.getModel(), "dcs_query");
     else
       monaco.editor.setModelLanguage(editor.getModel(), "bsl");
     
@@ -258,17 +263,27 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  switchQueryMode = function() {
+    
+    queryMode = !queryMode;
+    switchLanguageMode('query');
+
+  }
+
+  switchDCSMode = function() {
+
+    DCSMode = !DCSMode;
+    switchLanguageMode('dcs');
+
+  }
+
   switchXMLMode = function() {
     
     let identifier = editor.getModel().getLanguageIdentifier();
     let language_id = 'xml';
 
     if (identifier.language == 'xml') {
-      language_id = queryMode ? 'bsl_query' : 'bsl';    
-      setReadOnly(readOnlyMode);
-    }
-    else {
-      setReadOnly(true);
+      language_id = queryMode ? 'bsl_query' : 'bsl';
     }
 
     monaco.editor.setModelLanguage(editor.getModel(), language_id);
@@ -325,6 +340,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     if (endLineNumber <= getLineCount()) {
       let range = new monaco.Range(startLineNumber, startColumn, endLineNumber, endColumn);
       editor.setSelection(range);
+      editor.revealLineInCenterIfOutsideViewport(startLineNumber);
       return true;
     }
     else
@@ -466,6 +482,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       });
       originalText = '';
     }
+    editor.updateOptions({ readOnly: readOnlyMode });
   }
 
   triggerSuggestions = function() {
@@ -476,11 +493,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   requestMetadata = function(metadata) {
 
-    let request = metadataRequests.get(metadata);
+    let metadata_name = metadata.toLowerCase();
+    let request = metadataRequests.get(metadata_name);
 
     if (!request) {
-      metadataRequests.set(metadata, true);
-      sendEvent("EVENT_GET_METADATA", metadata);
+      metadataRequests.set(metadata_name, true);
+      sendEvent("EVENT_GET_METADATA", metadata_name);
     }
 
   }
@@ -562,6 +580,25 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       if (value.hasOwnProperty('items'))
         bslMetadata[key].items = {};
     }
+
+  }
+
+  hideScroll = function(type) {
+
+    document.getElementsByTagName('body')[0].style[type] = 'hidden';
+    document.getElementById('container').style[type] = 'hidden';
+
+  }
+
+  hideScrollX = function() {
+
+    hideScroll('overflowX');
+
+  }
+
+  hideScrollY = function() {
+
+    hideScroll('overflowY');
 
   }
 

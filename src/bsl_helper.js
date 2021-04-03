@@ -37,6 +37,7 @@ class bslHelper {
 		
 		this.nameField = engLang ? 'name_en': 'name';
 		this.queryNameField = engLang ? 'query_name_en' : 'query_name';
+		this.token = this.getLastToken();
 
 	}
 
@@ -47,6 +48,43 @@ class bslHelper {
 	hasRu(text) {
 
 		return /[\u0410-\u044F]+/.test(text);
+
+	}
+
+	/**
+	 * Returns the token in the current position
+	 * 
+	 * @return {string} name of token
+	 */	
+	getLastToken() {
+
+		let token = '';
+
+		let value = this.model.getValueInRange(new monaco.Range(1, 1, this.lineNumber, this.column));
+		let tokens = monaco.editor.tokenize(value, 'bsl');
+
+		if (tokens.length) {
+			
+			let last_tokens = tokens[tokens.length - 1];
+
+			if (last_tokens.length)
+				token = last_tokens[last_tokens.length - 1].type;
+
+		}
+
+		return token;
+
+	}
+
+	/**
+	 * Determines if the text in current position
+	 * is a literal string or not
+	 * 
+	 * @returns {bool}
+	 */
+	isItStringLiteral() {
+		
+		return !!~this.token.search(/(string|query)/);
 
 	}
 
@@ -238,14 +276,19 @@ class bslHelper {
 				if (match) {
 					
 					let range = new monaco.Range(match.range.startLineNumber, match.range.startColumn - 1, match.range.startLineNumber, match.range.startColumn);
-					let prevChar = this.getLastCharacter(range);
+					
+					if (range.startLineNumber < position.lineNumber || range.startLineNumber == position.lineNumber && range.startColumn < position.column) {
 
-					if (prevChar == '.') {
-						position = new monaco.Position(match.range.startLineNumber, match.range.startColumn);
-						return this.getLastSeparatedWord(position);
+						let prevChar = this.getLastCharacter(range);
+
+						if (prevChar == '.') {
+							position = new monaco.Position(match.range.startLineNumber, match.range.startColumn);
+							return this.getLastSeparatedWord(position);
+						}
+						else
+							word = match.matches[0];
+
 					}
-					else
-						word = match.matches[0];				
 
 				}
 
@@ -672,10 +715,13 @@ class bslHelper {
 					let itemName = refArray[0];
 					let subItemName = refArray[1];
 
-					if (queryMode) {
-						if (this.objectHasProperties(bslMetadata, itemName, 'items', subItemName, 'properties')) {
+					if (queryMode || DCSMode) {
+						if (this.objectHasProperties(bslMetadata, itemName, 'items', subItemName, 'properties'))
 							this.fillSuggestionsForMetadataItem(suggestions, bslMetadata[itemName].items[subItemName]);
-						}
+						else if (this.objectHasProperties(bslMetadata, itemName, 'items', subItemName))
+							requestMetadata(itemName + '.' + subItemName);
+						else if (this.objectHasProperties(bslMetadata, itemName, 'items'))
+							requestMetadata(itemName);						
 					}
 					else {
 						if (itemName == 'classes' || itemName == 'types') {
@@ -821,11 +867,16 @@ class bslHelper {
 				for (const [ikey, ivalue] of Object.entries(value)) {
 					
 					if (ikey.toLowerCase().startsWith(word)) {
-									
+						
+						let insertText = ikey;
+
+						if (word == '&')
+							insertText = insertText.replace('&', '');
+						
 						suggestions.push({
 							label: ikey,
 							kind: kind,
-							insertText: ikey,
+							insertText: insertText,
 							insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet							
 						});
 					}
@@ -959,13 +1010,48 @@ class bslHelper {
 	}
 
 	/**
+	 * Fills array of completition for class names	 
+	 * 
+	 * @param {array} suggestions array of suggestions for provideCompletionItems
+	 * @param {object} data objects from BSL-JSON dictionary	 
+	 */
+	 getClassNamesCompletion(suggestions, data) {
+
+		let emptyString = (this.textBeforePosition.slice(0, -1).trim() === '');
+
+		if (!emptyString) {
+
+			for (const [key, value] of Object.entries(data)) {						
+														
+				let postfix = '';
+				let signatures = this.getConstructSignature(value);
+			
+				if (signatures.length == 0 || (signatures.length == 1 && signatures[0].parameters.length == 0))
+					postfix = '()';
+
+				suggestions.push({
+					label: value[this.nameField],
+					kind: monaco.languages.CompletionItemKind.Constructor,
+					insertText: value[this.nameField] + postfix,
+					insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+					detail: value.description						
+				});	
+
+			}
+
+		}
+
+	 }
+
+	/**
 	 * Fills array of completition for class methods, properties and
 	 * system enumarations
 	 * 
 	 * @param {array} suggestions array of suggestions for provideCompletionItems
 	 * @param {object} data objects from BSL-JSON dictionary
+	 * @param {boolean} onlyQuickAccess allow include in suggestions only elements with special property
 	 */
-	getClassCompletition(suggestions, data) {
+	getClassCompletition(suggestions, data, onlyQuickAccess) {
 
 		let classExists = false;
 		let className = '';
@@ -977,25 +1063,35 @@ class bslHelper {
 			// const match = this.model.findPreviousMatch('(?<!\\/\\/.*)' + exp + '\\s?=\\s?(?:new|новый)\\s+(.*?)(?:\\(|;)', this.position, true, false, null, true);		
 			const match = this.model.findPreviousMatch(exp + '\\s?=\\s?(?:new|новый)\\s+(.*?)(?:\\(|;)', this.position, true, false, null, true);
 
-			if (match) {						
-				className = match.matches[match.matches.length - 1].toLowerCase();
+			if (match) {										
+				className = match.matches[match.matches.length - 1];
+				className = className ? className.toLowerCase() : '';
 			}
 			else {			
 				className = exp;
 			}
 			
-			classExists = this.getClassCompletitionByName(suggestions, data, className);
+			if (onlyQuickAccess && (className == 'new' || className == 'новый')) {
+				
+				this.getClassNamesCompletion(suggestions, data, true)
 
-			if (!classExists) {
-				let unclosed = this.unclosedString(this.textBeforePosition);
-				let regex = null;
-				if (unclosed.string)
-					regex = /(.+?)(?:\.(.*?))?\.?(?:\.(.*?))?\(?$/.exec(unclosed.string.slice(1));
-				else
-					regex = /(.+?)(?:\.(.*?))?\.?(?:\.(.*?))?\(?$/.exec(this.lastExpression);
-				className = regex && 1 < regex.length ? regex[1] : '';
-				if (!this.lastOperator && !this.hasWhitespace)
-					classExists = this.getClassCompletitionByName(suggestions, data, className);
+			}
+			else {
+
+				classExists = this.getClassCompletitionByName(suggestions, data, className);
+
+				if (!classExists) {
+					let unclosed = this.unclosedString(this.textBeforePosition);
+					let regex = null;
+					if (unclosed.string)
+						regex = /(.+?)(?:\.(.*?))?\.?(?:\.(.*?))?\(?$/.exec(unclosed.string.slice(1));
+					else
+						regex = /(.+?)(?:\.(.*?))?\.?(?:\.(.*?))?\(?$/.exec(this.lastExpression);
+					className = regex && 1 < regex.length ? regex[1] : '';
+					if (!this.lastOperator && !this.hasWhitespace)
+						classExists = this.getClassCompletitionByName(suggestions, data, className);
+				}
+
 			}
 
 		}
@@ -1542,19 +1638,24 @@ class bslHelper {
 	}
 
 	/**
-	 * Completition provider
+	 * Completition provider for code-mode
+	 * 
+	 * @param {CompletionContext} context
+	 * @param {CancellationToken} token
 	 * 
 	 * @returns {array} array of completition
 	 */
-	getCompletition() {
+	getCodeCompletition(context, token) {
 
 		let suggestions = [];
 
-		if (customSuggestions.length) {
-			suggestions = customSuggestions.slice();
-			customSuggestions = [];
+		if (context.triggerCharacter && context.triggerCharacter == ' ') {
+			
+			this.getClassCompletition(suggestions, bslGlobals.classes, true);
+
 		}
-		else {
+		else 
+		{
 
 			if (!this.requireType()) {
 
@@ -1564,9 +1665,9 @@ class bslHelper {
 
 					if (!suggestions.length) {
 
-						if (!this.getClassCompletition(suggestions, bslGlobals.classes)) {
+						if (!this.getClassCompletition(suggestions, bslGlobals.classes, false)) {
 
-							if (!this.getClassCompletition(suggestions, bslGlobals.systemEnum)) {
+							if (!this.getClassCompletition(suggestions, bslGlobals.systemEnum, false)) {
 
 								if (!this.getMetadataCompletition(suggestions, bslMetadata)) {
 
@@ -1579,7 +1680,7 @@ class bslHelper {
 										this.getCommonCompletition(suggestions, bslGlobals.keywords, monaco.languages.CompletionItemKind.Keyword, true);
 
 									if (this.requireClass()) {
-										this.getCommonCompletition(suggestions, bslGlobals.classes, monaco.languages.CompletionItemKind.Constructor, false);
+										this.getClassNamesCompletion(suggestions, bslGlobals.classes, false);
 									}
 									else {
 										this.getCommonCompletition(suggestions, bslGlobals.globalfunctions, monaco.languages.CompletionItemKind.Function, true);
@@ -1604,6 +1705,34 @@ class bslHelper {
 			}
 			else {
 				this.getTypesCompletition(suggestions, bslGlobals.types, monaco.languages.CompletionItemKind.Enum);
+			}
+
+		}
+
+		return suggestions;
+
+	}
+
+	/**
+	 * Completition provider
+	 * 
+	 * @param {CompletionContext} context
+	 * @param {CancellationToken} token
+	 * 
+	 * @returns {array} array of completition
+	 */
+	getCompletition(context, token) {
+
+		let suggestions = [];
+
+		if (customSuggestions.length) {
+			suggestions = customSuggestions.slice();
+			customSuggestions = [];
+		}
+		else {
+
+			if (!this.isItStringLiteral()) {				
+				suggestions = this.getCodeCompletition(context, token);
 			}
 
 		}
@@ -1752,28 +1881,17 @@ class bslHelper {
 	}
 
 	/**
-	 * Fills array of completition for query language`s keywords
-	 * and expressions
+	 * Fills array of completition from array	 
 	 * 
 	 * @param {array} suggestions array of suggestions for provideCompletionItems
-	 * @param {object} langDef query language definition
+	 * @param {array} values array of values
 	 * @param {CompletionItemKind} kind - monaco.languages.CompletionItemKind (class, function, constructor etc.)
 	 */
-	getQueryCommonCompletition(suggestions, langDef, kind) {	
+	 getFillSuggestionsFromArray(suggestions, values, kind) {
 
 		let word = this.word;
 
 		if (word) {
-
-			let values = []
-
-			for (const [key, keyword] of Object.entries(langDef.rules.keywords)) {
-				values.push(keyword);
-			}
-
-			for (const [key, keyword] of Object.entries(langDef.rules.expressions)) {
-				values.push(keyword);
-			}
 
 			values.forEach(function (value) {
 
@@ -1801,6 +1919,36 @@ class bslHelper {
 				}
 
 			});
+
+		}
+
+	 }
+
+	/**
+	 * Fills array of completition for query language`s keywords
+	 * and expressions
+	 * 
+	 * @param {array} suggestions array of suggestions for provideCompletionItems
+	 * @param {object} langDef query language definition
+	 * @param {CompletionItemKind} kind - monaco.languages.CompletionItemKind (class, function, constructor etc.)
+	 */
+	getQueryCommonCompletition(suggestions, langDef, kind) {	
+
+		let word = this.word;
+
+		if (word) {
+
+			let values = []
+
+			for (const [key, keyword] of Object.entries(langDef.rules.keywords)) {
+				values.push(keyword);
+			}
+
+			for (const [key, keyword] of Object.entries(langDef.rules.expressions)) {
+				values.push(keyword);
+			}
+
+			this.getFillSuggestionsFromArray(suggestions, values, kind);
 
 		}
 
@@ -2117,11 +2265,93 @@ class bslHelper {
 	}
 
 	/**
+	 * Updates context refs for chain of fields like
+	 * Номенклатура.НоменклатурнаяГруппа.Родитель.СпособУчетаНДС. <- there
+	 * It's nessasary for autocomplete complex fields in existing query
+	 * 
+	 * @param {array} suggestions array of suggestions for provideCompletionItems
+	 * @param {bool} allowChain allow or not call chain completition (to avoid looping)
+	 */
+	getQueryFieldsChainCompletion(suggestions) {
+
+		let match = this.model.findMatches('[a-zA-Z0-9\u0410-\u044F]+', new monaco.Range(this.lineNumber, 1, this.lineNumber, this.column), true, false, null, true);
+		
+		if (match.length) {
+
+			let back_pos = this.position;
+			let back_exp = this.lastRawExpression;
+
+			let prev_suggestions = [];
+
+			for (let i = 0; i < match.length; i++) {
+
+				let field = match[i];
+				let field_name = field.matches[0].toLowerCase();
+				let field_range = field.range;
+
+				this.position = new monaco.Position(this.lineNumber, field_range.endColumn + 1);
+				
+				if (i == 0) {
+					this.lastRawExpression = field_name; 
+					this.getQueryFieldsCompletition(prev_suggestions, false);					
+				}
+				else {
+					
+					let command = false;
+					let suggest_idx = 0;
+
+					while (suggest_idx < prev_suggestions.length && !command) {
+						
+						let suggestion = prev_suggestions[suggest_idx];
+						
+						if (suggestion.insertText.toLowerCase() == field_name && suggestion.command)
+							command = suggestion.command;
+
+						suggest_idx++;
+
+					}					
+					
+					prev_suggestions = [];
+
+					if (command && command.arguments.length) {
+					
+						let command_context = command.arguments[0];
+					
+						if (command_context.hasOwnProperty('data')) {							
+					
+							let lineContextData = contextData.get(this.position.lineNumber);
+					
+							if (!lineContextData) {
+								contextData.set(this.position.lineNumber, new Map());
+							}
+
+							lineContextData = contextData.get(this.position.lineNumber);
+							lineContextData.set(field_name, command_context.data);
+							this.getRefCompletition(prev_suggestions);
+
+						}
+
+					}
+
+				}
+
+			}
+
+			this.position = back_pos;
+			this.lastRawExpression = back_exp;
+			this.getRefCompletition(suggestions);
+
+		}		
+
+	}
+
+	/**
 	 * Fills array of completition for fields of querie's table
 	 * 
-	 * @param {array} suggestions array of suggestions for provideCompletionItems	 
+	 * @param {array} suggestions array of suggestions for provideCompletionItems
+	 * @param {bool} allowChain allow or not call chain completition (to avoid looping)
 	 */
-	getQueryFieldsCompletition(suggestions) {
+	getQueryFieldsCompletition(suggestions, allowChain = true) {
 
 		if (this.getLastCharacter() == '.') {
 			
@@ -2161,7 +2391,10 @@ class bslHelper {
 
 					}
 
-				}				
+				}
+
+				if (!suggestions.length && allowChain)
+					this.getQueryFieldsChainCompletion(suggestions);
 
 			}
 			
@@ -2493,6 +2726,11 @@ class bslHelper {
 				let position = new monaco.Position(startMatch.range.startLineNumber, startMatch.range.startColumn);
 				let fromMatch = this.model.findNextMatch(template, position, true);
 
+				if (!fromMatch) {
+					template = '(?:из|from)\\s+(?:(?:.|\\n|\\r)*?)\\s*(?:\\s|\\t)*$';
+					fromMatch = this.model.findNextMatch(template, position, true);
+				}
+
 				if (fromMatch && fromMatch.range.startLineNumber < startMatch.range.startLineNumber) {								
 					// This is loops to the beginning. Trying another template
 					fromMatch = this.model.findNextMatch('(?:из|from)\\s+(?:(?:.|\\n|\\r)+)$', position, true);
@@ -2586,6 +2824,39 @@ class bslHelper {
 				
 				this.getQueryRefCompletition(suggestions, monaco.languages.CompletionItemKind.Enum);
 
+			}
+
+		}
+		else {
+			
+			this.getQueryValuesCompletition(suggestions, bslQuery.values, monaco.languages.CompletionItemKind.Enum);
+
+		}
+
+		if (suggestions.length)
+			return { suggestions: suggestions }
+		else
+			return [];
+
+	}
+
+	/**
+	 * Completition provider for DCS language	 
+	 * 
+	 * @returns {array} array of completition
+	 */
+	 getDCSCompletition() {
+
+		let suggestions = [];
+
+		if (!this.requireQueryValue()) {
+
+			if (this.lastOperator != '"') {
+				this.getFillSuggestionsFromArray(suggestions, languages.bsl.languageDef.rules.DCSExp, monaco.languages.CompletionItemKind.Module);
+				this.getCommonCompletition(suggestions, bslDCS.functions, monaco.languages.CompletionItemKind.Function, true);
+				this.getCustomObjectsCompletition(suggestions, bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
+				this.getRefCompletition(suggestions);
+				this.getSnippets(suggestions, DCSSnippets);
 			}
 
 		}
@@ -3053,6 +3324,27 @@ class bslHelper {
 			
 			let helper = this.getCommonSigHelp(bslQuery.functions);
 			
+			if (helper)
+				return new SignatureHelpResult(helper);
+
+		}
+
+	}
+
+	/**
+ 	 * Signature help provider for query language
+ 	 * 
+ 	 * @returns {object} helper
+ 	 */
+	getDCSSigHelp() {
+
+		if (this.lastOperator != ')') {
+
+			let helper = this.getCommonSigHelp(bslDCS.functions);
+
+			if (!helper)
+				helper = this.getCommonSigHelp(bslQuery.functions);
+
 			if (helper)
 				return new SignatureHelpResult(helper);
 
