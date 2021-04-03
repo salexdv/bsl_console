@@ -1010,6 +1010,45 @@ class bslHelper {
 	}
 
 	/**
+	 * Fills array of completition for class names	 
+	 * 
+	 * @param {array} suggestions array of suggestions for provideCompletionItems
+	 * @param {object} data objects from BSL-JSON dictionary
+	 * @param {boolean} onlyQuickAccess allow include in suggestions only elements with special property
+	 */
+	 getClassNamesCompletion(suggestions, data, onlyQuickAccess) {
+
+		let emptyString = (this.textBeforePosition.slice(0, -1).trim() === '');
+
+		if (!emptyString) {
+
+			for (const [key, value] of Object.entries(data)) {						
+						
+				if (!onlyQuickAccess || value.hasOwnProperty('quick_access')) {
+				
+					let postfix = '';
+					let signatures = this.getConstructSignature(value);
+				
+					if (signatures.length == 0 || (signatures.length == 1 && signatures[0].parameters.length == 0))
+						postfix = '()';
+
+					suggestions.push({
+						label: value[this.nameField],
+						kind: monaco.languages.CompletionItemKind.Constructor,
+						insertText: value[this.nameField] + postfix,
+						insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+						detail: value.description						
+					});	
+
+				}
+
+			}
+
+		}
+
+	 }
+
+	/**
 	 * Fills array of completition for class methods, properties and
 	 * system enumarations
 	 * 
@@ -1036,18 +1075,27 @@ class bslHelper {
 				className = exp;
 			}
 			
-			classExists = this.getClassCompletitionByName(suggestions, data, className);
+			if (className == 'new' || className == 'новый') {
+				
+				this.getClassNamesCompletion(suggestions, data, true)
 
-			if (!classExists) {
-				let unclosed = this.unclosedString(this.textBeforePosition);
-				let regex = null;
-				if (unclosed.string)
-					regex = /(.+?)(?:\.(.*?))?\.?(?:\.(.*?))?\(?$/.exec(unclosed.string.slice(1));
-				else
-					regex = /(.+?)(?:\.(.*?))?\.?(?:\.(.*?))?\(?$/.exec(this.lastExpression);
-				className = regex && 1 < regex.length ? regex[1] : '';
-				if (!this.lastOperator && !this.hasWhitespace)
-					classExists = this.getClassCompletitionByName(suggestions, data, className);
+			}
+			else {
+
+				classExists = this.getClassCompletitionByName(suggestions, data, className);
+
+				if (!classExists) {
+					let unclosed = this.unclosedString(this.textBeforePosition);
+					let regex = null;
+					if (unclosed.string)
+						regex = /(.+?)(?:\.(.*?))?\.?(?:\.(.*?))?\(?$/.exec(unclosed.string.slice(1));
+					else
+						regex = /(.+?)(?:\.(.*?))?\.?(?:\.(.*?))?\(?$/.exec(this.lastExpression);
+					className = regex && 1 < regex.length ? regex[1] : '';
+					if (!this.lastOperator && !this.hasWhitespace)
+						classExists = this.getClassCompletitionByName(suggestions, data, className);
+				}
+
 			}
 
 		}
@@ -1596,60 +1644,73 @@ class bslHelper {
 	/**
 	 * Completition provider for code-mode
 	 * 
+	 * @param {CompletionContext} context
+	 * @param {CancellationToken} token
+	 * 
 	 * @returns {array} array of completition
 	 */
-	getCodeCompletition() {
+	getCodeCompletition(context, token) {
 
 		let suggestions = [];
 
-		if (!this.requireType()) {
+		if (context.triggerCharacter && context.triggerCharacter == ' ') {
+			
+			this.getClassCompletition(suggestions, bslGlobals.classes);
 
-			if (this.lastOperator != '"') {
+		}
+		else 
+		{
 
-				this.getRefCompletition(suggestions);
+			if (!this.requireType()) {
 
-				if (!suggestions.length) {
+				if (this.lastOperator != '"') {
 
-					if (!this.getClassCompletition(suggestions, bslGlobals.classes)) {
+					this.getRefCompletition(suggestions);
 
-						if (!this.getClassCompletition(suggestions, bslGlobals.systemEnum)) {
+					if (!suggestions.length) {
 
-							if (!this.getMetadataCompletition(suggestions, bslMetadata)) {
+						if (!this.getClassCompletition(suggestions, bslGlobals.classes)) {
 
-								if (!suggestions.length)
-									this.getVariablesCompetition(suggestions);
+							if (!this.getClassCompletition(suggestions, bslGlobals.systemEnum)) {
 
-								if (engLang)
-									this.getCommonCompletition(suggestions, bslGlobals.keywords, monaco.languages.CompletionItemKind.Keyword, true);
-								else
-									this.getCommonCompletition(suggestions, bslGlobals.keywords, monaco.languages.CompletionItemKind.Keyword, true);
+								if (!this.getMetadataCompletition(suggestions, bslMetadata)) {
 
-								if (this.requireClass()) {
-									this.getCommonCompletition(suggestions, bslGlobals.classes, monaco.languages.CompletionItemKind.Constructor, false);
+									if (!suggestions.length)
+										this.getVariablesCompetition(suggestions);
+
+									if (engLang)
+										this.getCommonCompletition(suggestions, bslGlobals.keywords, monaco.languages.CompletionItemKind.Keyword, true);
+									else
+										this.getCommonCompletition(suggestions, bslGlobals.keywords, monaco.languages.CompletionItemKind.Keyword, true);
+
+									if (this.requireClass()) {
+										this.getClassNamesCompletion(suggestions, bslGlobals.classes, false);										
+									}
+									else {
+										this.getCommonCompletition(suggestions, bslGlobals.globalfunctions, monaco.languages.CompletionItemKind.Function, true);
+										this.getCommonCompletition(suggestions, bslGlobals.globalvariables, monaco.languages.CompletionItemKind.Class, true);
+										this.getCommonCompletition(suggestions, bslGlobals.systemEnum, monaco.languages.CompletionItemKind.Enum, false);
+										this.getCommonCompletition(suggestions, bslGlobals.customFunctions, monaco.languages.CompletionItemKind.Function, true);
+										this.getCommonCompletition(suggestions, bslMetadata.commonModules, monaco.languages.CompletionItemKind.Module, true);
+										this.getCustomObjectsCompletition(suggestions, bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
+									}
+
+									this.getSnippets(suggestions, snippets);
+
 								}
-								else {
-									this.getCommonCompletition(suggestions, bslGlobals.globalfunctions, monaco.languages.CompletionItemKind.Function, true);
-									this.getCommonCompletition(suggestions, bslGlobals.globalvariables, monaco.languages.CompletionItemKind.Class, true);
-									this.getCommonCompletition(suggestions, bslGlobals.systemEnum, monaco.languages.CompletionItemKind.Enum, false);
-									this.getCommonCompletition(suggestions, bslGlobals.customFunctions, monaco.languages.CompletionItemKind.Function, true);
-									this.getCommonCompletition(suggestions, bslMetadata.commonModules, monaco.languages.CompletionItemKind.Module, true);
-									this.getCustomObjectsCompletition(suggestions, bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
-								}
-
-								this.getSnippets(suggestions, snippets);
 
 							}
 
 						}
-
 					}
+
 				}
 
 			}
+			else {
+				this.getTypesCompletition(suggestions, bslGlobals.types, monaco.languages.CompletionItemKind.Enum);
+			}
 
-		}
-		else {
-			this.getTypesCompletition(suggestions, bslGlobals.types, monaco.languages.CompletionItemKind.Enum);
 		}
 
 		return suggestions;
@@ -1659,9 +1720,12 @@ class bslHelper {
 	/**
 	 * Completition provider
 	 * 
+	 * @param {CompletionContext} context
+	 * @param {CancellationToken} token
+	 * 
 	 * @returns {array} array of completition
 	 */
-	getCompletition() {
+	getCompletition(context, token) {
 
 		let suggestions = [];
 
@@ -1672,7 +1736,7 @@ class bslHelper {
 		else {
 
 			if (!this.isItStringLiteral()) {				
-				suggestions = this.getCodeCompletition();
+				suggestions = this.getCodeCompletition(context, token);
 			}
 
 		}

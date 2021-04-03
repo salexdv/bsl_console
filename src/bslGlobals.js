@@ -6439,6 +6439,7 @@ define([], function () {
                 "name": "Запрос",
                 "name_en": "Query",
                 "description": "Предназначен для выполнения запросов к базе данных",
+                "quick_access": "true",
                 "properties": {
                     "Параметры": {
                         "name": "Параметры",

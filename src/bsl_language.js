@@ -354,10 +354,10 @@ define([], function () {
         bsl: {
             languageDef: bsl_language,
             completionProvider: {
-                triggerCharacters: ['.', '"'],
-                provideCompletionItems: function (model, position) {
+                triggerCharacters: ['.', '"', ' '],
+                provideCompletionItems: function (model, position, context, token) {
                     let bsl = new bslHelper(model, position);
-                    return bsl.getCompletition();
+                    return bsl.getCompletition(context, token);
                 }
             },
             foldingProvider: {
