@@ -1054,8 +1054,9 @@ class bslHelper {
 	 * 
 	 * @param {array} suggestions array of suggestions for provideCompletionItems
 	 * @param {object} data objects from BSL-JSON dictionary
+	 * @param {boolean} onlyQuickAccess allow include in suggestions only elements with special property
 	 */
-	getClassCompletition(suggestions, data) {
+	getClassCompletition(suggestions, data, onlyQuickAccess) {
 
 		let classExists = false;
 		let className = '';
@@ -1075,7 +1076,7 @@ class bslHelper {
 				className = exp;
 			}
 			
-			if (className == 'new' || className == 'новый') {
+			if (onlyQuickAccess && (className == 'new' || className == 'новый')) {
 				
 				this.getClassNamesCompletion(suggestions, data, true)
 
@@ -1655,7 +1656,7 @@ class bslHelper {
 
 		if (context.triggerCharacter && context.triggerCharacter == ' ') {
 			
-			this.getClassCompletition(suggestions, bslGlobals.classes);
+			this.getClassCompletition(suggestions, bslGlobals.classes, true);
 
 		}
 		else 
@@ -1669,9 +1670,9 @@ class bslHelper {
 
 					if (!suggestions.length) {
 
-						if (!this.getClassCompletition(suggestions, bslGlobals.classes)) {
+						if (!this.getClassCompletition(suggestions, bslGlobals.classes, false)) {
 
-							if (!this.getClassCompletition(suggestions, bslGlobals.systemEnum)) {
+							if (!this.getClassCompletition(suggestions, bslGlobals.systemEnum, false)) {
 
 								if (!this.getMetadataCompletition(suggestions, bslMetadata)) {
 
@@ -1684,7 +1685,7 @@ class bslHelper {
 										this.getCommonCompletition(suggestions, bslGlobals.keywords, monaco.languages.CompletionItemKind.Keyword, true);
 
 									if (this.requireClass()) {
-										this.getClassNamesCompletion(suggestions, bslGlobals.classes, false);										
+										this.getClassNamesCompletion(suggestions, bslGlobals.classes, false);
 									}
 									else {
 										this.getCommonCompletition(suggestions, bslGlobals.globalfunctions, monaco.languages.CompletionItemKind.Function, true);
