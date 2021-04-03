@@ -1013,8 +1013,7 @@ class bslHelper {
 	 * Fills array of completition for class names	 
 	 * 
 	 * @param {array} suggestions array of suggestions for provideCompletionItems
-	 * @param {object} data objects from BSL-JSON dictionary
-	 * @param {boolean} onlyQuickAccess allow include in suggestions only elements with special property
+	 * @param {object} data objects from BSL-JSON dictionary	 
 	 */
 	 getClassNamesCompletion(suggestions, data) {
 
