@@ -1016,31 +1016,27 @@ class bslHelper {
 	 * @param {object} data objects from BSL-JSON dictionary
 	 * @param {boolean} onlyQuickAccess allow include in suggestions only elements with special property
 	 */
-	 getClassNamesCompletion(suggestions, data, onlyQuickAccess) {
+	 getClassNamesCompletion(suggestions, data) {
 
 		let emptyString = (this.textBeforePosition.slice(0, -1).trim() === '');
 
 		if (!emptyString) {
 
 			for (const [key, value] of Object.entries(data)) {						
-						
-				if (!onlyQuickAccess || value.hasOwnProperty('quick_access')) {
-				
-					let postfix = '';
-					let signatures = this.getConstructSignature(value);
-				
-					if (signatures.length == 0 || (signatures.length == 1 && signatures[0].parameters.length == 0))
-						postfix = '()';
+														
+				let postfix = '';
+				let signatures = this.getConstructSignature(value);
+			
+				if (signatures.length == 0 || (signatures.length == 1 && signatures[0].parameters.length == 0))
+					postfix = '()';
 
-					suggestions.push({
-						label: value[this.nameField],
-						kind: monaco.languages.CompletionItemKind.Constructor,
-						insertText: value[this.nameField] + postfix,
-						insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-						detail: value.description						
-					});	
-
-				}
+				suggestions.push({
+					label: value[this.nameField],
+					kind: monaco.languages.CompletionItemKind.Constructor,
+					insertText: value[this.nameField] + postfix,
+					insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+					detail: value.description						
+				});	
 
 			}
 
