@@ -602,6 +602,55 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  getTokenFromPosition = function(position) {
+
+    let bsl = new bslHelper(editor.getModel(), position);
+    return bsl.getLastToken();
+
+  }
+
+  getLastToken = function() {
+
+    return getTokenFromPosition(editor.getPosition());
+
+  }
+
+  checkNewStringLine = function () {
+
+    if (!queryMode && !DCSMode) {
+
+      const model = editor.getModel();
+      const position = editor.getPosition();
+      const line = position.lineNumber;
+      const length = model.getLineLength(line);
+      const expression = model.getValueInRange(new monaco.Range(line, position.column, line, length + 1));
+      const column = model.getLineLastNonWhitespaceColumn(line - 1);
+      const char = model.getValueInRange(new monaco.Range(line - 1, column - 1, line - 1, column));
+      const token = getTokenFromPosition(new monaco.Position(line - 1, column));
+
+      if (0 <= token.indexOf('string.invalid') || 0 <= token.indexOf('query') || char == '|') {
+
+        if (token != 'query.quotebsl' || char == '|') {
+
+          const range = new monaco.Range(line, position.column, line, length + 2);
+
+          let operation = {
+            range: range,
+            text: '|' + expression,
+            forceMoveMarkers: true
+          };
+
+          editor.executeEdits('nql', [operation]);
+          editor.setPosition(new monaco.Position(line, position.column + 1));
+
+        }
+
+      }
+
+    }
+
+  }
+
   editor = undefined;
 
   // Register languages
@@ -683,5 +732,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   });
   
+  editor.onDidType(text => {
+
+    if (text === '\n') {
+      checkNewStringLine();
+    }
+
+  });
 
 });

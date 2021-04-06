@@ -197,7 +197,7 @@ define([], function () {
                         {token: 'query.keyword'}                        
                     ]],
                     [/"([^"\\]|\\.)*$/, 'string.invalid'],
-                    [/["|]/, { token: 'string.quote', next: '@string' }],
+                    [/["|]/, { token: 'string.invalid', next: '@string' }],
                     [/\$\@"/, { token: 'string.quote', next: '@litinterpstring' }],
                     [/\@"/, { token: 'string.quote', next: '@litstring' }],
                     [/\$"/, { token: 'string.quote', next: '@interpolatedstring' }],
