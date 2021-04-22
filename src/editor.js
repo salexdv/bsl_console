@@ -18,6 +18,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   customSuggestions = [];
   contextMenuEnabled = false;
   err_tid = 0;
+  suggestObserver = null;
 
   reserMark = function() {
 
@@ -651,6 +652,71 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  function getSuggestWidgetRows(element) {
+
+    let rows = [];
+
+    for (let i = 0; i < element.parentElement.childNodes.length; i++) {              
+      
+      let row = element.parentElement.childNodes[i];
+      
+      if (row.classList.contains('monaco-list-row'))
+        rows.push(row.getAttribute('aria-label'));
+
+    }
+
+    return rows;
+
+  }
+
+  enableSuggestActivationEvent = function (enabled) {
+
+    if (suggestObserver != null) {
+      suggestObserver.disconnect();
+      suggestObserver = null;
+    }
+
+    if (enabled) {
+
+      suggestObserver = new MutationObserver(function (mutations) {        
+      
+        mutations.forEach(function (mutation) {      
+          
+          if (mutation.target.classList.contains('monaco-list-rows') && mutation.addedNodes.length) {
+              
+              let element = mutation.addedNodes[0];
+    
+              if (element.classList.contains('monaco-list-row') && element.classList.contains('focused')) {
+                
+                let bsl = new bslHelper(editor.getModel(), editor.getPosition());		
+    
+                eventParams = {
+                  current_word: bsl.word,
+                  last_word: bsl.lastRawExpression,
+                  last_expression: bsl.lastExpression,              
+                  focused: element.getAttribute('aria-label'),
+                  rows: getSuggestWidgetRows(element)              
+                }
+                
+                sendEvent('EVENT_ON_ACTIVATE_SUGGEST_ROW', eventParams);
+    
+              }
+            
+    
+          }
+        })
+        
+      });
+    
+      suggestObserver.observe(document, {
+        childList: true,
+        subtree: true,    
+      });
+
+    }
+
+  }
+
   editor = undefined;
 
   // Register languages
@@ -685,7 +751,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         theme: "bsl-white",
         value: getCode(),
         language: language.id,
-        contextmenu: true,
+        contextmenu: false,
         wordBasedSuggestions: false,
         customOptions: true
       });
@@ -739,5 +805,5 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     }
 
   });
-
+  
 });
