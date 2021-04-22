@@ -20,6 +20,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   err_tid = 0;
   suggestObserver = null;
   generateBeforeShowSuggestEvent = false;
+  generateSelectSuggestEvent = false;
 
   reserMark = function() {
 
@@ -670,7 +671,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
-  genarateEventWithSuggestData = function(eventName, suggestRows, trigger, focused) {
+  genarateEventWithSuggestData = function(eventName, suggestRows, trigger, extra) {
 
     let bsl = new bslHelper(editor.getModel(), editor.getPosition());		
 
@@ -678,10 +679,14 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       trigger: trigger,
       current_word: bsl.word,
       last_word: bsl.lastRawExpression,
-      last_expression: bsl.lastExpression,              
-      focused: focused,
+      last_expression: bsl.lastExpression,                    
       rows: suggestRows              
     }
+
+    if (eventName == 'EVENT_ON_ACTIVATE_SUGGEST_ROW') 
+      eventParams['focused'] = extra;
+    else if (eventName == 'EVENT_ON_SELECT_SUGGEST_ROW') 
+      eventParams['selected'] = extra;
     
     sendEvent(eventName, eventParams);
 
@@ -727,6 +732,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   enableBeforeShowSuggestEvent = function(enabled) {
     
     generateBeforeShowSuggestEvent = enabled;
+
+  }
+
+  enableSelectSuggestEvent = function(enabled) {
+    
+    generateSelectSuggestEvent = enabled;
 
   }
 
@@ -808,6 +819,14 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     
     if (e.code == 'ArrowUp' && editor.getPosition().lineNumber == 1)    
       scrollToTop();
+    else if (e.code == 'Enter' && generateSelectSuggestEvent) {      
+      let element = document.querySelector('.monaco-list-row.focused');
+      if (element) {
+        let rows = getSuggestWidgetRows(element);
+        genarateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', rows, 'selection', element.getAttribute('aria-label'));
+      }
+    }
+    
 
   });
 

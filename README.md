@@ -70,6 +70,7 @@
 | [`enableModificationEvent`](docs/modification_event.md) | Включает/выключает генерацию события, возникающего при изменении содержимого редактора|
 | [`enableSuggestActivationEvent`](docs/activation_event.md) | Включает/выключает генерацию события, возникающего активации пункта в списке подсказок|
 | [`enableBeforeShowSuggestEvent`](docs/before_suggest_event.md) | Включает/выключает генерацию события, возникающего перед появлением списка подсказок|
+| [`enableSelectSuggestEvent`](docs/select_suggest_event.md) | Включает/выключает генерацию события, возникающего при выборе пункта из списка подсказок|
 | [`switchQueryMode`](docs/switch_query.md) | Переключение между режимом запроса и режимом редактирования кода                   |
 | [`compare`](docs/compare.md) 	 | Включает/выключает режим сравнения текстов 						                             |
 | `nextDiff`				 	 | Переход с следующему изменению в режиме сравнения											 |
@@ -103,7 +104,9 @@
 | `EVENT_CONTENT_CHANGED`        | При любом изменении содержимого редактора. Вкл/откл через *enableModificationEvent*           |
 | `EVENT_GET_METADATA`       	 | Генерируется при отсутствии метаданных. В параметрах передается имя запрашиваемых метаданных  |
 | `EVENT_XXX`                    | При выборе пользовательского пункта меню. *addContextMenuItem('Мой пункт', 'EVENT_MY')*       |
-| `EVENT_ON_ACTIVATE_SUGGEST_ROW`| При активации пункта в текущем списке подсказок 												 |
+| `EVENT_ON_ACTIVATE_SUGGEST_ROW`| При активации пункта в текущем списке подсказок [(подробнее)](docs/activation_event.md)		 |
+| `EVENT_BEFORE_SHOW_SUGGEST`	 | Перед появлением списка подсказок [(подробнее)](docs/before_suggest_event.md)		  		 |
+| `EVENT_ON_SELECT_SUGGEST_ROW`	 | При выборе пункта из списка подсказок [(подробнее)](docs/select_suggest_event.md)			 |
 
 *Перед началом работы с редактором из 1С Предпрития желательно вызвать функцию инициализации и передать в нее текущую версию платформы.*
 Пример:

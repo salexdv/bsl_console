@@ -1,6 +1,6 @@
-# Функция *enableBeforeShowSuggestEvent*
+# Функция *enableSelectSuggestEvent*
 ## Назначение функции
-Функция включает/выключает генерацию события *EVENT_BEFORE_SHOW_SUGGEST*, которое возникает перед появлением списка подсказок
+Функция включает/выключает генерацию события *EVENT_ON_SELECT_SUGGEST_ROW*, которое возникает при выборе пункта из списка подсказок
 
 ## Параметры функции
 * **enabled** - *boolean*, активность события
@@ -8,10 +8,10 @@
 ## Пример вызова
 ```javascript
 // Включение генерации события
-enableBeforeShowSuggestEvent(true);
+enableSelectSuggestEvent(true);
 
 // Отключение генерации события
-enableBeforeShowSuggestEvent(false);
+enableSelectSuggestEvent(false);
 ```
 
 ## Пример параметров генерируемого события
@@ -20,7 +20,8 @@ enableBeforeShowSuggestEvent(false);
   "trigger": ".",
   "current_word": "",
   "last_word": "авансовыйотчет",
-  "last_expression": "документы.авансовыйотчет.",  
+  "last_expression": "документы.авансовыйотчет.",
+  "selected": "Выбрать",
   "rows": [
     "Выбрать",
     "НайтиПоНомеру",
