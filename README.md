@@ -69,6 +69,7 @@
 | `minimap`  				     | Включает/выключает отображение карты кода                                                     |
 | [`enableModificationEvent`](docs/modification_event.md) | Включает/выключает генерацию события, возникающего при изменении содержимого редактора|
 | [`enableSuggestActivationEvent`](docs/activation_event.md) | Включает/выключает генерацию события, возникающего активации пункта в списке подсказок|
+| [`enableBeforeShowSuggestEvent`](docs/before_suggest_event.md) | Включает/выключает генерацию события, возникающего перед появлением списка подсказок|
 | [`switchQueryMode`](docs/switch_query.md) | Переключение между режимом запроса и режимом редактирования кода                   |
 | [`compare`](docs/compare.md) 	 | Включает/выключает режим сравнения текстов 						                             |
 | `nextDiff`				 	 | Переход с следующему изменению в режиме сравнения											 |
@@ -92,6 +93,7 @@
 | `markError`                    | Индикация ошибки в указанной строке                                                           |
 | [`triggerSuggestions`](docs/trigger_suggestions.md) | Принудительный вызов подсказок											 |
 | [`showCustomSuggestions`](docs/custom_suggestions.md) | Показ пользовательских подсказок									 	 |
+| `hideSuggestionsList` 		 | Скрывает текущий список подсказок									 	 					 |
 
 ## События, генерируемые редактором для 1С:Предприятия
 | Событие                        | Описание                                                                                      |

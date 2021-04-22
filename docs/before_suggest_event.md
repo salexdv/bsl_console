@@ -1,6 +1,6 @@
-# Функция *enableSuggestActivationEvent*
+# Функция *enableBeforeShowSuggestEvent*
 ## Назначение функции
-Функция включает/выключает генерацию события *EVENT_ON_ACTIVATE_SUGGEST_ROW*, которое возникает при активации пункта в текущем списке подсказок
+Функция включает/выключает генерацию события *EVENT_BEFORE_SHOW_SUGGEST*, которое возникает перед появлением списка подсказок
 
 ## Параметры функции
 * **enabled** - *boolean*, активность события
@@ -8,16 +8,16 @@
 ## Пример вызова
 ```javascript
 // Включение генерации события
-enableSuggestActivationEvent(true);
+enableBeforeShowSuggestEvent(true);
 
 // Отключение генерации события
-enableSuggestActivationEvent(false);
+enableBeforeShowSuggestEvent(false);
 ```
 
 ## Пример параметров генерируемого события
 ```json
 {
-  "trigger": "focus",
+  "trigger": ".",
   "current_word": "",
   "last_word": "авансовыйотчет",
   "last_expression": "документы.авансовыйотчет.",
