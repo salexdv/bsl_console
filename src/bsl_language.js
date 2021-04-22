@@ -356,8 +356,26 @@ define([], function () {
             completionProvider: {
                 triggerCharacters: ['.', '"', ' '],
                 provideCompletionItems: function (model, position, context, token) {
+                    
+                    let widget = document.querySelector('.suggest-widget');
+                    widget.style.display = '';
+                    widget.style.visibility = '';      
+
                     let bsl = new bslHelper(model, position);
-                    return bsl.getCompletition(context, token);
+                    let completition = bsl.getCompletition(context, token);
+                    
+                    if (generateBeforeShowSuggestEvent) {                
+                        let rows = [];
+                        if (Object.keys(completition).length) {
+                            for (const [key, value] of Object.entries(completition.suggestions)) {
+                                rows.push(value.label);
+                            }                        
+                        }
+                        genarateEventWithSuggestData('EVENT_BEFORE_SHOW_SUGGEST', rows, context.triggerCharacter, '');
+                    }
+
+                    return completition;
+
                 }
             },
             foldingProvider: {

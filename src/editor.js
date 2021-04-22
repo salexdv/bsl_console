@@ -19,6 +19,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   contextMenuEnabled = false;
   err_tid = 0;
   suggestObserver = null;
+  generateBeforeShowSuggestEvent = false;
 
   reserMark = function() {
 
@@ -669,7 +670,24 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
-  enableSuggestActivationEvent = function (enabled) {
+  genarateEventWithSuggestData = function(eventName, suggestRows, trigger, focused) {
+
+    let bsl = new bslHelper(editor.getModel(), editor.getPosition());		
+
+    eventParams = {
+      trigger: trigger,
+      current_word: bsl.word,
+      last_word: bsl.lastRawExpression,
+      last_expression: bsl.lastExpression,              
+      focused: focused,
+      rows: suggestRows              
+    }
+    
+    sendEvent(eventName, eventParams);
+
+  }
+
+  enableSuggestActivationEvent = function(enabled) {
 
     if (suggestObserver != null) {
       suggestObserver.disconnect();
@@ -687,23 +705,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
               let element = mutation.addedNodes[0];
     
               if (element.classList.contains('monaco-list-row') && element.classList.contains('focused')) {
-                
-                let bsl = new bslHelper(editor.getModel(), editor.getPosition());		
-    
-                eventParams = {
-                  current_word: bsl.word,
-                  last_word: bsl.lastRawExpression,
-                  last_expression: bsl.lastExpression,              
-                  focused: element.getAttribute('aria-label'),
-                  rows: getSuggestWidgetRows(element)              
-                }
-                
-                sendEvent('EVENT_ON_ACTIVATE_SUGGEST_ROW', eventParams);
-    
+                let rows = getSuggestWidgetRows(element);
+                genarateEventWithSuggestData('EVENT_ON_ACTIVATE_SUGGEST_ROW', rows, 'focus', element.getAttribute('aria-label'));
               }
-            
-    
+              
           }
+
         })
         
       });
@@ -714,6 +721,20 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       });
 
     }
+
+  }
+
+  enableBeforeShowSuggestEvent = function(enabled) {
+    
+    generateBeforeShowSuggestEvent = enabled;
+
+  }
+
+  hideSuggestionsList = function() {
+
+      let widget = document.querySelector('.suggest-widget');
+      widget.style.display = 'hidden';
+      widget.style.visibility = 'hidden';
 
   }
 
