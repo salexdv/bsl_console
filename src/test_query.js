@@ -61,7 +61,7 @@ describe("Проверка автокомлита и подсказок реда
     
     it("проверка подсказки ключевых слов запроса", function () {
       bsl = helper('Выра');
-      let suggestions = bsl.getQueryCompletition(languages.query.languageDef);
+      let suggestions = bsl.getQueryCompletition();
       expect(suggestions).to.be.an('object');
       expect(suggestions.suggestions).to.be.an('array').that.not.is.empty;
       assert.equal(suggestions.suggestions.some(suggest => suggest.label === "ВЫРАЗИТЬ"), true);
@@ -323,6 +323,22 @@ describe("Проверка автокомлита и подсказок реда
       assert.equal(suggestions.some(suggest => suggest.label === "Услуга"), true);
       
       switchDCSMode();
+
+    });
+
+    it("проверка подсказки функций и ключевых слов запроса в зависимости от версии 1С", function () {
+
+      bsl = helper('Сокр');
+        
+      suggestions = bsl.getQueryCompletition();
+      expect(suggestions).to.be.an('array').that.is.empty;
+
+      init('8.3.20.1')      
+
+      suggestions = bsl.getQueryCompletition();
+      expect(suggestions).to.be.an('object');
+      expect(suggestions.suggestions).to.be.an('array').that.is.not.empty;
+      assert.equal(suggestions.suggestions.some(suggest => suggest.label === "СОКРЛП"), true);
 
     });
 
