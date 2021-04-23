@@ -153,6 +153,9 @@ define([], function () {
                 'СУММА', 'SUM', 'ТОГДА', 'THEN', 'УБЫВ', 'DESC', 'ЧАС', 'HOUR',
                 'ЧИСЛО', 'NUMBER', 'NULL', 'КОГДА', 'WHEN'
             ],
+            queryExp_8_3_20: [
+                'СТРОКА', 'STRING', 'СОКРЛП', 'TRIMALL'
+            ],
             DCSExp: [
                 'ВЫБОР', 'CASE', 'КОГДА', 'WHEN', 'ТОГДА', 'THEN', 'ИЛИ', 'OR',
                 'ИНАЧЕ', 'ELSE', 'ИСТИНА', 'TRUE', 'КОНЕЦ', 'END', 'ЛОЖЬ', 'FALSE'
@@ -211,6 +214,7 @@ define([], function () {
                         cases: {
                             '@queryWords': 'query.keyword',
                             '@queryExp': 'query.exp',
+                            '@queryExp_8_3_20': 'query.exp',
                             '@default': 'query'
                         }
                     }],
@@ -294,6 +298,8 @@ define([], function () {
         }        
     }
 
+    let query_expressions = bsl_language.rules.queryExp.concat(bsl_language.rules.queryExp_8_3_20);
+
     let query_language = {
 
         id: 'bsl_query',
@@ -302,7 +308,7 @@ define([], function () {
             tokenPostfix: 'bsl',
             ignoreCase: true,            
             keywords: bsl_language.rules.queryWords,
-            expressions: bsl_language.rules.queryExp,
+            expressions: query_expressions,
             operators: /[=><+\-*\/%;,]+/,
             tokenizer: {
                 root: [                               
@@ -348,7 +354,8 @@ define([], function () {
         rules: Object.assign({}, query_language.rules)
     }
     
-    dcs_language.rules.expressions = bsl_language.rules.queryExp.concat(bsl_language.rules.DCSFunctions);    
+    let dcs_expressions = query_expressions.concat(bsl_language.rules.DCSFunctions);
+    dcs_language.rules.expressions = dcs_expressions; 
 
     languages = {
         bsl: {

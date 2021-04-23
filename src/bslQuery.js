@@ -426,7 +426,7 @@ define([], function () {
                 }
             }
         },
-        "functions_8.3.20" : {
+        "functions_8_3_20" : {
             "Строка": {
                 "name": "СТРОКА",
                 "name_en": "STRING",

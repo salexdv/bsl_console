@@ -436,10 +436,9 @@ class bslHelper {
 
 		if (word && (allowAtStart || !emptyString)) {
 
+			let values = [];				
 			for (const [key, value] of Object.entries(data)) {
-				
-				let values = [];				
-
+								
 				if (value.hasOwnProperty(this.nameField)) {
 
 					let postfix = '';
@@ -487,20 +486,21 @@ class bslHelper {
 
 				}
 
-				values.forEach(function (value) {
-					if (value.name.toLowerCase().startsWith(word)) {
-						suggestions.push({
-							label: value.name,
-							kind: kind,
-							insertText: value.template ? value.template : value.name + value.postfix,
-							insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-							detail: value.detail,
-							documentation: value.description,
-							command: value.command
-						});
-					}
-				})
 			}
+
+			values.forEach(function (value) {
+				if (value.name.toLowerCase().startsWith(word)) {
+					suggestions.push({
+						label: value.name,
+						kind: kind,
+						insertText: value.template ? value.template : value.name + value.postfix,
+						insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+						detail: value.detail,
+						documentation: value.description,
+						command: value.command
+					});
+				}
+			});
 		}
 
 	}
@@ -1967,20 +1967,16 @@ class bslHelper {
 	 */
 	getQueryFunctions() {
 
-		let functions = bslQuery.functions;
+		let functions = Object.assign({}, bslQuery.functions);
 
 		for (const [key, value] of Object.entries(bslQuery)) {
 
 			if (0 <= key.indexOf('functions_')) {
 
-				let start_ver = key.replace('functions_', '');
+				let start_ver = key.replace('functions_', '').replaceAll('_', '.');
 
 				if (this.currentVersionIsMatch(start_ver)) {
-
-					for (const [fkey, fvalue] of Object.entries(value)) {
-						functions[fkey] = fvalue;
-					}
-
+					Object.assign(functions, value);
 				}
 
 			}
@@ -1992,6 +1988,37 @@ class bslHelper {
 	}
 
 	/**
+ 	 * Returns query expressions depending on current version of 1C
+	 * @param {object} langDef query language definition
+ 	 * @returns {object}
+ 	 */
+	getQueryExpressions(rules) {
+
+		let expressions = [...rules.queryExp];
+
+		for (const [key, value] of Object.entries(rules)) {
+
+			if (0 <= key.indexOf('queryExp_')) {
+
+				let start_ver = key.replace('queryExp_', '').replaceAll('_', '.');
+
+				if (this.currentVersionIsMatch(start_ver)) {
+
+					value.forEach(function (expression) {					
+						expressions.push(expression);
+					});
+
+				}
+
+			}
+
+		}
+
+		return expressions;
+
+	}
+
+	/**
 	 * Fills array of completition for query language`s keywords
 	 * and expressions
 	 * 
@@ -1999,19 +2026,22 @@ class bslHelper {
 	 * @param {object} langDef query language definition
 	 * @param {CompletionItemKind} kind - monaco.languages.CompletionItemKind (class, function, constructor etc.)
 	 */
-	getQueryCommonCompletition(suggestions, langDef, kind) {	
+	getQueryCommonCompletition(suggestions, kind) {	
 
 		let word = this.word;
 
 		if (word) {
 
-			let values = []
+			let values = []			
+			let rules = languages.bsl.languageDef.rules;
 
-			for (const [key, keyword] of Object.entries(langDef.rules.keywords)) {
+			for (const [key, keyword] of Object.entries(rules.queryWords)) {
 				values.push(keyword);
 			}
 
-			for (const [key, keyword] of Object.entries(langDef.rules.expressions)) {
+			let expressions = this.getQueryExpressions(rules);
+			
+			for (const [key, keyword] of Object.entries(expressions)) {
 				values.push(keyword);
 			}
 
@@ -2856,13 +2886,11 @@ class bslHelper {
 	}
 
 	/**
-	 * Completition provider for query language
-	 * 
-	 * @param {object} langDef - query language definition
+	 * Completition provider for query language	
 	 * 
 	 * @returns {array} array of completition
 	 */
-	getQueryCompletition(langDef) {
+	getQueryCompletition() {
 
 		let suggestions = [];
 
@@ -2879,7 +2907,7 @@ class bslHelper {
 						this.getCustomObjectsCompletition(suggestions, bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
 					}
 
-					this.getQueryCommonCompletition(suggestions, langDef, monaco.languages.CompletionItemKind.Module);					
+					this.getQueryCommonCompletition(suggestions, monaco.languages.CompletionItemKind.Module);
 					this.getQueryParamsCompletition(suggestions, monaco.languages.CompletionItemKind.Enum);				
 					this.getQueryFieldsCompletition(suggestions);
 					this.getSnippets(suggestions, querySnippets);
