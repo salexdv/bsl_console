@@ -1964,7 +1964,7 @@ class bslHelper {
 
 		if (this.lastRawExpression.startsWith('&')) {
 		
-			const matches = this.model.findMatches('&(.*?)[\\s\\n,]', true, true, false, null, true)
+			const matches = this.model.findMatches('&([a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]*)[\\s\\n,\)]', true, true, false, null, true)
 
 			for (let idx = 0; idx < matches.length; idx++) {
 
