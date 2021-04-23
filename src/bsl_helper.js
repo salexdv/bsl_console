@@ -1922,7 +1922,74 @@ class bslHelper {
 
 		}
 
-	 }
+	}
+
+	/**
+	 * Compares two versions each other
+	 * @param {string} version1 
+	 * @param {string} version2 
+	 * @returns {int}
+	 */
+	compareVersions(version1, version2) {
+
+		let res = -1;
+
+		let verArr1 = version1.split('.');
+		let verArr2 = version2.split('.');
+
+		let idx = 0;
+
+		for (let idx = 0; idx < 3; idx++) {
+			res = parseInt(verArr1[idx]) - parseInt(verArr2[idx]);
+			if (res != 0)
+				return res;
+		}
+
+		return res;
+
+	}
+
+	/**
+	 * Determines if the current version 1c is bigger or equal
+	 * version from param
+	 * @param {string} version 
+	 * @returns {bool}
+	 */
+	currentVersionIsMatch(version) {
+
+		return 0 <= this.compareVersions(version1C, version);
+
+	}
+
+	/**
+	 * Returns query functions depending on current version of 1C
+	 * @returns {object}
+	 */
+	getQueryFunctions() {
+
+		let functions = bslQuery.functions;
+
+		for (const [key, value] of Object.entries(bslQuery)) {
+
+			if (0 <= key.indexOf('functions_')) {
+
+				let start_ver = key.replace('functions_', '');
+
+				if (this.currentVersionIsMatch(start_ver)) {
+
+					for (const [fkey, fvalue] of Object.entries(value)) {
+						functions[fkey] = fvalue;
+					}
+
+				}
+
+			}
+
+		}
+
+		return functions;
+
+	}
 
 	/**
 	 * Fills array of completition for query language`s keywords
@@ -2806,7 +2873,7 @@ class bslHelper {
 				if (!this.getQuerySourceCompletition(suggestions, monaco.languages.CompletionItemKind.Enum)) {
 
 					if (this.lastOperator != '"') {
-						this.getCommonCompletition(suggestions, bslQuery.functions, monaco.languages.CompletionItemKind.Function, true);
+						this.getCommonCompletition(suggestions, this.getQueryFunctions(), monaco.languages.CompletionItemKind.Function, true);
 						this.getRefCompletition(suggestions);
 						this.getQueryTablesCompletition(suggestions, monaco.languages.CompletionItemKind.Class);
 						this.getCustomObjectsCompletition(suggestions, bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
@@ -3322,7 +3389,8 @@ class bslHelper {
 		
 		if (this.lastOperator != ')' && !this.requireQueryValue()) {
 			
-			let helper = this.getCommonSigHelp(bslQuery.functions);
+			let functions = this.getQueryFunctions();
+			let helper = this.getCommonSigHelp(functions);
 			
 			if (helper)
 				return new SignatureHelpResult(helper);
@@ -3342,8 +3410,10 @@ class bslHelper {
 
 			let helper = this.getCommonSigHelp(bslDCS.functions);
 
-			if (!helper)
-				helper = this.getCommonSigHelp(bslQuery.functions);
+			if (!helper) {
+				let functions = this.getQueryFunctions();
+				helper = this.getCommonSigHelp(functions);
+			}
 
 			if (helper)
 				return new SignatureHelpResult(helper);
