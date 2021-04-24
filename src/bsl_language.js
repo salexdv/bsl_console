@@ -169,7 +169,11 @@ define([], function () {
                 'ВЫЧИСЛИТЬВЫРАЖЕНИЕСГРУППИРОВКОЙМАССИВ', 'EVALEXPRESSIONWITHGROUPARRAY',
                 'ВЫЧИСЛИТЬВЫРАЖЕНИЕСГРУППИРОВКОЙТАБЛИЦАЗНАЧЕНИЙ', 'EVALEXPRESSIONWITHGROUPVALUETABLE',
                 'СТРОКА', 'STRING', 'ACOS', 'ASIN', 'ATAN', 'COS', 'EXP', 'LOG', 'LOG10', 'SIN',
-                'SQRT', 'POW', 'TAN', 'ОКР', 'ROUND', 'ЦЕЛ', 'INT', 'ДЛИНАСТРОКИ', 'STRINGLENGTH'
+                'SQRT', 'POW', 'TAN', 'ОКР', 'ROUND', 'ЦЕЛ', 'INT', 'ДЛИНАСТРОКИ', 'STRINGLENGTH',
+                'СТРОКА', 'STRING', 'СОКРЛП', 'TRIMALL', 'СОКРП', 'TRIMAR', 'СОКРЛ', 'TRIMAL',
+                'ЛЕВ', 'LEFT', 'ПРАВ', 'RIGHT', 'СТРНАЙТИ', 'STRFIND', 'ВРЕГ', 'UPPER', 'НРЕГ',
+                'LOWER', 'СТРЗАМЕНИТЬ', 'STRREPLACE', 'НСТР', 'NSTR'
+
             ],
             queryOperators: /[=><+\-*\/%;,]+/,
             // The main tokenizer for our languages
