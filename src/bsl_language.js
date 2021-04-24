@@ -132,7 +132,8 @@ define([], function () {
                 'СГРУППИРОВАНОПО', 'GROUPEDBY', 'БУЛЕВО', 'BOOLEAN', 'ВОЗР', 'ASC',
                 'ГРУППИРУЮЩИМ', 'GROUPING', 'ЗНАЧЕНИЕ', 'VALUE', 'ИНДЕКСИРОВАТЬ', 'INDEX',
                 'НАБОРАМ', 'SETS', 'ТИП', 'TYPE', 'ТИПЗНАЧЕНИЯ', 'VALUETYPE',
-                'УБЫВ', 'DESC', 'УНИЧТОЖИТЬ', 'DROP'
+                'УБЫВ', 'DESC', 'УНИЧТОЖИТЬ', 'DROP', 'ГРУППИРУЮЩИМ НАБОРАМ',
+                'GROUPING SETS'
             ],
             queryExp: [
                 'АВТОНОМЕРЗАПИСИ', 'RECORDAUTONUMBER', 'В', 'IN', 'ВЫБОР', 'CASE',
