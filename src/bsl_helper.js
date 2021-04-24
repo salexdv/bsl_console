@@ -1963,13 +1963,14 @@ class bslHelper {
 
 	/**
 	 * Returns query functions depending on current version of 1C
+	 * @param {object} bslQueryDef query definition like bslQuery or bslDCS 
 	 * @returns {object}
 	 */
-	getQueryFunctions() {
+	getQueryFunctions(bslQueryDef) {
 
-		let functions = Object.assign({}, bslQuery.functions);
+		let functions = Object.assign({}, bslQueryDef.functions);
 
-		for (const [key, value] of Object.entries(bslQuery)) {
+		for (const [key, value] of Object.entries(bslQueryDef)) {
 
 			if (0 <= key.indexOf('functions_')) {
 
@@ -2901,7 +2902,8 @@ class bslHelper {
 				if (!this.getQuerySourceCompletition(suggestions, monaco.languages.CompletionItemKind.Enum)) {
 
 					if (this.lastOperator != '"') {
-						this.getCommonCompletition(suggestions, this.getQueryFunctions(), monaco.languages.CompletionItemKind.Function, true);
+						let functions = this.getQueryFunctions(bslQuery);
+						this.getCommonCompletition(suggestions, functions, monaco.languages.CompletionItemKind.Function, true);
 						this.getRefCompletition(suggestions);
 						this.getQueryTablesCompletition(suggestions, monaco.languages.CompletionItemKind.Class);
 						this.getCustomObjectsCompletition(suggestions, bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
@@ -2948,7 +2950,8 @@ class bslHelper {
 
 			if (this.lastOperator != '"') {
 				this.getFillSuggestionsFromArray(suggestions, languages.bsl.languageDef.rules.DCSExp, monaco.languages.CompletionItemKind.Module);
-				this.getCommonCompletition(suggestions, bslDCS.functions, monaco.languages.CompletionItemKind.Function, true);
+				let functions = this.getQueryFunctions(bslDCS);
+				this.getCommonCompletition(suggestions, functions, monaco.languages.CompletionItemKind.Function, true);
 				this.getCustomObjectsCompletition(suggestions, bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
 				this.getRefCompletition(suggestions);
 				this.getSnippets(suggestions, DCSSnippets);
@@ -3417,7 +3420,7 @@ class bslHelper {
 		
 		if (this.lastOperator != ')' && !this.requireQueryValue()) {
 			
-			let functions = this.getQueryFunctions();
+			let functions = this.getQueryFunctions(bslQuery);
 			let helper = this.getCommonSigHelp(functions);
 			
 			if (helper)
@@ -3436,10 +3439,11 @@ class bslHelper {
 
 		if (this.lastOperator != ')') {
 
-			let helper = this.getCommonSigHelp(bslDCS.functions);
+			let functions = this.getQueryFunctions(bslDCS);
+			let helper = this.getCommonSigHelp(functions);
 
 			if (!helper) {
-				let functions = this.getQueryFunctions();
+				functions = this.getQueryFunctions(bslQuery);
 				helper = this.getCommonSigHelp(functions);
 			}
 
