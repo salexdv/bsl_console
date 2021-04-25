@@ -708,7 +708,7 @@ define([], function () {
                 "name": "СокрЛ",
                 "name_en": "TrimL",
                 "description": "Отбросывает незначащие пробелы слева",
-                "returns": "Строка",
+                "returns": "Тип: Строка",
                 "signature": {
                     "default": {
                         "СтрокаПараметров": "(Строка): Строка",
@@ -722,7 +722,7 @@ define([], function () {
                 "name": "СокрП",
                 "name_en": "TrimR",
                 "description": "Отбрасывает незначащие пробелы cправа",
-                "returns": "Строка",
+                "returns": "Тип: Строка",
                 "signature": {
                     "default": {
                         "СтрокаПараметров": "(Строка): Строка",
@@ -736,7 +736,7 @@ define([], function () {
                 "name": "СокрЛП",
                 "name_en": "TrimAll",
                 "description": "Отбрасывает незначащие пробелы слева и справа",
-                "returns": "Строка",
+                "returns": "Тип: Строка",
                 "signature": {
                     "default": {
                         "СтрокаПараметров": "(Строка): Строка",
@@ -750,7 +750,7 @@ define([], function () {
                 "name": "Лев",
                 "name_en": "Left",
                 "description": "Получает первые слева символы строк",
-                "returns": "Строка",
+                "returns": "Тип: Строка",
                 "signature": {
                     "default": {
                         "СтрокаПараметров": "(Строка, КоличествоСимволов): Строка",
@@ -765,7 +765,7 @@ define([], function () {
                 "name": "Прав",
                 "name_en": "Right",
                 "description": "Получает первые справа символы строк",
-                "returns": "Строка",
+                "returns": "Тип: Строка",
                 "signature": {
                     "default": {
                         "СтрокаПараметров": "(Строка, КоличествоСимволов): Строка",
