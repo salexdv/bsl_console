@@ -1974,7 +1974,7 @@ class bslHelper {
 
 			if (0 <= key.indexOf('functions_')) {
 
-				let start_ver = key.replace('functions_', '').replaceAll('_', '.');
+				let start_ver = key.replace('functions_', '').replace(/_/g, '.');
 
 				if (this.currentVersionIsMatch(start_ver)) {
 					Object.assign(functions, value);
@@ -2001,7 +2001,7 @@ class bslHelper {
 
 			if (0 <= key.indexOf('queryExp_')) {
 
-				let start_ver = key.replace('queryExp_', '').replaceAll('_', '.');
+				let start_ver = key.replace('queryExp_', '').replace(/_/g, '.');
 
 				if (this.currentVersionIsMatch(start_ver)) {
 
