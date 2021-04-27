@@ -328,17 +328,34 @@ describe("Проверка автокомлита и подсказок реда
 
     it("проверка подсказки функций и ключевых слов запроса в зависимости от версии 1С", function () {
 
+      init('8.3.15.1');
+
       bsl = helper('Сокр');
         
       suggestions = bsl.getQueryCompletition();
       expect(suggestions).to.be.an('array').that.is.empty;
 
-      init('8.3.20.1')      
+      bsl = helper('Групп');
+        
+      suggestions = bsl.getQueryCompletition();
+      expect(suggestions).to.be.an('array').that.is.empty;
+
+      init('8.3.20.1')     
+      
+      bsl = helper('Сокр'); 
 
       suggestions = bsl.getQueryCompletition();
       expect(suggestions).to.be.an('object');
       expect(suggestions.suggestions).to.be.an('array').that.is.not.empty;
       assert.equal(suggestions.suggestions.some(suggest => suggest.label === "СОКРЛП"), true);
+
+      bsl = helper('Групп');
+        
+      suggestions = bsl.getQueryCompletition();
+      expect(suggestions).to.be.an('object');
+      expect(suggestions.suggestions).to.be.an('array').that.is.not.empty;
+      assert.equal(suggestions.suggestions.some(suggest => suggest.label === "ГРУППИРУЮЩИМ"), true);
+      
 
     });
 
