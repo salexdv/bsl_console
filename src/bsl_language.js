@@ -130,10 +130,11 @@ define([], function () {
                 'JOIN', 'ON', 'WHERE', 'GROUP', 'BY', 'HAVING', 'UNION',
                 'ALL', 'ORDER', 'AUTOORDER', 'TOTALS', 'OVERALL', 'ONLY', 'HIERARCHY',
                 'СГРУППИРОВАНОПО', 'GROUPEDBY', 'БУЛЕВО', 'BOOLEAN', 'ВОЗР', 'ASC',
-                'ГРУППИРУЮЩИМ', 'GROUPING', 'ЗНАЧЕНИЕ', 'VALUE', 'ИНДЕКСИРОВАТЬ', 'INDEX',
-                'НАБОРАМ', 'SETS', 'ТИП', 'TYPE', 'ТИПЗНАЧЕНИЯ', 'VALUETYPE',
-                'УБЫВ', 'DESC', 'УНИЧТОЖИТЬ', 'DROP', 'ГРУППИРУЮЩИМ НАБОРАМ',
-                'GROUPING SETS'
+                'ЗНАЧЕНИЕ', 'VALUE', 'ИНДЕКСИРОВАТЬ', 'INDEX', 'ТИП', 'TYPE', 'ТИПЗНАЧЕНИЯ',
+                'VALUETYPE', 'УБЫВ', 'DESC', 'УНИЧТОЖИТЬ', 'DROP'
+            ],
+            queryWords_8_3_16: [
+                'ГРУППИРУЮЩИМ', 'НАБОРАМ', 'GROUPING', 'SETS'
             ],
             queryExp: [
                 'АВТОНОМЕРЗАПИСИ', 'RECORDAUTONUMBER', 'В', 'IN', 'ВЫБОР', 'CASE',
@@ -224,6 +225,7 @@ define([], function () {
                     [/[a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]*/, {
                         cases: {
                             '@queryWords': 'query.keyword',
+                            '@queryWords_8_3_16': 'query.keyword',
                             '@queryExp': 'query.exp',
                             '@queryExp_8_3_20': 'query.exp',
                             '@default': 'query'
@@ -310,6 +312,7 @@ define([], function () {
     }
 
     let query_expressions = bsl_language.rules.queryExp.concat(bsl_language.rules.queryExp_8_3_20);
+    let query_keywords = bsl_language.rules.queryWords.concat(bsl_language.rules.queryWords_8_3_16);
 
     let query_language = {
 
@@ -318,7 +321,7 @@ define([], function () {
             defaultToken: '',
             tokenPostfix: 'bsl',
             ignoreCase: true,            
-            keywords: bsl_language.rules.queryWords,
+            keywords: query_keywords,
             expressions: query_expressions,
             operators: /[=><+\-*\/%;,]+/,
             tokenizer: {

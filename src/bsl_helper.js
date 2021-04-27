@@ -2020,6 +2020,37 @@ class bslHelper {
 	}
 
 	/**
+ 	 * Returns query keywords depending on current version of 1C
+	 * @param {object} langDef query language definition
+ 	 * @returns {object}
+ 	 */
+	 getQueryKeywords(rules) {
+
+		let keywords = [...rules.queryWords];
+
+		for (const [key, value] of Object.entries(rules)) {
+
+			if (0 <= key.indexOf('queryWords_')) {
+
+				let start_ver = key.replace('queryWords_', '').replace(/_/g, '.');
+
+				if (this.currentVersionIsMatch(start_ver)) {
+
+					value.forEach(function (keyword) {					
+						keywords.push(keyword);
+					});
+
+				}
+
+			}
+
+		}
+
+		return keywords;
+
+	}
+
+	/**
 	 * Fills array of completition for query language`s keywords
 	 * and expressions
 	 * 
@@ -2036,12 +2067,12 @@ class bslHelper {
 			let values = []			
 			let rules = languages.bsl.languageDef.rules;
 
-			for (const [key, keyword] of Object.entries(rules.queryWords)) {
+			let keywords = this.getQueryKeywords(rules);
+			for (const [key, keyword] of Object.entries(keywords)) {
 				values.push(keyword);
 			}
 
-			let expressions = this.getQueryExpressions(rules);
-			
+			let expressions = this.getQueryExpressions(rules);			
 			for (const [key, keyword] of Object.entries(expressions)) {
 				values.push(keyword);
 			}
