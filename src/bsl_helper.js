@@ -2,7 +2,7 @@
 /**
  * Class for provideSignatureHelp
  */
-class SignatureHelpResult {
+ class SignatureHelpResult {
 
 	constructor(helper) {
 		this.value = helper;
@@ -764,29 +764,34 @@ class bslHelper {
 	 * 
 	 * @param {array} suggestions the list of suggestions
 	 */
-	getRefCompletition(suggestions) {
+	 getRefCompletitionFromPosition(suggestions, currentPosition, allowLookBehind) {
 		
-		let match = this.model.findPreviousMatch('.', this.position, false);
+		let wordContext = null;
+		let match = this.model.findPreviousMatch('.', currentPosition, false);
 		
 		if (match) {
 
 			let position = new monaco.Position(match.range.startLineNumber, match.range.startColumn);
 
-			if (position.lineNumber = this.lineNumber) {
+			if (position.lineNumber = currentPosition.lineNumber) {
 
 				let lineContextData = contextData.get(position.lineNumber)
 
 				if (lineContextData) {
 
 					let wordUntil = this.model.getWordUntilPosition(position);
-					if (wordUntil.word)
-						this.getRefSuggestions(suggestions, lineContextData.get(wordUntil.word.toLowerCase()))
-					else if (this.lastOperator == ')')
-						this.getRefSuggestions(suggestions, lineContextData.get(this.lastRawExpression))
+					if (wordUntil.word) {
+						wordContext = lineContextData.get(wordUntil.word.toLowerCase());
+						this.getRefSuggestions(suggestions, wordContext)
+					}
+					else if (this.lastOperator == ')') {
+						wordContext = lineContextData.get(this.lastRawExpression);
+						this.getRefSuggestions(suggestions, wordContext)
+					}
 					
 				}
 
-				if (!suggestions.length) {
+				if (!suggestions.length && allowLookBehind) {
 					
 					// 1C does not support positive/negative lookbehind yet
 					//match = this.model.findPreviousMatch('(?<!\\/\\/.*)' + this.lastRawExpression + '\\s?=\\s?.*\\.([^.]*?)\\s?(?:;|\\()', this.position, true, false, null, true);
@@ -799,7 +804,7 @@ class bslHelper {
 					*/
 					
 					// So we have to use 2 rexep to detect last function`s (field`s) reference
-					match = this.model.findPreviousMatch(this.lastRawExpression + '\\s?=\\s?.*', this.position, true, false, null, true);					
+					match = this.model.findPreviousMatch(this.lastRawExpression + '\\s?=\\s?.*', currentPosition, true, false, null, true);					
 			
 					if (match) {
 
@@ -814,8 +819,10 @@ class bslHelper {
 
 							lineContextData = contextData.get(match.range.startLineNumber);
 
-							if (lineContextData) 
-								this.getRefSuggestions(suggestions, lineContextData.get(match.matches[match.matches.length - 1].toLowerCase()));
+							if (lineContextData) {
+								wordContext = lineContextData.get(match.matches[match.matches.length - 1].toLowerCase());
+								this.getRefSuggestions(suggestions, wordContext);
+							}
 								
 						}
 
@@ -823,7 +830,22 @@ class bslHelper {
 				}
 			}
 
-		}		
+		}
+
+		return wordContext;
+
+	}
+
+	/**
+	 * Fills the suggestions for reference-type object
+	 * if a reference was found in the previous position
+	 * 
+	 * @param {array} suggestions the list of suggestions
+	 */
+	getRefCompletition(suggestions) {
+		
+		this.getRefCompletitionFromPosition(suggestions, this.position, true);
+		
 	}
 
 	/**
@@ -1219,6 +1241,73 @@ class bslHelper {
 
 	/**
 	 * Fills array of completition for metadata subitem	like catalog of products
+	 * by it's full definition like Документ.АвансовыйОтчет.НайтиПоНомеру()
+	 * 
+	 * @param {array} suggestions array of suggestions for provideCompletionItems
+	 * @param {object} data objects from BSL-JSON dictionary
+	 * @param {string} metadataName metadata item type
+	 * @param {string} metadataItem metadata item name
+	 * @param {string} metadataFunc metadata item method
+	 * 
+	 * @returns {object} object exists or not and object ref type
+	 */
+	getMetadataItemCompletitionFromFullDefinition(suggestions, data, metadataName, metadataItem, metadataFunc) {
+
+		let itemExists = false;
+		let refType = '';
+		
+		for (const [key, value] of Object.entries(data)) {
+
+			if (value.hasOwnProperty(this.nameField)) {
+
+				if (value[this.nameField].toLowerCase() == metadataName) {
+
+					if (Object.keys(value.items).length) {
+
+						for (const [ikey, ivalue] of Object.entries(value.items)) {
+
+							if (ikey.toLowerCase() == metadataItem) {
+
+								if (ivalue.hasOwnProperty('properties')) {
+
+									let methodDef = this.getMetadataMethodByName(value, metadataFunc);
+									let methodsName = (methodDef && methodDef.hasOwnProperty('ref') && methodDef.ref.indexOf(':obj') != -1) ? 'objMethods' : 'refMethods';
+
+									itemExists = true;
+									this.fillSuggestionsForMetadataItem(suggestions, ivalue);
+									this.getMetadataMethods(suggestions, value, methodsName, key, ikey);
+
+									refType = key + '.' + ikey + (methodsName == 'objMethods' ? '.obj' : '');									
+
+								}
+								else {
+
+									requestMetadata(metadataName.toLowerCase() + '.' + metadataItem.toLowerCase());
+									
+								}
+							}
+
+						}
+
+					}
+					else {
+
+						requestMetadata(metadataName.toLowerCase());
+
+					}
+
+				}
+
+			}
+
+		}
+
+		return {itemExists: itemExists, refType: refType};
+
+	}
+
+	/**
+	 * Fills array of completition for metadata subitem	like catalog of products
 	 * 
 	 * @param {array} suggestions array of suggestions for provideCompletionItems
 	 * @param {object} data objects from BSL-JSON dictionary	 
@@ -1250,52 +1339,9 @@ class bslHelper {
 				let metadataItem = regex && 2 < regex.length ? regex[2] : '';
 				let metadataFunc = regex && 3 < regex.length ? regex[3] : '';
 
-				if (metadataName && metadataItem && metadataFunc) {
-
-					for (const [key, value] of Object.entries(data)) {
-
-						if (value.hasOwnProperty(this.nameField)) {
-
-							if (value[this.nameField].toLowerCase() == metadataName) {
-
-								if (Object.keys(value.items).length) {
-
-									for (const [ikey, ivalue] of Object.entries(value.items)) {
-
-										if (ikey.toLowerCase() == metadataItem) {
-
-											if (ivalue.hasOwnProperty('properties')) {
-
-												let methodDef = this.getMetadataMethodByName(value, metadataFunc);
-												let methodsName = (methodDef && methodDef.hasOwnProperty('ref') && methodDef.ref.indexOf(':obj') != -1) ? 'objMethods' : 'refMethods';
-
-												itemExists = true;
-												this.fillSuggestionsForMetadataItem(suggestions, ivalue);
-												this.getMetadataMethods(suggestions, value, methodsName, key, ikey);
-
-											}
-											else {
-
-												requestMetadata(metadataName.toLowerCase() + '.' + metadataItem.toLowerCase());
-												
-											}
-										}
-
-									}
-
-								}
-								else {
-
-									requestMetadata(metadataName.toLowerCase());
-
-								}
-
-							}
-
-						}
-
-					}
-
+				if (metadataName && metadataItem && metadataFunc) {					
+					let result = this.getMetadataItemCompletitionFromFullDefinition(suggestions, data, metadataName, metadataItem, metadataFunc);
+					itemExists = result.itemExists;
 				}
 			}
 
@@ -1450,6 +1496,245 @@ class bslHelper {
 			metadataExists = this.getMetadataItemCompletition(suggestions, data);
 
 		return metadataExists;
+
+	}
+
+	/**
+	 * Gets call stack for variable
+	 * 
+	 * @param {string} varName name of variable
+	 * @param {IPosition} position the position of variable
+	 * 
+	 * @returns {array} call stack array
+	 */
+	getMetadataStackForVar(varName, position) {
+
+		let stack = [];
+		let pattern_match_count = 4;
+		let match = this.model.findPreviousMatch('(' + varName + '\\s?=\\s?(.*?))\\.(.*)', position, true, false, null, true);
+
+		if (match && match.matches.length == pattern_match_count) {
+
+			if (match.range.startLineNumber < position.lineNumber) {
+				
+				let source_var = match.matches[2];
+				let column = match.range.startColumn + match.matches[1].length;
+
+				stack.push({
+					var: source_var.toLowerCase(),					
+					line: match.range.startLineNumber,
+					previous_ref: true,
+					column: column
+				});
+
+				let source_exp = match.matches[3];
+				let source_arr = source_exp.split('(');				
+				let exp_arr = source_arr[0].split('.');
+
+				for(let i = 0; i < exp_arr.length; i++) {
+					
+					let expression = exp_arr[i];
+					expression = expression.replace(/[;]/g, '');
+					column += expression.length + 1;
+
+					stack.push({
+						var: expression.toLowerCase(),						
+						line: match.range.startLineNumber,
+						previous_ref: false,
+						column: column
+					});
+
+				}				
+				
+				let prev_stack = this.getMetadataStackForVar(source_var, new monaco.Position(position.lineNumber, match.range.startColumn));
+				stack = prev_stack.concat(stack);
+
+			}			
+
+		}
+
+		return stack;
+
+	}
+
+	/**
+	 * Saves context data for variable
+	 * 
+	 * @param {string} expression name of variable
+	 * @param {string} ref type of ref
+	 * @param {int} line number line
+	 * 
+	 * @returns {object} object containing the ref
+	 */
+	setContextDataForRefExpression(expression, ref, line) {
+												
+		let lineContextData = contextData.get(line);
+		
+		if (!lineContextData) {
+			contextData.set(line, new Map());
+		}
+
+		lineContextData = contextData.get(line);
+		let data = { "ref": ref, "sig": null };
+		lineContextData.set(expression, data);
+
+		return data;
+
+	}
+
+	/**
+	 * Saves context data for stack item
+	 * when suggestions list contains it
+	 * 
+	 * @param {object} item item of stack
+	 * @param {array} suggestions array of suggections
+	 * 
+	 * @returns {object} object containing the ref or null
+	 */
+	setContextDataForStackItem(item, suggestions) {
+
+		let exp_name = item.var;		
+
+		for(let i = 0; i < suggestions.length; i++) {
+			
+			let suggestion = suggestions[i];
+
+			if (suggestion.label.toLowerCase() == exp_name) {
+				
+				let command = suggestion.command;
+
+				if (command && command.id =='vs.editor.ICodeEditor:1:saveref') {
+																	
+					return this.setContextDataForRefExpression(exp_name, command.arguments[0].data.ref, item.line);
+
+				}
+				
+			}
+			
+		}
+
+		return null;
+
+	}
+
+	/**
+	 * Fill suggestions from call stack when variable
+	 * define like Спр = Справочники.Номенклатура.НайтиПоКоду
+	 * 
+	 * @param {array} suggestions array of suggestions for provideCompletionItems	 
+	 * @param {array} stack call stack array
+	 * 
+	 * @returns {bool} object exists or not
+	 */
+	getMetadataStackCompletitionFromFullDefinition(suggestions, stack) {
+
+		let itemExists;
+		let min_stack_size  = 4; // min stack size when variable define like Спр = Справочники.Номенклатура.НайтиПоКоду
+		
+		if (min_stack_size < stack.length) {
+			
+			let metadata_suggestions = [];
+
+			let metadataName = stack[0].var;
+			let metadataItem = stack[1].var;
+			let metadataFunc = stack[2].var;
+			let result = this.getMetadataItemCompletitionFromFullDefinition(metadata_suggestions, bslMetadata, metadataName, metadataItem, metadataFunc);
+			itemExists = result.itemExists;			
+
+			if (itemExists) {
+
+				let prev_ref = null;
+
+				for(let i = 3; i < stack.length; i++) {
+				
+					let stack_item = stack[i];
+					if (i == 3) 
+						prev_ref = this.setContextDataForRefExpression(stack_item.var, result.refType, stack_item.line);
+					else {
+						metadata_suggestions = [];
+						if (stack_item.previous_ref && prev_ref != null) {
+							prev_ref = this.setContextDataForRefExpression(stack_item.var, prev_ref.ref, stack_item.line)
+						}
+						else {
+							let prev_item = stack[i - 1];
+							let position = new monaco.Position(prev_item.line, prev_item.column + 1);
+							this.getRefCompletitionFromPosition(metadata_suggestions, position, false);
+							prev_ref = this.setContextDataForStackItem(stack_item, metadata_suggestions);
+						}
+					}
+
+					if (i + 1 == stack.length) {
+						this.getRefCompletition(suggestions);
+					}
+
+				}
+
+			}
+
+		}
+
+		return itemExists;
+	
+	}
+
+	/**
+	 * Fill suggestions from call stack when variable
+	 * define like ref (catalogs.Товары)
+	 * 
+	 * @param {array} suggestions array of suggestions for provideCompletionItems	 
+	 * @param {array} stack call stack array
+	 * 	 
+	 */
+	getMetadataStackCompletitionFromRefs(suggestions, stack) {
+
+		let prev_ref = null;
+
+		for(let i = 0; i < stack.length; i++) {
+		
+			let stack_item = stack[i];				 
+			let metadata_suggestions = [];
+
+			if (stack_item.previous_ref && prev_ref != null) {
+				prev_ref = this.setContextDataForRefExpression(stack_item.var, prev_ref.ref, stack_item.line);
+			}
+			else {
+				let position = new monaco.Position(stack_item.line, stack_item.column + 1);
+				if (0 < i) {
+					let prev_item = stack[i - 1];
+					position = new monaco.Position(prev_item.line, prev_item.column + 1);
+				}
+				if (i == 0) {
+					prev_ref = this.getRefCompletitionFromPosition(metadata_suggestions, position, false);
+				}
+				else {					
+					this.getRefCompletitionFromPosition(metadata_suggestions, position, false);
+					prev_ref = this.setContextDataForStackItem(stack_item, metadata_suggestions);
+				}
+			}
+												
+			if (i + 1 == stack.length) {
+				this.getRefCompletition(suggestions);
+			}
+
+		}
+
+	}
+
+	/**
+	 * Constructs completition using stack of all variables,
+	 * methods and properties that preceded the object
+	 * 
+	 * @param {array} suggestions array of suggestions for provideCompletionItems	 
+	 */
+	getMetadataStackCompletition(suggestions) {
+
+		let exp = this.lastRawExpression;		
+		let stack = this.getMetadataStackForVar(exp, this.position);
+		let itemExists = this.getMetadataStackCompletitionFromFullDefinition(suggestions, stack);		
+
+		if (!itemExists) {
+			this.getMetadataStackCompletitionFromRefs(suggestions, stack);
+		}
 
 	}
 
@@ -1698,6 +1983,10 @@ class bslHelper {
 							}
 
 						}
+					}
+
+					if (!suggestions.length) {
+						this.getMetadataStackCompletition(suggestions)
 					}
 
 				}
