@@ -631,6 +631,43 @@ describe("Проверка автокомлита и подсказок реда
         assert.equal(suggestions.some(suggest => suggest.label === "Себестоимость"), true);
       });
 
+      it("проверка подсказки определяемой по стеку", function () {              	                                
+        
+        let position = new monaco.Position(95, 17);
+        let model = editor.getModel();
+        editor.setPosition(position);
+        bsl = new bslHelper(model, position);
+        let suggestions = [];
+        bsl.getMetadataStackCompletition(suggestions);
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "ПодотчетноеЛицо"), true);
+        assert.equal(suggestions.some(suggest => suggest.label === "Заблокировать"), true);
+
+        position = new monaco.Position(100, 19);
+        editor.setPosition(position);
+        bsl = new bslHelper(model, position);
+        suggestions = [];
+        bsl.getMetadataStackCompletition(suggestions);
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "СуммаДокумента"), true);
+        assert.equal(suggestions.some(suggest => suggest.label === "Заблокировать"), true);
+
+        map = new Map();
+        map.set('товарссылка', {list:[], ref: 'catalogs.Товары', sig: null});
+        contextData.set(102, map);
+
+        position = new monaco.Position(104, 18);
+        editor.setPosition(position);
+        bsl = new bslHelper(model, position);
+        suggestions = [];
+        bsl.getMetadataStackCompletition(suggestions);
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "Ставка"), true);
+        assert.equal(suggestions.some(suggest => suggest.label === "Заблокировать"), true);
+
+      });
+      
+
     }
 
     mocha.run();
