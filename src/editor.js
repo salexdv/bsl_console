@@ -826,7 +826,15 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         genarateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', rows, 'selection', element.getAttribute('aria-label'));
       }
     }
-    
+    else if (e.ctrlKey && e.keyCode == 36) {
+      // Ctrl+F      
+      setFindWidgetDisplay('inherit');
+    }
+    else if (e.keyCode == 9) {
+      // Esc
+      if (document.querySelector('.find-widget'))
+        setFindWidgetDisplay('none');
+    }
 
   });
 
@@ -845,5 +853,33 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     }
 
   });
+  
+  function hasParentWithClass(element, className) {
+
+    if (0 <= element.className.split(' ').indexOf(className))
+      return true;
+
+    return element.parentNode && hasParentWithClass(element.parentNode, className);
+
+  }
+
+  function setFindWidgetDisplay(value) {
+
+    let element = document.querySelector('.find-widget');
+    if (element)
+      element.style.display = value;
+
+  }
+
+  document.onclick = function (e) {
+
+    if (e.target.classList.contains('codicon-close')) {
+
+      if (hasParentWithClass(e.target, 'find-widget'))
+        setFindWidgetDisplay('none');
+
+    }
+
+  }
   
 });
