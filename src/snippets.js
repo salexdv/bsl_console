@@ -1100,7 +1100,7 @@ define([], function () {
 
   querySnippets = {
     "Выбор": {
-      "prefix": "ВЫБОР",
+      "prefix": "Выбор",
       "body": "ВЫБОР\n\tКОГДА ${1:Условие}\n\t\tТОГДА $2\n\tИНАЧЕ $0\nКОНЕЦ",
       "description": "ВЫБОР"
     },
