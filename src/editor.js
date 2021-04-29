@@ -783,7 +783,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         theme: "bsl-white",
         value: getCode(),
         language: language.id,
-        contextmenu: false,
+        contextmenu: true,
         wordBasedSuggestions: false,
         customOptions: true
       });
@@ -801,7 +801,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       keybindings: [action.key, action.cmd],
       precondition: null,
       keybindingContext: null,
-      contextMenuGroupId: 'navigation',
+      contextMenuGroupId: null,
       contextMenuOrder: action.order,
       run: action.callback
     });
