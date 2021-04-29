@@ -749,6 +749,21 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  openSearchWidget = function() {
+    
+    editor.trigger('', 'actions.find');
+    setFindWidgetDisplay('inherit');    
+    document.querySelector('.find-widget .input').focus();    
+
+  }
+
+  closeSearchWidget = function() {
+    
+    editor.trigger('', 'closeFindWidget')
+    setFindWidgetDisplay('none');
+
+  }
+
   editor = undefined;
 
   // Register languages
