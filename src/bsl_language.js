@@ -243,6 +243,7 @@ define([], function () {
                     [/@queryOperators/, 'query.operator'],
                     [/[0-9_]*\.[0-9_]+([eE][\-+]?\d+)?[fFdD]?/, 'query.float'],
                     [/[0-9_]+/, 'query.int'],
+                    [/^\s*#.*$/, 'preproc'],
                     [/\|/, 'query'],
                     [/\./, 'query'],
                     [/[?!@#$^*_]+/, 'query'],
