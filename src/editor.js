@@ -631,7 +631,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       const char = model.getValueInRange(new monaco.Range(line - 1, column - 1, line - 1, column));
       const token = getTokenFromPosition(new monaco.Position(line - 1, column));
 
-      if (0 <= token.indexOf('string.invalid') || 0 <= token.indexOf('query') || char == '|') {
+      if (token == 'stringbsl' ||0 <= token.indexOf('string.invalid') || 0 <= token.indexOf('query') || char == '|') {
 
         if (token != 'query.quotebsl' || char == '|') {
 
