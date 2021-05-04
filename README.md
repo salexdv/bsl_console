@@ -103,6 +103,7 @@
 | [`triggerSuggestions`](docs/trigger_suggestions.md) | Принудительный вызов подсказок											 |
 | [`showCustomSuggestions`](docs/custom_suggestions.md) | Показ пользовательских подсказок									 	 |
 | `hideSuggestionsList` 		 | Скрывает текущий список подсказок									 	 					 |
+| `hideHoverList` 		 		 | Скрывает активную всплывающую подсказку для слова					 	 					 |
 
 ## События, генерируемые редактором для 1С:Предприятия
 | Событие                        | Описание                                                                                      |
@@ -122,6 +123,9 @@
 ```javascript
 init('8.3.18.891');
 ```
+
+## Особенности
+* По умолчанию редактор не подстраивается под размеры окна. Это не ошибка, решение описано [тут](https://github.com/salexdv/bsl_console/issues/27) и [тут](https://github.com/salexdv/bsl_console/issues/80)
 
 ## Продукты, использующие консоль:
 * [Infostart Toolkit](https://infostart.ru/journal/news/news/infostart-toolkit-1-3-teper-s-novym-redaktorom-koda-na-baze-monaco-editor_1303095/)
