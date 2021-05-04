@@ -764,6 +764,18 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  setFontSize = function(fontSize)  {
+    
+    editor.updateOptions({fontSize: fontSize});
+
+  }
+
+  setFontFamily = function(fontFamily)  {
+    
+    editor.updateOptions({fontFamily: fontFamily});
+
+  }
+
   editor = undefined;
 
   // Register languages
