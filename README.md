@@ -115,7 +115,7 @@
 | `EVENT_ON_ACTIVATE_SUGGEST_ROW`| При активации пункта в текущем списке подсказок [(подробнее)](docs/activation_event.md)		 |
 | `EVENT_BEFORE_SHOW_SUGGEST`	 | Перед появлением списка подсказок [(подробнее)](docs/before_suggest_event.md)		  		 |
 | `EVENT_ON_SELECT_SUGGEST_ROW`	 | При выборе пункта из списка подсказок [(подробнее)](docs/select_suggest_event.md)			 |
-| `EVENT_BEFORE_HOVER`	 		 | Перед появлением всплывающей подсказки для слова [(подробнее)](docs/before_hover_event.md.md) |
+| `EVENT_BEFORE_HOVER`	 		 | Перед появлением всплывающей подсказки для слова [(подробнее)](docs/before_hover_event.md) |
 
 *Перед началом работы с редактором из 1С Предпрития желательно вызвать функцию инициализации и передать в нее текущую версию платформы.*
 Пример:
