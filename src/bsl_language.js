@@ -76,13 +76,18 @@ define([], function () {
                 'foreground': '#d4d4d4',
                 'editor.background': '#1e1e1e',
                 'editor.selectionBackground': '#062f4a',
+                'editor.selectionHighlightBackground': '#495662',
                 'editorCursor.foreground': '#d4d4d4',
                 'editorSuggestWidget.background': '#252526',
                 'editorSuggestWidget.foreground': '#d4d4d4',
                 'editorSuggestWidget.selectedBackground': '#062f4a',
                 'editorWidget.background': '#252526',
                 'editorWidget.foreground': '#d4d4d4',
-                'editorWidget.border': '#d4d4d4'
+                'editorWidget.border': '#d4d4d4'                
+            },
+            white: {
+                'editor.selectionBackground': '#add6ff',
+                'editor.selectionHighlightBackground': '#fff3ff'
             }
         }
     }
@@ -292,12 +297,14 @@ define([], function () {
                 base: 'vs',
                 name: 'bsl-white',
                 inherit: true,
+                colors: themes.colors.white,
                 rules: themes.rules.white
             },            
             whiteQueryTheme: {
                 base: 'vs',
                 name: 'bsl-white-query',
                 inherit: true,
+                colors: themes.colors.white,
                 rules: themes.rules.white.concat(themes.rules.whiteQueryOn)
             },            
             darkTheme: {
