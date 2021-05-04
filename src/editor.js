@@ -21,6 +21,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   suggestObserver = null;
   generateBeforeShowSuggestEvent = false;
   generateSelectSuggestEvent = false;
+  statusBarWidget = null;
 
   reserMark = function() {
 
@@ -776,6 +777,59 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  showStatusBar = function() {
+    
+    if (!statusBarWidget) {
+
+      statusBarWidget = {
+        domNode: null,
+        getId: function () {
+          return 'bsl.statusbar.widget';
+        },
+        getDomNode: function () {
+          
+          if (!this.domNode) {
+            
+            this.domNode = document.createElement('div');
+            this.domNode.classList.add('statusbar-widget');
+            this.domNode.style.left = '0px';
+            this.domNode.style.top = editor.getDomNode().offsetHeight - 20 + 'px';
+            this.domNode.style.height = '20px';
+            this.domNode.style.width = editor.getDomNode().clientWidth + 'px';
+            this.domNode.style.textAlign = 'right';
+            this.domNode.style.zIndex = 1;
+            this.domNode.style.fontSize = '12px';
+
+            let pos = document.createElement('div');
+            pos.style.marginRight = '25px';            
+            this.domNode.append(pos);
+
+          }
+
+          return this.domNode;
+
+        },
+        getPosition: function () {
+          return null;
+        }
+      };
+
+      editor.addOverlayWidget(statusBarWidget);
+      upateStatusBar();
+
+    }
+
+  }
+
+  hideStatusBar = function() {
+
+    if (statusBarWidget) {
+      editor.removeOverlayWidget(statusBarWidget);
+      statusBarWidget = null;
+    }
+
+  }
+
   editor = undefined;
 
   // Register languages
@@ -880,6 +934,13 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     }
 
   });
+
+  editor.onDidChangeCursorSelection(e => {
+    
+    upateStatusBar();
+    
+  });
+    
   
   function hasParentWithClass(element, className) {
 
@@ -898,6 +959,26 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  function upateStatusBar() {
+    
+    if (statusBarWidget) {
+      let status = 'Стр: ' + getCurrentLine();
+      status += ' Кол: ' + getCurrentColumn();
+      statusBarWidget.domNode.firstElementChild.innerText = status;
+    }
+
+  }
+
+  function resizeStatusBar() {
+    
+    if (statusBarWidget) {
+      let element = statusBarWidget.domNode;
+      element.style.top = editor.getDomNode().clientHeight - 20 + 'px';      
+      element.style.width = editor.getDomNode().clientWidth + 'px';
+    }
+
+  }
+
   document.onclick = function (e) {
 
     if (e.target.classList.contains('codicon-close')) {
@@ -908,5 +989,11 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     }
 
   }
+
+  window.addEventListener('resize', function(event) {
+    
+    resizeStatusBar();
+    
+  }, true);
   
 });

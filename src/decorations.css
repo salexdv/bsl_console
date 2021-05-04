@@ -7,3 +7,10 @@
 	width: 5px !important;			
 	margin-left: 3px;	
 }
+
+.statusbar-widget {
+
+	background: #028fef;
+	color: #fff;
+
+}
