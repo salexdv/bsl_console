@@ -905,9 +905,11 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   editor.onKeyDown(e => {
     
-    if (e.code == 'ArrowUp' && editor.getPosition().lineNumber == 1)    
+    if (e.keyCode == 16 && editor.getPosition().lineNumber == 1)
+      // ArrowUp
       scrollToTop();
-    else if (e.code == 'Enter' && generateSelectSuggestEvent) {      
+    else if (e.keyCode == 3 && generateSelectSuggestEvent) {
+      // Enter
       let element = document.querySelector('.monaco-list-row.focused');
       if (element) {
         let rows = getSuggestWidgetRows(element);
