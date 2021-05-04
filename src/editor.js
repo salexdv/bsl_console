@@ -777,6 +777,13 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  renderWhitespace = function(enabled) {
+
+    let mode = enabled ? 'all' : 'none';
+    editor.updateOptions({renderWhitespace: mode});
+
+  }
+
   showStatusBar = function() {
     
     if (!statusBarWidget) {
