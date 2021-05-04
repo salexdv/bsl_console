@@ -86,8 +86,8 @@ define([], function () {
                 'editorWidget.border': '#d4d4d4'                
             },
             white: {
-                'editor.selectionBackground': '#add6ff',
-                'editor.selectionHighlightBackground': '#fff3ff'
+                'editor.selectionBackground': '#ffe877',
+                'editor.selectionHighlightBackground': '#fef6d0'
             }
         }
     }
