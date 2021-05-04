@@ -4201,6 +4201,21 @@ class bslHelper {
 	 */
 	getHover() {
 
+		for (const [key, value] of Object.entries(customHovers)) {			
+			
+			if (key.toLowerCase() == this.word && value) {
+									
+				return {
+					range: new monaco.Range(this.lineNumber, this.column, this.lineNumber, this.model.getLineMaxColumn(this.lineNumber)),
+					contents: [							
+						{ value: value }
+					]
+				};				
+
+			}
+
+		}
+
 		for (const [key, value] of Object.entries(bslGlobals)) {
 
 			for (const [ikey, ivalue] of Object.entries(value)) {
@@ -4231,22 +4246,7 @@ class bslHelper {
 			}
 	
 		}
-		
-		for (const [key, value] of Object.entries(customHovers)) {			
-			
-			if (key.toLowerCase() == this.word && value) {
-									
-				return {
-					range: new monaco.Range(this.lineNumber, this.column, this.lineNumber, this.model.getLineMaxColumn(this.lineNumber)),
-					contents: [							
-						{ value: value }
-					]
-				};				
-
-			}
-
-		}		
-
+				
 		return null;
 
 	}

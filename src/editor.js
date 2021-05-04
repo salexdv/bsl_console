@@ -21,6 +21,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   suggestObserver = null;
   generateBeforeShowSuggestEvent = false;
   generateSelectSuggestEvent = false;
+  generateBeforeHoverEvent = false;
   statusBarWidget = null;
 
   reserMark = function() {
@@ -742,11 +743,26 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  enableBeforeHoverEvent = function(enabled) {
+    
+    generateBeforeHoverEvent = enabled;
+
+  }
+
   hideSuggestionsList = function() {
 
       let widget = document.querySelector('.suggest-widget');
       widget.style.display = 'hidden';
       widget.style.visibility = 'hidden';
+
+  }
+
+  hideHoverList = function() {
+
+    let hovers = document.querySelectorAll('.monaco-editor-hover .hover-row');
+    hovers.forEach(function(hover){
+      hover.remove();
+    });
 
   }
 
