@@ -339,7 +339,6 @@ describe("Проверка автокомлита и подсказок реда
         editor.setPosition(position);
         bsl = new bslHelper(model, position);
         let help = bsl.getCustomSigHelp();
-        console.log(help);
         expect(help).to.have.property('activeParameter');
         assert.equal(setCustomSignatures('{}'), true);        
       });
