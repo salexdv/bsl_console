@@ -944,6 +944,25 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   });
 
+  editor.onMouseDown(e => {
+
+    if (e.event.leftButton && e.event.ctrlKey) {
+
+      let position = e.target.position;
+
+      if (position) {
+
+        let target = editor.getModel().getWordAtPosition(position);
+
+        if (target)
+          setSelection(position.lineNumber, target.startColumn, position.lineNumber, target.endColumn)
+
+      }
+
+    }
+
+  });
+
   editor.onDidScrollChange(e => {
         
     if (e.scrollTop == 0) {
