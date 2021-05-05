@@ -342,6 +342,37 @@ class bslHelper {
 	}
 
 	/**
+	 * Returns the first word until open bracket
+	 * at current position
+	 * 
+	 * @returns {string} word
+	 */
+	getWordUntilOpenBracket() {
+
+		let word = '';
+
+		let match = this.model.findPreviousMatch('(', this.position, false);
+		
+		if (match) {
+
+			const position = new monaco.Position(match.range.startLineNumber, match.range.startColumn);
+
+			if (position.lineNumber = this.lineNumber) {
+					
+				let wordUntil = this.model.getWordUntilPosition(position);
+
+				if (wordUntil)
+					word = wordUntil.word.toLowerCase();
+
+			}
+
+		}
+
+		return word
+
+	}	
+
+	/**
 	 * Determines if string contain class constructor (New|Новый)	 	 
 	 * 
 	 * @returns {bool}
@@ -3385,7 +3416,7 @@ class bslHelper {
 	 * 
 	 * @param {object} data objects from BSL-JSON dictionary
 	 * 
-	 * @returns {object} helper with signatures
+	 * @returns {SignatureHelp} helper with signatures
 	 */
 	getClassSigHelp(data) {
 
@@ -3441,7 +3472,7 @@ class bslHelper {
 	 * 
 	 * @param {object} data objects from BSL-JSON dictionary
 	 * 
-	 * @returns {object} helper with signatures
+	 * @returns {SignatureHelp} helper with signatures
 	 */
 	getMetadataItemSigHelp(data) {
 
@@ -3534,7 +3565,7 @@ class bslHelper {
 	 * 
 	 * @param {object} data objects from BSL-JSON dictionary
 	 * 
-	 * @returns {object} helper with signatures
+	 * @returns {SignatureHelp} helper with signatures
 	 */
 	getMetadataSigHelp(data) {
 
@@ -3592,7 +3623,7 @@ class bslHelper {
 	 * 
 	 * @param {object} data objects from BSL-JSON dictionary
 	 * 
-	 * @returns {object} helper with signatures
+	 * @returns {SignatureHelp} helper with signatures
 	 */
 	getCommonSigHelp(data) {
 
@@ -3658,10 +3689,47 @@ class bslHelper {
 	}
 
 	/**
+	 * Fills signatures provided from custom signatures	 
+	 * 
+	 * @param {SignatureHelpContext} context signature help context
+	 * 
+	 * @return {SignatureHelp} helper with signatures
+	 */
+	getCustomSigHelp(context) {
+
+		let helper = null;
+
+		let word = this.getWordUntilOpenBracket();
+		
+		if (word) {
+			
+			for (const [key, value] of Object.entries(customSignatures)) {			
+		
+				if (key.toLowerCase() == word && value) {
+
+					let activeSignature = context && context.activeSignatureHelp ? context.activeSignatureHelp.activeSignature : 0;
+					
+					helper = {
+						activeParameter: this.textBeforePosition.split(',').length - 1,
+						activeSignature: activeSignature,
+						signatures: value,
+					}						
+							
+				}
+	
+			}
+			
+		}
+
+		return helper;
+
+	}
+
+	/**
 	 * Fills signatures provided for reference-type object
 	 * if a reference was found in the previous position
 	 * 
-	 * @param {aaray} suggestions the list of suggestions
+	 * @return {SignatureHelp} helper with signatures
 	 */
 	getRefSigHelp() {
 		
@@ -3704,13 +3772,18 @@ class bslHelper {
 	/**
 	 * Signature help provider
 	 * 
+	 * @param {SignatureHelpContext} context signature help context
+	 * 
 	 * @returns {object} helper
 	 */
-	getSigHelp() {
+	getSigHelp(context) {
 		
 		if (this.lastOperator != ')') {
 
-			let helper = this.getRefSigHelp();
+			let helper = this.getCustomSigHelp(context);
+
+			if (!helper)
+				helper = this.getRefSigHelp();
 
 			if (!helper)
 				helper = this.getMetadataSigHelp(bslMetadata);

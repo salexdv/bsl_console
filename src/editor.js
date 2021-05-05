@@ -13,6 +13,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   version1C = '';
   contextActions = [];
   customHovers = {};
+  customSignatures = {};
   originalText = '';
   metadataRequests = new Map();
   customSuggestions = [];
@@ -22,6 +23,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   generateBeforeShowSuggestEvent = false;
   generateSelectSuggestEvent = false;
   generateBeforeHoverEvent = false;
+  generateBeforeSignatureEvent = false;
   statusBarWidget = null;
 
   reserMark = function() {
@@ -315,15 +317,29 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     
   }
 
-  setCustomHovers = function (variables) {
-        
+  setCustomHovers = function (hoversJSON) {
+    
     try {
-			customHovers = JSON.parse(variables);			
+			customHovers = JSON.parse(hoversJSON);			
 			return true;
 		}
 		catch (e) {
+      customHovers = {};
 			return { errorDescription: e.message };
 		}
+
+  }
+
+  setCustomSignatures = function(sigJSON) {
+
+    try {
+			customSignatures = JSON.parse(sigJSON);			
+			return true;
+		}
+		catch (e) {
+      customSignatures = {};
+			return { errorDescription: e.message };
+		}    
 
   }
 
@@ -749,6 +765,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  enableBeforeSignatureEvent = function(enabled) {
+    
+    generateBeforeSignatureEvent = enabled;
+
+  }
+
   hideSuggestionsList = function() {
 
       let widget = document.querySelector('.suggest-widget');
@@ -756,6 +778,17 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       widget.style.visibility = 'hidden';
 
   }
+
+  hideSignatureList = function() {
+
+    let widget = document.querySelector('.parameter-hints-widget');
+    
+    if (widget) {
+      widget.style.display = 'hidden';
+      widget.style.visibility = 'hidden';
+    }
+
+}
 
   hideHoverList = function() {
 

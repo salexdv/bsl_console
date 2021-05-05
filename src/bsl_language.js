@@ -420,9 +420,32 @@ define([], function () {
             signatureProvider: {
                 signatureHelpTriggerCharacters: ['(', ','],
                 signatureHelpRetriggerCharacters: [')'],
-                provideSignatureHelp: (model, position) => {
+                provideSignatureHelp: (model, position, token, context) => {
+                    
                     let bsl = new bslHelper(model, position);
-                    return bsl.getSigHelp();
+
+                    let widget = document.querySelector('.parameter-hints-widget');
+                    
+                    if (widget) {
+                        widget.style.display = '';
+                        widget.style.visibility = '';
+                    }
+
+                    if (generateBeforeSignatureEvent) {
+                        let activeSignature = context.activeSignatureHelp ? context.activeSignatureHelp.activeSignature : 0;
+                        let params = {
+                            word: bsl.getWordUntilOpenBracket(),
+                            line: position.lineNumber,
+                            column: position.column,
+                            activeParameter: bsl.textBeforePosition.split(',').length - 1,
+                            activeSignature: activeSignature,
+                            triggerCharacter: context.triggerCharacter
+                        }
+                        sendEvent('EVENT_BEFORE_SIGNATURE', params);
+                    }
+                    
+                    return bsl.getSigHelp(context);
+
                 }
             },
             hoverProvider: {
