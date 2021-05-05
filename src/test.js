@@ -331,6 +331,19 @@ describe("Проверка автокомлита и подсказок реда
         expect(help).to.have.property('activeParameter');
       });
 
+      it("проверка подсказки переопределенных параметров для функции Состояние", function () {
+        let strJSON = '{ "Состояние": [ { "label": "(Первый, Второй)", "documentation": "Описание сигнатуры", "parameters": [ { "label": "Первый", "documentation": "Описание первого" }, { "label": "Второй", "documentation": "Описание второго" } ] } ] }';
+        assert.equal(setCustomSignatures(strJSON), true);        
+        let position = new monaco.Position(28, 12);
+        let model = editor.getModel();
+        editor.setPosition(position);
+        bsl = new bslHelper(model, position);
+        let help = bsl.getCustomSigHelp();
+        console.log(help);
+        expect(help).to.have.property('activeParameter');
+        assert.equal(setCustomSignatures('{}'), true);        
+      });
+
       it("проверка автокомплита для функции 'Тип'", function () {
         bsl = helper('Тип("');
         assert.equal(bsl.requireType(), true);
