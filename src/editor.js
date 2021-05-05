@@ -493,6 +493,23 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  addLine = function(text) {
+
+    let line = getLineCount();
+
+    if (getText()) {
+      text = '\n' + text;
+      line++;
+    }
+
+    editor.executeEdits('addLine', [{
+      range: new monaco.Range(line, 1, line, 1),
+      text: text,
+      forceMoveMarkers: true
+    }]);
+
+  }
+
   compare = function (text, sideBySide, highlight, xml = false) {
     
     document.getElementById("container").innerHTML = ''
