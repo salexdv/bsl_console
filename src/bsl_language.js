@@ -261,7 +261,7 @@ define([], function () {
                     [/^\s*\/\/.*$/, 'comment'],
                     [/[^\\"]+/, 'string'],
                     [/@escapes/, 'string.escape'],
-                    [/\\./, 'string.escape.invalid'],
+                    [/\\./, 'string'],
                     [/"/, { token: 'string.quote', next: '@pop' }],
                     [/\|.*"/, { token: 'string.quote', next: '@pop' }],
                 ],
