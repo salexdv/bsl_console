@@ -451,6 +451,48 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  insertLine = function(lineNumber, text) {
+
+    let model = editor.getModel();
+    let text_model = monaco.editor.createModel(text);
+    let text_range = text_model.getFullModelRange();
+    let total_lines = getLineCount();
+    let text_lines = text_range.endLineNumber - text_range.startLineNumber;
+    
+    if (total_lines < lineNumber)
+      lineNumber = total_lines + 1;
+
+    if (total_lines < lineNumber && getText())
+      text = '\n' + text;
+
+    text_range.startLineNumber = lineNumber;
+    text_range.endLineNumber = lineNumber + text_lines;
+
+    if (lineNumber <= total_lines) {
+
+      let next_range = new monaco.Range(lineNumber, 1, total_lines, model.getLineMaxColumn(total_lines));
+      let next_text = model.getValueInRange(next_range);
+
+      if (next_text) {
+        next_range.endLineNumber += text_lines + 1;
+        next_text = '\n'.repeat(text_lines + 1) + next_text;
+        editor.executeEdits('insertLine', [{
+          range: next_range,
+          text: next_text,
+          forceMoveMarkers: true
+        }]);
+      }
+
+    }
+
+    editor.executeEdits('insertLine', [{
+      range: text_range,
+      text: text,
+      forceMoveMarkers: true
+    }]);
+
+  }
+
   compare = function (text, sideBySide, highlight, xml = false) {
     
     document.getElementById("container").innerHTML = ''
