@@ -424,13 +424,6 @@ define([], function () {
                     
                     let bsl = new bslHelper(model, position);
 
-                    let widget = document.querySelector('.parameter-hints-widget');
-                    
-                    if (widget) {
-                        widget.style.display = '';
-                        widget.style.visibility = '';
-                    }
-
                     if (generateBeforeSignatureEvent) {
                         let activeSignature = context.activeSignatureHelp ? context.activeSignatureHelp.activeSignature : 0;
                         let params = {
@@ -444,7 +437,20 @@ define([], function () {
                         sendEvent('EVENT_BEFORE_SIGNATURE', params);
                     }
                     
-                    return bsl.getSigHelp(context);
+                    let helper = bsl.getSigHelp(context);
+
+                    if (helper) {
+
+                        let widget = document.querySelector('.parameter-hints-widget');
+
+                        if (widget) {
+                            widget.style.display = '';
+                            widget.style.visibility = '';
+                        }
+
+                    }
+
+                    return helper;
 
                 }
             },
