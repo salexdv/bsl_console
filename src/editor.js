@@ -510,6 +510,18 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  getPositionOffset = function() {
+
+    let position = editor.getPosition();
+    let v_pos = editor.getScrolledVisiblePosition(position);
+    let layer = editor.getLayoutInfo();
+    let top = Math.min(v_pos.top, layer.height);
+    let left = Math.min(v_pos.left, layer.width);
+
+    return {top: top, left: left}
+
+  }
+
   compare = function (text, sideBySide, highlight, xml = false) {
     
     document.getElementById("container").innerHTML = ''
