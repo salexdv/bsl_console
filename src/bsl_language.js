@@ -423,6 +423,7 @@ define([], function () {
                 provideSignatureHelp: (model, position, token, context) => {
                     
                     let bsl = new bslHelper(model, position);
+                    let helper = bsl.getSigHelp(context);
 
                     if (generateBeforeSignatureEvent) {
                         let activeSignature = context.activeSignatureHelp ? context.activeSignatureHelp.activeSignature : 0;
@@ -436,8 +437,6 @@ define([], function () {
                         }
                         sendEvent('EVENT_BEFORE_SIGNATURE', params);
                     }
-                    
-                    let helper = bsl.getSigHelp(context);
 
                     if (helper) {
 
