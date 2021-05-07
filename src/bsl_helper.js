@@ -3340,16 +3340,23 @@ class bslHelper {
 
 				if (svalue.hasOwnProperty('СтрокаПараметров') && svalue.hasOwnProperty('Параметры')) {
 
+					let sig_label = svalue.СтрокаПараметров;
+					let sig_params = sig_label.split(',');
+
 					let signature = {
-						label: svalue.СтрокаПараметров,
+						label: sig_label,
 						parameters: []
 					}
 
+					let param_index = 0;
+
 					for (const [pkey, pvalue] of Object.entries(svalue.Параметры)) {
+						let param_label = (param_index < sig_params.length) ? sig_params[param_index].trim() : pkey;
 						signature.parameters.push({
-							label: pkey,
+							label: param_label,
 							documentation: pvalue
 						});
+						param_index++;
 					}
 
 					signatures.push(signature);
@@ -3382,19 +3389,26 @@ class bslHelper {
 
 				if (cvalue.hasOwnProperty('signature')) {
 
+					let sig_label = cvalue.signature;
+					let sig_params = sig_label.split(',');
+
 					let signature = {
-						label: cvalue.signature,
+						label: sig_label,
 						documentation: cvalue.hasOwnProperty('description') ? cvalue.description : '',
 						parameters: []
 					}
 
 					if (cvalue.hasOwnProperty('params')) {
 
+						let param_index = 0;
+
 						for (const [pkey, pvalue] of Object.entries(cvalue.params)) {
+							let param_label = (param_index < sig_params.length) ? sig_params[param_index].trim() : pkey;
 							signature.parameters.push({
-								label: pkey,
+								label: param_label,
 								documentation: pvalue
 							});
+							param_index++;
 						}
 
 					}
