@@ -25,6 +25,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   generateBeforeHoverEvent = false;
   generateBeforeSignatureEvent = false;
   statusBarWidget = null;
+  ctrlPressed = false;
 
   reserMark = function() {
 
@@ -1045,6 +1046,16 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       if (document.querySelector('.find-widget'))
         setFindWidgetDisplay('none');
     }
+
+    if (e.ctrlKey)
+      ctrlPressed  = true;
+
+  });
+
+  editor.onKeyUp(e => {
+    
+    if (e.ctrlKey)
+      ctrlPressed  = false;
 
   });
 
