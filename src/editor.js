@@ -1035,6 +1035,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       if (element) {
         let rows = getSuggestWidgetRows(element);
         genarateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', rows, 'selection', element.getAttribute('aria-label'));
+
+        // Prevent propagation of KeyDown event to editor if SuggestList was closed in EVENT_ON_SELECT_SUGGEST_ROW event handler https://github.com/salexdv/bsl_console/issues/90
+        element = document.querySelector('.monaco-list-row.focused');
+        if (!element) {
+          e.preventDefault()
+        }
       }
     }
     else if (e.ctrlKey && e.keyCode == 36) {
