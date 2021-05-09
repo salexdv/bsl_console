@@ -584,6 +584,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  triggerHovers = function() {
+    
+    editor.trigger('', 'editor.action.showHover', {});
+
+  }
+
   requestMetadata = function(metadata) {
 
     let metadata_name = metadata.toLowerCase();
