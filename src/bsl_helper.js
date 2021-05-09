@@ -4291,12 +4291,21 @@ class bslHelper {
 		for (const [key, value] of Object.entries(customHovers)) {			
 			
 			if (key.toLowerCase() == this.word && value) {
-									
+				
+				let contents = [];
+
+				if (typeof(value) == "object") {
+					value.forEach(function(val){
+						contents.push({ value: val });
+					});
+				}
+				else {
+					contents.push({ value: value });
+				}
+				
 				return {
 					range: new monaco.Range(this.lineNumber, this.column, this.lineNumber, this.model.getLineMaxColumn(this.lineNumber)),
-					contents: [							
-						{ value: value }
-					]
+					contents: contents
 				};				
 
 			}
