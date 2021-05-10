@@ -567,6 +567,10 @@ define([], function () {
             completionProvider: {
                 triggerCharacters: ['.', '(', '&'],
                 provideCompletionItems: function (model, position, context, token) {
+                    let widget = document.querySelector('.suggest-widget');
+                    widget.style.display = '';
+                    widget.style.visibility = '';     
+
                     let bsl = new bslHelper(model, position);
                     let completition = bsl.getDCSCompletition();
                     if (generateBeforeShowSuggestEvent) {                
