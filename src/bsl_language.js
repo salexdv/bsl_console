@@ -397,7 +397,6 @@ define([], function () {
 
                     let bsl = new bslHelper(model, position);
                     let completition = bsl.getCompletition(context, token);
-                    
                     if (generateBeforeShowSuggestEvent) {                
                         let rows = [];
                         if (Object.keys(completition).length) {
@@ -407,7 +406,6 @@ define([], function () {
                         }
                         genarateEventWithSuggestData('EVENT_BEFORE_SHOW_SUGGEST', rows, context.triggerCharacter, '');
                     }
-
                     return completition;
 
                 }
@@ -497,9 +495,19 @@ define([], function () {
             languageDef: query_language,
             completionProvider: {
                 triggerCharacters: ['.', '(', '&'],
-                provideCompletionItems: function (model, position) {
+                provideCompletionItems: function (model, position, context, token) {
                     let bsl = new bslHelper(model, position);
-                    return bsl.getQueryCompletition(query_language);
+                    let completition = bsl.getQueryCompletition(query_language);
+                    if (generateBeforeShowSuggestEvent) {                
+                        let rows = [];
+                        if (Object.keys(completition).length) {
+                            for (const [key, value] of Object.entries(completition.suggestions)) {
+                                rows.push(value.label);
+                            }                        
+                        }
+                        genarateEventWithSuggestData('EVENT_BEFORE_SHOW_SUGGEST', rows, context.triggerCharacter, '');
+                    }
+                    return completition;
                 }
             },
             foldingProvider: {
@@ -530,9 +538,19 @@ define([], function () {
             languageDef: dcs_language,
             completionProvider: {
                 triggerCharacters: ['.', '(', '&'],
-                provideCompletionItems: function (model, position) {
+                provideCompletionItems: function (model, position, context, token) {
                     let bsl = new bslHelper(model, position);
-                    return bsl.getDCSCompletition();
+                    let completition = bsl.getDCSCompletition();
+                    if (generateBeforeShowSuggestEvent) {                
+                        let rows = [];
+                        if (Object.keys(completition).length) {
+                            for (const [key, value] of Object.entries(completition.suggestions)) {
+                                rows.push(value.label);
+                            }                        
+                        }
+                        genarateEventWithSuggestData('EVENT_BEFORE_SHOW_SUGGEST', rows, context.triggerCharacter, '');
+                    }
+                    return completition;
                 }
             },
             foldingProvider: {
