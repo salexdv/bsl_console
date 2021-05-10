@@ -397,15 +397,7 @@ define([], function () {
 
                     let bsl = new bslHelper(model, position);
                     let completition = bsl.getCompletition(context, token);
-                    if (generateBeforeShowSuggestEvent) {                
-                        let rows = [];
-                        if (Object.keys(completition).length) {
-                            for (const [key, value] of Object.entries(completition.suggestions)) {
-                                rows.push(value.label);
-                            }                        
-                        }
-                        genarateEventWithSuggestData('EVENT_BEFORE_SHOW_SUGGEST', rows, context.triggerCharacter, '');
-                    }
+                    bsl.onProvideCompletion(context, completition);
                     return completition;
 
                 }
@@ -452,30 +444,15 @@ define([], function () {
                 }
             },
             hoverProvider: {
-                provideHover: function (model, position) {
-                    
+                provideHover: function (model, position) {                    
                     if (!ctrlPressed) {
-
-                        if (generateBeforeHoverEvent) {
-                            let bsl = new bslHelper(model, position);
-                            let token = bsl.getLastToken();
-                            let params = {
-                                word: model.getWordAtPosition(position),
-                                token: token,
-                                line: position.lineNumber,
-                                column: position.column
-                            }
-                            sendEvent('EVENT_BEFORE_HOVER', params);
-                        }
-                        
                         let bsl = new bslHelper(model, position);
+                        bsl.onProvideHover();
                         return bsl.getHover();
-
                     }
                     else {
                         return null;
                     }
-
                 }
             },
             formatProvider: {
@@ -502,15 +479,7 @@ define([], function () {
                     
                     let bsl = new bslHelper(model, position);
                     let completition = bsl.getQueryCompletition(query_language);
-                    if (generateBeforeShowSuggestEvent) {                
-                        let rows = [];
-                        if (Object.keys(completition).length) {
-                            for (const [key, value] of Object.entries(completition.suggestions)) {
-                                rows.push(value.label);
-                            }                        
-                        }
-                        genarateEventWithSuggestData('EVENT_BEFORE_SHOW_SUGGEST', rows, context.triggerCharacter, '');
-                    }
+                    bsl.onProvideCompletion(context, completition);
                     return completition;
                 }
             },
@@ -528,30 +497,15 @@ define([], function () {
                 }
             },
             hoverProvider: {
-                provideHover: function (model, position) {
-                    
+                provideHover: function (model, position) {                    
                     if (!ctrlPressed) {
-
-                        if (generateBeforeHoverEvent) {
-                            let bsl = new bslHelper(model, position);
-                            let token = bsl.getLastToken();
-                            let params = {
-                                word: model.getWordAtPosition(position),
-                                token: token,
-                                line: position.lineNumber,
-                                column: position.column
-                            }
-                            sendEvent('EVENT_BEFORE_HOVER', params);
-                        }
-                        
                         let bsl = new bslHelper(model, position);
-                        return bsl.getHover();
-
+                        bsl.onProvideHover();
+                        return bsl.getCustomHover();
                     }
                     else {
                         return null;
                     }
-
                 }
             },
             formatProvider: {
@@ -573,15 +527,7 @@ define([], function () {
 
                     let bsl = new bslHelper(model, position);
                     let completition = bsl.getDCSCompletition();
-                    if (generateBeforeShowSuggestEvent) {                
-                        let rows = [];
-                        if (Object.keys(completition).length) {
-                            for (const [key, value] of Object.entries(completition.suggestions)) {
-                                rows.push(value.label);
-                            }                        
-                        }
-                        genarateEventWithSuggestData('EVENT_BEFORE_SHOW_SUGGEST', rows, context.triggerCharacter, '');
-                    }
+                    bsl.onProvideCompletion(context, completition);
                     return completition;
                 }
             },
@@ -597,30 +543,15 @@ define([], function () {
                 }
             },
             hoverProvider: {
-                provideHover: function (model, position) {
-                    
+                provideHover: function (model, position) {                    
                     if (!ctrlPressed) {
-
-                        if (generateBeforeHoverEvent) {
-                            let bsl = new bslHelper(model, position);
-                            let token = bsl.getLastToken();
-                            let params = {
-                                word: model.getWordAtPosition(position),
-                                token: token,
-                                line: position.lineNumber,
-                                column: position.column
-                            }
-                            sendEvent('EVENT_BEFORE_HOVER', params);
-                        }
-                        
                         let bsl = new bslHelper(model, position);
-                        return bsl.getHover();
-
+                        bsl.onProvideHover();
+                        return bsl.getCustomHover();
                     }
                     else {
                         return null;
                     }
-
                 }
             },
             formatProvider: {

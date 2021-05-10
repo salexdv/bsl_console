@@ -2043,13 +2043,9 @@ class bslHelper {
 	 */
 	getCompletition(context, token) {
 
-		let suggestions = [];
+		let suggestions = this.getCustomSuggestions(true);
 
-		if (customSuggestions.length) {
-			suggestions = customSuggestions.slice();
-			customSuggestions = [];
-		}
-		else {
+		if (!suggestions.length) {			
 
 			if (!this.isItStringLiteral()) {				
 				suggestions = this.getCodeCompletition(context, token);
@@ -3238,21 +3234,40 @@ class bslHelper {
 	}
 
 	/**
+	 * Returns completition array from customSuggestions
+	 * 
+	 * @param {bool} erase on not customSuggestions
+	 * 
+	 * @returns {array} array of completition
+	 */
+	getCustomSuggestions(erase) {
+
+		let suggestions = [];
+		
+		if (customSuggestions.length) {
+			
+			suggestions = customSuggestions.slice();
+			
+			if (erase)
+				customSuggestions = [];
+
+		}
+
+		return suggestions;
+
+	}
+
+	/**
 	 * Completition provider for query language	
 	 * 
 	 * @returns {array} array of completition
 	 */
 	getQueryCompletition() {
 
-		let suggestions = [];
-		// +++
-		if (customSuggestions.length) {
-			suggestions = customSuggestions.slice();
-			customSuggestions = [];
-		}
-		else
-		// ---
-		{
+		let suggestions = this.getCustomSuggestions(true);		
+		
+		if (!suggestions.length) {
+		
 			if (!this.requireQueryValue()) {
 
 				if (!this.requireQueryRef()) {
@@ -3288,6 +3303,7 @@ class bslHelper {
 
 			}
 		}
+
 		if (suggestions.length)
 			return { suggestions: suggestions }
 		else
@@ -3302,15 +3318,10 @@ class bslHelper {
 	 */
 	 getDCSCompletition() {
 
-		let suggestions = [];
-		// +++
-		if (customSuggestions.length) {
-			suggestions = customSuggestions.slice();
-			customSuggestions = [];
-		}
-		else
-		// ---
-		{
+		let suggestions = this.getCustomSuggestions(true);
+		
+		if (!suggestions.length) {
+
 			if (!this.requireQueryValue()) {
 
 				if (this.lastOperator != '"') {
@@ -3329,6 +3340,7 @@ class bslHelper {
 
 			}
 		}
+
 		if (suggestions.length)
 			return { suggestions: suggestions }
 		else
@@ -4296,11 +4308,11 @@ class bslHelper {
 	}
 
 	/**
-	 * Provider for hover popoup
+	 * Provider for custom hover popoup
 	 * 
 	 * @returns {object} - hover object or null
 	 */
-	getHover() {
+	getCustomHover() {
 
 		for (const [key, value] of Object.entries(customHovers)) {			
 			
@@ -4326,38 +4338,55 @@ class bslHelper {
 
 		}
 
-		for (const [key, value] of Object.entries(bslGlobals)) {
-
-			for (const [ikey, ivalue] of Object.entries(value)) {
-	
-				if (ivalue.hasOwnProperty(this.nameField)) {
-	
-					if (ivalue[this.nameField].toLowerCase() == this.word) {
-
-						let contents = [
-							{ value: '**' + ivalue[this.nameField] + '**' },
-							{ value: ivalue.description }
-						]
-		
-						if (ivalue.hasOwnProperty('returns')) {
-							contents.push(
-								{ value: 'Возвращает: ' + ivalue.returns }
-							)
-						}
-						
-						return {
-							range: new monaco.Range(this.lineNumber, this.column, this.lineNumber, this.model.getLineMaxColumn(this.lineNumber)),
-							contents: contents
-						};
-					}
-	
-				}
-				
-			}
-	
-		}
-				
 		return null;
+
+	}
+
+	/**
+	 * Provider for hover popoup
+	 * 
+	 * @returns {object} - hover object or null
+	 */
+	getHover() {
+
+		let hover = this.getCustomHover();
+
+		if (!hover) {
+
+			for (const [key, value] of Object.entries(bslGlobals)) {
+
+				for (const [ikey, ivalue] of Object.entries(value)) {
+
+					if (ivalue.hasOwnProperty(this.nameField)) {
+
+						if (ivalue[this.nameField].toLowerCase() == this.word) {
+
+							let contents = [
+								{ value: '**' + ivalue[this.nameField] + '**' },
+								{ value: ivalue.description }
+							]
+
+							if (ivalue.hasOwnProperty('returns')) {
+								contents.push(
+									{ value: 'Возвращает: ' + ivalue.returns }
+								)
+							}
+
+							return {
+								range: new monaco.Range(this.lineNumber, this.column, this.lineNumber, this.model.getLineMaxColumn(this.lineNumber)),
+								contents: contents
+							};
+						}
+
+					}
+
+				}
+
+			}
+
+		}
+
+		return hover;
 
 	}
 
@@ -4698,6 +4727,35 @@ class bslHelper {
 		});
 
 		return result;
+	}
+
+	onProvideHover() {
+
+		if (generateBeforeHoverEvent) {
+			let token = this.getLastToken();
+			let params = {
+				word: this.model.getWordAtPosition(this.position),
+				token: token,
+				line: this.lineNumber,
+				column: this.column
+			}
+			sendEvent('EVENT_BEFORE_HOVER', params);
+		}
+
+	}
+
+	onProvideCompletion(context, completition) {
+
+		if (generateBeforeShowSuggestEvent) {                
+			let rows = [];
+			if (Object.keys(completition).length) {
+				for (const [key, value] of Object.entries(completition.suggestions)) {
+					rows.push(value.label);
+				}                        
+			}
+			genarateEventWithSuggestData('EVENT_BEFORE_SHOW_SUGGEST', rows, context.triggerCharacter, '');
+		}
+
 	}
 
 }
