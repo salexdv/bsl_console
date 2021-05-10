@@ -524,7 +524,31 @@ define([], function () {
                 }
             },
             hoverProvider: {
-                provideHover: () => {}
+                provideHover: function (model, position) {
+                    
+                    if (!ctrlPressed) {
+
+                        if (generateBeforeHoverEvent) {
+                            let bsl = new bslHelper(model, position);
+                            let token = bsl.getLastToken();
+                            let params = {
+                                word: model.getWordAtPosition(position),
+                                token: token,
+                                line: position.lineNumber,
+                                column: position.column
+                            }
+                            sendEvent('EVENT_BEFORE_HOVER', params);
+                        }
+                        
+                        let bsl = new bslHelper(model, position);
+                        return bsl.getHover();
+
+                    }
+                    else {
+                        return null;
+                    }
+
+                }
             },
             formatProvider: {
                 provideDocumentFormattingEdits: () => {}
@@ -565,7 +589,31 @@ define([], function () {
                 }
             },
             hoverProvider: {
-                provideHover: () => {}
+                provideHover: function (model, position) {
+                    
+                    if (!ctrlPressed) {
+
+                        if (generateBeforeHoverEvent) {
+                            let bsl = new bslHelper(model, position);
+                            let token = bsl.getLastToken();
+                            let params = {
+                                word: model.getWordAtPosition(position),
+                                token: token,
+                                line: position.lineNumber,
+                                column: position.column
+                            }
+                            sendEvent('EVENT_BEFORE_HOVER', params);
+                        }
+                        
+                        let bsl = new bslHelper(model, position);
+                        return bsl.getHover();
+
+                    }
+                    else {
+                        return null;
+                    }
+
+                }
             },
             formatProvider: {
                 provideDocumentFormattingEdits: () => {}
