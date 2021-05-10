@@ -1050,8 +1050,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         }
       }
     }
-    else if (e.ctrlKey && e.keyCode == 36) {
-      // Ctrl+F      
+    else if (e.ctrlKey && (e.keyCode == 36 || e.keyCode == 38)) {
+      // Ctrl+F or Ctrl+H
       setFindWidgetDisplay('inherit');
     }
     else if (e.keyCode == 9) {
