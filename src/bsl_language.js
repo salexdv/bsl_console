@@ -397,7 +397,6 @@ define([], function () {
 
                     let bsl = new bslHelper(model, position);
                     let completition = bsl.getCompletition(context, token);
-                    
                     if (generateBeforeShowSuggestEvent) {                
                         let rows = [];
                         if (Object.keys(completition).length) {
@@ -407,7 +406,6 @@ define([], function () {
                         }
                         genarateEventWithSuggestData('EVENT_BEFORE_SHOW_SUGGEST', rows, context.triggerCharacter, '');
                     }
-
                     return completition;
 
                 }
@@ -497,9 +495,23 @@ define([], function () {
             languageDef: query_language,
             completionProvider: {
                 triggerCharacters: ['.', '(', '&'],
-                provideCompletionItems: function (model, position) {
+                provideCompletionItems: function (model, position, context, token) {
+                    let widget = document.querySelector('.suggest-widget');
+                    widget.style.display = '';
+                    widget.style.visibility = '';     
+                    
                     let bsl = new bslHelper(model, position);
-                    return bsl.getQueryCompletition(query_language);
+                    let completition = bsl.getQueryCompletition(query_language);
+                    if (generateBeforeShowSuggestEvent) {                
+                        let rows = [];
+                        if (Object.keys(completition).length) {
+                            for (const [key, value] of Object.entries(completition.suggestions)) {
+                                rows.push(value.label);
+                            }                        
+                        }
+                        genarateEventWithSuggestData('EVENT_BEFORE_SHOW_SUGGEST', rows, context.triggerCharacter, '');
+                    }
+                    return completition;
                 }
             },
             foldingProvider: {
@@ -516,7 +528,31 @@ define([], function () {
                 }
             },
             hoverProvider: {
-                provideHover: () => {}
+                provideHover: function (model, position) {
+                    
+                    if (!ctrlPressed) {
+
+                        if (generateBeforeHoverEvent) {
+                            let bsl = new bslHelper(model, position);
+                            let token = bsl.getLastToken();
+                            let params = {
+                                word: model.getWordAtPosition(position),
+                                token: token,
+                                line: position.lineNumber,
+                                column: position.column
+                            }
+                            sendEvent('EVENT_BEFORE_HOVER', params);
+                        }
+                        
+                        let bsl = new bslHelper(model, position);
+                        return bsl.getHover();
+
+                    }
+                    else {
+                        return null;
+                    }
+
+                }
             },
             formatProvider: {
                 provideDocumentFormattingEdits: () => {}
@@ -530,9 +566,23 @@ define([], function () {
             languageDef: dcs_language,
             completionProvider: {
                 triggerCharacters: ['.', '(', '&'],
-                provideCompletionItems: function (model, position) {
+                provideCompletionItems: function (model, position, context, token) {
+                    let widget = document.querySelector('.suggest-widget');
+                    widget.style.display = '';
+                    widget.style.visibility = '';     
+
                     let bsl = new bslHelper(model, position);
-                    return bsl.getDCSCompletition();
+                    let completition = bsl.getDCSCompletition();
+                    if (generateBeforeShowSuggestEvent) {                
+                        let rows = [];
+                        if (Object.keys(completition).length) {
+                            for (const [key, value] of Object.entries(completition.suggestions)) {
+                                rows.push(value.label);
+                            }                        
+                        }
+                        genarateEventWithSuggestData('EVENT_BEFORE_SHOW_SUGGEST', rows, context.triggerCharacter, '');
+                    }
+                    return completition;
                 }
             },
             foldingProvider: {
@@ -547,7 +597,31 @@ define([], function () {
                 }
             },
             hoverProvider: {
-                provideHover: () => {}
+                provideHover: function (model, position) {
+                    
+                    if (!ctrlPressed) {
+
+                        if (generateBeforeHoverEvent) {
+                            let bsl = new bslHelper(model, position);
+                            let token = bsl.getLastToken();
+                            let params = {
+                                word: model.getWordAtPosition(position),
+                                token: token,
+                                line: position.lineNumber,
+                                column: position.column
+                            }
+                            sendEvent('EVENT_BEFORE_HOVER', params);
+                        }
+                        
+                        let bsl = new bslHelper(model, position);
+                        return bsl.getHover();
+
+                    }
+                    else {
+                        return null;
+                    }
+
+                }
             },
             formatProvider: {
                 provideDocumentFormattingEdits: () => {}
