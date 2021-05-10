@@ -1000,6 +1000,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         language: language.id,
         contextmenu: true,
         wordBasedSuggestions: false,
+        scrollBeyondLastLine: false,
         customOptions: true
       });
 
