@@ -3245,42 +3245,49 @@ class bslHelper {
 	getQueryCompletition() {
 
 		let suggestions = [];
+		// +++
+		if (customSuggestions.length) {
+			suggestions = customSuggestions.slice();
+			customSuggestions = [];
+		}
+		else
+		// ---
+		{
+			if (!this.requireQueryValue()) {
 
-		if (!this.requireQueryValue()) {
+				if (!this.requireQueryRef()) {
 
-			if (!this.requireQueryRef()) {
+					if (!this.getQuerySourceCompletition(suggestions, monaco.languages.CompletionItemKind.Enum)) {
 
-				if (!this.getQuerySourceCompletition(suggestions, monaco.languages.CompletionItemKind.Enum)) {
+						if (this.lastOperator != '"') {
+							let functions = this.getQueryFunctions(bslQuery);
+							this.getCommonCompletition(suggestions, functions, monaco.languages.CompletionItemKind.Function, true);
+							this.getRefCompletition(suggestions);
+							this.getQueryTablesCompletition(suggestions, monaco.languages.CompletionItemKind.Class);
+							this.getCustomObjectsCompletition(suggestions, bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
+						}
 
-					if (this.lastOperator != '"') {
-						let functions = this.getQueryFunctions(bslQuery);
-						this.getCommonCompletition(suggestions, functions, monaco.languages.CompletionItemKind.Function, true);
-						this.getRefCompletition(suggestions);
-						this.getQueryTablesCompletition(suggestions, monaco.languages.CompletionItemKind.Class);
-						this.getCustomObjectsCompletition(suggestions, bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
+						this.getQueryCommonCompletition(suggestions, monaco.languages.CompletionItemKind.Module);
+						this.getQueryParamsCompletition(suggestions, monaco.languages.CompletionItemKind.Enum);				
+						this.getQueryFieldsCompletition(suggestions);
+						this.getSnippets(suggestions, querySnippets);
+
 					}
 
-					this.getQueryCommonCompletition(suggestions, monaco.languages.CompletionItemKind.Module);
-					this.getQueryParamsCompletition(suggestions, monaco.languages.CompletionItemKind.Enum);				
-					this.getQueryFieldsCompletition(suggestions);
-					this.getSnippets(suggestions, querySnippets);
+				}
+				else {
+					
+					this.getQueryRefCompletition(suggestions, monaco.languages.CompletionItemKind.Enum);
 
 				}
 
 			}
 			else {
 				
-				this.getQueryRefCompletition(suggestions, monaco.languages.CompletionItemKind.Enum);
+				this.getQueryValuesCompletition(suggestions, bslQuery.values, monaco.languages.CompletionItemKind.Enum);
 
 			}
-
 		}
-		else {
-			
-			this.getQueryValuesCompletition(suggestions, bslQuery.values, monaco.languages.CompletionItemKind.Enum);
-
-		}
-
 		if (suggestions.length)
 			return { suggestions: suggestions }
 		else
@@ -3296,25 +3303,32 @@ class bslHelper {
 	 getDCSCompletition() {
 
 		let suggestions = [];
+		// +++
+		if (customSuggestions.length) {
+			suggestions = customSuggestions.slice();
+			customSuggestions = [];
+		}
+		else
+		// ---
+		{
+			if (!this.requireQueryValue()) {
 
-		if (!this.requireQueryValue()) {
+				if (this.lastOperator != '"') {
+					this.getFillSuggestionsFromArray(suggestions, languages.bsl.languageDef.rules.DCSExp, monaco.languages.CompletionItemKind.Module);
+					let functions = this.getQueryFunctions(bslDCS);
+					this.getCommonCompletition(suggestions, functions, monaco.languages.CompletionItemKind.Function, true);
+					this.getCustomObjectsCompletition(suggestions, bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
+					this.getRefCompletition(suggestions);
+					this.getSnippets(suggestions, DCSSnippets);
+				}
 
-			if (this.lastOperator != '"') {
-				this.getFillSuggestionsFromArray(suggestions, languages.bsl.languageDef.rules.DCSExp, monaco.languages.CompletionItemKind.Module);
-				let functions = this.getQueryFunctions(bslDCS);
-				this.getCommonCompletition(suggestions, functions, monaco.languages.CompletionItemKind.Function, true);
-				this.getCustomObjectsCompletition(suggestions, bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
-				this.getRefCompletition(suggestions);
-				this.getSnippets(suggestions, DCSSnippets);
 			}
+			else {
+				
+				this.getQueryValuesCompletition(suggestions, bslQuery.values, monaco.languages.CompletionItemKind.Enum);
 
+			}
 		}
-		else {
-			
-			this.getQueryValuesCompletition(suggestions, bslQuery.values, monaco.languages.CompletionItemKind.Enum);
-
-		}
-
 		if (suggestions.length)
 			return { suggestions: suggestions }
 		else
