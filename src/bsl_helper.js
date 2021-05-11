@@ -4737,7 +4737,10 @@ class bslHelper {
 				word: this.model.getWordAtPosition(this.position),
 				token: token,
 				line: this.lineNumber,
-				column: this.column
+				column: this.column,
+				altKey: altPressed,
+				ctrlKey: ctrlPressed,
+				shiftKey: shiftPressed
 			}
 			sendEvent('EVENT_BEFORE_HOVER', params);
 		}
