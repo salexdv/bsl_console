@@ -445,9 +445,9 @@ define([], function () {
             },
             hoverProvider: {
                 provideHover: function (model, position) {                    
-                    if (!ctrlPressed) {
-                        let bsl = new bslHelper(model, position);
-                        bsl.onProvideHover();
+                    let bsl = new bslHelper(model, position);
+                    bsl.onProvideHover();
+                    if (!ctrlPressed) {                        
                         return bsl.getHover();
                     }
                     else {
@@ -498,9 +498,9 @@ define([], function () {
             },
             hoverProvider: {
                 provideHover: function (model, position) {                    
-                    if (!ctrlPressed) {
-                        let bsl = new bslHelper(model, position);
-                        bsl.onProvideHover();
+                    let bsl = new bslHelper(model, position);
+                    bsl.onProvideHover();
+                    if (!ctrlPressed) {                        
                         return bsl.getCustomHover();
                     }
                     else {
@@ -544,9 +544,9 @@ define([], function () {
             },
             hoverProvider: {
                 provideHover: function (model, position) {                    
-                    if (!ctrlPressed) {
-                        let bsl = new bslHelper(model, position);
-                        bsl.onProvideHover();
+                    let bsl = new bslHelper(model, position);
+                    bsl.onProvideHover();
+                    if (!ctrlPressed) {                        
                         return bsl.getCustomHover();
                     }
                     else {

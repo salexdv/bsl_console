@@ -26,6 +26,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   generateBeforeSignatureEvent = false;
   statusBarWidget = null;
   ctrlPressed = false;
+  altPressed = false;
+  shiftPressed = false;
 
   reserMark = function() {
 
@@ -1061,14 +1063,26 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     }
 
     if (e.ctrlKey)
-      ctrlPressed  = true;
+      ctrlPressed = true;
+
+    if (e.altKey)
+      altPressed = true;
+
+    if (e.shiftKey)
+      shiftPressed = true;
 
   });
 
   editor.onKeyUp(e => {
     
     if (e.ctrlKey)
-      ctrlPressed  = false;
+      ctrlPressed = false;
+
+    if (e.altKey)
+      altPressed = false;
+
+    if (e.shiftKey)
+      shiftPressed = false;
 
   });
 
