@@ -1140,8 +1140,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     }
 
     let element = e.target.element;
-    if (element.tagName.toLowerCase() == 'a')
+    if (element.tagName.toLowerCase() == 'a') {
       sendEvent("EVENT_ON_LINK_CLICK", {label: element.innerText, href: element.dataset.href});
+      setTimeout(() => {
+        editor.focus();
+      }, 100);      
+    }
 
   });
 
