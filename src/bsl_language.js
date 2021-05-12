@@ -462,6 +462,9 @@ define([], function () {
             codeLenses: {
                 provider: () => {},                
                 resolver: () => {}
+            },
+            indentationRules: {
+                increaseIndentPattern: /^\s*(функция|function|процедура|procedure|если|if|пока|while|для|for|попытка|try|исключение|except).*$/i
             }
         },
         query: {
@@ -510,7 +513,8 @@ define([], function () {
             codeLenses: {
                 provider: () => {},                
                 resolver: () => {}
-            }
+            },
+            indentationRules: null
         },
         dcs: {
             languageDef: dcs_language,
@@ -556,7 +560,8 @@ define([], function () {
             codeLenses: {
                 provider: () => {},                
                 resolver: () => {}
-            }
+            },
+            indentationRules: null
         }
 
     };
