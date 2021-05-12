@@ -1120,8 +1120,9 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     if (generateModificationEvent)
       sendEvent('EVENT_CONTENT_CHANGED', '');
 
+    checkBookmarksAfterRemoveLine(e);
     updateBookmarks(undefined);
-      
+        
   });
 
   editor.onKeyDown(e => {
@@ -1221,6 +1222,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
     if (text === '\n') {
       checkNewStringLine();
+      checkBookmarksAfterNewLine();
     }
 
   });
@@ -1265,6 +1267,96 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       let element = statusBarWidget.domNode;
       element.style.top = editor.getDomNode().clientHeight - 20 + 'px';      
       element.style.width = editor.getDomNode().clientWidth + 'px';
+    }
+
+  }
+
+  function checkBookmarksAfterNewLine() {
+
+    let line = getCurrentLine();
+    let prev_bookmark = bookmarks.get(line - 1);
+
+    if (prev_bookmark) {
+
+      let content = getLineContent(line);
+      let prev_content = getLineContent(line - 1)
+      
+      if (content || content == prev_content) {
+        
+        prev_bookmark.range.startLineNumber = line;
+        prev_bookmark.range.endLineNumber = line;
+        bookmarks.set(line, prev_bookmark);
+        bookmarks.delete(line - 1);
+        
+        let line_check = getLineCount();
+        
+        while(line < line_check) {
+        
+          let bookmark = bookmarks.get(line_check);
+        
+          if (bookmark) {
+            bookmark.range.startLineNumber = line_check + 1;
+            bookmark.range.endLineNumber = line_check + 1;
+            bookmarks.set(line_check + 1, bookmark);
+            bookmarks.delete(line_check);
+          }
+
+          line_check--;
+
+        }
+
+        updateBookmarks(undefined);
+
+      }
+
+    }
+
+  }
+
+  function checkBookmarksAfterRemoveLine(contentChangeEvent) {
+
+    if (contentChangeEvent.changes.length) {
+
+      let changes = contentChangeEvent.changes[0];
+      let range = changes.range;
+
+      if (!changes.text && range.startLineNumber != range.endLineNumber) {
+
+        let line = range.startLineNumber;
+        let prev_bookmark = bookmarks.get(range.endLineNumber);
+
+        if (prev_bookmark) {
+
+          for (l = line; l <= range.endLineNumber; l++) {
+            bookmarks.delete(l);
+          }
+
+          let line_check = range.endLineNumber;
+          let diff = range.endLineNumber - line;
+        
+          while(line_check < getLineCount()) {
+          
+            let bookmark = bookmarks.get(line_check);
+          
+            if (bookmark) {
+              bookmark.range.startLineNumber = line_check - diff;
+              bookmark.range.endLineNumber = line_check - diff;
+              bookmarks.set(line_check - diff, bookmark);
+              bookmarks.delete(line_check);
+            }
+
+            line_check++;
+            
+          }
+
+          prev_bookmark.range.startLineNumber = line;
+          prev_bookmark.range.endLineNumber = line;
+          bookmarks.set(line, prev_bookmark);
+
+        }
+
+      }
+
     }
 
   }
