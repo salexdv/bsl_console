@@ -465,7 +465,8 @@ define([], function () {
             },
             autoIndentation: true,
             indentationRules: {
-                increaseIndentPattern: /^\s*(функция|function|процедура|procedure|если|if|пока|while|для|for|попытка|try|исключение|except).*$/i
+                increaseIndentPattern: /^\s*(функция|function|процедура|procedure|если|if|пока|while|для|for|попытка|try|исключение|except).*$/i,
+                decreaseIndentPattern: /^\s*(конецфункции|endfunction|конецпроцедуры|endprocedure|конецесли|endif|конеццикла|enddo|конецпопытки|endtry).*$/i
             }
         },
         query: {
