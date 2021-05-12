@@ -14,14 +14,18 @@ define(['vs/editor/editor.main'], function () {
 
     updateBookmarks = function (line) {
 
-        let bookmark = bookmarks.get(line);
+        if (line != undefined) {
 
-        if (bookmark) {
-            bookmarks.delete(line);
-        }
-        else {
-            bookmark = { range: new monaco.Range(line, 1, line), options: { isWholeLine: true, linesDecorationsClassName: 'bookmark' } };
-            bookmarks.set(line, bookmark);
+            let bookmark = bookmarks.get(line);
+
+            if (bookmark) {
+                bookmarks.delete(line);
+            }
+            else {
+                bookmark = { range: new monaco.Range(line, 1, line), options: { isWholeLine: true, linesDecorationsClassName: 'bookmark' } };
+                bookmarks.set(line, bookmark);
+            }
+
         }
 
         let bm_decorations = getBookmarksDecorations();

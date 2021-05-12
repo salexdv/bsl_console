@@ -1119,6 +1119,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     
     if (generateModificationEvent)
       sendEvent('EVENT_CONTENT_CHANGED', '');
+
+    updateBookmarks(undefined);
       
   });
 
