@@ -20,6 +20,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   contextMenuEnabled = false;
   err_tid = 0;
   suggestObserver = null;
+  signatureObserver = null;
   generateBeforeShowSuggestEvent = false;
   generateSelectSuggestEvent = false;
   generateBeforeHoverEvent = false;
@@ -27,7 +28,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   statusBarWidget = null;
   ctrlPressed = false;
   altPressed = false;
-  shiftPressed = false;
+  shiftPressed = false;  
+  signatureVisible = true;
 
   reserMark = function() {
 
@@ -849,6 +851,40 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     
     generateBeforeSignatureEvent = enabled;
 
+    if (signatureObserver != null) {
+      signatureObserver.disconnect();
+      signatureObserver = null;
+    }
+
+    if (enabled) {
+
+      signatureObserver = new MutationObserver(function (mutations) {
+
+        mutations.forEach(function (mutation) {
+
+          if (mutation.target.classList.contains('overflowingContentWidgets') && mutation.addedNodes.length) {
+
+            let element = mutation.addedNodes[0];
+
+            if (element.classList.contains('parameter-hints-widget') && !signatureVisible) {
+              element.style.display = 'none';
+              signatureObserver.disconnect();
+              signatureObserver = null;
+            }
+
+          }
+
+        })
+
+      });
+
+      signatureObserver.observe(document, {
+        childList: true,
+        subtree: true
+      });
+
+    }
+
   }
 
   hideSuggestionsList = function() {
@@ -859,16 +895,15 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
-  hideSignatureList = function() {
+  hideSignatureList = function () {
 
+    signatureVisible = false;
     let widget = document.querySelector('.parameter-hints-widget');
-    
-    if (widget) {
-      widget.style.display = 'hidden';
-      widget.style.visibility = 'hidden';
-    }
 
-}
+    if (widget)
+      widget.style.display = 'none';
+
+  }
 
   hideHoverList = function() {
 
