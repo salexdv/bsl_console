@@ -462,6 +462,11 @@ define([], function () {
             codeLenses: {
                 provider: () => {},                
                 resolver: () => {}
+            },
+            autoIndentation: true,
+            indentationRules: {
+                increaseIndentPattern: /^\s*(функция|function|процедура|procedure|если|if|пока|while|для|for|попытка|try|исключение|except).*$/i,
+                decreaseIndentPattern: /^\s*(конецфункции|endfunction|конецпроцедуры|endprocedure|конецесли|endif|конеццикла|enddo|конецпопытки|endtry).*$/i
             }
         },
         query: {
@@ -510,6 +515,11 @@ define([], function () {
             codeLenses: {
                 provider: () => {},                
                 resolver: () => {}
+            },
+            autoIndentation: false,
+            indentationRules: {
+                increaseIndentPattern: /^\s*(выбрать|из|выбор|когда).*$/i,
+                decreaseIndentPattern: /^\s*(тогда|иначе|конец).*$/i
             }
         },
         dcs: {
@@ -556,7 +566,9 @@ define([], function () {
             codeLenses: {
                 provider: () => {},                
                 resolver: () => {}
-            }
+            },
+            autoIndentation: false,
+            indentationRules: null
         }
 
     };
