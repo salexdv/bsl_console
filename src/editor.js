@@ -5,6 +5,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   selectionText = '';
   engLang = false;
   decorations = [];
+  bookmarks = new Map();
   contextData = new Map();
   generateModificationEvent = false;
   readOnlyMode = false;
@@ -30,11 +31,13 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   altPressed = false;
   shiftPressed = false;  
   signatureVisible = true;
+  currentBookmark = -1;
 
   reserMark = function() {
 
     clearInterval(err_tid);
-    decorations = editor.deltaDecorations(decorations, []);
+    let bm_decorations = getBookmarksDecorations();
+    decorations = editor.deltaDecorations(decorations, bm_decorations);
 
   }
 
@@ -156,18 +159,22 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   markError = function (line, column) {
     reserMark();
-    let count = 12;
-    err_tid = setInterval(function() {
+    let bm_decorations = getBookmarksDecorations();
+    editor.timer_count = 12;
+    err_tid = setInterval(function () {
       let newDecor = [];
-      if (!decorations.length) {
-        newDecor = [            
-          { range: new monaco.Range(line,1,line), options: { isWholeLine: true, inlineClassName: 'error-string' }},
-          { range: new monaco.Range(line,1,line), options: { isWholeLine: true, linesDecorationsClassName: 'error-mark' }},
-        ];
+      if (editor.timer_count % 2 == 0) {
+        newDecor.push(
+          { range: new monaco.Range(line, 1, line), options: { isWholeLine: true, inlineClassName: 'error-string' } }
+        );
+        newDecor.push(
+          { range: new monaco.Range(line, 1, line), options: { isWholeLine: true, linesDecorationsClassName: 'error-mark' } },
+        );
       }
+      editor.timer_count--;
+      newDecor = newDecor.concat(bm_decorations);
       decorations = editor.deltaDecorations(decorations, newDecor);
-      count--;
-      if (count == 0) {
+      if (editor.timer_count == 0) {
         clearInterval(err_tid);
       }
     }, 300);
@@ -1001,6 +1008,48 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  addBookmark = function(lineNumber) {
+
+    if (lineNumber < getLineCount()) {
+
+      let bookmark = bookmarks.get(lineNumber);
+
+      if (!bookmark)
+        updateBookmarks(lineNumber);
+
+      return !bookmark ? true : false;
+
+    }
+    else {
+      
+      bookmarks.delete(lineNumber);
+      return false;
+
+    }
+
+  }
+
+  removeBookmark = function(lineNumber) {
+
+    if (lineNumber < getLineCount()) {
+
+      let bookmark = bookmarks.get(lineNumber);
+
+      if (bookmark)
+        updateBookmarks(lineNumber);    
+      
+      return bookmark ? true : false;
+
+    }
+    else {
+
+      bookmarks.delete(lineNumber);
+      return false;
+
+    }
+
+  }
+
   editor = undefined;
 
   // Register languages
@@ -1149,6 +1198,11 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       setTimeout(() => {
         editor.focus();
       }, 100);      
+    }
+    
+    if (e.event.detail == 2 && element.classList.contains('line-numbers')) {
+      let line = e.target.position.lineNumber;
+      updateBookmarks(line);      
     }
 
   });
