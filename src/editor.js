@@ -1024,7 +1024,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       resolveCodeLens: lang.codeLenses.resolver
     });
 
-    if (lang.indentationRules)
+    if (lang.autoIndentation && lang.indentationRules)
       monaco.languages.setLanguageConfiguration(language.id, {indentationRules: lang.indentationRules});
 
     if (!editor) {

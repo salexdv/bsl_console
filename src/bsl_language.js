@@ -463,6 +463,7 @@ define([], function () {
                 provider: () => {},                
                 resolver: () => {}
             },
+            autoIndentation: true,
             indentationRules: {
                 increaseIndentPattern: /^\s*(функция|function|процедура|procedure|если|if|пока|while|для|for|попытка|try|исключение|except).*$/i
             }
@@ -514,7 +515,11 @@ define([], function () {
                 provider: () => {},                
                 resolver: () => {}
             },
-            indentationRules: null
+            autoIndentation: false,
+            indentationRules: {
+                increaseIndentPattern: /^\s*(выбрать|из|выбор|когда).*$/i,
+                decreaseIndentPattern: /^\s*(тогда|иначе|конец).*$/i
+            }
         },
         dcs: {
             languageDef: dcs_language,
@@ -561,6 +566,7 @@ define([], function () {
                 provider: () => {},                
                 resolver: () => {}
             },
+            autoIndentation: false,
             indentationRules: null
         }
 
