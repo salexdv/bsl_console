@@ -453,6 +453,18 @@ class bslHelper {
 	}
 
 	/**
+	 * Removes brackets from signature's label
+	 * (НомерДокумента, ДатаИнтервала) : ДокументСсылка.<Имя справочника>; Неопределено => НомерДокумента, ДатаИнтервала
+	 * 
+	 * @returns {string} new label
+	 */
+	getClearSignatureLabel(label) {
+
+		return label.replace(/(\()(.*)(\).*)/, '$2');
+
+	}	
+
+	/**
 	 * Fills array of completition for language keywords, classes, global functions,
 	 * global variables and system enumarations
 	 * 
@@ -3367,7 +3379,8 @@ class bslHelper {
 				if (svalue.hasOwnProperty('СтрокаПараметров') && svalue.hasOwnProperty('Параметры')) {
 
 					let sig_label = svalue.СтрокаПараметров;
-					let sig_params = sig_label.split(',');
+					let clear_label = this.getClearSignatureLabel(sig_label);
+					let sig_params = clear_label.split(',');
 
 					let signature = {
 						label: sig_label,
@@ -3377,7 +3390,7 @@ class bslHelper {
 					let param_index = 0;
 
 					for (const [pkey, pvalue] of Object.entries(svalue.Параметры)) {
-						let param_label = (param_index < sig_params.length) ? sig_params[param_index].trim() : pkey;
+						let param_label = (param_index < sig_params.length) ? sig_params[param_index].trim() : pkey;						
 						signature.parameters.push({
 							label: param_label,
 							documentation: pvalue
@@ -3416,7 +3429,8 @@ class bslHelper {
 				if (cvalue.hasOwnProperty('signature')) {
 
 					let sig_label = cvalue.signature;
-					let sig_params = sig_label.split(',');
+					let clear_label = this.getClearSignatureLabel(sig_label);
+					let sig_params = clear_label.split(',');
 
 					let signature = {
 						label: sig_label,
