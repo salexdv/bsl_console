@@ -1,5 +1,73 @@
 define(['vs/editor/editor.main'], function () {
 
+    getBookmarksDecorations = function () {
+
+        let bm_decorations = [];
+
+        bookmarks.forEach(function (value) {
+            bm_decorations.push(value);
+        });
+
+        return bm_decorations;
+
+    }
+
+    updateBookmarks = function (line) {
+
+        let bookmark = bookmarks.get(line);
+
+        if (bookmark) {
+            bookmarks.delete(line);
+        }
+        else {
+            bookmark = { range: new monaco.Range(line, 1, line), options: { isWholeLine: true, linesDecorationsClassName: 'bookmark' } };
+            bookmarks.set(line, bookmark);
+        }
+
+        let bm_decorations = getBookmarksDecorations();
+        decorations = editor.deltaDecorations(decorations, bm_decorations);
+
+    }
+
+    function goToCurrentBookmark(sorted_bookmarks) {
+
+        let idx = 0;
+        let count = getLineCount();
+
+        sorted_bookmarks.forEach(function (value, key) {
+            if (idx == currentBookmark && key <= count) {
+                editor.revealLineInCenter(key);
+            }
+            idx++;
+        });
+
+    }
+
+    goNextBookmark = function () {
+
+        let sorted_bookmarks = new Map([...bookmarks.entries()].sort());
+
+        if (sorted_bookmarks.size - 1 <= currentBookmark)
+            currentBookmark = -1;
+
+        currentBookmark++;
+        goToCurrentBookmark(sorted_bookmarks);
+
+    }
+
+    goPreviousBookmark = function () {
+
+        let sorted_bookmarks = new Map([...bookmarks.entries()].sort());
+
+        currentBookmark--;
+
+        if (currentBookmark < 0)
+            currentBookmark = sorted_bookmarks.size - 1;
+
+        goToCurrentBookmark(sorted_bookmarks);
+
+    }
+
     getActions = function(version1C) {
 
         let actions = {};
@@ -111,6 +179,33 @@ define(['vs/editor/editor.main'], function () {
                 order: 1.8,
                 callback: function (ed) {                
                     removeWordWrap();
+                    return null;
+                }
+            };
+
+        }
+
+        if (!DCSMode) {
+
+            actions.add_bookmark_bsl = {
+                label: 'Установить/удалить закладку',
+                key: monaco.KeyMod.Alt | monaco.KeyCode.F2,
+                cmd: monaco.KeyMod.chord(monaco.KeyMod.Alt | monaco.KeyCode.F2),
+                order: 1.9,
+                callback: function (ed) {
+                    let line = getCurrentLine();
+                    updateBookmarks(line);
+                    return null;
+                }
+            };
+
+            actions.next_bookmark_bsl = {
+                label: 'Следующая закладка',
+                key: monaco.KeyCode.F2,
+                cmd: monaco.KeyMod.chord(monaco.KeyCode.F2),
+                order: 2.0,
+                callback: function (ed) {
+                    goNextBookmark();
                     return null;
                 }
             };

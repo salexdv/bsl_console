@@ -8,6 +8,13 @@
 	margin-left: 3px;	
 }
 
+.bookmark {
+	background: #7e96a8;	
+	width: 20px !important;
+	left: 2px !important;
+	border-radius: 20%;
+}
+
 .statusbar-widget {
 
 	background: #028fef;
