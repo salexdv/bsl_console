@@ -412,6 +412,13 @@ define([], function () {
                 signatureHelpRetriggerCharacters: [')'],
                 provideSignatureHelp: (model, position, token, context) => {
                     
+                    let widget = document.querySelector('.parameter-hints-widget');
+
+                    if (widget) {
+                        widget.style.display = '';
+                        signatureVisible = true;
+                    }
+
                     let bsl = new bslHelper(model, position);
                     let helper = bsl.getSigHelp(context);
 
@@ -425,18 +432,7 @@ define([], function () {
                             activeSignature: activeSignature,
                             triggerCharacter: context.triggerCharacter
                         }
-                        sendEvent('EVENT_BEFORE_SIGNATURE', params);
-                    }
-
-                    if (helper) {
-
-                        let widget = document.querySelector('.parameter-hints-widget');
-
-                        if (widget) {
-                            widget.style.display = '';
-                            widget.style.visibility = '';
-                        }
-
+                        sendEvent('EVENT_BEFORE_SIGNATURE', params);                        
                     }
 
                     return helper;
