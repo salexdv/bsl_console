@@ -1,5 +1,11 @@
 define(['vs/editor/editor.main'], function () {
 
+    getSortedBookmarks = function () {
+
+        return new Map([...bookmarks.entries()].sort((a, b) => a[0] - b[0]));
+
+    }
+
     getBookmarksDecorations = function () {
 
         let bm_decorations = [];
@@ -49,7 +55,7 @@ define(['vs/editor/editor.main'], function () {
 
     goNextBookmark = function () {
 
-        let sorted_bookmarks = new Map([...bookmarks.entries()].sort());
+        let sorted_bookmarks = getSortedBookmarks();
 
         if (sorted_bookmarks.size - 1 <= currentBookmark)
             currentBookmark = -1;
@@ -61,7 +67,7 @@ define(['vs/editor/editor.main'], function () {
 
     goPreviousBookmark = function () {
 
-        let sorted_bookmarks = new Map([...bookmarks.entries()].sort());
+        let sorted_bookmarks = getSortedBookmarks();
 
         currentBookmark--;
 
