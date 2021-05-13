@@ -391,7 +391,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
-  selectedText = function(text) {
+  selectedText = function(text, keepSelection = false) {
 
     if (!text)
       
@@ -407,10 +407,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         
         setText(text, getSelection(), false);
 
-        if (tempRange.startLineNumber == tempRange.endLineNumber)
-          setSelection(selection.startLineNumber, selection.startColumn, selection.startLineNumber, selection.startColumn + tempRange.endColumn - 1);
-        else
-          setSelection(selection.startLineNumber, selection.startColumn, selection.startLineNumber + tempRange.endLineNumber - tempRange.startLineNumber, tempRange.endColumn);          
+        if (keepSelection) {
+          if (tempRange.startLineNumber == tempRange.endLineNumber)
+            setSelection(selection.startLineNumber, selection.startColumn, selection.startLineNumber, selection.startColumn + tempRange.endColumn - 1);
+          else
+            setSelection(selection.startLineNumber, selection.startColumn, selection.startLineNumber + tempRange.endLineNumber - tempRange.startLineNumber, tempRange.endColumn);
+        }
 
       }
       else
