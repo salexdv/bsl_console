@@ -1050,6 +1050,13 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  getBookmarks = function () {
+
+    let sorted_bookmarks = getSortedBookmarks();
+    return Array.from(sorted_bookmarks.keys());
+
+  }
+
   editor = undefined;
 
   // Register languages
