@@ -252,6 +252,16 @@ define(['vs/editor/editor.main'], function () {
                 }
                 return null;
             }
+        },
+        delLine: {
+            label: 'Удалить текущую строку',
+            key: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_L,
+            cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_L),
+            order: 0,
+            callback: function (ed) {
+                editor.trigger('', 'editor.action.deleteLines', {})
+                return null;
+            }
         }
     }
 
