@@ -14,14 +14,18 @@ define(['vs/editor/editor.main'], function () {
 
     updateBookmarks = function (line) {
 
-        let bookmark = bookmarks.get(line);
+        if (line != undefined) {
 
-        if (bookmark) {
-            bookmarks.delete(line);
-        }
-        else {
-            bookmark = { range: new monaco.Range(line, 1, line), options: { isWholeLine: true, linesDecorationsClassName: 'bookmark' } };
-            bookmarks.set(line, bookmark);
+            let bookmark = bookmarks.get(line);
+
+            if (bookmark) {
+                bookmarks.delete(line);
+            }
+            else {
+                bookmark = { range: new monaco.Range(line, 1, line), options: { isWholeLine: true, linesDecorationsClassName: 'bookmark' } };
+                bookmarks.set(line, bookmark);
+            }
+
         }
 
         let bm_decorations = getBookmarksDecorations();
@@ -246,6 +250,16 @@ define(['vs/editor/editor.main'], function () {
                 if (obj && obj.hasOwnProperty('metadata')) {
                     requestMetadata(obj.metadata);
                 }
+                return null;
+            }
+        },
+        delLine: {
+            label: 'Удалить текущую строку',
+            key: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_L,
+            cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_L),
+            order: 0,
+            callback: function (ed) {
+                editor.trigger('', 'editor.action.deleteLines', {})
                 return null;
             }
         }
