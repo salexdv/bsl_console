@@ -139,6 +139,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     
   }
 
+  getReadOnly = function () {
+
+    return readOnlyMode;
+
+  }
+
   switchLang = function () {
     engLang = !engLang;
   }
