@@ -830,6 +830,20 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
               }
               
           }
+          else if (mutation.target.classList.contains('type')) {
+
+            let element = document.querySelector('.monaco-list-rows .focused');
+
+            if (element) {
+
+              if (hasParentWithClass(mutation.target, 'details') && hasParentWithClass(mutation.target, 'suggest-widget')) {
+                let rows = getSuggestWidgetRows(element);
+                genarateEventWithSuggestData('EVENT_ON_DETAIL_SUGGEST_ROW', rows, 'focus', element.getAttribute('aria-label'));
+              }
+
+            }
+
+          }
 
         })
         
@@ -1062,6 +1076,29 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
     let sorted_bookmarks = getSortedBookmarks();
     return Array.from(sorted_bookmarks.keys());
+
+  }
+
+  setActiveSuggestLabel = function (label) {
+
+    let element = document.querySelector('.monaco-list-rows .focused .monaco-icon-name-container');
+
+    if (element)
+      element.innerText = label;
+
+  }
+
+  setActiveSuggestDetail = function (detail) {
+
+    let element = document.querySelector('.monaco-list-rows .focused .details-label');
+
+    if (element)
+      element.innerText = detail;
+
+    element = document.querySelector('.suggest-widget.docs-side .details .header');
+        
+    if (element)
+      element.innerText = detail;
 
   }
 
