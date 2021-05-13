@@ -42,7 +42,7 @@
 | `updateText`                   | Полностью заменяет весь текст редактора, игнорируя при этом режим *Только просмотр*           |
 | `getText`                      | Возвращает весь текст из окна редактора                                                       |
 | `eraseText`                    | Удаляет весь текст редактора                                                                  |
-| `selectedText`(docs/selected_text.md) | Получает или заменяет выделенный текст              									 |
+| [`selectedText`](docs/selected_text.md) | Получает или заменяет выделенный текст              								 |
 | `getSelection`                 | Возвращает [selection](https://microsoft.github.io/monaco-editor/api/classes/monaco.selection.html), аналог GetTextSelectionBounds|
 | `setSelectionByLength`         | Устанавливает выделение, аналог первой сигнатуры SetTextSelectionBounds                       |
 | `setSelection`                 | Устанавливает выделение, аналог второй сигнатуры SetTextSelectionBounds                       |
