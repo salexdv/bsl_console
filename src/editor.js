@@ -139,6 +139,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     
   }
 
+  getReadOnly = function () {
+
+    return readOnlyMode;
+
+  }
+
   switchLang = function () {
     engLang = !engLang;
   }
@@ -972,16 +978,16 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
             
             this.domNode = document.createElement('div');
             this.domNode.classList.add('statusbar-widget');
-            this.domNode.style.left = '0px';
+            this.domNode.style.right = '0';
             this.domNode.style.top = editor.getDomNode().offsetHeight - 20 + 'px';
             this.domNode.style.height = '20px';
-            this.domNode.style.width = editor.getDomNode().clientWidth + 'px';
-            this.domNode.style.textAlign = 'right';
+            this.domNode.style.minWidth = '120px';                        
+            this.domNode.style.textAlign = 'center';
             this.domNode.style.zIndex = 1;
             this.domNode.style.fontSize = '12px';
 
             let pos = document.createElement('div');
-            pos.style.marginRight = '25px';            
+            pos.style.margin = 'auto 10px';
             this.domNode.append(pos);
 
           }
@@ -1263,8 +1269,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   function upateStatusBar() {
     
     if (statusBarWidget) {
-      let status = 'Стр: ' + getCurrentLine();
-      status += ' Кол: ' + getCurrentColumn();
+      let status = 'Ln ' + getCurrentLine();
+      status += ', Col ' + getCurrentColumn();
       statusBarWidget.domNode.firstElementChild.innerText = status;
     }
 
