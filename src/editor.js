@@ -1355,6 +1355,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         prev_bookmark.range.endLineNumber = line;
         bookmarks.set(line, prev_bookmark);
         bookmarks.delete(line - 1);
+        line++;
 
       }
 
@@ -1362,7 +1363,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
     let line_check = getLineCount();
 
-    while (line < line_check) {
+    while (line <= line_check) {
 
       let bookmark = bookmarks.get(line_check);
 
