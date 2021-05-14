@@ -977,12 +977,13 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
-  showStatusBar = function() {
+  showStatusBar = function(overlapScroll = true) {
     
     if (!statusBarWidget) {
 
       statusBarWidget = {
         domNode: null,
+        overlapScroll: overlapScroll,
         getId: function () {
           return 'bsl.statusbar.widget';
         },
@@ -992,8 +993,15 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
             
             this.domNode = document.createElement('div');
             this.domNode.classList.add('statusbar-widget');
-            this.domNode.style.right = '0';
-            this.domNode.style.top = editor.getDomNode().offsetHeight - 20 + 'px';
+            if (this.overlapScroll) {
+              this.domNode.style.right = '0';
+              this.domNode.style.top = editor.getDomNode().offsetHeight - 20 + 'px';
+            }            
+            else {
+              let layout = editor.getLayoutInfo();
+              this.domNode.style.right = layout.verticalScrollbarWidth + 'px';
+              this.domNode.style.top = (editor.getDomNode().offsetHeight - 20 - layout.horizontalScrollbarHeight) + 'px';
+            }
             this.domNode.style.height = '20px';
             this.domNode.style.minWidth = '120px';                        
             this.domNode.style.textAlign = 'center';
@@ -1314,11 +1322,19 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   }
 
   function resizeStatusBar() {
-    
+
     if (statusBarWidget) {
+
       let element = statusBarWidget.domNode;
-      element.style.top = editor.getDomNode().clientHeight - 20 + 'px';      
-      element.style.width = editor.getDomNode().clientWidth + 'px';
+
+      if (statusBarWidget.overlapScroll) {
+        element.style.top = editor.getDomNode().clientHeight - 20 + 'px';
+      }
+      else {
+        let layout = editor.getLayoutInfo();
+        element.style.top = (editor.getDomNode().offsetHeight - 20 - layout.horizontalScrollbarHeight) + 'px';
+      }
+
     }
 
   }
