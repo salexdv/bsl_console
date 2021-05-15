@@ -102,6 +102,7 @@ define([], function () {
             brackets: [
                 { open: '[', close: ']', token: 'delimiter.square' },
                 { open: '(', close: ')', token: 'delimiter.parenthesis' },
+                { open: '{', close: '}', token: 'delimiter.curly' },
             ],
             keywords: [
                 'КонецПроцедуры', 'EndProcedure', 'КонецФункции', 'EndFunction',
