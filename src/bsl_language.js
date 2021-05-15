@@ -189,15 +189,7 @@ define([], function () {
                     [/(\.)(выполнить)(\(?)/, ['delimiter', 'identifier', 'delimiter.parenthesis']],
                     [/[a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]*/, { cases: { '@keywords': 'keyword', '@default': 'identifier' } }],
                     // whitespace
-                    { include: '@whitespace' },
-                    // delimiters and operators
-                    [/}/, {
-                        cases: {
-                            '$S2==interpolatedstring': { token: 'string.quote', next: '@pop' },
-                            '$S2==litinterpstring': { token: 'string.quote', next: '@pop' },
-                            '@default': '@brackets'
-                        }
-                    }],
+                    { include: '@whitespace' },                    
                     [/^\s*#.*$/, 'preproc'],
                     [/[()\[\]]/, '@brackets'],
                     [/@symbols/, {
