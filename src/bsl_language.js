@@ -364,7 +364,7 @@ define([], function () {
                     [/".*?"/, 'query.string'],
                     [/&[a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]*/, 'query.param'],
                     [/&/, 'query.param'],
-                    [/[()]/, 'query.brackets'],
+                    [/[({})]/, 'query.brackets'],
                     [/\/\/.*$/, 'comment'],
                     [/@operators/, 'query.operator'],
                     [/[0-9_]*\.[0-9_]+([eE][\-+]?\d+)?[fFdD]?/, 'query.float'],
