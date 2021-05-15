@@ -1110,6 +1110,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  hasTextFocus = function () {
+
+    return editor.hasTextFocus();
+
+  }
+
   editor = undefined;
 
   // Register languages

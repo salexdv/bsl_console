@@ -50,6 +50,26 @@ class bslHelper {
 		return /[\u0410-\u044F]+/.test(text);
 
 	}
+	
+	/**
+	 * Returns the current language id
+	 * 
+	 * @returns {string} language identifier
+	 */
+	getLangId() {
+
+		let lang_id = '';
+
+		if (queryMode)
+			lang_id = 'query';
+		else if (DCSMode)
+			lang_id = 'dcs';
+		else
+			lang_id = 'bsl';
+
+		return lang_id;
+
+	}
 
 	/**
 	 * Returns the token in the current position
@@ -61,7 +81,8 @@ class bslHelper {
 		let token = '';
 
 		let value = this.model.getValueInRange(new monaco.Range(1, 1, this.lineNumber, this.column));
-		let tokens = monaco.editor.tokenize(value, 'bsl');
+		let lang_id = this.getLangId();
+		let tokens = monaco.editor.tokenize(value, lang_id);
 
 		if (tokens.length) {
 			
