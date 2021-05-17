@@ -1246,15 +1246,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
     if (e.shiftKey)
       shiftPressed = true;
-
-    if (Array.isArray(activeSuggestionAcceptors) && 0 <= activeSuggestionAcceptors.indexOf(e.browserEvent.key.toLowerCase())) {
-      
-      element = document.querySelector('.monaco-list-row.focused');
-      if (element) {        
-        editor.trigger('', 'acceptSelectedSuggestion');
-      }      
-    }
-
+    
   });
 
   editor.onKeyUp(e => {
@@ -1472,6 +1464,22 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     }
 
   }
+
+  document.onkeypress = function (e) {
+    
+    let char = String.fromCharCode(e.keyCode);    
+
+    if (Array.isArray(activeSuggestionAcceptors) && 0 <= activeSuggestionAcceptors.indexOf(char.toLowerCase())) {
+
+      let element = document.querySelector('.monaco-list-row.focused');
+
+      if (element) {
+        editor.trigger('', 'acceptSelectedSuggestion');
+      }
+
+    }
+
+  };
 
   window.addEventListener('resize', function(event) {
     
