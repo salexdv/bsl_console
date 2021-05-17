@@ -21,3 +21,10 @@
 	color: #fff;
 
 }
+
+.suggest-widget .monaco-list .monaco-list-row .inactive-detail {
+
+	display: inline !important;
+	color: #b3b3b3;
+
+}

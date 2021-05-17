@@ -807,7 +807,9 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
-  enableSuggestActivationEvent = function(enabled) {
+  enableSuggestActivationEvent = function(enabled, alwaysDisplayDetails = false) {
+
+    editor.alwaysDisplaySuggestDetails = alwaysDisplayDetails;
 
     if (suggestObserver != null) {
       suggestObserver.disconnect();
@@ -825,8 +827,17 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
               let element = mutation.addedNodes[0];
     
               if (element.classList.contains('monaco-list-row') && element.classList.contains('focused')) {
+                
                 let rows = getSuggestWidgetRows(element);
                 genarateEventWithSuggestData('EVENT_ON_ACTIVATE_SUGGEST_ROW', rows, 'focus', element.getAttribute('aria-label'));
+                
+                if (editor.alwaysDisplaySuggestDetails) {
+                  document.querySelectorAll('.monaco-list-rows .details-label').forEach(function (node) {
+                    node.classList.add('inactive-detail');
+                  });
+                  document.querySelector('.monaco-list-rows .focused .details-label').classList.remove('inactive-detail');
+                }
+                
               }
               
           }
