@@ -32,6 +32,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   shiftPressed = false;  
   signatureVisible = true;
   currentBookmark = -1;
+  activeSuggestionAcceptors = [];
 
   reserMark = function() {
 
@@ -807,7 +808,9 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
-  enableSuggestActivationEvent = function(enabled) {
+  enableSuggestActivationEvent = function(enabled, alwaysDisplayDetails = false) {
+
+    editor.alwaysDisplaySuggestDetails = alwaysDisplayDetails;
 
     if (suggestObserver != null) {
       suggestObserver.disconnect();
@@ -825,8 +828,17 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
               let element = mutation.addedNodes[0];
     
               if (element.classList.contains('monaco-list-row') && element.classList.contains('focused')) {
+                
                 let rows = getSuggestWidgetRows(element);
                 genarateEventWithSuggestData('EVENT_ON_ACTIVATE_SUGGEST_ROW', rows, 'focus', element.getAttribute('aria-label'));
+                
+                if (editor.alwaysDisplaySuggestDetails) {
+                  document.querySelectorAll('.monaco-list-rows .details-label').forEach(function (node) {
+                    node.classList.add('inactive-detail');
+                  });
+                  document.querySelector('.monaco-list-rows .focused .details-label').classList.remove('inactive-detail');
+                }
+
               }
               
           }
@@ -1116,6 +1128,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  setActiveSuggestionAcceptors = function (characters) {
+
+    activeSuggestionAcceptors = characters.split('|');
+
+  }
+
   editor = undefined;
 
   // Register languages
@@ -1228,7 +1246,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
     if (e.shiftKey)
       shiftPressed = true;
-
+    
   });
 
   editor.onKeyUp(e => {
@@ -1446,6 +1464,22 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     }
 
   }
+
+  document.onkeypress = function (e) {
+    
+    let char = String.fromCharCode(e.keyCode);    
+
+    if (Array.isArray(activeSuggestionAcceptors) && 0 <= activeSuggestionAcceptors.indexOf(char.toLowerCase())) {
+
+      let element = document.querySelector('.monaco-list-row.focused');
+
+      if (element) {
+        editor.trigger('', 'acceptSelectedSuggestion');
+      }
+
+    }
+
+  };
 
   window.addEventListener('resize', function(event) {
     
