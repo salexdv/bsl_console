@@ -32,6 +32,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   shiftPressed = false;  
   signatureVisible = true;
   currentBookmark = -1;
+  activeSuggestionAcceptors = [];
 
   reserMark = function() {
 
@@ -837,7 +838,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
                   });
                   document.querySelector('.monaco-list-rows .focused .details-label').classList.remove('inactive-detail');
                 }
-                
+
               }
               
           }
@@ -1127,6 +1128,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  setActiveSuggestionAcceptors = function (characters) {
+
+    activeSuggestionAcceptors = characters.split('|');
+
+  }
+
   editor = undefined;
 
   // Register languages
@@ -1239,6 +1246,14 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
     if (e.shiftKey)
       shiftPressed = true;
+
+    if (Array.isArray(activeSuggestionAcceptors) && 0 <= activeSuggestionAcceptors.indexOf(e.browserEvent.key.toLowerCase())) {
+      
+      element = document.querySelector('.monaco-list-row.focused');
+      if (element) {        
+        editor.trigger('', 'acceptSelectedSuggestion');
+      }      
+    }
 
   });
 
