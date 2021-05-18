@@ -796,7 +796,10 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       current_word: bsl.word,
       last_word: bsl.lastRawExpression,
       last_expression: bsl.lastExpression,                    
-      rows: suggestRows              
+      rows: suggestRows,
+      altKey: altPressed,
+			ctrlKey: ctrlPressed,
+			shiftKey: shiftPressed
     }
 
     if (eventName == 'EVENT_ON_ACTIVATE_SUGGEST_ROW') 
@@ -1481,6 +1484,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         }
 
         editor.trigger('', 'acceptSelectedSuggestion');
+        return false;
 
       }
 
