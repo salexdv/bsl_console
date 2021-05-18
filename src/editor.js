@@ -1250,6 +1250,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     if (e.shiftKey)
       shiftPressed = true;
     
+    checkEmptySuggestions();
+    
   });
 
   editor.onKeyUp(e => {
@@ -1451,6 +1453,25 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
         }
 
+      }
+
+    }
+
+  }
+
+  function checkEmptySuggestions() {
+
+    let msg_element = document.querySelector('.suggest-widget .message');
+
+    if (msg_element && msg_element.innerText && !msg_element.style.display) {
+
+      let word = editor.getModel().getWordAtPosition(editor.getPosition());
+
+      if (!word) {
+        hideSuggestionsList();
+        setTimeout(() => {
+          triggerSuggestions();
+        }, 10);
       }
 
     }
