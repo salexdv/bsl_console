@@ -1477,7 +1477,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
         if (generateSelectSuggestEvent) {
           let rows = getSuggestWidgetRows(element);
-          genarateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', rows, 'selection', element.getAttribute('aria-label'));
+          genarateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', rows, 'force-selection-' + char, element.getAttribute('aria-label'));
         }
 
         editor.trigger('', 'acceptSelectedSuggestion');
