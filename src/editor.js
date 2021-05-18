@@ -1474,7 +1474,14 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       let element = document.querySelector('.monaco-list-row.focused');
 
       if (element) {
+
+        if (generateSelectSuggestEvent) {
+          let rows = getSuggestWidgetRows(element);
+          genarateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', rows, 'selection', element.getAttribute('aria-label'));
+        }
+
         editor.trigger('', 'acceptSelectedSuggestion');
+
       }
 
     }
