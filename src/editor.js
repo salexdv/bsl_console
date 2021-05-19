@@ -1137,6 +1137,18 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  nextMatch = function () {
+
+    editor.trigger('', 'editor.action.nextMatchFindAction');
+
+  }
+
+  previousMatch = function () {
+
+    editor.trigger('', 'editor.action.previousMatchFindAction');
+
+  }
+
   editor = undefined;
 
   // Register languages
