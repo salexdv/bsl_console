@@ -1149,6 +1149,18 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  setOption = function (optionName, optionValue) {
+
+    editor[optionName] = optionValue;
+
+  }
+
+  getOption = function (optionName) {
+
+    return editor[optionName];
+    
+  }
+
   editor = undefined;
 
   // Register languages
@@ -1502,8 +1514,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   }
 
   document.onkeypress = function (e) {
-    
-    let char = String.fromCharCode(e.keyCode);    
+
+    let char = String.fromCharCode(e.keyCode);
 
     if (Array.isArray(activeSuggestionAcceptors) && 0 <= activeSuggestionAcceptors.indexOf(char.toLowerCase())) {
 
@@ -1516,8 +1528,10 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
           genarateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', rows, 'force-selection-' + char, element.getAttribute('aria-label'));
         }
 
-        editor.trigger('', 'acceptSelectedSuggestion');
-        return false;
+        if (!editor.skipAcceptionSelectedSuggestion)
+          editor.trigger('', 'acceptSelectedSuggestion');
+
+        return editor.skipInsertSuggestionAcceptor ? false : true;
 
       }
 
