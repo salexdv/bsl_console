@@ -1203,6 +1203,9 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         scrollBeyondLastLine: false,
         insertSpaces: false,
         autoIndent: true,
+        find: {
+          addExtraSpaceOnTop: false
+        },
         customOptions: true
       });
 
