@@ -962,7 +962,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     
     editor.trigger('', 'actions.find');
     setFindWidgetDisplay('inherit');    
-    document.querySelector('.find-widget .input').focus();    
+    document.querySelector('.find-widget .input').focus();
 
   }
 
@@ -1266,6 +1266,18 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       // Esc
       if (document.querySelector('.find-widget'))
         setFindWidgetDisplay('none');
+    }
+    else if (e.keyCode == 61) {
+      // F3
+      if (!e.altKey && !e.shiftKey) {        
+        if (e.ctrlKey) {
+          editor.trigger('', 'actions.find');
+          previousMatch();
+        }          
+        else
+          editor.trigger('', 'editor.action.findWithSelection');
+        setFindWidgetDisplay('inherit');
+      }
     }
 
     if (e.ctrlKey)

@@ -22,6 +22,24 @@
 
 }
 
+.editor-widget.find-widget.visible {
+	
+	min-height: 33px;
+
+}
+
+.editor-widget.find-widget.visible .input {
+	
+	min-height: 24px;
+
+}
+
+.editor-widget.find-widget.visible.replaceToggled {
+	
+	min-height: 62px;
+
+}
+
 .suggest-widget .monaco-list .monaco-list-row .inactive-detail {
 
 	display: inline !important;
