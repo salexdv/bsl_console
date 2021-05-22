@@ -1162,6 +1162,30 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     
   }
 
+  disableKeyBinding = function (keybinding) {
+
+    const bind_str = keybinding.toString();
+    const key_name = 'kbinding_' + bind_str;
+  
+    if (editor[key_name])
+      editor[key_name].set(true);
+    else
+      editor[key_name] = editor.createContextKey(key_name, true);
+
+    editor.addCommand(keybinding, function() {sendEvent('EVENT_KEY_BINDING_' + bind_str)}, key_name);
+
+  }
+
+  enableKeyBinding = function (keybinding) {
+  
+    const key_name = 'kbinding_' + keybinding;
+    const context_key = editor[key_name];
+    
+    if (context_key)
+      context_key.set(false);
+    
+  }
+
   editor = undefined;
 
   // Register languages
