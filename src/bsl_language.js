@@ -101,8 +101,7 @@ define([], function () {
             ignoreCase: true,
             brackets: [
                 { open: '[', close: ']', token: 'delimiter.square' },
-                { open: '(', close: ')', token: 'delimiter.parenthesis' },
-                { open: '{', close: '}', token: 'delimiter.curly' },
+                { open: '(', close: ')', token: 'delimiter.parenthesis' }
             ],
             keywords: [
                 'КонецПроцедуры', 'EndProcedure', 'КонецФункции', 'EndFunction',
@@ -414,22 +413,8 @@ define([], function () {
 
                     let bsl = new bslHelper(model, position);
                     let helper = bsl.getSigHelp(context);
-
-                    if (generateBeforeSignatureEvent) {
-                        let activeSignature = context.activeSignatureHelp ? context.activeSignatureHelp.activeSignature : 0;
-                        let params = {
-                            word: bsl.getWordUntilOpenBracket(),
-                            line: position.lineNumber,
-                            column: position.column,
-                            activeParameter: bsl.textBeforePosition.split(',').length - 1,
-                            activeSignature: activeSignature,
-                            triggerCharacter: context.triggerCharacter
-                        }
-                        sendEvent('EVENT_BEFORE_SIGNATURE', params);                        
-                    }
-
+                    onProvideSignature(bsl, context, position);
                     return helper;
-
                 }
             },
             hoverProvider: {
@@ -496,20 +481,7 @@ define([], function () {
 
                     let bsl = new bslHelper(model, position);
                     let helper = bsl.getQuerySigHelp();
-
-                    if (generateBeforeSignatureEvent) {
-                        let activeSignature = context.activeSignatureHelp ? context.activeSignatureHelp.activeSignature : 0;
-                        let params = {
-                            word: bsl.getWordUntilOpenBracket(),
-                            line: position.lineNumber,
-                            column: position.column,
-                            activeParameter: bsl.textBeforePosition.split(',').length - 1,
-                            activeSignature: activeSignature,
-                            triggerCharacter: context.triggerCharacter
-                        }
-                        sendEvent('EVENT_BEFORE_SIGNATURE', params);                        
-                    }
-
+                    onProvideSignature(bsl, context, position);
                     return helper;
                 }
             },
@@ -570,20 +542,7 @@ define([], function () {
                     
                     let bsl = new bslHelper(model, position);
                     let helper = bsl.getDCSSigHelp();
-
-                    if (generateBeforeSignatureEvent) {
-                        let activeSignature = context.activeSignatureHelp ? context.activeSignatureHelp.activeSignature : 0;
-                        let params = {
-                            word: bsl.getWordUntilOpenBracket(),
-                            line: position.lineNumber,
-                            column: position.column,
-                            activeParameter: bsl.textBeforePosition.split(',').length - 1,
-                            activeSignature: activeSignature,
-                            triggerCharacter: context.triggerCharacter
-                        }
-                        sendEvent('EVENT_BEFORE_SIGNATURE', params);                        
-                    }
-
+                    onProvideSignature(bsl, context, position);
                     return helper;
                 }
             },
@@ -613,3 +572,18 @@ define([], function () {
     };
 
 });
+
+function onProvideSignature(bsl, context, position) {
+    if (generateBeforeSignatureEvent) {
+        let activeSignature = context.activeSignatureHelp ? context.activeSignatureHelp.activeSignature : 0;
+        let params = {
+            word: bsl.getWordUntilOpenBracket(),
+            line: position.lineNumber,
+            column: position.column,
+            activeParameter: bsl.textBeforePosition.split(',').length - 1,
+            activeSignature: activeSignature,
+            triggerCharacter: context.triggerCharacter
+        };
+        sendEvent('EVENT_BEFORE_SIGNATURE', params);
+    }
+}
