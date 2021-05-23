@@ -268,6 +268,36 @@ define(['vs/editor/editor.main'], function () {
                 editor.trigger('', 'editor.action.deleteLines', {})
                 return null;
             }
+        },
+        jumpToBracketOpen: {
+            label: 'Перейти к скобке',
+            key: monaco.KeyMod.CtrlCmd | monaco.KeyCode.US_OPEN_SQUARE_BRACKET,
+            cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.US_OPEN_SQUARE_BRACKET),
+            order: 0,
+            callback: function (ed) {
+                jumpToBracket();
+                return null;
+            }
+        },
+        jumpToBracketClose: {
+            label: 'Перейти к скобке',
+            key: monaco.KeyMod.CtrlCmd | monaco.KeyCode.US_CLOSE_SQUARE_BRACKET,
+            cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.US_CLOSE_SQUARE_BRACKET),
+            order: 0,
+            callback: function (ed) {
+                jumpToBracket();
+                return null;
+            }
+        },
+        selectToBracket: {
+            label: 'Выделить скобки и текст между ними',
+            key: monaco.KeyMod.Alt | monaco.KeyMod.CtrlCmd | monaco.KeyCode.US_OPEN_SQUARE_BRACKET,
+            cmd: monaco.KeyMod.chord(monaco.KeyMod.Alt | monaco.KeyMod.CtrlCmd | monaco.KeyCode.US_OPEN_SQUARE_BRACKET),
+            order: 0,
+            callback: function (ed) {
+                selectToBracket();
+                return null;
+            }
         }
     }
 

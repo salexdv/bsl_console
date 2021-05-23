@@ -1186,6 +1186,18 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     
   }
 
+  jumpToBracket = function () {
+
+    editor.trigger('', 'editor.action.jumpToBracket');
+
+  }
+
+  selectToBracket = function () {
+
+    editor.trigger('', 'editor.action.selectToBracket');
+
+  }
+
   editor = undefined;
 
   // Register languages
@@ -1268,7 +1280,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   });
 
   editor.onKeyDown(e => {
-    
+
     if (e.keyCode == 16 && editor.getPosition().lineNumber == 1)
       // ArrowUp
       scrollToTop();
