@@ -381,17 +381,12 @@ define([], function () {
             languageDef: bsl_language,
             completionProvider: {
                 triggerCharacters: ['.', '"', ' '],
-                provideCompletionItems: function (model, position, context, token) {
-                    
-                    let widget = document.querySelector('.suggest-widget');
-                    widget.style.display = '';
-                    widget.style.visibility = '';      
-
+                provideCompletionItems: function (model, position, context, token) {                    
+                    resetSuggestWidgetDisplay();
                     let bsl = new bslHelper(model, position);
                     let completition = bsl.getCompletition(context, token);
                     bsl.onProvideCompletion(context, completition);
                     return completition;
-
                 }
             },
             foldingProvider: {
@@ -403,14 +398,7 @@ define([], function () {
                 signatureHelpTriggerCharacters: ['(', ','],
                 signatureHelpRetriggerCharacters: [')'],
                 provideSignatureHelp: (model, position, token, context) => {
-                    
-                    let widget = document.querySelector('.parameter-hints-widget');
-
-                    if (widget) {
-                        widget.style.display = '';
-                        signatureVisible = true;
-                    }
-
+                    resetSignatureWidgetDisplay();
                     let bsl = new bslHelper(model, position);
                     let helper = bsl.getSigHelp(context);
                     onProvideSignature(bsl, context, position);
@@ -452,10 +440,7 @@ define([], function () {
             completionProvider: {
                 triggerCharacters: ['.', '(', '&'],
                 provideCompletionItems: function (model, position, context, token) {
-                    let widget = document.querySelector('.suggest-widget');
-                    widget.style.display = '';
-                    widget.style.visibility = '';     
-                    
+                    resetSuggestWidgetDisplay();
                     let bsl = new bslHelper(model, position);
                     let completition = bsl.getQueryCompletition(query_language);
                     bsl.onProvideCompletion(context, completition);
@@ -471,14 +456,7 @@ define([], function () {
                 signatureHelpTriggerCharacters: ['(', ','],
                 signatureHelpRetriggerCharacters: [')'],
                 provideSignatureHelp: (model, position, token, context) => {
-                    
-                    let widget = document.querySelector('.parameter-hints-widget');
-
-                    if (widget) {
-                        widget.style.display = '';
-                        signatureVisible = true;
-                    }
-
+                    resetSignatureWidgetDisplay();
                     let bsl = new bslHelper(model, position);
                     let helper = bsl.getQuerySigHelp();
                     onProvideSignature(bsl, context, position);
@@ -515,10 +493,7 @@ define([], function () {
             completionProvider: {
                 triggerCharacters: ['.', '(', '&'],
                 provideCompletionItems: function (model, position, context, token) {
-                    let widget = document.querySelector('.suggest-widget');
-                    widget.style.display = '';
-                    widget.style.visibility = '';     
-
+                    resetSuggestWidgetDisplay();
                     let bsl = new bslHelper(model, position);
                     let completition = bsl.getDCSCompletition();
                     bsl.onProvideCompletion(context, completition);
@@ -532,14 +507,7 @@ define([], function () {
                 signatureHelpTriggerCharacters: ['(', ','],
                 signatureHelpRetriggerCharacters: [')'],
                 provideSignatureHelp: (model, position, token, context) => {
-                    
-                    let widget = document.querySelector('.parameter-hints-widget');
-
-                    if (widget) {
-                        widget.style.display = '';
-                        signatureVisible = true;
-                    }
-                    
+                    resetSignatureWidgetDisplay();
                     let bsl = new bslHelper(model, position);
                     let helper = bsl.getDCSSigHelp();
                     onProvideSignature(bsl, context, position);
@@ -586,4 +554,26 @@ function onProvideSignature(bsl, context, position) {
         };
         sendEvent('EVENT_BEFORE_SIGNATURE', params);
     }
+}
+
+function resetSuggestWidgetDisplay() {
+
+    let widget = document.querySelector('.suggest-widget');
+
+    if (widget) {
+        widget.style.display = '';
+        widget.style.visibility = '';      
+    }
+
+}
+
+function resetSignatureWidgetDisplay() {
+
+    let widget = document.querySelector('.parameter-hints-widget');
+
+    if (widget) {
+        widget.style.display = '';
+        signatureVisible = true;
+    }
+
 }
