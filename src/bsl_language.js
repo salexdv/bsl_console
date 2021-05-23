@@ -101,7 +101,7 @@ define([], function () {
             ignoreCase: true,
             brackets: [
                 { open: '[', close: ']', token: 'delimiter.square' },
-                { open: '(', close: ')', token: 'delimiter.parenthesis' },
+                { open: '(', close: ')', token: 'delimiter.parenthesis' }
             ],
             keywords: [
                 'КонецПроцедуры', 'EndProcedure', 'КонецФункции', 'EndFunction',
@@ -413,22 +413,8 @@ define([], function () {
 
                     let bsl = new bslHelper(model, position);
                     let helper = bsl.getSigHelp(context);
-
-                    if (generateBeforeSignatureEvent) {
-                        let activeSignature = context.activeSignatureHelp ? context.activeSignatureHelp.activeSignature : 0;
-                        let params = {
-                            word: bsl.getWordUntilOpenBracket(),
-                            line: position.lineNumber,
-                            column: position.column,
-                            activeParameter: bsl.textBeforePosition.split(',').length - 1,
-                            activeSignature: activeSignature,
-                            triggerCharacter: context.triggerCharacter
-                        }
-                        sendEvent('EVENT_BEFORE_SIGNATURE', params);                        
-                    }
-
+                    onProvideSignature(bsl, context, position);
                     return helper;
-
                 }
             },
             hoverProvider: {
@@ -484,9 +470,19 @@ define([], function () {
             signatureProvider: {
                 signatureHelpTriggerCharacters: ['(', ','],
                 signatureHelpRetriggerCharacters: [')'],
-                provideSignatureHelp: (model, position) => {
+                provideSignatureHelp: (model, position, token, context) => {
+                    
+                    let widget = document.querySelector('.parameter-hints-widget');
+
+                    if (widget) {
+                        widget.style.display = '';
+                        signatureVisible = true;
+                    }
+
                     let bsl = new bslHelper(model, position);
-                    return bsl.getQuerySigHelp();
+                    let helper = bsl.getQuerySigHelp();
+                    onProvideSignature(bsl, context, position);
+                    return helper;
                 }
             },
             hoverProvider: {
@@ -535,9 +531,19 @@ define([], function () {
             signatureProvider: {
                 signatureHelpTriggerCharacters: ['(', ','],
                 signatureHelpRetriggerCharacters: [')'],
-                provideSignatureHelp: (model, position) => {
+                provideSignatureHelp: (model, position, token, context) => {
+                    
+                    let widget = document.querySelector('.parameter-hints-widget');
+
+                    if (widget) {
+                        widget.style.display = '';
+                        signatureVisible = true;
+                    }
+                    
                     let bsl = new bslHelper(model, position);
-                    return bsl.getDCSSigHelp();
+                    let helper = bsl.getDCSSigHelp();
+                    onProvideSignature(bsl, context, position);
+                    return helper;
                 }
             },
             hoverProvider: {
@@ -566,3 +572,18 @@ define([], function () {
     };
 
 });
+
+function onProvideSignature(bsl, context, position) {
+    if (generateBeforeSignatureEvent) {
+        let activeSignature = context.activeSignatureHelp ? context.activeSignatureHelp.activeSignature : 0;
+        let params = {
+            word: bsl.getWordUntilOpenBracket(),
+            line: position.lineNumber,
+            column: position.column,
+            activeParameter: bsl.textBeforePosition.split(',').length - 1,
+            activeSignature: activeSignature,
+            triggerCharacter: context.triggerCharacter
+        };
+        sendEvent('EVENT_BEFORE_SIGNATURE', params);
+    }
+}
