@@ -2831,7 +2831,7 @@ class bslHelper {
 	 */
 	getQueryFieldsCompletition(suggestions, allowChain = true) {
 
-		if (this.getLastCharacter() == '.') {
+		if (this.getLastCharacter() == '.' && this.lastRawExpression) {
 			
 			// Let's find start of current query
 			let startMatch = this.model.findPreviousMatch('(?:выбрать|select)', this.position, true);
@@ -2843,7 +2843,7 @@ class bslHelper {
 
 				// Temp table definition
 				let sourceDefinition = '';
-				let match = this.model.findNextMatch('^[\\s\\t]*([a-zA-Z0-9\u0410-\u044F_]+)\\s+(?:как|as)\\s+' + this.lastRawExpression, position, true, false, null, true);
+				let match = this.model.findNextMatch('^[\\s\\t]*([a-zA-Z0-9\u0410-\u044F_]+)\\s+(?:как|as)\\s+' + this.lastRawExpression + '[\\s,\\n]*$', position, true, false, null, true);
 
 				if (match) {
 
@@ -2854,7 +2854,7 @@ class bslHelper {
 				else {
 					
 					// Metadata table definition
-					match = this.model.findNextMatch('(?:из|from)[\\s\\S\\n]*?(?:как|as)\\s+' +  this.lastRawExpression , position, true);
+					match = this.model.findNextMatch('(?:из|from)[\\s\\S\\n]*?(?:как|as)\\s+' +  this.lastRawExpression + '[\\s,\\n]*$' , position, true);
 											
 					if (match) {					
 											
