@@ -129,6 +129,18 @@ describe("Проверка автокомлита и подсказок реда
       assert.equal(suggestions.some(suggest => suggest.label === "Справочник"), true);      
     });
 
+    it("проверка подсказки для метаданных в конструкции ИЗ ИЛИ СОЕДИНЕНИЕ после запятой", function () {
+      bsl = helper(`ВЫБРАТЬ
+      *
+      ИЗ      
+        Справочники.Товары КАК Товары,
+      `);      
+      let suggestions = [];
+      bsl.getQuerySourceCompletition(suggestions, null);
+      expect(suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(suggestions.some(suggest => suggest.label === "Справочник"), true);      
+    });
+
     it("проверка подсказки для объекта метаданных в конструкции ИЗ ИЛИ СОЕДИНЕНИЕ ", function () {
       bsl = helper(`ВЫБРАТЬ
       *
