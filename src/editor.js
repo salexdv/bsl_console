@@ -884,6 +884,36 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     
     generateSelectSuggestEvent = enabled;
 
+    let widget = editor._contentWidgets['editor.widget.suggestWidget'].widget;
+
+    if (widget) {
+
+      if (enabled) {
+        
+        if (!widget.onListMouseDownOrTapOrig)
+          widget.onListMouseDownOrTapOrig = widget.onListMouseDownOrTap;
+        
+        widget.onListMouseDownOrTap = function(e) {          
+          let element = document.querySelector('.monaco-list-row.focused');
+        
+          if (element) {
+            let rows = getSuggestWidgetRows(element);
+            genarateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', rows, 'selection', element.getAttribute('aria-label'));
+          }          
+
+          widget.onListMouseDownOrTapOrig(e);
+
+        }
+
+      }
+      else if (widget.onListMouseDownOrTapOrig) {
+        
+        widget.onListMouseDownOrTap = widget.onListMouseDownOrTapOrig;
+        
+      }
+
+    }    
+
   }
 
   enableBeforeHoverEvent = function(enabled) {
