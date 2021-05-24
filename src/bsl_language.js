@@ -330,7 +330,14 @@ define([], function () {
             expressions: query_expressions,
             operators: /[=><+\-*\/%;,]+/,
             tokenizer: {
-                root: [                               
+                root: [                      
+                    [/([a-zA-Z\u0410-\u044F]+)(\s+)(как|as)(\s+)([a-zA-Z\u0410-\u044F]+)/, [
+                        {token: 'query'},
+                        {token: 'query'},
+                        {token: 'query.keyword'},
+                        {token: 'query'},
+                        {token: 'query'},
+                    ]],                    
                     [/(как|as)(\s+)([a-zA-Z\u0410-\u044F]+)(\()/, [
                         {token: 'query.keyword'},
                         {token: 'query'},
