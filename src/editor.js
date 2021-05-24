@@ -1237,6 +1237,52 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  showDiff = function (originalText) {
+    
+    let diffEditor = monaco.editor.createDiffEditor(document.createElement("div"));
+
+    diffEditor.setModel({
+      original: monaco.editor.createModel(originalText),
+      modified: editor.getModel()
+    });
+
+    setTimeout(()=>{
+      
+      let changes = diffEditor.getLineChanges();
+
+      if (Array.isArray(changes)) {
+
+        let changes_decor = [];
+
+        changes.forEach(function(e) {
+          let color = '#10aa00';
+          let class_name = 'diff-new';
+          if (e.charChanges) {
+            color = '#f8a62b';
+            class_name = 'diff-changed';
+          }          
+          changes_decor.push({
+            range: new monaco.Range(e.modifiedStartLineNumber, 1, e.modifiedEndLineNumber),
+            options: {
+              isWholeLine: true,
+              linesDecorationsClassName: class_name,
+              overviewRuler: {
+                color: color,
+                darkColor: color,
+                position: 4  
+              }
+            }
+          });          
+        });
+
+        editor.deltaDecorations([], changes_decor);
+
+      }
+
+    }, 10);
+
+  }
+
   editor = undefined;
 
   // Register languages
@@ -1650,5 +1696,5 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     resizeStatusBar();
     
   }, true);
-  
+
 });
