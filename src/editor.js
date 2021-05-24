@@ -610,6 +610,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  triggerSigHelp = function() {
+    
+    editor.trigger('', 'editor.action.triggerParameterHints', {});
+
+  }
+
   requestMetadata = function(metadata) {
 
     let metadata_name = metadata.toLowerCase();

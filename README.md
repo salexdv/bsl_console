@@ -120,6 +120,7 @@
 | `markError`                    | Индикация ошибки в указанной строке                                                           |
 | [`triggerSuggestions`](docs/trigger_suggestions.md) | Принудительный вызов подсказок											 |
 | [`triggerHovers`](docs/trigger_hovers.md) | Принудительный вызов всплывающей подсказки для текущего слов              	     |
+| [`triggerSigHelp`](docs/trigger_signature_help.md) | Принудительный вызов подсказки по вызову процедуры/метода          	     |
 | [`showCustomSuggestions`](docs/custom_suggestions.md) | Показ пользовательских подсказок									 	 |
 | `hideSuggestionsList` 		 | Скрывает текущий список подсказок									 	 					 |
 | `hideHoverList` 		 		 | Скрывает активную всплывающую подсказку для слова					 	 					 |
