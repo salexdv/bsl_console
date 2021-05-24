@@ -48,13 +48,19 @@
 }
 
 .diff-new {
-	background: #10aa00;	
-	width: 3px !important;			
-	margin-left: 5px;	
+	background: #10aa00;
+	width: 3px !important;
+	margin-left: 5px;
 }
 
 .diff-changed {
-	background: #f8a62b;	
-	width: 3px !important;			
-	margin-left: 5px;	
+	background: #f8a62b;
+	width: 3px !important;
+	margin-left: 5px;
+}
+
+.diff-removed {
+	background: #dd0000;
+	width: 3px !important;
+	margin-left: 5px;
 }

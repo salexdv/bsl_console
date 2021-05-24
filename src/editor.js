@@ -33,6 +33,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   signatureVisible = true;
   currentBookmark = -1;
   activeSuggestionAcceptors = [];
+  diffEditor = null;
 
   reserMark = function() {
 
@@ -1237,49 +1238,9 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
-  showDiff = function (originalText) {
-    
-    let diffEditor = monaco.editor.createDiffEditor(document.createElement("div"));
+  setOriginalText = function (originalText) {
 
-    diffEditor.setModel({
-      original: monaco.editor.createModel(originalText),
-      modified: editor.getModel()
-    });
-
-    setTimeout(()=>{
-      
-      let changes = diffEditor.getLineChanges();
-
-      if (Array.isArray(changes)) {
-
-        let changes_decor = [];
-
-        changes.forEach(function(e) {
-          let color = '#10aa00';
-          let class_name = 'diff-new';
-          if (e.charChanges) {
-            color = '#f8a62b';
-            class_name = 'diff-changed';
-          }          
-          changes_decor.push({
-            range: new monaco.Range(e.modifiedStartLineNumber, 1, e.modifiedEndLineNumber),
-            options: {
-              isWholeLine: true,
-              linesDecorationsClassName: class_name,
-              overviewRuler: {
-                color: color,
-                darkColor: color,
-                position: 4  
-              }
-            }
-          });          
-        });
-
-        editor.deltaDecorations([], changes_decor);
-
-      }
-
-    }, 10);
+    editor.originalText = originalText;
 
   }
 
@@ -1356,6 +1317,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   editor.onDidChangeModelContent(e => {
     
+    calculateDiff();
+
     if (generateModificationEvent)
       sendEvent('EVENT_CONTENT_CHANGED', '');
 
@@ -1649,6 +1612,77 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
           triggerSuggestions();
         }, 10);
       }
+
+    }
+
+  }
+
+  function calculateDiff() {
+
+    if (editor.originalText) {
+
+      if (editor.diffTimer)
+        clearTimeout(editor.diffTimer);
+
+      editor.diffTimer = setTimeout(() => {
+                
+        if (!diffEditor) {
+          diffEditor = monaco.editor.createDiffEditor(document.createElement("div"));
+        }
+
+        diffEditor.setModel({
+          original: monaco.editor.createModel(editor.originalText),
+          modified: editor.getModel()
+        });
+
+        setTimeout(() => {
+
+          const changes = diffEditor.getLineChanges();
+
+          if (Array.isArray(changes)) {
+
+            let changes_decor = [];
+
+            changes.forEach(function (e) {
+
+              const startLineNumber = e.modifiedStartLineNumber;
+              const endLineNumber = e.modifiedEndLineNumber || startLineNumber;
+
+              let color = '#f8a62b';
+              let class_name = 'diff-changed';
+              let range = new monaco.Range(startLineNumber, 1, endLineNumber, 1);
+
+              if (e.originalEndLineNumber === 0) {
+                color = '#10aa00';
+                class_name = 'diff-new';
+              } else if (e.modifiedEndLineNumber === 0) {
+                color = '#dd0000';
+                class_name = 'diff-removed';
+                range = new monaco.Range(startLineNumber, Number.MAX_VALUE, startLineNumber, Number.MAX_VALUE);
+              }
+
+              changes_decor.push({
+                range: range,
+                options: {
+                  isWholeLine: true,
+                  linesDecorationsClassName: class_name,
+                  overviewRuler: {
+                    color: color,
+                    darkColor: color,
+                    position: 4
+                  }
+                }
+              });
+            });
+
+            decorations = editor.deltaDecorations(decorations, changes_decor);
+            editor.diffTimer = 0;
+
+          }
+
+        }, 0);
+
+      }, 50);
 
     }
 
