@@ -61,9 +61,9 @@ class bslHelper {
 		let lang_id = '';
 
 		if (queryMode)
-			lang_id = 'query';
+			lang_id = 'bsl_query';
 		else if (DCSMode)
-			lang_id = 'dcs';
+			lang_id = 'dcs_query';
 		else
 			lang_id = 'bsl';
 
@@ -94,6 +94,95 @@ class bslHelper {
 		}
 
 		return token;
+
+	}
+
+	/**
+	 * Returns the last word in block of text
+	 * @param {string} token_name 
+	 * @param {int} startLineNumber the first line of block
+	 * @param {int} startColumn  the first column of block
+	 * @param {int} endLineNumber the last line of block
+	 * @param {int} endColumn the last column of block
+	 * @param {array} ignore_words ingored words
+	 * 
+	 * @returns  {string} word whith token
+	 */
+
+	getLastWordWhithTokenInRange(token_name, startLineNumber, startColumn, endLineNumber, endColumn, ignored_words) {
+
+		let word = '';
+
+		let value = this.model.getValueInRange(new monaco.Range(startLineNumber, startColumn, endLineNumber, endColumn));
+
+		if (value) {
+
+			let model = monaco.editor.createModel(value);
+			let lang_id = this.getLangId();
+			let tokens = monaco.editor.tokenize(value, lang_id);
+
+			if (tokens.length) {
+
+				let idx_line = tokens.length - 1;
+
+				while (0 <= idx_line && !word) {
+
+					let items = tokens[idx_line];
+
+					if (items.length) {
+
+						let idx_item = items.length - 1;
+
+						while (0 <= idx_item && !word) {
+
+							let token = items[idx_item];
+							let token_type = token.type;
+
+							if (0 <= token_type.indexOf(token_name)) {
+
+								let text = model.getWordAtPosition(new monaco.Position(idx_line + 1, token.offset + 1));
+
+								if (text && ignored_words.indexOf(text.word.toLowerCase()) == -1) {
+									word = text.word;
+								}
+
+
+							}
+
+							idx_item--;
+
+						}
+
+					}
+
+					idx_line--;
+
+				}
+
+			}
+
+		}
+
+		return word;
+
+	}
+
+	/**
+	 * Returns the last non whitespace char of line
+	 * @param {int} lineNumber line number
+	 * 
+	 * @returns {string} last char of line
+	 */
+	getLastCharInLine(lineNumber) {
+
+		let char = '';
+
+		let column = this.model.getLineLastNonWhitespaceColumn(lineNumber);
+
+		if (0 < column)
+			char = this.model.getValueInRange(new monaco.Range(lineNumber, column - 1, lineNumber, column));
+
+		return char;
 
 	}
 
@@ -3155,7 +3244,23 @@ class bslHelper {
 		let lastWord = this.getLastSeparatedWord()
 		
 		if (lastWord) {
+			
+			if (fromTriggers.indexOf(lastWord.toLowerCase()) == -1) {
 				
+				let char = this.getLastCharInLine(this.lineNumber - 1);
+				
+				if (char == ',') {
+				
+					let fromMatch = this.model.findPreviousMatch('(?:из|from)', this.position, true);
+				
+					if (fromMatch && fromMatch.range.startLineNumber < this.lineNumber) {					
+						let ignore_keywords = ['как', 'as', 'по', 'on'];
+						lastWord = this.getLastWordWhithTokenInRange('keyword', fromMatch.range.startLineNumber, 1, this.lineNumber, this.column - 1, ignore_keywords);
+					}
+				}
+
+			}
+			
 			if (0 <= fromTriggers.indexOf(lastWord.toLowerCase())) {
 
 				let pattern = /(.+?)(?:\.(.*?))?\.?(?:\.(.*?))?$/;
