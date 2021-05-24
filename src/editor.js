@@ -1321,6 +1321,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
           editor.trigger('', 'editor.action.findWithSelection');
         setFindWidgetDisplay('inherit');
         editor.focus();
+        document.querySelector('.find-widget .input').focus();
       }
     }
 
