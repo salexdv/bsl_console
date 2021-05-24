@@ -44,7 +44,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   sendEvent = function(eventName, eventParams) {
 
-    let lastEvent = new MouseEvent('click');
+    let lastEvent = new MouseEvent('click');console.log(eventName, eventParams);
     lastEvent.eventData1C = {event : eventName, params: eventParams};
     return dispatchEvent(lastEvent);
     
@@ -1352,6 +1352,16 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         setFindWidgetDisplay('inherit');
         editor.focus();
         document.querySelector('.find-widget .input').focus();
+      }
+    }
+    else if (e.keyCode == 2) {
+      // Tab
+      if (generateSelectSuggestEvent) {
+        let element = document.querySelector('.monaco-list-row.focused');
+        if (element) {
+          let rows = getSuggestWidgetRows(element);
+          genarateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', rows, 'selection', element.getAttribute('aria-label'));
+        }
       }
     }
 
