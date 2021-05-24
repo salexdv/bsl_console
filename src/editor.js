@@ -1242,6 +1242,9 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
     editor.originalText = originalText;
 
+    if (!originalText)
+      decorations = editor.deltaDecorations(decorations, []);    
+
   }
 
   editor = undefined;
