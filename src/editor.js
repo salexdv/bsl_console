@@ -44,7 +44,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   sendEvent = function(eventName, eventParams) {
 
-    let lastEvent = new MouseEvent('click');console.log(eventName, eventParams);
+    let lastEvent = new MouseEvent('click');
     lastEvent.eventData1C = {event : eventName, params: eventParams};
     return dispatchEvent(lastEvent);
     
