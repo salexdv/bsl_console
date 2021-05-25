@@ -2,19 +2,7 @@ define(['vs/editor/editor.main'], function () {
 
     getSortedBookmarks = function () {
 
-        return new Map([...bookmarks.entries()].sort((a, b) => a[0] - b[0]));
-
-    }
-
-    getBookmarksDecorations = function () {
-
-        let bm_decorations = [];
-
-        bookmarks.forEach(function (value) {
-            bm_decorations.push(value);
-        });
-
-        return bm_decorations;
+        return new Map([...editor.bookmarks.entries()].sort((a, b) => a[0] - b[0]));
 
     }
 
@@ -22,20 +10,19 @@ define(['vs/editor/editor.main'], function () {
 
         if (line != undefined) {
 
-            let bookmark = bookmarks.get(line);
+            let bookmark = editor.bookmarks.get(line);
 
             if (bookmark) {
-                bookmarks.delete(line);
+                editor.bookmarks.delete(line);
             }
             else {
                 bookmark = { range: new monaco.Range(line, 1, line), options: { isWholeLine: true, linesDecorationsClassName: 'bookmark' } };
-                bookmarks.set(line, bookmark);
+                editor.bookmarks.set(line, bookmark);
             }
 
         }
 
-        let bm_decorations = getBookmarksDecorations();
-        decorations = editor.deltaDecorations(decorations, bm_decorations);
+        editor.updateDecorations([]);        
 
     }
 

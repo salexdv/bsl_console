@@ -4,8 +4,6 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   selectionText = '';
   engLang = false;
-  decorations = [];
-  bookmarks = new Map();
   contextData = new Map();
   generateModificationEvent = false;
   readOnlyMode = false;
@@ -38,8 +36,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   reserMark = function() {
 
     clearInterval(err_tid);
-    let bm_decorations = getBookmarksDecorations();
-    decorations = editor.deltaDecorations(decorations, bm_decorations);
+    editor.updateDecorations([]);
 
   }
 
@@ -167,7 +164,6 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   markError = function (line, column) {
     reserMark();
-    let bm_decorations = getBookmarksDecorations();
     editor.timer_count = 12;
     err_tid = setInterval(function () {
       let newDecor = [];
@@ -181,7 +177,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       }
       editor.timer_count--;
       newDecor = newDecor.concat(bm_decorations);
-      decorations = editor.deltaDecorations(decorations, newDecor);
+      editor.updateDecorations(newDecor);
       if (editor.timer_count == 0) {
         clearInterval(err_tid);
       }
@@ -1098,7 +1094,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
     if (lineNumber < getLineCount()) {
 
-      let bookmark = bookmarks.get(lineNumber);
+      let bookmark = editor.bookmarks.get(lineNumber);
 
       if (!bookmark)
         updateBookmarks(lineNumber);
@@ -1108,7 +1104,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     }
     else {
       
-      bookmarks.delete(lineNumber);
+      editor.bookmarks.delete(lineNumber);
       return false;
 
     }
@@ -1119,7 +1115,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
     if (lineNumber < getLineCount()) {
 
-      let bookmark = bookmarks.get(lineNumber);
+      let bookmark = editor.bookmarks.get(lineNumber);
 
       if (bookmark)
         updateBookmarks(lineNumber);    
@@ -1129,7 +1125,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     }
     else {
 
-      bookmarks.delete(lineNumber);
+      editor.bookmarks.delete(lineNumber);
       return false;
 
     }
@@ -1242,8 +1238,10 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
     editor.originalText = originalText;
 
-    if (!originalText)
-      decorations = editor.deltaDecorations(decorations, []);    
+    if (!originalText) {
+      editor.diff_decorations = [];
+      editor.updateDecorations([]);
+    }
 
   }
 
@@ -1297,6 +1295,24 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         },
         customOptions: true
       });
+
+      editor.decorations = [];
+      editor.bookmarks = new Map();
+      editor.diff_decorations = [];
+
+
+      editor.updateDecorations = function(new_decorations) {
+        
+        let permanent_decor = [];
+
+        editor.bookmarks.forEach(function (value) {
+          permanent_decor.push(value);
+        });
+
+        permanent_decor = permanent_decor.concat(editor.diff_decorations);
+
+        editor.decorations = editor.deltaDecorations(editor.decorations, permanent_decor.concat(new_decorations));
+      }      
 
       contextMenuEnabled = editor.getRawOptions().contextmenu;
 
@@ -1513,7 +1529,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   function checkBookmarksAfterNewLine() {
 
     let line = getCurrentLine();
-    let prev_bookmark = bookmarks.get(line - 1);    
+    let prev_bookmark = editor.bookmarks.get(line - 1);    
 
     if (prev_bookmark) {
 
@@ -1524,8 +1540,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
         prev_bookmark.range.startLineNumber = line;
         prev_bookmark.range.endLineNumber = line;
-        bookmarks.set(line, prev_bookmark);
-        bookmarks.delete(line - 1);
+        editor.bookmarks.set(line, prev_bookmark);
+        editor.bookmarks.delete(line - 1);
         line++;
 
       }
@@ -1536,13 +1552,13 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
     while (line <= line_check) {
 
-      let bookmark = bookmarks.get(line_check);
+      let bookmark = editor.bookmarks.get(line_check);
 
       if (bookmark) {
         bookmark.range.startLineNumber = line_check + 1;
         bookmark.range.endLineNumber = line_check + 1;
-        bookmarks.set(line_check + 1, bookmark);
-        bookmarks.delete(line_check);
+        editor.bookmarks.set(line_check + 1, bookmark);
+        editor.bookmarks.delete(line_check);
       }
 
       line_check--;
@@ -1563,17 +1579,17 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       if (!changes.text && range.startLineNumber != range.endLineNumber) {
 
         let line = range.startLineNumber;
-        let prev_bookmark = bookmarks.get(range.endLineNumber);
+        let prev_bookmark = editor.bookmarks.get(range.endLineNumber);
 
         if (prev_bookmark) {
 
           for (l = line; l <= range.endLineNumber; l++) {
-            bookmarks.delete(l);
+            editor.bookmarks.delete(l);
           }
 
           prev_bookmark.range.startLineNumber = line;
           prev_bookmark.range.endLineNumber = line;
-          bookmarks.set(line, prev_bookmark);
+          editor.bookmarks.set(line, prev_bookmark);
 
         }
 
@@ -1582,13 +1598,13 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
         while (line_check < getLineCount()) {
 
-          let bookmark = bookmarks.get(line_check);
+          let bookmark = editor.bookmarks.get(line_check);
 
           if (bookmark) {
             bookmark.range.startLineNumber = line_check - diff;
             bookmark.range.endLineNumber = line_check - diff;
-            bookmarks.set(line_check - diff, bookmark);
-            bookmarks.delete(line_check);
+            editor.bookmarks.set(line_check - diff, bookmark);
+            editor.bookmarks.delete(line_check);
           }
 
           line_check++;
@@ -1644,7 +1660,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
           if (Array.isArray(changes)) {
 
-            let changes_decor = [];
+            editor.diff_decorations = [];
 
             changes.forEach(function (e) {
 
@@ -1664,7 +1680,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
                 range = new monaco.Range(startLineNumber, Number.MAX_VALUE, startLineNumber, Number.MAX_VALUE);
               }
 
-              changes_decor.push({
+              editor.diff_decorations.push({
                 range: range,
                 options: {
                   isWholeLine: true,
@@ -1678,7 +1694,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
               });
             });
 
-            decorations = editor.deltaDecorations(decorations, changes_decor);
+            editor.updateDecorations([]);
             editor.diffTimer = 0;
 
           }
