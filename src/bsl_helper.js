@@ -1606,14 +1606,21 @@ class bslHelper {
 
 						} else {
 
-							for (const [ikey, ivalue] of Object.entries(value.items)) {
-								values.push({
-									name: ikey,
-									detail: '',
-									description: '',
-									postfix: '',
-									kind: monaco.languages.CompletionItemKind.Field
-								});
+							if (Object.keys(value.items).length) {
+
+								for (const [ikey, ivalue] of Object.entries(value.items)) {
+									values.push({
+										name: ikey,
+										detail: '',
+										description: '',
+										postfix: '',
+										kind: monaco.languages.CompletionItemKind.Field
+									});
+								}
+
+							}
+							else {
+								requestMetadata(metadataName);
 							}
 
 						}
