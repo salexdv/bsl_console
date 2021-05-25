@@ -1762,8 +1762,11 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         heightInLines: 10,
         domNode: domNode,
         onDomNodeTop: function (top) {
-          if (inlineDiffWidget)
+          if (inlineDiffWidget) {
+            let layout = editor.getLayoutInfo();
             inlineDiffWidget.domNode.style.top = top + 'px';          
+            inlineDiffWidget.domNode.style.width = (layout.contentWidth - layout.verticalScrollbarWidth) + 'px';
+          }
         }
       });
 
@@ -1783,13 +1786,14 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
             this.domNode = document.createElement('div');
             this.domNode.setAttribute("id", "diff-widget");
 
+            let layout = editor.getLayoutInfo();
             let diff_zone = document.getElementById('diff-zone');
             let rect = diff_zone.getBoundingClientRect();
 
             this.domNode.style.left = rect.left + 'px';
             this.domNode.style.top = rect.top + 'px';
             this.domNode.style.height = rect.height + 'px';
-            this.domNode.style.width = rect.width + 'px';
+            this.domNode.style.width = (layout.contentWidth - layout.verticalScrollbarWidth) + 'px';
 
             let header = document.createElement('div');
             header.classList.add('diff-header');
