@@ -48,19 +48,96 @@
 }
 
 .diff-new {
-	background: #10aa00;
-	width: 3px !important;
+	border-left: 3px solid #10aa00;
+	width: 12px !important;
 	margin-left: 5px;
+	cursor: pointer;
+}
+
+.diff-new:hover {		
+	border-left: 9px solid #10aa00;
+	margin-left: 2px;
+	cursor: pointer;
 }
 
 .diff-changed {
-	background: #f8a62b;
-	width: 3px !important;
+	border-left: 3px solid #f8a62b;
+	width: 12px !important;
 	margin-left: 5px;
+	cursor: pointer;
+}
+
+.diff-changed:hover {	
+	border-left: 9px solid #f8a62b;
+	margin-left: 2px;
+	cursor: pointer;
 }
 
 .diff-removed {
-	background: #dd0000;
-	width: 3px !important;
+	border-left: 3px solid #dd0000;
+	width: 12px !important;
 	margin-left: 5px;
+	cursor: pointer;
+}
+
+.diff-removed:hover {	
+	border-left: 9px solid #dd0000;
+	margin-left: 2px;
+	cursor: pointer;
+}
+
+.diff-close {
+	position: absolute;
+	right: 7px;
+	top: 3px;
+	width: 20px;
+	height: 20px;
+	opacity: 0.3;
+	cursor: pointer;
+}
+
+.diff-close:hover {
+	opacity: 1;	
+}
+
+.diff-close:before, .diff-close:after {
+	position: absolute;	
+	content: ' ';
+	height: 15px;
+	width: 2px;
+	background-color: #333;
+}
+
+.diff-close:before {
+	transform: rotate(45deg);
+}
+
+.diff-close:after {
+	transform: rotate(-45deg);
+}
+
+.diff-header {
+	font-size: 12px;
+	padding-left: 5px;
+	border-left: 1px solid;
+	border-right: 1px solid;
+	border-top: 1px solid;
+	height: 20px;
+}
+
+.diff-body {
+	border: 1px solid;
+	height: 100%;
+}
+
+.new-block {		
+	border-color: #10aa00;	
+}
+
+.changed-block {		
+	border-color: #f8a62b;	
+}
+
+.removed-block {		
+	border-color: #dd0000;	
 }

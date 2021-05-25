@@ -31,7 +31,9 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   signatureVisible = true;
   currentBookmark = -1;
   activeSuggestionAcceptors = [];
-  diffEditor = null;
+  diffEditor = null;  
+  inlineDiffEditor = null;
+  inlineDiffWidget = null;
 
   reserMark = function() {
 
@@ -260,14 +262,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   }
 
   switchLanguageMode = function(mode) {
-
-    let queryPostfix = '-query';
-    let currentTheme = editor._themeService.getTheme().themeName;
-
-    if ((queryMode || DCSMode) && currentTheme.indexOf(queryPostfix) == -1)
-      currentTheme += queryPostfix;
-    else if (!queryMode && !DCSMode && currentTheme.indexOf(queryPostfix) >= 0)
-      currentTheme = currentTheme.replace(queryPostfix, '');
+    
+    let currentTheme = getCurrentThemeName();
 
     if (queryMode && mode == 'query')
       monaco.editor.setModelLanguage(editor.getModel(), "bsl_query");
@@ -543,16 +539,9 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   compare = function (text, sideBySide, highlight, xml = false) {
     
     document.getElementById("container").innerHTML = ''
-    let language_id = queryMode ? 'bsl_query' : 'bsl';
-
-    let queryPostfix = '-query';
-    let currentTheme = editor._themeService.getTheme().themeName;
-
-    if (queryMode && currentTheme.indexOf(queryPostfix) == -1)
-      currentTheme += queryPostfix;
-    else if (!queryMode && currentTheme.indexOf(queryPostfix) >= 0)
-      currentTheme = currentTheme.replace(queryPostfix, '');
-
+    let language_id = getLangId();
+    let currentTheme = getCurrentThemeName();
+  
     if (text) {      
       if (xml) {
         language_id = 'xml';
@@ -1444,16 +1433,20 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
     let element = e.target.element;
     if (element.tagName.toLowerCase() == 'a') {
-      sendEvent("EVENT_ON_LINK_CLICK", {label: element.innerText, href: element.dataset.href});
+      sendEvent("EVENT_ON_LINK_CLICK", { label: element.innerText, href: element.dataset.href });
       setTimeout(() => {
         editor.focus();
-      }, 100);      
+      }, 100);
     }
-    
+
     if (e.event.detail == 2 && element.classList.contains('line-numbers')) {
       let line = e.target.position.lineNumber;
-      updateBookmarks(line);      
+      updateBookmarks(line);
     }
+
+    if (element.classList.contains('diff-new') || element.classList.contains('diff-changed') || element.classList.contains('diff-removed')) {
+      createDiffWidget(e);
+    }    
 
   });
 
@@ -1636,6 +1629,35 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  function getCurrentThemeName() {
+
+    let queryPostfix = '-query';
+    let currentTheme = editor._themeService.getTheme().themeName;
+
+    if ((queryMode || DCSMode) && currentTheme.indexOf(queryPostfix) == -1)
+      currentTheme += queryPostfix;
+    else if (!queryMode && !DCSMode && currentTheme.indexOf(queryPostfix) >= 0)
+      currentTheme = currentTheme.replace(queryPostfix, '');
+
+    return currentTheme;
+
+  }
+
+  function getLangId() {
+
+		let lang_id = '';
+
+		if (queryMode)
+			lang_id = 'bsl_query';
+		else if (DCSMode)
+			lang_id = 'dcs_query';
+		else
+			lang_id = 'bsl';
+
+		return lang_id;
+
+	}
+
   function calculateDiff() {
 
     if (editor.originalText) {
@@ -1704,6 +1726,142 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       }, 50);
 
     }
+
+  }
+
+  function createDiffWidget(e) {
+
+    let element = e.target.element;
+    let line_number = e.target.position.lineNumber;
+    let class_name = 'new-block';
+
+    if (element.classList.contains('diff-changed'))
+      class_name = 'changed-block';
+    else if (element.classList.contains('diff-removed'))
+      class_name = 'removed-block';
+
+    editor.changeViewZones(function (changeAccessor) {
+
+      let domNode = document.getElementById('diff-zone');
+
+      if (!domNode) {
+        domNode = document.createElement('div');
+        domNode.setAttribute('id', 'diff-zone');
+      }
+
+      if (inlineDiffWidget) {        
+        editor.removeOverlayWidget(inlineDiffWidget);        
+        inlineDiffWidget = null;
+        inlineDiffEditor = null;
+      }
+
+      changeAccessor.removeZone(editor.diffZoneId);
+
+      editor.diffZoneId = changeAccessor.addZone({
+        afterLineNumber: line_number,
+        heightInLines: 10,
+        domNode: domNode,
+        onDomNodeTop: function (top) {
+          if (inlineDiffWidget)
+            inlineDiffWidget.domNode.style.top = top + 'px';          
+        }
+      });
+
+    });
+
+    setTimeout(() => {
+
+      inlineDiffWidget = {
+        domNode: null,
+        getId: function () {
+          return 'bsl.diff.widget';
+        },
+        getDomNode: function () {
+
+          if (!this.domNode) {
+
+            this.domNode = document.createElement('div');
+            this.domNode.setAttribute("id", "diff-widget");
+
+            let diff_zone = document.getElementById('diff-zone');
+            let rect = diff_zone.getBoundingClientRect();
+
+            this.domNode.style.left = rect.left + 'px';
+            this.domNode.style.top = rect.top + 'px';
+            this.domNode.style.height = rect.height + 'px';
+            this.domNode.style.width = rect.width + 'px';
+
+            let header = document.createElement('div');
+            header.classList.add('diff-header');
+            header.classList.add(class_name);            
+            header.innerText = 'changes';
+
+            let close_button = document.createElement('div');
+            close_button.classList.add('diff-close');
+            close_button.onclick = function () {
+              editor.removeOverlayWidget(inlineDiffWidget);
+              inlineDiffWidget = null;
+              inlineDiffEditor = null;
+              editor.changeViewZones(function (changeAccessor) {
+                changeAccessor.removeZone(editor.diffZoneId);
+                editor.diffZoneId = 0;
+              });
+            }
+            header.appendChild(close_button);
+
+            this.domNode.appendChild(header);
+
+            let body = document.createElement('div');
+            body.classList.add('diff-body');
+            body.classList.add(class_name);            
+            this.domNode.appendChild(body);
+
+            setTimeout(() => {
+              let language_id = getLangId();
+              let currentTheme = getCurrentThemeName();
+
+              inlineDiffEditor = monaco.editor.createDiffEditor(body, {
+                theme: currentTheme,
+                language: language_id,
+                contextmenu: false,
+                automaticLayout: true,
+                renderSideBySide: false
+              });
+
+              let originalModel = monaco.editor.createModel(editor.originalText);
+              let modifiedModel = editor.getModel();
+
+              monaco.editor.setModelLanguage(originalModel, language_id);
+
+              inlineDiffEditor.setModel({
+                original: originalModel,
+                modified: modifiedModel
+              });
+
+              inlineDiffEditor.navi = monaco.editor.createDiffNavigator(inlineDiffEditor, {
+                followsCaret: true,
+                ignoreCharChanges: true
+              });
+
+              setTimeout(() => {
+                inlineDiffEditor.revealLineInCenter(line_number);
+              }, 10)
+
+            }, 10);
+
+          }
+
+          return this.domNode;
+
+        },
+        getPosition: function () {
+          return null;
+        }
+      };
+
+      editor.addOverlayWidget(inlineDiffWidget);
+
+    }, 50);
 
   }
 
