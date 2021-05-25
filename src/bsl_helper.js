@@ -3958,7 +3958,9 @@ class bslHelper {
 	 */
 	getSigHelp(context) {
 		
-		if (this.lastOperator != ')') {
+		let unclosed = this.unclosedString(this.textBeforePosition);
+		
+		if (this.lastOperator != ')' && 0 <= unclosed.index) {
 
 			let helper = this.getCustomSigHelp(context);
 
@@ -3991,7 +3993,9 @@ class bslHelper {
 	 */
 	getQuerySigHelp() {
 		
-		if (this.lastOperator != ')' && !this.requireQueryValue()) {
+		let unclosed = this.unclosedString(this.textBeforePosition);
+
+		if (this.lastOperator != ')' && !this.requireQueryValue() && 0 <= unclosed.index) {
 			
 			let functions = this.getQueryFunctions(bslQuery);
 			let helper = this.getCommonSigHelp(functions);
@@ -4010,7 +4014,9 @@ class bslHelper {
  	 */
 	getDCSSigHelp() {
 
-		if (this.lastOperator != ')') {
+		let unclosed = this.unclosedString(this.textBeforePosition);
+
+		if (this.lastOperator != ')' && 0 <= unclosed.index) {
 
 			let functions = this.getQueryFunctions(bslDCS);
 			let helper = this.getCommonSigHelp(functions);
