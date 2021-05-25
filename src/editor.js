@@ -1462,7 +1462,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       updateBookmarks(line);
     }
 
-    if (element.classList.contains('diff-new') || element.classList.contains('diff-changed') || element.classList.contains('diff-removed')) {
+    if (element.classList.contains('diff-navi')) {
       createDiffWidget(e);
     }    
 
@@ -1724,7 +1724,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
                 range: range,
                 options: {
                   isWholeLine: true,
-                  linesDecorationsClassName: class_name,
+                  linesDecorationsClassName: 'diff-navi ' + class_name,
                   overviewRuler: {
                     color: color,
                     darkColor: color,
@@ -1802,14 +1802,20 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
             let diff_zone = document.getElementById('diff-zone');
             let rect = diff_zone.getBoundingClientRect();
 
-            this.domNode.style.left = rect.left + 'px';
+            this.domNode.style.left = (rect.left - 1) + 'px';
             this.domNode.style.top = rect.top + 'px';
             this.domNode.style.height = rect.height + 'px';
             this.domNode.style.width = (layout.contentWidth - layout.verticalScrollbarWidth) + 'px';
 
+            let currentTheme = getCurrentThemeName();
+
             let header = document.createElement('div');
             header.classList.add('diff-header');
-            header.classList.add(class_name);            
+            header.classList.add(class_name);
+
+            if (0 <= currentTheme.indexOf('dark'))
+              header.classList.add('dark');
+
             header.innerText = 'changes';
 
             let close_button = document.createElement('div');
@@ -1825,8 +1831,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
             this.domNode.appendChild(body);
 
             setTimeout(() => {
-              let language_id = getLangId();
-              let currentTheme = getCurrentThemeName();
+
+              let language_id = getLangId();              
 
               inlineDiffEditor = monaco.editor.createDiffEditor(body, {
                 theme: currentTheme,

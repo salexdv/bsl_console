@@ -16,74 +16,63 @@
 }
 
 .statusbar-widget {
-
 	background: #028fef;
 	color: #fff;
-
 }
 
 .editor-widget.find-widget.visible {
-	
 	min-height: 33px;
-
 }
 
 .editor-widget.find-widget.visible .input {
-	
 	min-height: 24px;
-
 }
 
 .editor-widget.find-widget.visible.replaceToggled {
-	
 	min-height: 62px;
-
 }
 
 .suggest-widget .monaco-list .monaco-list-row .inactive-detail {
-
 	display: inline !important;
 	color: #b3b3b3;
+}
 
+.diff-navi {
+	border-left: 3px solid;	
+	width: 10px !important;
+	margin-left: 5px;
+	cursor: pointer;
+}
+
+.diff-navi:hover {
+	border-left: 9px solid;
+	margin-left: 2px;
+	cursor: pointer;
+	transition: all .25s;
 }
 
 .diff-new {
-	border-left: 3px solid #10aa00;
-	width: 12px !important;
-	margin-left: 5px;
-	cursor: pointer;
+	border-color: #10aa00;
 }
 
 .diff-new:hover {		
-	border-left: 9px solid #10aa00;
-	margin-left: 2px;
-	cursor: pointer;
+	border-color: #10aa00;
 }
 
 .diff-changed {
-	border-left: 3px solid #f8a62b;
-	width: 12px !important;
-	margin-left: 5px;
-	cursor: pointer;
+	border-color: #f8a62b;
 }
 
 .diff-changed:hover {	
-	border-left: 9px solid #f8a62b;
-	margin-left: 2px;
-	cursor: pointer;
+	border-color: #f8a62b;	
 }
 
 .diff-removed {
-	border-left: 3px solid #dd0000;
-	width: 12px !important;
-	margin-left: 5px;
-	cursor: pointer;
+	border-color: #dd0000;
 }
 
 .diff-removed:hover {	
-	border-left: 9px solid #dd0000;
-	margin-left: 2px;
-	cursor: pointer;
+	border-color: #dd0000;	
 }
 
 .diff-close {
@@ -108,6 +97,10 @@
 	background-color: #333;
 }
 
+.dark .diff-close:before, .dark .diff-close:after {
+	background-color: #fff;
+}
+
 .diff-close:before {
 	transform: rotate(45deg);
 }
@@ -123,6 +116,12 @@
 	border-right: 1px solid;
 	border-top: 1px solid;
 	height: 20px;
+	background-color: #fff;
+}
+
+.diff-header.dark {
+	background-color: #1e1e1e;
+	color: #9b9b9b;
 }
 
 .diff-body {
