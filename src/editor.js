@@ -780,7 +780,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
-  genarateEventWithSuggestData = function(eventName, suggestRows, trigger, extra) {
+  genarateEventWithSuggestData = function(eventName, trigger, row) {
 
     let bsl = new bslHelper(editor.getModel(), editor.getPosition());		
 
@@ -789,16 +789,17 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       current_word: bsl.word,
       last_word: bsl.lastRawExpression,
       last_expression: bsl.lastExpression,                    
-      rows: suggestRows,
+      rows: getSuggestWidgetRows(row),
       altKey: altPressed,
 			ctrlKey: ctrlPressed,
-			shiftKey: shiftPressed
+			shiftKey: shiftPressed,
+      row_id: row.getAttribute('data-index')
     }
 
     if (eventName == 'EVENT_ON_ACTIVATE_SUGGEST_ROW') 
-      eventParams['focused'] = extra;
+      eventParams['focused'] = row.getAttribute('aria-label');
     else if (eventName == 'EVENT_ON_SELECT_SUGGEST_ROW') 
-      eventParams['selected'] = extra;
+      eventParams['selected'] = row.getAttribute('aria-label');
     
     sendEvent(eventName, eventParams);
 
@@ -813,7 +814,34 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       suggestObserver = null;
     }
 
+    let suggestWidget = editor._contentWidgets['editor.widget.suggestWidget'];
+
     if (enabled) {
+      
+      if (!editor.alwaysDisplaySuggestDetails) {
+
+        suggestWidget.widget.listElement.onmouseover = function(e) {
+          
+          document.querySelectorAll('.monaco-list-rows .details-label').forEach(function (node) {
+            node.classList.remove('inactive-detail');
+          });
+
+          let parent_row = getParentWithClass(e.target, 'monaco-list-row');        
+
+          if (parent_row) {
+            
+            let details = getChildtWithClass(parent_row, 'details-label');
+
+            if (details && !parent_row.classList.contains('focused')) {
+              details.classList.add('inactive-detail');
+              genarateEventWithSuggestData('EVENT_ON_ACTIVATE_SUGGEST_ROW', 'hover', parent_row);
+            }
+
+          }
+
+        }
+
+      }           
 
       suggestObserver = new MutationObserver(function (mutations) {        
       
@@ -824,9 +852,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
               let element = mutation.addedNodes[0];
     
               if (element.classList.contains('monaco-list-row') && element.classList.contains('focused')) {
-                
-                let rows = getSuggestWidgetRows(element);
-                genarateEventWithSuggestData('EVENT_ON_ACTIVATE_SUGGEST_ROW', rows, 'focus', element.getAttribute('aria-label'));
+                                
+                genarateEventWithSuggestData('EVENT_ON_ACTIVATE_SUGGEST_ROW', 'focus', element);
                 
                 if (editor.alwaysDisplaySuggestDetails) {
                   document.querySelectorAll('.monaco-list-rows .details-label').forEach(function (node) {
@@ -845,8 +872,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
             if (element) {
 
               if (hasParentWithClass(mutation.target, 'details') && hasParentWithClass(mutation.target, 'suggest-widget')) {
-                let rows = getSuggestWidgetRows(element);
-                genarateEventWithSuggestData('EVENT_ON_DETAIL_SUGGEST_ROW', rows, 'focus', element.getAttribute('aria-label'));
+                genarateEventWithSuggestData('EVENT_ON_DETAIL_SUGGEST_ROW', 'focus', element);
               }
 
             }
@@ -862,6 +888,9 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         subtree: true,    
       });
 
+    }
+    else {
+      suggestWidget.widget.listElement.onmouseover = null;
     }
 
   }
@@ -889,8 +918,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
           let element = document.querySelector('.monaco-list-row.focused');
         
           if (element) {
-            let rows = getSuggestWidgetRows(element);
-            genarateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', rows, 'selection', element.getAttribute('aria-label'));
+            genarateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', 'selection', element);
           }          
 
           widget.onListMouseDownOrTapOrig(e);
@@ -1137,6 +1165,26 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  setSuggestItemDetailById = function (rowId, detail) {
+
+    let i = parseInt(rowId);
+    let suggestWidget = editor._contentWidgets['editor.widget.suggestWidget'];
+
+    if (suggestWidget && i < suggestWidget.widget.list.view.items.length) {
+
+      let suggest_item = suggestWidget.widget.list.view.items[i];
+      suggest_item.element.completion.detail = detail;      
+      
+      let detail_element = getChildtWithClass(suggest_item.row.domNode,'details-label');
+
+      if (detail_element) {
+        detail_element.innerText = detail
+      }
+
+    }
+
+  }
+
   setActiveSuggestDetail = function (detail) {
 
     let element = document.querySelector('.monaco-list-rows .focused .details-label');
@@ -1362,9 +1410,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       // Enter
       let element = document.querySelector('.monaco-list-row.focused');
       if (element) {
-        let rows = getSuggestWidgetRows(element);
-        genarateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', rows, 'selection', element.getAttribute('aria-label'));
-
+        genarateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', 'selection', element);
         // Prevent propagation of KeyDown event to editor if SuggestList was closed in EVENT_ON_SELECT_SUGGEST_ROW event handler https://github.com/salexdv/bsl_console/issues/90
         element = document.querySelector('.monaco-list-row.focused');
         if (!element) {
@@ -1400,8 +1446,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       if (generateSelectSuggestEvent) {
         let element = document.querySelector('.monaco-list-row.focused');
         if (element) {
-          let rows = getSuggestWidgetRows(element);
-          genarateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', rows, 'selection', element.getAttribute('aria-label'));
+          genarateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', 'selection', element);
         }
       }
     }
@@ -1498,6 +1543,38 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       return true;
 
     return element.parentNode && hasParentWithClass(element.parentNode, className);
+
+  }
+
+  function getParentWithClass(element, className) {
+
+    if (element.className && 0 <= element.className.split(' ').indexOf(className))
+      return element;
+
+    if (element.parentNode)    
+      return getParentWithClass(element.parentNode, className);
+    else
+      return null;
+
+  }
+
+  function getChildtWithClass(element, className) {
+
+    for (var i = 0; i < element.childNodes.length; i++) {
+      
+      let child = element.childNodes[i];
+
+      if (child.className && 0 <= child.className.split(' ').indexOf(className))
+        return child
+      else if (child.childNodes.length) {
+        child = getChildtWithClass(child, className);
+        if (child)
+          return child;
+      }
+
+    }
+
+    return null;
 
   }
 
@@ -1901,8 +1978,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       if (element) {
 
         if (generateSelectSuggestEvent) {
-          let rows = getSuggestWidgetRows(element);
-          genarateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', rows, 'force-selection-' + char, element.getAttribute('aria-label'));
+          genarateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', 'force-selection-' + char, element);
         }
 
         if (!editor.skipAcceptionSelectedSuggestion)
