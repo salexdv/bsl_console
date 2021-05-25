@@ -1228,6 +1228,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     editor.originalText = originalText;
 
     if (!originalText) {
+      editor.removeDiffWidget();
       editor.diff_decorations = [];
       editor.updateDecorations([]);
     }
@@ -1301,7 +1302,24 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         permanent_decor = permanent_decor.concat(editor.diff_decorations);
 
         editor.decorations = editor.deltaDecorations(editor.decorations, permanent_decor.concat(new_decorations));
-      }      
+      }
+
+      editor.removeDiffWidget = function () {
+
+        if (editor.diffZoneId) {
+          
+          editor.removeOverlayWidget(inlineDiffWidget);
+          inlineDiffWidget = null;
+          inlineDiffEditor = null;
+
+          editor.changeViewZones(function (changeAccessor) {
+            changeAccessor.removeZone(editor.diffZoneId);
+            editor.diffZoneId = 0;
+          });
+
+        }
+
+      }
 
       contextMenuEnabled = editor.getRawOptions().contextmenu;
 
@@ -1749,13 +1767,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         domNode.setAttribute('id', 'diff-zone');
       }
 
-      if (inlineDiffWidget) {        
-        editor.removeOverlayWidget(inlineDiffWidget);        
-        inlineDiffWidget = null;
-        inlineDiffEditor = null;
-      }
-
-      changeAccessor.removeZone(editor.diffZoneId);
+      editor.removeDiffWidget();
 
       editor.diffZoneId = changeAccessor.addZone({
         afterLineNumber: line_number,
@@ -1802,15 +1814,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
             let close_button = document.createElement('div');
             close_button.classList.add('diff-close');
-            close_button.onclick = function () {
-              editor.removeOverlayWidget(inlineDiffWidget);
-              inlineDiffWidget = null;
-              inlineDiffEditor = null;
-              editor.changeViewZones(function (changeAccessor) {
-                changeAccessor.removeZone(editor.diffZoneId);
-                editor.diffZoneId = 0;
-              });
-            }
+            close_button.onclick = editor.removeDiffWidget;
             header.appendChild(close_button);
 
             this.domNode.appendChild(header);
