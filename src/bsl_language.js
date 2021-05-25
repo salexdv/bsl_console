@@ -77,6 +77,7 @@ define([], function () {
                 'editor.background': '#1e1e1e',
                 'editor.selectionBackground': '#062f4a',
                 'editor.selectionHighlightBackground': '#495662',
+                'editor.inactiveSelectionBackground': '#495662',
                 'editorCursor.foreground': '#d4d4d4',
                 'editorSuggestWidget.background': '#252526',
                 'editorSuggestWidget.foreground': '#d4d4d4',
@@ -87,7 +88,8 @@ define([], function () {
             },
             white: {
                 'editor.selectionBackground': '#ffe877',
-                'editor.selectionHighlightBackground': '#fef6d0'
+                'editor.selectionHighlightBackground': '#fef6d0',
+                'editor.inactiveSelectionBackground': '#fef6d0'
             }
         }
     }
