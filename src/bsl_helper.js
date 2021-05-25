@@ -109,7 +109,7 @@ class bslHelper {
 	 * @returns  {string} word whith token
 	 */
 
-	getLastWordWhithTokenInRange(token_name, startLineNumber, startColumn, endLineNumber, endColumn, ignored_words) {
+	getLastWordWithTokenInRange(token_name, startLineNumber, startColumn, endLineNumber, endColumn, ignored_words) {
 
 		let word = '';
 
@@ -3255,7 +3255,7 @@ class bslHelper {
 				
 					if (fromMatch && fromMatch.range.startLineNumber < this.lineNumber) {					
 						let ignore_keywords = ['как', 'as', 'по', 'on'];
-						lastWord = this.getLastWordWhithTokenInRange('keyword', fromMatch.range.startLineNumber, 1, this.lineNumber, this.column - 1, ignore_keywords);
+						lastWord = this.getLastWordWithTokenInRange('keyword', fromMatch.range.startLineNumber, 1, this.lineNumber, this.column - 1, ignore_keywords);
 					}
 				}
 
