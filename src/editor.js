@@ -1878,7 +1878,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
             if (0 <= currentTheme.indexOf('dark'))
               header.classList.add('dark');
 
-            header.innerText = 'changes';
+            header.innerText = engLang ? 'changes': 'изменения';
 
             let close_button = document.createElement('div');
             close_button.classList.add('diff-close');
