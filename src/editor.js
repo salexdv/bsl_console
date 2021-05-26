@@ -77,6 +77,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     if (readOnly)
       setReadOnly(true);
 
+    editor.pushUndoStop();
+
   }
 
   eraseText = function () {
