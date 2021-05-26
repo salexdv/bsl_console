@@ -331,10 +331,16 @@ define([], function () {
             keywords: query_keywords,
             expressions: query_expressions,
             operators: /[=><+\-*\/%;,]+/,
+            expBeforeAs: [
+                'КОНЕЦ', 'END'
+            ],
             tokenizer: {
                 root: [                      
-                    [/([a-zA-Z\u0410-\u044F]+)(\s+)(как|as)(\s+)([a-zA-Z\u0410-\u044F]+)/, [
-                        {token: 'query'},
+                    [/([a-zA-Z\u0410-\u044F]+)(\s+)(как|as)(\s+)([a-zA-Z\u0410-\u044F0-9]+)/, [
+                        { cases: {
+                            '@expBeforeAs': 'query.exp',                            
+                            '@default': 'query'
+                        }},
                         {token: 'query'},
                         {token: 'query.keyword'},
                         {token: 'query'},
