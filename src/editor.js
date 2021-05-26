@@ -1319,6 +1319,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     if (lang.autoIndentation && lang.indentationRules)
       monaco.languages.setLanguageConfiguration(language.id, {indentationRules: lang.indentationRules});
 
+    monaco.languages.setLanguageConfiguration(language.id, {brackets: lang.brackets});
+
     if (!editor) {
 
       for (const [key, value] of Object.entries(language.themes)) {

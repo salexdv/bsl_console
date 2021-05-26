@@ -442,7 +442,23 @@ define([], function () {
             indentationRules: {
                 increaseIndentPattern: /^\s*(функция|function|процедура|procedure|если|if|пока|while|для|for|попытка|try|исключение|except).*$/i,
                 decreaseIndentPattern: /^\s*(конецфункции|endfunction|конецпроцедуры|endprocedure|конецесли|endif|конеццикла|enddo|конецпопытки|endtry).*$/i
-            }
+            },
+            brackets: [
+                ['(', ')'],
+                ['[', ']'],
+                ['если', 'конецесли'],
+                ['if', 'endif'],
+                ['пока', 'конеццикла'],
+                ['для', 'конеццикла'],
+                ['while', 'enddo'],
+                ['for', 'enddo'],
+                ['попытка', 'конецпопытки'],
+                ['try', 'endtry'],
+                ['функция', 'конецфункции'],
+                ['function', 'endfunction'],
+                ['процедура', 'конецпроцедуры'],
+                ['procedure', 'endprocedure']
+            ]
         },
         query: {
             languageDef: query_language,
@@ -495,7 +511,12 @@ define([], function () {
             indentationRules: {
                 increaseIndentPattern: /^\s*(выбрать|из|выбор|когда).*$/i,
                 decreaseIndentPattern: /^\s*(тогда|иначе|конец).*$/i
-            }
+            },
+            brackets: [
+                ['(', ')'],
+                ['[', ']'],
+                ['{', '}']
+            ]
         },
         dcs: {
             languageDef: dcs_language,
@@ -543,7 +564,11 @@ define([], function () {
                 resolver: () => {}
             },
             autoIndentation: false,
-            indentationRules: null
+            indentationRules: null,
+            brackets: [
+                ['(', ')'],
+                ['[', ']']                
+            ]
         }
 
     };
