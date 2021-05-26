@@ -824,69 +824,31 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       suggestObserver = null;
     }
 
-    let suggestWidget = editor._contentWidgets['editor.widget.suggestWidget'];
+    onSuggestListMouseOver(enabled);
 
     if (enabled) {
-      
-      if (!editor.alwaysDisplaySuggestDetails) {
 
-        suggestWidget.widget.listElement.onmouseover = function(e) {
-          
-          document.querySelectorAll('.monaco-list-rows .details-label').forEach(function (node) {
-            node.classList.remove('inactive-detail');
-          });
+      suggestObserver = new MutationObserver(function (mutations) {
 
-          document.querySelectorAll('.monaco-list-rows .readMore').forEach(function (node) {
-            node.classList.remove('inactive-more');
-          });
+        mutations.forEach(function (mutation) {
 
-          let parent_row = getParentWithClass(e.target, 'monaco-list-row');        
+          if (mutation.target.classList.contains('monaco-list-rows') && mutation.addedNodes.length) {
 
-          if (parent_row) {
-            
-            if (!parent_row.classList.contains('focused')) {
-              
-              let details = getChildtWithClass(parent_row, 'details-label');
-              
-              if (details) {
-                details.classList.add('inactive-detail');
-                genarateEventWithSuggestData('EVENT_ON_ACTIVATE_SUGGEST_ROW', 'hover', parent_row);
+            let element = mutation.addedNodes[0];
+
+            if (element.classList.contains('monaco-list-row') && element.classList.contains('focused')) {
+
+              genarateEventWithSuggestData('EVENT_ON_ACTIVATE_SUGGEST_ROW', 'focus', element);
+
+              if (editor.alwaysDisplaySuggestDetails) {
+                document.querySelectorAll('.monaco-list-rows .details-label').forEach(function (node) {
+                  node.classList.add('inactive-detail');
+                });
+                document.querySelector('.monaco-list-rows .focused .details-label').classList.remove('inactive-detail');
               }
-
-              let read_more = getChildtWithClass(parent_row, 'readMore');
-              
-              if (read_more)
-                read_more.classList.add('inactive-more');
 
             }
 
-          }
-
-        }
-
-      }           
-
-      suggestObserver = new MutationObserver(function (mutations) {        
-      
-        mutations.forEach(function (mutation) {      
-          
-          if (mutation.target.classList.contains('monaco-list-rows') && mutation.addedNodes.length) {
-              
-              let element = mutation.addedNodes[0];
-    
-              if (element.classList.contains('monaco-list-row') && element.classList.contains('focused')) {
-                                
-                genarateEventWithSuggestData('EVENT_ON_ACTIVATE_SUGGEST_ROW', 'focus', element);
-                
-                if (editor.alwaysDisplaySuggestDetails) {
-                  document.querySelectorAll('.monaco-list-rows .details-label').forEach(function (node) {
-                    node.classList.add('inactive-detail');
-                  });
-                  document.querySelector('.monaco-list-rows .focused .details-label').classList.remove('inactive-detail');
-                }
-
-              }
-              
           }
           else if (mutation.target.classList.contains('type')) {
 
@@ -903,17 +865,14 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
           }
 
         })
-        
-      });
-    
-      suggestObserver.observe(document, {
-        childList: true,
-        subtree: true,    
+
       });
 
-    }
-    else {
-      suggestWidget.widget.listElement.onmouseover = null;
+      suggestObserver.observe(document, {
+        childList: true,
+        subtree: true,
+      });
+
     }
 
   }
@@ -1979,6 +1938,64 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       editor.addOverlayWidget(inlineDiffWidget);
 
     }, 50);
+
+  }
+  
+  function onSuggestListMouseOver(activationEventEnabled) {
+
+    let widget = editor._contentWidgets['editor.widget.suggestWidget'].widget;
+
+    if (activationEventEnabled) {
+      
+      if (!editor.alwaysDisplaySuggestDetails) {
+
+        widget.listElement.onmouseoverOrig = widget.listElement.onmouseover;
+        widget.listElement.onmouseover = function(e) {        
+          
+          document.querySelectorAll('.monaco-list-rows .details-label').forEach(function (node) {
+            node.classList.remove('inactive-detail');
+          });
+
+          document.querySelectorAll('.monaco-list-rows .readMore').forEach(function (node) {
+            node.classList.remove('inactive-more');
+          });
+
+          let parent_row = getParentWithClass(e.target, 'monaco-list-row');        
+
+          if (parent_row) {
+            
+            if (!parent_row.classList.contains('focused')) {
+              
+              let details = getChildtWithClass(parent_row, 'details-label');
+              
+              if (details) {
+                details.classList.add('inactive-detail');
+                genarateEventWithSuggestData('EVENT_ON_ACTIVATE_SUGGEST_ROW', 'hover', parent_row);
+              }
+
+              let read_more = getChildtWithClass(parent_row, 'readMore');
+              
+              if (read_more)
+                read_more.classList.add('inactive-more');
+
+              if (typeof(widget.listElement.onmouseoverOrig) == 'function')
+                widget.listElement.onmouseoverOrig(e);
+
+            }
+
+          }
+
+        }
+
+      }
+
+    }
+    else {
+
+      if (widget.listElement.onmouseoverOrig)
+        widget.listElement.onmouseover = suggestWidget.widget.listElement.onmouseoverOrig;
+
+    }
 
   }
 
