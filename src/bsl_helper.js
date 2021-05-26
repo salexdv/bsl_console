@@ -4909,7 +4909,7 @@ class bslHelper {
 					rows.push(value.label);
 				}                        
 			}
-			genarateEventWithSuggestData('EVENT_BEFORE_SHOW_SUGGEST', rows, context.triggerCharacter, '');
+			genarateEventWithSuggestData('EVENT_BEFORE_SHOW_SUGGEST', context.triggerCharacter, null, rows);
 		}
 
 	}

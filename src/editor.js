@@ -767,12 +767,16 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
     let rows = [];
 
-    for (let i = 0; i < element.parentElement.childNodes.length; i++) {              
-      
-      let row = element.parentElement.childNodes[i];
-      
-      if (row.classList.contains('monaco-list-row'))
-        rows.push(row.getAttribute('aria-label'));
+    if (element) {
+
+      for (let i = 0; i < element.parentElement.childNodes.length; i++) {              
+        
+        let row = element.parentElement.childNodes[i];
+        
+        if (row.classList.contains('monaco-list-row'))
+          rows.push(row.getAttribute('aria-label'));
+
+      }
 
     }
 
@@ -780,7 +784,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
-  genarateEventWithSuggestData = function(eventName, trigger, row) {
+  genarateEventWithSuggestData = function(eventName, trigger, row, suggestRows = []) {
 
     let bsl = new bslHelper(editor.getModel(), editor.getPosition());		
 
@@ -789,17 +793,21 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       current_word: bsl.word,
       last_word: bsl.lastRawExpression,
       last_expression: bsl.lastExpression,                    
-      rows: getSuggestWidgetRows(row),
+      rows: suggestRows.length ? suggestRows : getSuggestWidgetRows(row),
       altKey: altPressed,
 			ctrlKey: ctrlPressed,
 			shiftKey: shiftPressed,
-      row_id: row.getAttribute('data-index')
+      row_id: row ? row.getAttribute('data-index') : ""
     }
 
-    if (eventName == 'EVENT_ON_ACTIVATE_SUGGEST_ROW') 
-      eventParams['focused'] = row.getAttribute('aria-label');
-    else if (eventName == 'EVENT_ON_SELECT_SUGGEST_ROW') 
-      eventParams['selected'] = row.getAttribute('aria-label');
+    if (row) {
+
+      if (eventName == 'EVENT_ON_ACTIVATE_SUGGEST_ROW')
+        eventParams['focused'] = row.getAttribute('aria-label');
+      else if (eventName == 'EVENT_ON_SELECT_SUGGEST_ROW')
+        eventParams['selected'] = row.getAttribute('aria-label');
+
+    }
     
     sendEvent(eventName, eventParams);
 
