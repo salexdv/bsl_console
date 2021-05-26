@@ -37,6 +37,11 @@
 	color: #b3b3b3;
 }
 
+.suggest-widget .monaco-list .monaco-list-row .readMore.inactive-more {
+	display: inline !important;
+	visibility: visible !important;
+}
+
 .diff-navi {
 	border-left: 3px solid;	
 	width: 10px !important;

@@ -836,15 +836,28 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
             node.classList.remove('inactive-detail');
           });
 
+          document.querySelectorAll('.monaco-list-rows .readMore').forEach(function (node) {
+            node.classList.remove('inactive-more');
+          });
+
           let parent_row = getParentWithClass(e.target, 'monaco-list-row');        
 
           if (parent_row) {
             
-            let details = getChildtWithClass(parent_row, 'details-label');
+            if (!parent_row.classList.contains('focused')) {
+              
+              let details = getChildtWithClass(parent_row, 'details-label');
+              
+              if (details) {
+                details.classList.add('inactive-detail');
+                genarateEventWithSuggestData('EVENT_ON_ACTIVATE_SUGGEST_ROW', 'hover', parent_row);
+              }
 
-            if (details && !parent_row.classList.contains('focused')) {
-              details.classList.add('inactive-detail');
-              genarateEventWithSuggestData('EVENT_ON_ACTIVATE_SUGGEST_ROW', 'hover', parent_row);
+              let read_more = getChildtWithClass(parent_row, 'readMore');
+              
+              if (read_more)
+                read_more.classList.add('inactive-more');
+
             }
 
           }
