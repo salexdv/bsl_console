@@ -180,7 +180,6 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         );
       }
       editor.timer_count--;
-      newDecor = newDecor.concat(bm_decorations);
       editor.updateDecorations(newDecor);
       if (editor.timer_count == 0) {
         clearInterval(err_tid);
@@ -1609,24 +1608,10 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   function checkBookmarksAfterNewLine() {
 
     let line = getCurrentLine();
-    let prev_bookmark = editor.bookmarks.get(line - 1);    
+    let content = getLineContent(line);
 
-    if (prev_bookmark) {
-
-      let content = getLineContent(line);
-      let prev_content = getLineContent(line - 1)
-
-      if (content || content == prev_content) {
-
-        prev_bookmark.range.startLineNumber = line;
-        prev_bookmark.range.endLineNumber = line;
-        editor.bookmarks.set(line, prev_bookmark);
-        editor.bookmarks.delete(line - 1);
-        line++;
-
-      }
-
-    }
+    if (content)
+      line--;
 
     let line_check = getLineCount();
 
@@ -1671,6 +1656,10 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
           prev_bookmark.range.endLineNumber = line;
           editor.bookmarks.set(line, prev_bookmark);
 
+        }
+
+        for (l = line + 1; l <= range.endLineNumber; l++) {
+          editor.bookmarks.delete(l);
         }
 
         let line_check = range.endLineNumber;
