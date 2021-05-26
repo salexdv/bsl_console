@@ -1131,6 +1131,13 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  removeBookmarks = function() {
+
+    editor.bookmarks.clear();
+    updateBookmarks();
+
+  }
+
   getBookmarks = function () {
 
     let sorted_bookmarks = getSortedBookmarks();
