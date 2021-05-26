@@ -34,6 +34,7 @@ define(['vs/editor/editor.main'], function () {
         sorted_bookmarks.forEach(function (value, key) {
             if (idx == currentBookmark && key <= count) {
                 editor.revealLineInCenter(key);
+                editor.setPosition(new monaco.Position(key, 1));
             }
             idx++;
         });
