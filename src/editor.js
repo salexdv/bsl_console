@@ -52,8 +52,17 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   setText = function(txt, range, usePadding) {
     
-    reserMark();
-    bslHelper.setText(txt, range, usePadding);    
+    editor.checkBookmarks = false;
+
+    reserMark();    
+    bslHelper.setText(txt, range, usePadding);
+    
+    if (getText())
+      checkBookmarksCount();
+    else
+      removeBookmarks();
+    
+    editor.checkBookmarks = true;
 
   }
 
@@ -68,7 +77,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     if (modEvent)    
       enableModificationEvent(false);
 
-    eraseText();
+    eraseTextBeforeUpdate();
     setText(txt, range, usePadding);
 
     if (modEvent)    
@@ -1327,6 +1336,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
       editor.decorations = [];
       editor.bookmarks = new Map();
+      editor.checkBookmarks = true;
       editor.diff_decorations = [];
 
 
@@ -1636,7 +1646,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   function checkBookmarksAfterRemoveLine(contentChangeEvent) {
 
-    if (contentChangeEvent.changes.length) {
+    if (contentChangeEvent.changes.length && editor.checkBookmarks) {
 
       let changes = contentChangeEvent.changes[0];
       let range = changes.range;
@@ -1683,6 +1693,22 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       }
 
     }
+
+  }
+
+  function checkBookmarksCount() {
+
+    let count = getLineCount();
+    let keys = [];
+
+    editor.bookmarks.forEach(function (value, key) {
+      if (count < key)
+        keys.push(key);
+    });
+
+    keys.forEach(function (key) {
+      editor.bookmarks.delete(key);
+    });
 
   }
 
@@ -1992,6 +2018,14 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         widget.listElement.onmouseover = suggestWidget.widget.listElement.onmouseoverOrig;
 
     }
+
+  }
+
+  function eraseTextBeforeUpdate() {
+
+    editor.checkBookmarks = false;
+    bslHelper.setText('', editor.getModel().getFullModelRange(), false);
+    editor.checkBookmarks = true;
 
   }
 
