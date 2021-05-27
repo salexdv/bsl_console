@@ -60,7 +60,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     if (getText())
       checkBookmarksCount();
     else
-      removeBookmarks();
+      removeAllBookmarks();
     
     editor.checkBookmarks = true;
 
@@ -1139,7 +1139,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
-  removeBookmarks = function() {
+  removeAllBookmarks = function() {
 
     editor.bookmarks.clear();
     updateBookmarks();
