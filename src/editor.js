@@ -896,7 +896,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
           widget.onListMouseDownOrTapOrig = widget.onListMouseDownOrTap;
         
         widget.onListMouseDownOrTap = function(e) {          
-          let element = document.querySelector('.monaco-list-row.focused');
+          let element = getParentWithClass(e.browserEvent.target, 'monaco-list-row');
         
           if (element) {
             genarateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', 'selection', element);
