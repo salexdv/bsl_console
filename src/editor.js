@@ -397,6 +397,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     let endPosition = editor.getModel().getPositionAt(end - 1);
     let range = new monaco.Range(startPosition.lineNumber, startPosition.column, endPosition.lineNumber, endPosition.column);    
     editor.setSelection(range);
+    editor.revealPositionInCenterIfOutsideViewport(startPosition);
+
     return true;
 
   }
