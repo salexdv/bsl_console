@@ -1275,8 +1275,11 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     if (!originalText) {
       editor.removeDiffWidget();
       editor.diff_decorations = [];
-      editor.updateDecorations([]);
     }
+    else
+      calculateDiff();
+
+    editor.updateDecorations([]);
 
   }
 
@@ -1833,133 +1836,142 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   function createDiffWidget(e) {
 
-    let element = e.target.element;
-    let line_number = e.target.position.lineNumber;
-    let class_name = 'new-block';
-
-    if (element.classList.contains('diff-changed'))
-      class_name = 'changed-block';
-    else if (element.classList.contains('diff-removed'))
-      class_name = 'removed-block';
-
-    editor.changeViewZones(function (changeAccessor) {
-
-      let domNode = document.getElementById('diff-zone');
-
-      if (!domNode) {
-        domNode = document.createElement('div');
-        domNode.setAttribute('id', 'diff-zone');
-      }
-
+    if (inlineDiffWidget) {
+      
       editor.removeDiffWidget();
 
-      editor.diffZoneId = changeAccessor.addZone({
-        afterLineNumber: line_number,
-        heightInLines: 10,
-        domNode: domNode,
-        onDomNodeTop: function (top) {
-          if (inlineDiffWidget) {
-            let layout = editor.getLayoutInfo();
-            inlineDiffWidget.domNode.style.top = top + 'px';          
-            inlineDiffWidget.domNode.style.width = (layout.contentWidth - layout.verticalScrollbarWidth) + 'px';
-          }
+    }
+    else {
+
+      let element = e.target.element;
+      let line_number = e.target.position.lineNumber;
+      let class_name = 'new-block';
+
+      if (element.classList.contains('diff-changed'))
+        class_name = 'changed-block';
+      else if (element.classList.contains('diff-removed'))
+        class_name = 'removed-block';
+
+      editor.changeViewZones(function (changeAccessor) {
+
+        let domNode = document.getElementById('diff-zone');
+
+        if (!domNode) {
+          domNode = document.createElement('div');
+          domNode.setAttribute('id', 'diff-zone');
         }
+
+        editor.removeDiffWidget();
+
+        editor.diffZoneId = changeAccessor.addZone({
+          afterLineNumber: line_number,
+          heightInLines: 10,
+          domNode: domNode,
+          onDomNodeTop: function (top) {
+            if (inlineDiffWidget) {
+              let layout = editor.getLayoutInfo();
+              inlineDiffWidget.domNode.style.top = top + 'px';          
+              inlineDiffWidget.domNode.style.width = (layout.contentWidth - layout.verticalScrollbarWidth) + 'px';
+            }
+          }
+        });
+
       });
 
-    });
+      setTimeout(() => {
 
-    setTimeout(() => {
+        inlineDiffWidget = {
+          domNode: null,
+          getId: function () {
+            return 'bsl.diff.widget';
+          },
+          getDomNode: function () {
 
-      inlineDiffWidget = {
-        domNode: null,
-        getId: function () {
-          return 'bsl.diff.widget';
-        },
-        getDomNode: function () {
+            if (!this.domNode) {
 
-          if (!this.domNode) {
+              this.domNode = document.createElement('div');
+              this.domNode.setAttribute("id", "diff-widget");
 
-            this.domNode = document.createElement('div');
-            this.domNode.setAttribute("id", "diff-widget");
+              let layout = editor.getLayoutInfo();
+              let diff_zone = document.getElementById('diff-zone');
+              let rect = diff_zone.getBoundingClientRect();
 
-            let layout = editor.getLayoutInfo();
-            let diff_zone = document.getElementById('diff-zone');
-            let rect = diff_zone.getBoundingClientRect();
+              this.domNode.style.left = (rect.left - 1) + 'px';
+              this.domNode.style.top = rect.top + 'px';
+              this.domNode.style.height = rect.height + 'px';
+              this.domNode.style.width = (layout.contentWidth - layout.verticalScrollbarWidth) + 'px';
 
-            this.domNode.style.left = (rect.left - 1) + 'px';
-            this.domNode.style.top = rect.top + 'px';
-            this.domNode.style.height = rect.height + 'px';
-            this.domNode.style.width = (layout.contentWidth - layout.verticalScrollbarWidth) + 'px';
+              let currentTheme = getCurrentThemeName();
 
-            let currentTheme = getCurrentThemeName();
+              let header = document.createElement('div');
+              header.classList.add('diff-header');
+              header.classList.add(class_name);
 
-            let header = document.createElement('div');
-            header.classList.add('diff-header');
-            header.classList.add(class_name);
+              if (0 <= currentTheme.indexOf('dark'))
+                header.classList.add('dark');
 
-            if (0 <= currentTheme.indexOf('dark'))
-              header.classList.add('dark');
+              header.innerText = engLang ? 'changes': 'изменения';
 
-            header.innerText = engLang ? 'changes': 'изменения';
+              let close_button = document.createElement('div');
+              close_button.classList.add('diff-close');
+              close_button.onclick = editor.removeDiffWidget;
+              header.appendChild(close_button);
 
-            let close_button = document.createElement('div');
-            close_button.classList.add('diff-close');
-            close_button.onclick = editor.removeDiffWidget;
-            header.appendChild(close_button);
+              this.domNode.appendChild(header);
 
-            this.domNode.appendChild(header);
-
-            let body = document.createElement('div');
-            body.classList.add('diff-body');
-            body.classList.add(class_name);            
-            this.domNode.appendChild(body);
-
-            setTimeout(() => {
-
-              let language_id = getLangId();              
-
-              inlineDiffEditor = monaco.editor.createDiffEditor(body, {
-                theme: currentTheme,
-                language: language_id,
-                contextmenu: false,
-                automaticLayout: true,
-                renderSideBySide: false
-              });
-
-              let originalModel = monaco.editor.createModel(editor.originalText);
-              let modifiedModel = editor.getModel();
-
-              monaco.editor.setModelLanguage(originalModel, language_id);
-
-              inlineDiffEditor.setModel({
-                original: originalModel,
-                modified: modifiedModel
-              });
-
-              inlineDiffEditor.navi = monaco.editor.createDiffNavigator(inlineDiffEditor, {
-                followsCaret: true,
-                ignoreCharChanges: true
-              });
+              let body = document.createElement('div');
+              body.classList.add('diff-body');
+              body.classList.add(class_name);            
+              this.domNode.appendChild(body);
 
               setTimeout(() => {
-                inlineDiffEditor.revealLineInCenter(line_number);
-              }, 10)
 
-            }, 10);
+                let language_id = getLangId();              
 
+                inlineDiffEditor = monaco.editor.createDiffEditor(body, {
+                  theme: currentTheme,
+                  language: language_id,
+                  contextmenu: false,
+                  automaticLayout: true,
+                  renderSideBySide: false
+                });
+
+                let originalModel = monaco.editor.createModel(editor.originalText);
+                let modifiedModel = editor.getModel();
+
+                monaco.editor.setModelLanguage(originalModel, language_id);
+
+                inlineDiffEditor.setModel({
+                  original: originalModel,
+                  modified: modifiedModel
+                });
+
+                inlineDiffEditor.navi = monaco.editor.createDiffNavigator(inlineDiffEditor, {
+                  followsCaret: true,
+                  ignoreCharChanges: true
+                });
+
+                setTimeout(() => {
+                  inlineDiffEditor.revealLineInCenter(line_number);
+                }, 10)
+
+              }, 10);
+
+            }
+
+            return this.domNode;
+
+          },
+          getPosition: function () {
+            return null;
           }
+        };
 
-          return this.domNode;
+        editor.addOverlayWidget(inlineDiffWidget);
 
-        },
-        getPosition: function () {
-          return null;
-        }
-      };
+      }, 50);
 
-      editor.addOverlayWidget(inlineDiffWidget);
-
-    }, 50);
+    }
 
   }
   
