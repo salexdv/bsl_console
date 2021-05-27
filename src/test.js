@@ -677,6 +677,14 @@ describe("Проверка автокомлита и подсказок реда
         assert.equal(suggestions.some(suggest => suggest.label === "Ставка"), true);
         assert.equal(suggestions.some(suggest => suggest.label === "Заблокировать"), true);
 
+        position = new monaco.Position(107, 24);
+        editor.setPosition(position);
+        bsl = new bslHelper(model, position);
+        suggestions = [];
+        bsl.getMetadataStackCompletition(suggestions);
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "СтавкаНДС"), true);        
+
       });
       
 

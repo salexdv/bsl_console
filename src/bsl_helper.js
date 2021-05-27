@@ -1778,6 +1778,34 @@ class bslHelper {
 	}
 
 	/**
+	 * Checks if item from stack is Custom object
+	 * and saves context data for it's property
+	 * 
+	 * @param {array} stack call stack array
+	 * @param {object} item item item of stack
+	 * @param {int} index current index of item in stack
+	 */
+	setContextDataForCustomObjectFromStack(stack, item, index) {
+
+		for (const [key, value] of Object.entries(bslMetadata.customObjects.items)) {
+
+			if (key.toLowerCase() == item.var) {
+
+				for (const [pkey, pvalue] of Object.entries(value.properties)) {
+
+					let property = pvalue.name.toLowerCase();
+					if (property == stack[index + 1].var && pvalue.hasOwnProperty('ref'))
+						this.setContextDataForRefExpression(property, pvalue.ref, item.line);
+
+				}
+
+			}
+
+		}
+
+	}
+
+	/**
 	 * Fill suggestions from call stack when variable
 	 * define like Спр = Справочники.Номенклатура.НайтиПоКоду
 	 * 
@@ -1865,6 +1893,8 @@ class bslHelper {
 				}
 				if (i == 0) {
 					prev_ref = this.getRefCompletitionFromPosition(metadata_suggestions, position, false);
+					if (!prev_ref && i + 1 < stack.length && bslMetadata.customObjects.hasOwnProperty('items'))
+						this.setContextDataForCustomObjectFromStack(stack, stack_item, i);
 				}
 				else {					
 					this.getRefCompletitionFromPosition(metadata_suggestions, position, false);
