@@ -1064,7 +1064,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
               this.domNode.style.top = (editor.getDomNode().offsetHeight - 20 - layout.horizontalScrollbarHeight) + 'px';
             }
             this.domNode.style.height = '20px';
-            this.domNode.style.minWidth = '120px';                        
+            this.domNode.style.minWidth = '125px';                        
             this.domNode.style.textAlign = 'center';
             this.domNode.style.zIndex = 1;
             this.domNode.style.fontSize = '12px';
@@ -1603,8 +1603,13 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   function upateStatusBar() {
     
     if (statusBarWidget) {
+      
       let status = 'Ln ' + getCurrentLine();
       status += ', Col ' + getCurrentColumn();
+
+      if (!engLang)
+        status = status.replace('Ln', 'Стр').replace('Col', 'Кол');
+
       statusBarWidget.domNode.firstElementChild.innerText = status;
     }
 
