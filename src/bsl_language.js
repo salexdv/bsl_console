@@ -464,7 +464,8 @@ define([], function () {
                 ['function', 'endfunction'],
                 ['процедура', 'конецпроцедуры'],
                 ['procedure', 'endprocedure']
-            ]
+            ],
+            autoClosingPairs: []
         },
         query: {
             languageDef: query_language,
@@ -522,7 +523,8 @@ define([], function () {
                 ['(', ')'],
                 ['[', ']'],
                 ['{', '}']
-            ]
+            ],
+            autoClosingPairs: []
         },
         dcs: {
             languageDef: dcs_language,
@@ -574,7 +576,8 @@ define([], function () {
             brackets: [
                 ['(', ')'],
                 ['[', ']']                
-            ]
+            ],
+            autoClosingPairs: []
         }
 
     };
