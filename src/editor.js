@@ -1285,6 +1285,14 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  revealLineInCenter = function (lineNumber) {
+
+    let line = Math.min(lineNumber, getLineCount())
+    editor.revealLineInCenter(lineNumber);    
+    editor.setPosition(new monaco.Position(line, 1));
+
+  }
+
   editor = undefined;
 
   // Register languages
