@@ -1293,6 +1293,24 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  saveViewState = function () {
+
+    return JSON.stringify(editor.saveViewState());
+
+  }
+
+  restoreViewState = function (state) {
+    
+    try {
+			editor.restoreViewState(JSON.parse(state));
+			return true;
+		}
+		catch (e) {      
+			return { errorDescription: e.message };
+		}
+
+  }
+
   editor = undefined;
 
   // Register languages
