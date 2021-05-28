@@ -170,8 +170,8 @@ define([], function () {
                 'LOWER', 'СТРЗАМЕНИТЬ', 'STRREPLACE', 'РАЗМЕРХРАНИМЫХДАННЫХ', 'STOREDDATASIZE'
             ],
             DCSExp: [
-                'ВЫБОР', 'CASE', 'КОГДА', 'WHEN', 'ТОГДА', 'THEN', 'ИЛИ', 'OR',
-                'ИНАЧЕ', 'ELSE', 'ИСТИНА', 'TRUE', 'КОНЕЦ', 'END', 'ЛОЖЬ', 'FALSE'
+                'Выбор', 'Case', 'Когда', 'When', 'Тогда', 'Then', 'Или', 'Or',
+                'Иначе', 'Else', 'Истина', 'True', 'Конец', 'End', 'Ложь', 'False'
             ],
             DCSFunctions: [
                 'ВЫЧИСЛИТЬ', 'EVAL', 'ВЫЧИСЛИТЬВЫРАЖЕНИЕ', 'EVALEXPRESSION',

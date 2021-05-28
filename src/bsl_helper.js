@@ -177,10 +177,14 @@ class bslHelper {
 
 		let char = '';
 
-		let column = this.model.getLineLastNonWhitespaceColumn(lineNumber);
+		if (lineNumber) {
 
-		if (0 < column)
-			char = this.model.getValueInRange(new monaco.Range(lineNumber, column - 1, lineNumber, column));
+			let column = this.model.getLineLastNonWhitespaceColumn(lineNumber);
+
+			if (0 < column)
+				char = this.model.getValueInRange(new monaco.Range(lineNumber, column - 1, lineNumber, column));
+
+		}
 
 		return char;
 
@@ -2361,8 +2365,9 @@ class bslHelper {
 	 * @param {array} suggestions array of suggestions for provideCompletionItems
 	 * @param {array} values array of values
 	 * @param {CompletionItemKind} kind - monaco.languages.CompletionItemKind (class, function, constructor etc.)
+	 * @param {bool} upperCase turn expression into upper case or not
 	 */
-	 getFillSuggestionsFromArray(suggestions, values, kind) {
+	 getFillSuggestionsFromArray(suggestions, values, kind, upperCase) {
 
 		let word = this.word;
 
@@ -2372,7 +2377,10 @@ class bslHelper {
 
 				if (value.toLowerCase().startsWith(word)) {
 
-					let expression = value.toUpperCase();
+					let expression = value;
+
+					if (upperCase)
+						value = value.toUpperCase();
 
 					if (engLang) {
 						if (!/^[A-Za-z]*$/.test(expression))
@@ -2552,7 +2560,7 @@ class bslHelper {
 				values.push(keyword);
 			}
 
-			this.getFillSuggestionsFromArray(suggestions, values, kind);
+			this.getFillSuggestionsFromArray(suggestions, values, kind, true);
 
 		}
 
@@ -3500,7 +3508,7 @@ class bslHelper {
 			if (!this.requireQueryValue()) {
 
 				if (this.lastOperator != '"') {
-					this.getFillSuggestionsFromArray(suggestions, languages.bsl.languageDef.rules.DCSExp, monaco.languages.CompletionItemKind.Module);
+					this.getFillSuggestionsFromArray(suggestions, languages.bsl.languageDef.rules.DCSExp, monaco.languages.CompletionItemKind.Module, false);
 					let functions = this.getQueryFunctions(bslDCS);
 					this.getCommonCompletition(suggestions, functions, monaco.languages.CompletionItemKind.Function, true);
 					this.getCustomObjectsCompletition(suggestions, bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
