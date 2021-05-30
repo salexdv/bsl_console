@@ -567,6 +567,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         language: language_id,
         contextmenu: false,
         automaticLayout: true,
+        scrollBeyondLastLine: false,
         renderSideBySide: sideBySide        
       });    
       if (highlight) {
