@@ -4042,8 +4042,12 @@ class bslHelper {
 
 		if (this.lastOperator != ')' && !this.requireQueryValue() && 0 <= unclosed.index) {
 			
-			let functions = this.getQueryFunctions(bslQuery);
-			let helper = this.getCommonSigHelp(functions);
+			let helper = this.getCustomSigHelp(context);
+
+			if (!helper) {
+				let functions = this.getQueryFunctions(bslQuery);
+				let helper = this.getCommonSigHelp(functions);
+			}
 			
 			if (helper)
 				return new SignatureHelpResult(helper);
@@ -4063,12 +4067,18 @@ class bslHelper {
 
 		if (this.lastOperator != ')' && 0 <= unclosed.index) {
 
-			let functions = this.getQueryFunctions(bslDCS);
-			let helper = this.getCommonSigHelp(functions);
+			let helper = this.getCustomSigHelp(context);
 
 			if (!helper) {
-				functions = this.getQueryFunctions(bslQuery);
-				helper = this.getCommonSigHelp(functions);
+
+				let functions = this.getQueryFunctions(bslDCS);
+				let helper = this.getCommonSigHelp(functions);
+
+				if (!helper) {
+					functions = this.getQueryFunctions(bslQuery);
+					helper = this.getCommonSigHelp(functions);
+				}
+
 			}
 
 			if (helper)
