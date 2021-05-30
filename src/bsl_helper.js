@@ -4046,7 +4046,7 @@ class bslHelper {
 
 			if (!helper) {
 				let functions = this.getQueryFunctions(bslQuery);
-				let helper = this.getCommonSigHelp(functions);
+				helper = this.getCommonSigHelp(functions);
 			}
 			
 			if (helper)
@@ -4072,7 +4072,7 @@ class bslHelper {
 			if (!helper) {
 
 				let functions = this.getQueryFunctions(bslDCS);
-				let helper = this.getCommonSigHelp(functions);
+				helper = this.getCommonSigHelp(functions);
 
 				if (!helper) {
 					functions = this.getQueryFunctions(bslQuery);
