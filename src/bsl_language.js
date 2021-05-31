@@ -490,7 +490,7 @@ define([], function () {
                 provideSignatureHelp: (model, position, token, context) => {
                     resetSignatureWidgetDisplay();
                     let bsl = new bslHelper(model, position);
-                    let helper = bsl.getQuerySigHelp();
+                    let helper = bsl.getQuerySigHelp(context);
                     onProvideSignature(bsl, context, position);
                     return helper;
                 }
@@ -547,7 +547,7 @@ define([], function () {
                 provideSignatureHelp: (model, position, token, context) => {
                     resetSignatureWidgetDisplay();
                     let bsl = new bslHelper(model, position);
-                    let helper = bsl.getDCSSigHelp();
+                    let helper = bsl.getDCSSigHelp(context);
                     onProvideSignature(bsl, context, position);
                     return helper;
                 }

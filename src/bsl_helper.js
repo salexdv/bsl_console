@@ -4034,9 +4034,11 @@ class bslHelper {
 	/**
 	 * Signature help provider for query language
 	 * 
+	 * @param {SignatureHelpContext} context signature help context
+	 * 
 	 * @returns {object} helper
 	 */
-	getQuerySigHelp() {
+	getQuerySigHelp(context) {
 		
 		let unclosed = this.unclosedString(this.textBeforePosition);
 
@@ -4059,9 +4061,11 @@ class bslHelper {
 	/**
  	 * Signature help provider for query language
  	 * 
+	 * @param {SignatureHelpContext} context signature help context
+	 * 
  	 * @returns {object} helper
  	 */
-	getDCSSigHelp() {
+	getDCSSigHelp(context) {
 
 		let unclosed = this.unclosedString(this.textBeforePosition);
 
