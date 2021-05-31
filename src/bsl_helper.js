@@ -816,6 +816,41 @@ class bslHelper {
 	}
 
 	/**
+	 * Gets the list of commmon properties owned by object
+	 * and fills the suggestions by it
+	 * 
+	 * @param {array} suggestions the list of suggestions
+	 * @param {object} obj object from BSL-JSON dictionary
+	 */
+	getMetadataCommmonObjectProperties(suggestions, obj) {
+
+		if (obj.hasOwnProperty('objProperties')) {
+			
+			let signatures = [];
+
+			for (const [mkey, mvalue] of Object.entries(obj.objProperties)) {
+
+				let command = null;
+							
+				if (mvalue.hasOwnProperty('ref'))
+					command = { id: 'vs.editor.ICodeEditor:1:saveref', arguments: [{ "name": mvalue[this.nameField], "data": { "ref": mvalue.ref, "sig": null } }] };
+				
+				suggestions.push({
+					label: mvalue[this.nameField],
+					kind: monaco.languages.CompletionItemKind.Field,
+					insertText: mvalue.name,
+					insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+					detail: mvalue.description,
+					command: command
+				});
+
+			}
+			
+		}			
+
+	}
+
+	/**
 	 * Fills suggestions from saved list
 	 * 
 	 * @param {array} suggestions the list of suggestions
@@ -888,11 +923,14 @@ class bslHelper {
 						}
 						else {
 
-							let methodsName = (refArray.length == 3 && refArray[2] == 'obj') ? 'objMethods' : 'refMethods'
+							let isObject = (refArray.length == 3 && refArray[2] == 'obj');
+							let methodsName = isObject ? 'objMethods' : 'refMethods'
 
 							if (this.objectHasProperties(bslMetadata, itemName, 'items', subItemName, 'properties')) {
 								this.fillSuggestionsForMetadataItem(suggestions, bslMetadata[itemName].items[subItemName]);
 								this.getMetadataMethods(suggestions, bslMetadata[itemName], methodsName, itemName, subItemName);
+								if (isObject)
+									this.getMetadataCommmonObjectProperties(suggestions, bslMetadata[itemName]);
 							}
 							else if (this.objectHasProperties(bslMetadata, itemName, 'items', subItemName))
 								requestMetadata(itemName + '.' + subItemName);
@@ -1428,11 +1466,15 @@ class bslHelper {
 								if (ivalue.hasOwnProperty('properties')) {
 
 									let methodDef = this.getMetadataMethodByName(value, metadataFunc);
-									let methodsName = (methodDef && methodDef.hasOwnProperty('ref') && methodDef.ref.indexOf(':obj') != -1) ? 'objMethods' : 'refMethods';
+									let isObject = (methodDef && methodDef.hasOwnProperty('ref') && methodDef.ref.indexOf(':obj') != -1);
+									let methodsName = isObject ? 'objMethods' : 'refMethods';
 
 									itemExists = true;
 									this.fillSuggestionsForMetadataItem(suggestions, ivalue);
 									this.getMetadataMethods(suggestions, value, methodsName, key, ikey);
+
+									if (isObject)
+										this.getMetadataCommmonObjectProperties(suggestions, value);
 
 									refType = key + '.' + ikey + (methodsName == 'objMethods' ? '.obj' : '');									
 
