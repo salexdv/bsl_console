@@ -862,6 +862,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
             if (element.classList.contains('monaco-list-row') && element.classList.contains('focused')) {
 
+              removeSuggestListInactiveDetails();
               genarateEventWithSuggestData('EVENT_ON_ACTIVATE_SUGGEST_ROW', 'focus', element);
 
               if (editor.alwaysDisplaySuggestDetails) {
@@ -2029,6 +2030,18 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     }
 
   }
+
+  function removeSuggestListInactiveDetails() {
+
+    document.querySelectorAll('.monaco-list-rows .details-label').forEach(function (node) {
+      node.classList.remove('inactive-detail');
+    });
+
+    document.querySelectorAll('.monaco-list-rows .readMore').forEach(function (node) {
+      node.classList.remove('inactive-more');
+    });
+
+  }
   
   function onSuggestListMouseOver(activationEventEnabled) {
 
@@ -2041,13 +2054,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         widget.listElement.onmouseoverOrig = widget.listElement.onmouseover;
         widget.listElement.onmouseover = function(e) {        
           
-          document.querySelectorAll('.monaco-list-rows .details-label').forEach(function (node) {
-            node.classList.remove('inactive-detail');
-          });
-
-          document.querySelectorAll('.monaco-list-rows .readMore').forEach(function (node) {
-            node.classList.remove('inactive-more');
-          });
+          removeSuggestListInactiveDetails();
 
           let parent_row = getParentWithClass(e.target, 'monaco-list-row');        
 
