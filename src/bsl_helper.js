@@ -3430,6 +3430,7 @@ class bslHelper {
 		if (customSuggestions.length) {
 			
 			suggestions = customSuggestions.slice();
+			editor.previousCustomSuggestions = [...suggestions];
 			
 			if (erase)
 				customSuggestions = [];

@@ -658,6 +658,19 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  showPreviousCustomSuggestions = function () {
+
+    if (editor.previousCustomSuggestions) {
+      customSuggestions = [...editor.previousCustomSuggestions];
+      triggerSuggestions();
+      return true;
+    }
+    else {
+      return false;
+    }
+
+  }
+
   nextDiff = function() {
 
     if (editor.navi)
