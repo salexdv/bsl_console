@@ -1475,6 +1475,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       // Esc
       if (document.querySelector('.find-widget'))
         setFindWidgetDisplay('none');
+      hideSuggestionsList();
     }
     else if (e.keyCode == 61) {
       // F3
@@ -2115,6 +2116,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   }
 
   document.onkeypress = function (e) {
+
+    editor.lastKeyCode = e.keyCode;
 
     let char = String.fromCharCode(e.keyCode);
 
