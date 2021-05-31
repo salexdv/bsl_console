@@ -1436,6 +1436,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   editor.onKeyDown(e => {
 
+    editor.lastKeyCode = e.keyCode;
+
     if (e.keyCode == 16 && editor.getPosition().lineNumber == 1)
       // ArrowUp
       scrollToTop();

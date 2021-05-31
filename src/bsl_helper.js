@@ -4954,14 +4954,32 @@ class bslHelper {
 
 	onProvideCompletion(context, completition) {
 
-		if (generateBeforeShowSuggestEvent) {                
+		if (generateBeforeShowSuggestEvent) {                			
+			
 			let rows = [];
 			if (Object.keys(completition).length) {
 				for (const [key, value] of Object.entries(completition.suggestions)) {
 					rows.push(value.label);
 				}                        
 			}
-			genarateEventWithSuggestData('EVENT_BEFORE_SHOW_SUGGEST', context.triggerCharacter, null, rows);
+
+			let trigger = context.triggerCharacter;
+			
+			if (!trigger) {
+				switch (editor.lastKeyCode) {
+					case 1:
+						trigger = 'backspace';
+						break;
+					case 10:
+						trigger = 'space';
+						break;
+					default:
+						trigger = String.fromCharCode(editor.lastKeyCode);
+						break;
+				}
+			}
+
+			genarateEventWithSuggestData('EVENT_BEFORE_SHOW_SUGGEST', trigger, null, rows);
 		}
 
 	}
