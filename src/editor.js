@@ -2,6 +2,7 @@ require.config( { 'vs/nls': { availableLanguages: { '*': "ru" } } } );
 
 define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/editor.main', 'actions', 'bslQuery', 'bslDCS'], function () {
 
+  // #region global vars 
   selectionText = '';
   engLang = false;
   contextData = new Map();
@@ -34,7 +35,9 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   diffEditor = null;  
   inlineDiffEditor = null;
   inlineDiffWidget = null;
+  // #endregion
 
+  // #region public API
   reserMark = function() {
 
     clearInterval(err_tid);
@@ -201,32 +204,6 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   findText = function (string) {
     let bsl = new bslHelper(editor.getModel(), editor.getPosition());
     return bsl.findText(string);
-  }
-
-  initContextMenuActions = function() {
-
-    contextActions.forEach(action => {
-      action.dispose();
-    });
-
-    const actions = getActions(version1C);
-
-    for (const [action_id, action] of Object.entries(actions)) {
-      
-      let menuAction = editor.addAction({
-        id: action_id,
-        label: action.label,
-        keybindings: [action.key, action.cmd],
-        precondition: null,
-        keybindingContext: null,
-        contextMenuGroupId: 'navigation',
-        contextMenuOrder: action.order,
-        run: action.callback
-      });      
-
-      contextActions.push(menuAction)
-    }
-
   }
 
   init = function(version) {
@@ -753,42 +730,6 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
-  checkNewStringLine = function () {
-
-    if (!queryMode && !DCSMode) {
-
-      const model = editor.getModel();
-      const position = editor.getPosition();
-      const line = position.lineNumber;
-      const length = model.getLineLength(line);
-      const expression = model.getValueInRange(new monaco.Range(line, position.column, line, length + 1));
-      const column = model.getLineLastNonWhitespaceColumn(line - 1);
-      const char = model.getValueInRange(new monaco.Range(line - 1, column - 1, line - 1, column));
-      const token = getTokenFromPosition(new monaco.Position(line - 1, column));
-
-      if (token == 'stringbsl' ||0 <= token.indexOf('string.invalid') || 0 <= token.indexOf('query') || char == '|') {
-
-        if (token != 'query.quotebsl' || char == '|') {
-
-          const range = new monaco.Range(line, position.column, line, length + 2);
-
-          let operation = {
-            range: range,
-            text: '|' + expression,
-            forceMoveMarkers: true
-          };
-
-          editor.executeEdits('nql', [operation]);
-          editor.setPosition(new monaco.Position(line, position.column + 1));
-
-        }
-
-      }
-
-    }
-
-  }
-
   function getSuggestWidgetRows(element) {
 
     let rows = [];
@@ -1055,53 +996,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   showStatusBar = function(overlapScroll = true) {
     
-    if (!statusBarWidget) {
-
-      statusBarWidget = {
-        domNode: null,
-        overlapScroll: overlapScroll,
-        getId: function () {
-          return 'bsl.statusbar.widget';
-        },
-        getDomNode: function () {
-          
-          if (!this.domNode) {
-            
-            this.domNode = document.createElement('div');
-            this.domNode.classList.add('statusbar-widget');
-            if (this.overlapScroll) {
-              this.domNode.style.right = '0';
-              this.domNode.style.top = editor.getDomNode().offsetHeight - 20 + 'px';
-            }            
-            else {
-              let layout = editor.getLayoutInfo();
-              this.domNode.style.right = layout.verticalScrollbarWidth + 'px';
-              this.domNode.style.top = (editor.getDomNode().offsetHeight - 20 - layout.horizontalScrollbarHeight) + 'px';
-            }
-            this.domNode.style.height = '20px';
-            this.domNode.style.minWidth = '125px';                        
-            this.domNode.style.textAlign = 'center';
-            this.domNode.style.zIndex = 1;
-            this.domNode.style.fontSize = '12px';
-
-            let pos = document.createElement('div');
-            pos.style.margin = 'auto 10px';
-            this.domNode.append(pos);
-
-          }
-
-          return this.domNode;
-
-        },
-        getPosition: function () {
-          return null;
-        }
-      };
-
-      editor.addOverlayWidget(statusBarWidget);
-      upateStatusBar();
-
-    }
+    if (!statusBarWidget)
+      createStatusBarWidget(overlapScroll);    
 
   }
 
@@ -1325,7 +1221,9 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 		}
 
   }
+  // #endregion
 
+  // #region init editor
   editor = undefined;
 
   // Register languages
@@ -1435,7 +1333,9 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     });
 
   }
+  // #endregion
 
+  // #region editor events
   editor.onDidChangeModelContent(e => {
     
     calculateDiff();
@@ -1591,8 +1491,71 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     upateStatusBar();
     
   });
+  // #endregion
     
-  
+  // #region non-public functions
+  function  initContextMenuActions() {
+
+    contextActions.forEach(action => {
+      action.dispose();
+    });
+
+    const actions = getActions(version1C);
+
+    for (const [action_id, action] of Object.entries(actions)) {
+      
+      let menuAction = editor.addAction({
+        id: action_id,
+        label: action.label,
+        keybindings: [action.key, action.cmd],
+        precondition: null,
+        keybindingContext: null,
+        contextMenuGroupId: 'navigation',
+        contextMenuOrder: action.order,
+        run: action.callback
+      });      
+
+      contextActions.push(menuAction)
+    }
+
+  }
+
+  function checkNewStringLine() {
+
+    if (!queryMode && !DCSMode) {
+
+      const model = editor.getModel();
+      const position = editor.getPosition();
+      const line = position.lineNumber;
+      const length = model.getLineLength(line);
+      const expression = model.getValueInRange(new monaco.Range(line, position.column, line, length + 1));
+      const column = model.getLineLastNonWhitespaceColumn(line - 1);
+      const char = model.getValueInRange(new monaco.Range(line - 1, column - 1, line - 1, column));
+      const token = getTokenFromPosition(new monaco.Position(line - 1, column));
+
+      if (token == 'stringbsl' ||0 <= token.indexOf('string.invalid') || 0 <= token.indexOf('query') || char == '|') {
+
+        if (token != 'query.quotebsl' || char == '|') {
+
+          const range = new monaco.Range(line, position.column, line, length + 2);
+
+          let operation = {
+            range: range,
+            text: '|' + expression,
+            forceMoveMarkers: true
+          };
+
+          editor.executeEdits('nql', [operation]);
+          editor.setPosition(new monaco.Position(line, position.column + 1));
+
+        }
+
+      }
+
+    }
+
+  }
+
   function hasParentWithClass(element, className) {
 
     if (0 <= element.className.split(' ').indexOf(className))
@@ -1891,6 +1854,54 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  function createStatusBarWidget(overlapScroll) {
+
+    statusBarWidget = {
+      domNode: null,
+      overlapScroll: overlapScroll,
+      getId: function () {
+        return 'bsl.statusbar.widget';
+      },
+      getDomNode: function () {
+
+        if (!this.domNode) {
+
+          this.domNode = document.createElement('div');
+          this.domNode.classList.add('statusbar-widget');
+          if (this.overlapScroll) {
+            this.domNode.style.right = '0';
+            this.domNode.style.top = editor.getDomNode().offsetHeight - 20 + 'px';
+          }
+          else {
+            let layout = editor.getLayoutInfo();
+            this.domNode.style.right = layout.verticalScrollbarWidth + 'px';
+            this.domNode.style.top = (editor.getDomNode().offsetHeight - 20 - layout.horizontalScrollbarHeight) + 'px';
+          }
+          this.domNode.style.height = '20px';
+          this.domNode.style.minWidth = '125px';
+          this.domNode.style.textAlign = 'center';
+          this.domNode.style.zIndex = 1;
+          this.domNode.style.fontSize = '12px';
+
+          let pos = document.createElement('div');
+          pos.style.margin = 'auto 10px';
+          this.domNode.append(pos);
+
+        }
+
+        return this.domNode;
+
+      },
+      getPosition: function () {
+        return null;
+      }
+    };
+
+    editor.addOverlayWidget(statusBarWidget);
+    upateStatusBar();
+
+  }
+
   function createDiffWidget(e) {
 
     if (inlineDiffWidget) {
@@ -2103,7 +2114,9 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     editor.checkBookmarks = true;
 
   }
+  // #endregion
 
+  // #region browser events
   document.onclick = function (e) {
 
     if (e.target.classList.contains('codicon-close')) {
@@ -2147,5 +2160,6 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     resizeStatusBar();
     
   }, true);
+  // #endregion
 
 });
