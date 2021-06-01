@@ -71,6 +71,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   updateText = function(txt, range, usePadding) {
 
+    editor.pushUndoStop();
+
     readOnly = readOnlyMode;
     modEvent = generateModificationEvent;
     
@@ -88,8 +90,6 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
     if (readOnly)
       setReadOnly(true);
-
-    editor.pushUndoStop();
 
   }
 
