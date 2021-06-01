@@ -525,7 +525,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
-  compare = function (text, sideBySide, highlight, xml = false) {
+  compare = function (text, sideBySide, highlight, xml = false, markLines = false) {
     
     document.getElementById("container").innerHTML = ''
     let language_id = getLangId();
@@ -559,6 +559,23 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         followsCaret: true,
         ignoreCharChanges: true
       });
+      editor.markLines = markLines;
+      editor.modifiedDecor = [];
+      editor.originalDecor = [];
+      editor.markDiffLines = function () {
+        setTimeout(() => {
+          const modified_line = this.getPosition().lineNumber;
+          const diff_info = this.getDiffLineInformationForModified(modified_line);
+          const original_line = diff_info ? diff_info.equivalentLineNumber : modified_line;
+          if (this.markLines) {
+            this.modifiedDecor = this.getModifiedEditor().deltaDecorations(this.modifiedDecor, [{ range: new monaco.Range(modified_line, 1, modified_line), options: { isWholeLine: true, linesDecorationsClassName: 'diff-mark' } }]);
+            editor.originalDecor = this.getOriginalEditor().deltaDecorations(this.originalDecor, [{ range: new monaco.Range(original_line, 1, original_line), options: { isWholeLine: true, linesDecorationsClassName: 'diff-mark' } }]);
+          }
+          this.getModifiedEditor().setPosition(new monaco.Position(modified_line, 1));
+          this.getOriginalEditor().setPosition(new monaco.Position(original_line, 1));
+        }, 10);
+      };
+      editor.markDiffLines();
     }
     else
     {
@@ -650,15 +667,19 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   nextDiff = function() {
 
-    if (editor.navi)
+    if (editor.navi) {
       editor.navi.next();
+      editor.markDiffLines();
+    }
 
   }
 
   previousDiff = function() {
 
-    if (editor.navi)
+    if (editor.navi) {
       editor.navi.previous();
+      editor.markDiffLines();
+    }
 
   }
 

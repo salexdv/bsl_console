@@ -5,11 +5,21 @@
 .error-mark {
 	width: 0 !important;
 	height: 0 !important;
-    margin-left: 7px;
-    top: 3px !important;
-	border-top: 7px solid transparent;
-	border-left: 14px solid #ff0000;
-	border-bottom: 7px solid transparent;
+    margin-left: 11px;
+    top: 5px !important;
+	border-top: 5px solid transparent;
+	border-left: 10px solid #ff0000;
+	border-bottom: 5px solid transparent;
+}
+
+.diff-mark {
+	width: 0 !important;
+	height: 0 !important;
+    margin-left: -35px;
+    top: 5px !important;
+	border-top: 5px solid transparent;
+	border-left: 10px solid #d400ff;
+	border-bottom: 5px solid transparent;
 }
 
 .bookmark {
