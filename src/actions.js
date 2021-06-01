@@ -279,8 +279,8 @@ define(['vs/editor/editor.main'], function () {
         },
         selectToBracket: {
             label: 'Выделить скобки и текст между ними',
-            key: monaco.KeyMod.Alt | monaco.KeyMod.CtrlCmd | monaco.KeyCode.US_OPEN_SQUARE_BRACKET,
-            cmd: monaco.KeyMod.chord(monaco.KeyMod.Alt | monaco.KeyMod.CtrlCmd | monaco.KeyCode.US_OPEN_SQUARE_BRACKET),
+            key: monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.KEY_B,
+            cmd: monaco.KeyMod.chord(monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.KEY_B),
             order: 0,
             callback: function (ed) {
                 selectToBracket();
