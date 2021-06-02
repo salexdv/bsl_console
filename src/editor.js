@@ -986,15 +986,15 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   openSearchWidget = function() {
     
-    editor.trigger('', 'actions.find');
+    getActiveEditor().trigger('', 'actions.find');
     setFindWidgetDisplay('inherit');    
-    document.querySelector('.find-widget .input').focus();
+    focusFindWidgetInput();
 
   }
 
   closeSearchWidget = function() {
     
-    editor.trigger('', 'closeFindWidget')
+    getActiveEditor().trigger('', 'closeFindWidget')
     setFindWidgetDisplay('none');
 
   }
@@ -1147,13 +1147,13 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   nextMatch = function () {
 
-    editor.trigger('', 'editor.action.nextMatchFindAction');
+    getActiveEditor().trigger('', 'editor.action.nextMatchFindAction');
 
   }
 
   previousMatch = function () {
 
-    editor.trigger('', 'editor.action.previousMatchFindAction');
+    getActiveEditor().trigger('', 'editor.action.previousMatchFindAction');
 
   }
 
@@ -1448,6 +1448,18 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   // #endregion
     
   // #region non-public functions
+  function getActiveDiffEditor() {
+    
+    return editor.getModifiedEditor().hasTextFocus() ? editor.getModifiedEditor() : editor.getOriginalEditor();
+
+  }
+
+  function getActiveEditor() {
+
+    return editor.navi ? getActiveDiffEditor() : editor;
+
+  }
+
   function diffEditorOnKeyDown(e) {
 
     if (e.ctrlKey && (e.keyCode == 36 || e.keyCode == 38)) {
@@ -1456,26 +1468,25 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     }
     else if (e.keyCode == 9) {
       // Esc
-      if (document.querySelector('.find-widget'))
-        setFindWidgetDisplay('none');      
+      closeSearchWidget();      
     }
     else if (e.keyCode == 61) {
       // F3
+      let standalone_editor = getActiveDiffEditor();
       if (!e.altKey && !e.shiftKey) {
         if (e.ctrlKey) {
-          editor.trigger('', 'actions.find');
+          standalone_editor.trigger('', 'actions.find');
+          standalone_editor.focus();
           previousMatch();
         }
         else
-          editor.trigger('', 'editor.action.findWithSelection');
+          standalone_editor.trigger('', 'editor.action.findWithSelection');
         setFindWidgetDisplay('inherit');
-        editor.focus();
-        document.querySelectorAll('.find-widget .input').forEach(function (element) {
-          element.focus();
-        });
+        standalone_editor.focus();
+        focusFindWidgetInput();
       }
     }
-  
+
   }
 
   function editorOnKeyDown(e) {
@@ -1503,8 +1514,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     }
     else if (e.keyCode == 9) {
       // Esc
-      if (document.querySelector('.find-widget'))
-        setFindWidgetDisplay('none');
+      setFindWidgetDisplay('none');
       hideSuggestionsList();
     }
     else if (e.keyCode == 61) {
@@ -1518,7 +1528,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
           editor.trigger('', 'editor.action.findWithSelection');
         setFindWidgetDisplay('inherit');
         editor.focus();
-        document.querySelector('.find-widget .input').focus();
+        focusFindWidgetInput();
       }
     }
     else if (e.keyCode == 2) {
@@ -1653,13 +1663,32 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
-  function setFindWidgetDisplay(value) {
+  setFindWidgetDisplay = function(value) {
 
-    document.querySelectorAll('.find-widget').forEach(function (element) {
-      element.style.display = value;
-    });
+    let find_widget = getActiveEditor()._overlayWidgets['editor.contrib.findWidget'];
+    
+    if (find_widget)
+      find_widget.widget._domNode.style.display = value;
 
   }
+
+  function setFindWidgetDisplay(value) {
+
+    let find_widget = getActiveEditor()._overlayWidgets['editor.contrib.findWidget'];
+    
+    if (find_widget)
+      find_widget.widget._domNode.style.display = value;
+
+  }
+
+  function focusFindWidgetInput() {
+
+    let find_widget = getActiveEditor()._overlayWidgets['editor.contrib.findWidget'];
+
+    if (find_widget)
+      find_widget.widget.focusFindInput();
+
+  }  
 
   function upateStatusBar() {
     

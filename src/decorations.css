@@ -36,8 +36,13 @@
 	color: #fff;
 }
 
+.editor-widget.find-widget {
+	max-height: 0px;
+}
+
 .editor-widget.find-widget.visible {
 	min-height: 33px;
+	max-height: 100px;
 }
 
 .editor-widget.find-widget.visible .input {
