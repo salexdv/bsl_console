@@ -573,7 +573,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
           }
           this.getModifiedEditor().setPosition(new monaco.Position(modified_line, 1));
           this.getOriginalEditor().setPosition(new monaco.Position(original_line, 1));
-        }, 10);
+        }, 50);
       };
       editor.markDiffLines();
     }
