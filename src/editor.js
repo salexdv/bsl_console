@@ -1205,11 +1205,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
-  setOriginalText = function (originalText) {
+  setOriginalText = function (originalText, setEmptyOriginalText = false) {
 
     editor.originalText = originalText;
+    editor.calculateDiff = (originalText || setEmptyOriginalText);
 
-    if (!originalText) {
+    if (!editor.calculateDiff) {
       editor.removeDiffWidget();
       editor.diff_decorations = [];
     }
@@ -1870,7 +1871,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   function calculateDiff() {
 
-    if (editor.originalText) {
+    if (editor.calculateDiff) {
 
       if (editor.diffTimer)
         clearTimeout(editor.diffTimer);
