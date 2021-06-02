@@ -63,7 +63,7 @@
 | [`addLine`](docs/add_line.md)  | Добавляет новую строку с указанным текстом                                                    |
 | [`getPositionOffset`](docs/get_position_offset.md) | Возвращает координаты текущей позиции курсора				             |
 | `jumpToBracket`                | Переход к парной скобке `CTRL+[]`	                                                         |
-| `selectToBracket`              | Выделяет скобки и текст между ними `CTRL+ALT+[`	                                             |
+| `selectToBracket`              | Выделяет скобки и текст между ними `SHIFT+ALT+B`	                                             |
 
 ### Управление режимом работы / настройками
 | Функция                        | Описание                                                                                      |
