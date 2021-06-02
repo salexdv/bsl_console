@@ -576,6 +576,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         }, 50);
       };
       editor.markDiffLines();
+      editor.getModifiedEditor().onKeyDown(e => diffEditorOnKeyDown(e));
+      editor.getOriginalEditor().onKeyDown(e => diffEditorOnKeyDown(e));
     }
     else
     {
@@ -587,6 +589,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         automaticLayout: true
       });
       originalText = '';
+      editor.onKeyDown(e => editorOnKeyDown(e));
     }
     editor.updateOptions({ readOnly: readOnlyMode });
   }
@@ -1354,6 +1357,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     });
 
   }
+
+  editor.onKeyDown(e => editorOnKeyDown(e));
   // #endregion
 
   // #region editor events
@@ -1367,78 +1372,6 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     checkBookmarksAfterRemoveLine(e);
     updateBookmarks(undefined);
         
-  });
-
-  editor.onKeyDown(e => {
-
-    editor.lastKeyCode = e.keyCode;
-
-    if (e.keyCode == 16 && editor.getPosition().lineNumber == 1)
-      // ArrowUp
-      scrollToTop();
-    else if (e.keyCode == 3 && generateSelectSuggestEvent) {
-      // Enter
-      let element = document.querySelector('.monaco-list-row.focused');
-      if (element) {
-        genarateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', 'selection', element);
-        // Prevent propagation of KeyDown event to editor if SuggestList was closed in EVENT_ON_SELECT_SUGGEST_ROW event handler https://github.com/salexdv/bsl_console/issues/90
-        element = document.querySelector('.monaco-list-row.focused');
-        if (!element) {
-          e.preventDefault()
-        }
-      }
-    }
-    else if (e.ctrlKey && (e.keyCode == 36 || e.keyCode == 38)) {
-      // Ctrl+F or Ctrl+H
-      setFindWidgetDisplay('inherit');
-    }
-    else if (e.keyCode == 9) {
-      // Esc
-      if (document.querySelector('.find-widget'))
-        setFindWidgetDisplay('none');
-      hideSuggestionsList();
-    }
-    else if (e.keyCode == 61) {
-      // F3
-      if (!e.altKey && !e.shiftKey) {        
-        if (e.ctrlKey) {
-          editor.trigger('', 'actions.find');
-          previousMatch();
-        }          
-        else
-          editor.trigger('', 'editor.action.findWithSelection');
-        setFindWidgetDisplay('inherit');
-        editor.focus();
-        document.querySelector('.find-widget .input').focus();
-      }
-    }
-    else if (e.keyCode == 2) {
-      // Tab
-      if (generateSelectSuggestEvent) {
-        let element = document.querySelector('.monaco-list-row.focused');
-        if (element) {
-          genarateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', 'selection', element);
-        }
-      }
-    }
-    
-    if (e.altKey && e.keyCode == 87) {
-  		// fix https://github.com/salexdv/bsl_console/issues/147
-      e.preventDefault();      
-      setText('[');
-  	}
-
-    if (e.ctrlKey)
-      ctrlPressed = true;
-
-    if (e.altKey)
-      altPressed = true;
-
-    if (e.shiftKey)
-      shiftPressed = true;
-    
-    checkEmptySuggestions();
-    
   });
 
   editor.onKeyUp(e => {
@@ -1515,6 +1448,108 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   // #endregion
     
   // #region non-public functions
+  function diffEditorOnKeyDown(e) {
+
+    if (e.ctrlKey && (e.keyCode == 36 || e.keyCode == 38)) {
+      // Ctrl+F or Ctrl+H
+      setFindWidgetDisplay('inherit');
+    }
+    else if (e.keyCode == 9) {
+      // Esc
+      if (document.querySelector('.find-widget'))
+        setFindWidgetDisplay('none');      
+    }
+    else if (e.keyCode == 61) {
+      // F3
+      if (!e.altKey && !e.shiftKey) {
+        if (e.ctrlKey) {
+          editor.trigger('', 'actions.find');
+          previousMatch();
+        }
+        else
+          editor.trigger('', 'editor.action.findWithSelection');
+        setFindWidgetDisplay('inherit');
+        editor.focus();
+        document.querySelectorAll('.find-widget .input').forEach(function (element) {
+          element.focus();
+        });
+      }
+    }
+  
+  }
+
+  function editorOnKeyDown(e) {
+
+    editor.lastKeyCode = e.keyCode;
+
+    if (e.keyCode == 16 && editor.getPosition().lineNumber == 1)
+      // ArrowUp
+      scrollToTop();
+    else if (e.keyCode == 3 && generateSelectSuggestEvent) {
+      // Enter
+      let element = document.querySelector('.monaco-list-row.focused');
+      if (element) {
+        genarateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', 'selection', element);
+        // Prevent propagation of KeyDown event to editor if SuggestList was closed in EVENT_ON_SELECT_SUGGEST_ROW event handler https://github.com/salexdv/bsl_console/issues/90
+        element = document.querySelector('.monaco-list-row.focused');
+        if (!element) {
+          e.preventDefault()
+        }
+      }
+    }
+    else if (e.ctrlKey && (e.keyCode == 36 || e.keyCode == 38)) {
+      // Ctrl+F or Ctrl+H
+      setFindWidgetDisplay('inherit');
+    }
+    else if (e.keyCode == 9) {
+      // Esc
+      if (document.querySelector('.find-widget'))
+        setFindWidgetDisplay('none');
+      hideSuggestionsList();
+    }
+    else if (e.keyCode == 61) {
+      // F3
+      if (!e.altKey && !e.shiftKey) {
+        if (e.ctrlKey) {
+          editor.trigger('', 'actions.find');
+          previousMatch();
+        }
+        else
+          editor.trigger('', 'editor.action.findWithSelection');
+        setFindWidgetDisplay('inherit');
+        editor.focus();
+        document.querySelector('.find-widget .input').focus();
+      }
+    }
+    else if (e.keyCode == 2) {
+      // Tab
+      if (generateSelectSuggestEvent) {
+        let element = document.querySelector('.monaco-list-row.focused');
+        if (element) {
+          genarateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', 'selection', element);
+        }
+      }
+    }
+
+    if (e.altKey && e.keyCode == 87) {
+      // fix https://github.com/salexdv/bsl_console/issues/147
+      e.preventDefault();
+      setText('[');
+    }
+
+    if (e.ctrlKey)
+      ctrlPressed = true;
+
+    if (e.altKey)
+      altPressed = true;
+
+    if (e.shiftKey)
+      shiftPressed = true;
+
+    checkEmptySuggestions();
+
+  }
+
   function  initContextMenuActions() {
 
     contextActions.forEach(action => {
@@ -1620,9 +1655,9 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   function setFindWidgetDisplay(value) {
 
-    let element = document.querySelector('.find-widget');
-    if (element)
+    document.querySelectorAll('.find-widget').forEach(function (element) {
       element.style.display = value;
+    });
 
   }
 
