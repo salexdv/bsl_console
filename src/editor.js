@@ -525,7 +525,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
-  compare = function (text, sideBySide, highlight, xml = false, markLines = false) {
+  compare = function (text, sideBySide, highlight, xml = false, markLines = true) {
     
     document.getElementById("container").innerHTML = ''
     let language_id = getLangId();
