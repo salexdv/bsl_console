@@ -22,6 +22,17 @@
 	border-bottom: 5px solid transparent;
 }
 
+.diff-editor-position {
+	width: 0 !important;
+	height: 0 !important;
+    margin-left: -35px;
+    top: 5px !important;
+	border-top: 5px solid transparent;
+	border-left: 10px solid #028fef;
+	border-bottom: 5px solid transparent;
+	z-index: 1;
+}
+
 .bookmark {
 	background: #7e96a8;
     width: 15px !important;

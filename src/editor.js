@@ -563,24 +563,34 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         ignoreCharChanges: true
       });
       editor.markLines = markLines;
-      editor.modifiedDecor = [];
-      editor.originalDecor = [];
+      editor.getModifiedEditor().diffDecor = {
+        decor: [],
+        line: 0,
+        position: 0
+      };
+      editor.getOriginalEditor().diffDecor = {
+        decor: [],
+        line: 0,
+        position: 0
+      };      
+      editor.diffEditorUpdateDecorations = diffEditorUpdateDecorations;
       editor.markDiffLines = function () {
         setTimeout(() => {
           const modified_line = this.getPosition().lineNumber;
           const diff_info = this.getDiffLineInformationForModified(modified_line);
           const original_line = diff_info ? diff_info.equivalentLineNumber : modified_line;
           if (this.markLines) {
-            this.modifiedDecor = this.getModifiedEditor().deltaDecorations(this.modifiedDecor, [{ range: new monaco.Range(modified_line, 1, modified_line), options: { isWholeLine: true, linesDecorationsClassName: 'diff-mark' } }]);
-            editor.originalDecor = this.getOriginalEditor().deltaDecorations(this.originalDecor, [{ range: new monaco.Range(original_line, 1, original_line), options: { isWholeLine: true, linesDecorationsClassName: 'diff-mark' } }]);
+            this.getModifiedEditor().diffDecor.line = modified_line;
+            this.getOriginalEditor().diffDecor.line = original_line;
           }
-          this.getModifiedEditor().setPosition(new monaco.Position(modified_line, 1));
-          this.getOriginalEditor().setPosition(new monaco.Position(original_line, 1));
+          this.diffEditorUpdateDecorations();
         }, 50);
       };
       editor.markDiffLines();
       editor.getModifiedEditor().onKeyDown(e => diffEditorOnKeyDown(e));
       editor.getOriginalEditor().onKeyDown(e => diffEditorOnKeyDown(e));
+      editor.getModifiedEditor().onDidChangeCursorPosition(e => diffEditorOnDidChangeCursorPosition(e));
+      editor.getOriginalEditor().onDidChangeCursorPosition(e => diffEditorOnDidChangeCursorPosition(e));
     }
     else
     {
@@ -1452,9 +1462,51 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   // #endregion
     
   // #region non-public functions
+  function deltaDecorationsForDiffEditor(standalone_editor) {
+
+    let diffDecor = standalone_editor.diffDecor;
+    let decorations = [];
+
+    if (diffDecor.line)
+      decorations.push({ range: new monaco.Range(diffDecor.line, 1, diffDecor.line), options: { isWholeLine: true, linesDecorationsClassName: 'diff-mark' } });
+
+    if (diffDecor.position)
+      decorations.push({ range: new monaco.Range(diffDecor.position, 1, diffDecor.position), options: { isWholeLine: true, linesDecorationsClassName: 'diff-editor-position' } });
+
+    standalone_editor.diffDecor.decor = standalone_editor.deltaDecorations(standalone_editor.diffDecor.decor, decorations);
+
+  }
+
+  function diffEditorUpdateDecorations() {
+
+    deltaDecorationsForDiffEditor(this.getModifiedEditor());
+    deltaDecorationsForDiffEditor(this.getOriginalEditor());
+
+  }
+
+  function diffEditorOnDidChangeCursorPosition(e) {
+
+    if (e.source != 'api') {
+      editor.getModifiedEditor().diffDecor.position = 0;
+      editor.getOriginalEditor().diffDecor.position = 0;
+      getActiveDiffEditor().diffDecor.position = e.position.lineNumber;
+      editor.diffEditorUpdateDecorations();
+    }
+
+  }
+
   function getActiveDiffEditor() {
-    
-    return editor.getModifiedEditor().hasTextFocus() ? editor.getModifiedEditor() : editor.getOriginalEditor();
+
+    let active_editor = null;
+
+    if (editor.getModifiedEditor().diffDecor.position)
+      active_editor = editor.getModifiedEditor();
+    else if (editor.getOriginalEditor().diffDecor.position)
+      active_editor = editor.getOriginalEditor();
+    else
+      active_editor = editor.getModifiedEditor().hasTextFocus() ? editor.getModifiedEditor() : editor.getOriginalEditor();
+
+    return active_editor;
 
   }
 
