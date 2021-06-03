@@ -545,7 +545,10 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         contextmenu: false,
         automaticLayout: true,
         scrollBeyondLastLine: false,
-        renderSideBySide: sideBySide        
+        renderSideBySide: sideBySide,
+        find: {
+          addExtraSpaceOnTop: false
+        }
       });    
       if (highlight) {
         monaco.editor.setModelLanguage(originalModel, language_id);
