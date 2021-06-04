@@ -5008,8 +5008,18 @@ class bslHelper {
 
 			let trigger = context.triggerCharacter;
 			
-			if (!trigger && editor.lastKeyCode == 1)
-				trigger = 'backspace';
+			if (!trigger) {
+				switch (editor.lastKeyCode) {
+					case 1:
+						trigger = 'backspace';
+						break;
+					case 10:
+						trigger = 'space';
+						break;
+					default:
+						trigger = undefined;
+				}
+			}
 
 			genarateEventWithSuggestData('EVENT_BEFORE_SHOW_SUGGEST', trigger, null, rows);
 		}
