@@ -653,7 +653,9 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
           insertText: value.text,
           insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
           detail: value.detail,
-          documentation: value.documentation
+          documentation: value.documentation,
+          filterText: value.hasOwnProperty('filter') ? value.filter : value.name,
+          sortText: value.hasOwnProperty('sort') ? value.sort : value.name
         });
 
       }
