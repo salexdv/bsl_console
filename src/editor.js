@@ -584,6 +584,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
             this.getOriginalEditor().diffDecor.line = original_line;
           }
           this.diffEditorUpdateDecorations();
+          editor.diffCount = editor.getLineChanges().length;
         }, 50);
       };
       editor.markDiffLines();
@@ -603,6 +604,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       });
       originalText = '';
       editor.onKeyDown(e => editorOnKeyDown(e));
+      editor.diffCount = 0;
     }
     editor.updateOptions({ readOnly: readOnlyMode });
   }
@@ -1226,6 +1228,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     editor.calculateDiff = (originalText || setEmptyOriginalText);
 
     if (!editor.calculateDiff) {
+      editor.diffCount = 0;
       editor.removeDiffWidget();
       editor.diff_decorations = [];
     }
@@ -1259,6 +1262,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 		catch (e) {      
 			return { errorDescription: e.message };
 		}
+
+  }
+
+  getDiffCount = function() {
+
+    return editor.diffCount ? editor.diffCount : 0;
 
   }
   // #endregion
@@ -1493,6 +1502,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       editor.getOriginalEditor().diffDecor.position = 0;
       getActiveDiffEditor().diffDecor.position = e.position.lineNumber;
       editor.diffEditorUpdateDecorations();
+      editor.diffCount = editor.getLineChanges().length;
     }
 
   }
@@ -1950,6 +1960,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
           if (Array.isArray(changes)) {
 
+            editor.diffCount = changes.length;
             editor.diff_decorations = [];
 
             changes.forEach(function (e) {
