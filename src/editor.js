@@ -2067,6 +2067,14 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
       let element = e.target.element;
       let line_number = e.target.position.lineNumber;
+      
+      let reveal_line = false;
+      
+      if (line_number == getLineCount()) {
+        line_number--;
+        reveal_line = true;
+      }
+
       let class_name = 'new-block';
 
       if (element.classList.contains('diff-changed'))
@@ -2175,7 +2183,10 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
                 setTimeout(() => {
                   inlineDiffEditor.revealLineInCenter(line_number);
-                }, 10)
+                }, 10);
+
+                if (reveal_line)
+                  editor.revealLine(line_number + 1);
 
               }, 10);
 
