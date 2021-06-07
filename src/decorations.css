@@ -129,8 +129,9 @@
 .diff-close:before, .diff-close:after {
 	position: absolute;	
 	content: ' ';
-	height: 15px;
+	height: 12px;
 	width: 2px;
+	top: 2px;
 	background-color: #333;
 }
 
