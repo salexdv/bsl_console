@@ -2250,7 +2250,7 @@ class bslHelper {
 
 		let suggestions = this.getCustomSuggestions(true);
 
-		if (!suggestions.length) {			
+		if (!suggestions.length && !editor.disableNativeSuggestions) {
 
 			if (!this.isItStringLiteral()) {				
 				suggestions = this.getCodeCompletition(context, token);
@@ -3492,7 +3492,7 @@ class bslHelper {
 
 		let suggestions = this.getCustomSuggestions(true);		
 		
-		if (!suggestions.length) {
+		if (!suggestions.length && !editor.disableNativeSuggestions) {
 		
 			if (!this.requireQueryValue()) {
 
@@ -3546,7 +3546,7 @@ class bslHelper {
 
 		let suggestions = this.getCustomSuggestions(true);
 		
-		if (!suggestions.length) {
+		if (!suggestions.length && !editor.disableNativeSuggestions) {
 
 			if (!this.requireQueryValue()) {
 
@@ -4052,20 +4052,24 @@ class bslHelper {
 
 			let helper = this.getCustomSigHelp(context);
 
-			if (!helper)
-				helper = this.getRefSigHelp();
+			if (!editor.disableNativeSignatures) {
 
-			if (!helper)
-				helper = this.getMetadataSigHelp(bslMetadata);
+				if (!helper)
+					helper = this.getRefSigHelp();
 
-			if (!helper)
-				helper = this.getClassSigHelp(bslGlobals.classes);
+				if (!helper)
+					helper = this.getMetadataSigHelp(bslMetadata);
 
-			if (!helper)
-				helper = this.getCommonSigHelp(bslGlobals.globalfunctions);
+				if (!helper)
+					helper = this.getClassSigHelp(bslGlobals.classes);
 
-			if (!helper)
-				helper = this.getCommonSigHelp(bslGlobals.customFunctions);
+				if (!helper)
+					helper = this.getCommonSigHelp(bslGlobals.globalfunctions);
+
+				if (!helper)
+					helper = this.getCommonSigHelp(bslGlobals.customFunctions);
+
+			}
 
 			if (helper)
 				return new SignatureHelpResult(helper);
@@ -4089,7 +4093,7 @@ class bslHelper {
 			
 			let helper = this.getCustomSigHelp(context);
 
-			if (!helper) {
+			if (!helper && !editor.disableNativeSignatures) {
 				let functions = this.getQueryFunctions(bslQuery);
 				helper = this.getCommonSigHelp(functions);
 			}
@@ -4116,7 +4120,7 @@ class bslHelper {
 
 			let helper = this.getCustomSigHelp(context);
 
-			if (!helper) {
+			if (!helper && !editor.disableNativeSignatures) {
 
 				let functions = this.getQueryFunctions(bslDCS);
 				helper = this.getCommonSigHelp(functions);
@@ -4599,7 +4603,7 @@ class bslHelper {
 
 		let hover = this.getCustomHover();
 
-		if (!hover) {
+		if (!hover && !editor.disableNativeHovers) {
 
 			for (const [key, value] of Object.entries(bslGlobals)) {
 
