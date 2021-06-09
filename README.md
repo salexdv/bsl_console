@@ -150,8 +150,8 @@
 | `EVENT_XXX`                    | При выборе пользовательского пункта меню. *addContextMenuItem('Мой пункт', 'EVENT_MY')*       |
 | `EVENT_ON_ACTIVATE_SUGGEST_ROW`| При активации пункта в текущем списке подсказок [(подробнее)](docs/activation_event.md)		 |
 | `EVENT_ON_DETAIL_SUGGEST_ROW`  | При активации подробного описания пункта в текущем списке подсказок [(подробнее)](docs/activation_event.md) |
-| `EVENT_BEFORE_SHOW_SUGGEST`	 | Перед появлением списка подсказок [(подробнее)](docs/before_suggest_event.md)		  		 |
 | `EVENT_ON_SELECT_SUGGEST_ROW`	 | При выборе пункта из списка подсказок [(подробнее)](docs/select_suggest_event.md)			 |
+| `EVENT_BEFORE_SHOW_SUGGEST`	 | Перед появлением списка подсказок [(подробнее)](docs/before_suggest_event.md)		  		 |
 | `EVENT_BEFORE_HOVER`	 		 | Перед появлением всплывающей подсказки для слова [(подробнее)](docs/before_hover_event.md)    |
 | `EVENT_BEFORE_SIGNATURE`		 | Перед появлением всплывающей подсказки по вызову процедуры/метода [(подробнее)](docs/before_signature_event.md) |
 | `EVENT_ON_LINK_CLICK`		 	 | При клике по гиперссылке																		 |
@@ -162,6 +162,9 @@
 ```javascript
 init('8.3.18.891');
 ```
+
+## Горячие клавиши
+Все горячие клавиши описаны [тут](docs/shortcuts.md)
 
 ## Особенности
 * По умолчанию редактор не подстраивается под размеры окна. Это не ошибка, решение описано [тут](https://github.com/salexdv/bsl_console/issues/27) и [тут](https://github.com/salexdv/bsl_console/issues/80)
