@@ -1476,6 +1476,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     upateStatusBar();
     
   });
+
+  editor.onDidLayoutChange(e => {
+
+    setTimeout(() => { resizeStatusBar(); } , 50);
+
+  })
   // #endregion
     
   // #region non-public functions
