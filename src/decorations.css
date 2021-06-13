@@ -83,7 +83,7 @@
 
 .diff-navi:hover {
 	border-left: 9px solid;
-	margin-left: 2px;
+	margin-left: 0px;
 	cursor: pointer;
 	transition: all .25s;
 }
