@@ -77,13 +77,13 @@
 .diff-navi {
 	border-left: 3px solid;	
 	width: 3px !important;
-	margin-left: 5px;
+	margin-left: 3px;
 	cursor: pointer;
 }
 
 .diff-navi:hover {
 	border-left: 9px solid;
-	margin-left: 2px;
+	margin-left: 0px;
 	cursor: pointer;
 	transition: all .25s;
 }
