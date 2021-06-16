@@ -531,6 +531,11 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     let language_id = getLangId();
     let currentTheme = getCurrentThemeName();
   
+    let status_bar = statusBarWidget ? true : false;
+    
+    if (status_bar)
+      hideStatusBar();
+
     if (text) {      
       if (xml) {
         language_id = 'xml';
@@ -592,6 +597,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       editor.getOriginalEditor().onKeyDown(e => diffEditorOnKeyDown(e));
       editor.getModifiedEditor().onDidChangeCursorPosition(e => diffEditorOnDidChangeCursorPosition(e));
       editor.getOriginalEditor().onDidChangeCursorPosition(e => diffEditorOnDidChangeCursorPosition(e));
+      editor.getModifiedEditor().onDidLayoutChange(e => diffEditorOnDidLayoutChange(e));
+      editor.getOriginalEditor().onDidLayoutChange(e => diffEditorOnDidLayoutChange(e));
     }
     else
     {
@@ -602,11 +609,13 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         contextmenu: contextMenuEnabled,
         automaticLayout: true
       });
-      originalText = '';
-      editor.onKeyDown(e => editorOnKeyDown(e));
+      originalText = '';      
       editor.diffCount = 0;
+      initEditorEventListenersAndProperies();
     }
     editor.updateOptions({ readOnly: readOnlyMode });
+    if (status_bar)
+      showStatusBar();    
   }
 
   triggerSuggestions = function() {
@@ -1051,7 +1060,10 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   hideStatusBar = function() {
 
     if (statusBarWidget) {
-      editor.removeOverlayWidget(statusBarWidget);
+      if (editor.navi)
+        editor.getModifiedEditor().removeOverlayWidget(statusBarWidget);
+      else
+        editor.removeOverlayWidget(statusBarWidget);
       statusBarWidget = null;
     }
 
@@ -1331,43 +1343,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
           cycle: true
         },
         customOptions: true
-      });
-
-      editor.decorations = [];
-      editor.bookmarks = new Map();
-      editor.checkBookmarks = true;
-      editor.diff_decorations = [];
-
-
-      editor.updateDecorations = function(new_decorations) {
-        
-        let permanent_decor = [];
-
-        editor.bookmarks.forEach(function (value) {
-          permanent_decor.push(value);
-        });
-
-        permanent_decor = permanent_decor.concat(editor.diff_decorations);
-
-        editor.decorations = editor.deltaDecorations(editor.decorations, permanent_decor.concat(new_decorations));
-      }
-
-      editor.removeDiffWidget = function () {
-
-        if (editor.diffZoneId) {
-          
-          editor.removeOverlayWidget(inlineDiffWidget);
-          inlineDiffWidget = null;
-          inlineDiffEditor = null;
-
-          editor.changeViewZones(function (changeAccessor) {
-            changeAccessor.removeZone(editor.diffZoneId);
-            editor.diffZoneId = 0;
-          });
-
-        }
-
-      }
+      });      
 
       contextMenuEnabled = editor.getRawOptions().contextmenu;
 
@@ -1389,99 +1365,140 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
-  editor.onKeyDown(e => editorOnKeyDown(e));
+  initEditorEventListenersAndProperies();
   // #endregion
 
   // #region editor events
-  editor.onDidChangeModelContent(e => {
-    
-    calculateDiff();
+  function initEditorEventListenersAndProperies() {
 
-    if (generateModificationEvent)
-      sendEvent('EVENT_CONTENT_CHANGED', '');
+    editor.decorations = [];
+    editor.bookmarks = new Map();
+    editor.checkBookmarks = true;
+    editor.diff_decorations = [];
 
-    checkBookmarksAfterRemoveLine(e);
-    updateBookmarks(undefined);
-        
-  });
+    editor.updateDecorations = function (new_decorations) {
 
-  editor.onKeyUp(e => {
-    
-    if (e.ctrlKey)
-      ctrlPressed = false;
+      let permanent_decor = [];
 
-    if (e.altKey)
-      altPressed = false;
+      editor.bookmarks.forEach(function (value) {
+        permanent_decor.push(value);
+      });
 
-    if (e.shiftKey)
-      shiftPressed = false;
+      permanent_decor = permanent_decor.concat(editor.diff_decorations);
 
-  });
+      editor.decorations = editor.deltaDecorations(editor.decorations, permanent_decor.concat(new_decorations));
+    }
 
-  editor.onMouseDown(e => {
+    editor.removeDiffWidget = function () {
 
-    if (e.event.leftButton && e.event.ctrlKey) {
+      if (editor.diffZoneId) {
 
-      let position = e.target.position;
+        editor.removeOverlayWidget(inlineDiffWidget);
+        inlineDiffWidget = null;
+        inlineDiffEditor = null;
 
-      if (position) {
-
-        let target = editor.getModel().getWordAtPosition(position);
-
-        if (target)
-          setSelection(position.lineNumber, target.startColumn, position.lineNumber, target.endColumn)
+        editor.changeViewZones(function (changeAccessor) {
+          changeAccessor.removeZone(editor.diffZoneId);
+          editor.diffZoneId = 0;
+        });
 
       }
 
     }
 
-    let element = e.target.element;
-    if (element.tagName.toLowerCase() == 'a') {
-      sendEvent("EVENT_ON_LINK_CLICK", { label: element.innerText, href: element.dataset.href });
-      setTimeout(() => {
-        editor.focus();
-      }, 100);
-    }
+    editor.onKeyDown(e => editorOnKeyDown(e));
 
-    if (e.event.detail == 2 && element.classList.contains('line-numbers')) {
-      let line = e.target.position.lineNumber;
-      updateBookmarks(line);
-    }
+    editor.onDidChangeModelContent(e => {
+      
+      calculateDiff();
 
-    if (element.classList.contains('diff-navi')) {
-      createDiffWidget(e);
-    }    
+      if (generateModificationEvent)
+        sendEvent('EVENT_CONTENT_CHANGED', '');
 
-  });
+      checkBookmarksAfterRemoveLine(e);
+      updateBookmarks(undefined);
+          
+    });
 
-  editor.onDidScrollChange(e => {
-        
-    if (e.scrollTop == 0) {
-      scrollToTop();
-    }
+    editor.onKeyUp(e => {
+      
+      if (e.ctrlKey)
+        ctrlPressed = false;
 
-  });
-  
-  editor.onDidType(text => {
+      if (e.altKey)
+        altPressed = false;
 
-    if (text === '\n') {
-      checkNewStringLine();
-      checkBookmarksAfterNewLine();
-    }
+      if (e.shiftKey)
+        shiftPressed = false;
 
-  });
+    });
 
-  editor.onDidChangeCursorSelection(e => {
+    editor.onMouseDown(e => {
+
+      if (e.event.leftButton && e.event.ctrlKey) {
+
+        let position = e.target.position;
+
+        if (position) {
+
+          let target = editor.getModel().getWordAtPosition(position);
+
+          if (target)
+            setSelection(position.lineNumber, target.startColumn, position.lineNumber, target.endColumn)
+
+        }
+
+      }
+
+      let element = e.target.element;
+      if (element.tagName.toLowerCase() == 'a') {
+        sendEvent("EVENT_ON_LINK_CLICK", { label: element.innerText, href: element.dataset.href });
+        setTimeout(() => {
+          editor.focus();
+        }, 100);
+      }
+
+      if (e.event.detail == 2 && element.classList.contains('line-numbers')) {
+        let line = e.target.position.lineNumber;
+        updateBookmarks(line);
+      }
+
+      if (element.classList.contains('diff-navi')) {
+        createDiffWidget(e);
+      }    
+
+    });
+
+    editor.onDidScrollChange(e => {
+          
+      if (e.scrollTop == 0) {
+        scrollToTop();
+      }
+
+    });
     
-    upateStatusBar();
-    
-  });
+    editor.onDidType(text => {
 
-  editor.onDidLayoutChange(e => {
+      if (text === '\n') {
+        checkNewStringLine();
+        checkBookmarksAfterNewLine();
+      }
 
-    setTimeout(() => { resizeStatusBar(); } , 50);
+    });
 
-  })
+    editor.onDidChangeCursorSelection(e => {
+      
+      updateStatusBar();
+      
+    });
+
+    editor.onDidLayoutChange(e => {
+
+      setTimeout(() => { resizeStatusBar(); } , 50);
+
+    })
+
+  }
   // #endregion
     
   // #region non-public functions
@@ -1515,7 +1532,14 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       getActiveDiffEditor().diffDecor.position = e.position.lineNumber;
       editor.diffEditorUpdateDecorations();
       editor.diffCount = editor.getLineChanges().length;
+      updateStatusBar();
     }
+
+  }
+
+  function diffEditorOnDidLayoutChange(e) {
+
+    setTimeout(() => { resizeStatusBar(); } , 50);
 
   }
 
@@ -1770,12 +1794,21 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }  
 
-  function upateStatusBar() {
+  function updateStatusBar() {
     
     if (statusBarWidget) {
       
-      let status = 'Ln ' + getCurrentLine();
-      status += ', Col ' + getCurrentColumn();
+      let status = '';
+
+      if (editor.navi) {
+        let standalone_editor = getActiveDiffEditor();
+        status = 'Ln ' + standalone_editor.getPosition().lineNumber;
+        status += ', Col ' + standalone_editor.getPosition().column;                
+      }
+      else {        
+        status = 'Ln ' + getCurrentLine();
+        status += ', Col ' + getCurrentColumn();
+      }
 
       if (!engLang)
         status = status.replace('Ln', 'Стр').replace('Col', 'Кол');
@@ -1794,8 +1827,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       if (statusBarWidget.overlapScroll) {
         element.style.top = editor.getDomNode().clientHeight - 20 + 'px';
       }
-      else {
-        let layout = editor.getLayoutInfo();
+      else {        
+        let layout = getActiveEditor().getLayoutInfo();
         element.style.top = (editor.getDomNode().offsetHeight - 20 - layout.horizontalScrollbarHeight) + 'px';
       }
 
@@ -2066,8 +2099,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       }
     };
 
-    editor.addOverlayWidget(statusBarWidget);
-    upateStatusBar();
+    if (editor.navi)
+      editor.getModifiedEditor().addOverlayWidget(statusBarWidget);
+    else
+      editor.addOverlayWidget(statusBarWidget);
+
+    updateStatusBar();
 
   }
 
