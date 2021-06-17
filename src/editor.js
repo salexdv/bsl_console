@@ -1609,6 +1609,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       if (element) {
         genarateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', 'selection', element);
         // Prevent propagation of KeyDown event to editor if SuggestList was closed in EVENT_ON_SELECT_SUGGEST_ROW event handler https://github.com/salexdv/bsl_console/issues/90
+        setTimeout(() => {}, 10); // https://github.com/salexdv/bsl_console/issues/90#issuecomment-863556720
         element = document.querySelector('.monaco-list-row.focused');
         if (!element) {
           e.preventDefault()
