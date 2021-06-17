@@ -532,9 +532,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     let currentTheme = getCurrentThemeName();
   
     let status_bar = statusBarWidget ? true : false;
+    let overlapScroll = true;
     
-    if (status_bar)
-      hideStatusBar();
+    if (status_bar) {
+      overlapScroll = statusBarWidget.overlapScroll;
+      hideStatusBar();      
+    }
 
     if (text) {      
       if (xml) {
@@ -602,20 +605,14 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     }
     else
     {
-      editor = monaco.editor.create(document.getElementById("container"), {
-        theme: currentTheme,
-        value: originalText,
-        language: language_id,
-        contextmenu: contextMenuEnabled,
-        automaticLayout: true
-      });
-      originalText = '';      
-      editor.diffCount = 0;
+      createEditor(language_id, originalText, currentTheme);
       initEditorEventListenersAndProperies();
+      originalText = '';
+      editor.diffCount = 0;
     }
     editor.updateOptions({ readOnly: readOnlyMode });
     if (status_bar)
-      showStatusBar();    
+      showStatusBar(overlapScroll);    
   }
 
   triggerSuggestions = function() {
@@ -1293,6 +1290,29 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   // #region init editor
   editor = undefined;
 
+  function createEditor(language_id, text, theme) {
+
+    editor = monaco.editor.create(document.getElementById("container"), {
+      theme: theme,
+      value: text,
+      language: language_id,
+      contextmenu: true,
+      wordBasedSuggestions: false,
+      scrollBeyondLastLine: false,
+      insertSpaces: false,
+      trimAutoWhitespace: false,
+      autoIndent: true,
+      find: {
+        addExtraSpaceOnTop: false
+      },
+      parameterHints: {
+        cycle: true
+      },
+      customOptions: true
+    });
+
+  }
+
   // Register languages
   for (const [key, lang] of Object.entries(languages)) {
   
@@ -1326,25 +1346,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         monaco.editor.setTheme(value.name);
       }
 
-      editor = monaco.editor.create(document.getElementById("container"), {
-        theme: "bsl-white",
-        value: getCode(),
-        language: language.id,
-        contextmenu: true,
-        wordBasedSuggestions: false,
-        scrollBeyondLastLine: false,
-        insertSpaces: false,
-        trimAutoWhitespace: false,
-        autoIndent: true,
-        find: {
-          addExtraSpaceOnTop: false
-        },
-        parameterHints: {
-          cycle: true
-        },
-        customOptions: true
-      });      
-
+      createEditor(language.id, getCode(), 'bsl-white');
+    
       contextMenuEnabled = editor.getRawOptions().contextmenu;
 
     }
@@ -2075,7 +2078,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
             this.domNode.style.top = editor.getDomNode().offsetHeight - 20 + 'px';
           }
           else {
-            let layout = editor.getLayoutInfo();
+            let layout = getActiveEditor().getLayoutInfo();
             this.domNode.style.right = layout.verticalScrollbarWidth + 'px';
             this.domNode.style.top = (editor.getDomNode().offsetHeight - 20 - layout.horizontalScrollbarHeight) + 'px';
           }
