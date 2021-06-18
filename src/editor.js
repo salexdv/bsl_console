@@ -2377,7 +2377,10 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   window.addEventListener('resize', function(event) {
     
-    resizeStatusBar();
+    if (editor.autoResizeEditorLayout)
+      editor.layout();
+  
+    resizeStatusBar();    
     
   }, true);
   // #endregion
