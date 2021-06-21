@@ -798,7 +798,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
-  genarateEventWithSuggestData = function(eventName, trigger, row, suggestRows = []) {
+  generateEventWithSuggestData = function(eventName, trigger, row, suggestRows = []) {
 
     let bsl = new bslHelper(editor.getModel(), editor.getPosition());		
 
@@ -851,7 +851,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
             if (element.classList.contains('monaco-list-row') && element.classList.contains('focused')) {
 
               removeSuggestListInactiveDetails();
-              genarateEventWithSuggestData('EVENT_ON_ACTIVATE_SUGGEST_ROW', 'focus', element);
+              generateEventWithSuggestData('EVENT_ON_ACTIVATE_SUGGEST_ROW', 'focus', element);
 
               if (editor.alwaysDisplaySuggestDetails) {
                 document.querySelectorAll('.monaco-list-rows .details-label').forEach(function (node) {
@@ -870,7 +870,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
             if (element) {
 
               if (hasParentWithClass(mutation.target, 'details') && hasParentWithClass(mutation.target, 'suggest-widget')) {
-                genarateEventWithSuggestData('EVENT_ON_DETAIL_SUGGEST_ROW', 'focus', element);
+                generateEventWithSuggestData('EVENT_ON_DETAIL_SUGGEST_ROW', 'focus', element);
               }
 
             }
@@ -913,7 +913,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
           let element = getParentWithClass(e.browserEvent.target, 'monaco-list-row');
         
           if (element) {
-            genarateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', 'selection', element);
+            generateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', 'selection', element);
           }          
 
           widget.onListMouseDownOrTapOrig(e);
@@ -1607,12 +1607,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       // Enter
       let element = document.querySelector('.monaco-list-row.focused');
       if (element) {
-        genarateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', 'selection', element);
-        // Prevent propagation of KeyDown event to editor if SuggestList was closed in EVENT_ON_SELECT_SUGGEST_ROW event handler https://github.com/salexdv/bsl_console/issues/90
-        element = document.querySelector('.monaco-list-row.focused');
-        if (!element) {
-          e.preventDefault()
-        }
+        generateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', 'selection', element);
+        stopEventIfSuggestListIsClosed(e);
       }
     }
     else if (e.ctrlKey && (e.keyCode == 36 || e.keyCode == 38)) {
@@ -1643,7 +1639,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       if (generateSelectSuggestEvent) {
         let element = document.querySelector('.monaco-list-row.focused');
         if (element) {
-          genarateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', 'selection', element);
+          generateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', 'selection', element);
+          stopEventIfSuggestListIsClosed(e);
         }
       }
     }
@@ -1667,6 +1664,16 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  // Prevent propagation of event to editor if SuggestList was closed in EVENT_ON_SELECT_SUGGEST_ROW event handler https://github.com/salexdv/bsl_console/issues/90
+  function stopEventIfSuggestListIsClosed(e) {
+    element = document.querySelector('.monaco-list-row.focused');
+    if (!element) {
+      //   e.preventDefault() // sometimes it does not help
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  }
+  
   function  initContextMenuActions() {
 
     contextActions.forEach(action => {
@@ -2298,7 +2305,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
               
               if (details) {
                 details.classList.add('inactive-detail');
-                genarateEventWithSuggestData('EVENT_ON_ACTIVATE_SUGGEST_ROW', 'hover', parent_row);
+                generateEventWithSuggestData('EVENT_ON_ACTIVATE_SUGGEST_ROW', 'hover', parent_row);
               }
 
               let read_more = getChildtWithClass(parent_row, 'readMore');
@@ -2361,7 +2368,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       if (element) {
 
         if (generateSelectSuggestEvent) {
-          genarateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', 'force-selection-' + char, element);
+          generateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', 'force-selection-' + char, element);
         }
 
         if (!editor.skipAcceptionSelectedSuggestion)
@@ -2386,3 +2393,4 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   // #endregion
 
 });
+

@@ -5025,7 +5025,7 @@ class bslHelper {
 				}
 			}
 
-			genarateEventWithSuggestData('EVENT_BEFORE_SHOW_SUGGEST', trigger, null, rows);
+			generateEventWithSuggestData('EVENT_BEFORE_SHOW_SUGGEST', trigger, null, rows);
 		}
 
 	}
