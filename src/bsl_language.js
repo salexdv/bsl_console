@@ -192,7 +192,7 @@ define([], function () {
                     [/[a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]*/, { cases: { '@keywords': 'keyword', '@default': 'identifier' } }],
                     // whitespace
                     { include: '@whitespace' },                    
-                    [/^\s*#.*$/, 'preproc'],
+                    [/^\s*[#&].*$/, 'preproc'],
                     [/[()\[\]]/, '@brackets'],
                     [/@symbols/, {
                         cases: {
