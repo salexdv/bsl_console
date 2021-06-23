@@ -115,7 +115,8 @@ define([], function () {
                 'Do', 'КонецЦикла', 'EndDo', 'НЕ', 'NOT', 'И', 'AND', 'ИЛИ', 'OR', 'Новый',
                 'New', 'Процедура', 'Procedure', 'Функция', 'Function', 'Перем', 'Var',
                 'Экспорт', 'Export', 'Знач', 'Val', 'Неопределено', 'Выполнить',
-                'Истина', 'Ложь', 'True', 'False', 'Undefined'
+                'Истина', 'Ложь', 'True', 'False', 'Undefined', 'Асинх', 'Async',
+                'Ждать', 'Await'
             ],
             namespaceFollows: [
                 'namespace', 'using',
