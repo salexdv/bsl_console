@@ -71,26 +71,32 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
-  updateText = function(txt, range, usePadding) {
-
+  // https://github.com/salexdv/bsl_console/issues/58
+  // https://github.com/salexdv/bsl_console/issues/202
+  // https://github.com/salexdv/bsl_console/issues/203
+  updateText = function(txt, clearUndoHistory = true) {
     readOnly = readOnlyMode;
     modEvent = generateModificationEvent;
-    
+    editor.checkBookmarks = false;   
+    reserMark();  
     if (readOnly)
       setReadOnly(false);
-
     if (modEvent)    
       enableModificationEvent(false);
-
     eraseTextBeforeUpdate();
-    setText(txt, range, usePadding);
-
+    if (clearUndoHistory)
+      editor.setValue(txt);
+    else
+      setText(txt);
+    if (getText())
+      checkBookmarksCount();
+    else
+      removeAllBookmarks();
     if (modEvent)    
       enableModificationEvent(true);
-
     if (readOnly)
       setReadOnly(true);
-
+    editor.checkBookmarks = true;
   }
 
   eraseText = function () {
@@ -815,12 +821,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     }
 
     if (row) {
-
-      if (eventName == 'EVENT_ON_ACTIVATE_SUGGEST_ROW')
+      eventParams['kind'] = row.childNodes[1].childNodes[0].childNodes[0].childNodes[0].className; // https://github.com/salexdv/bsl_console/issues/201
+      eventParams['sideDetailIsOpened'] = (null != document.querySelector('.suggest-widget.docs-side .details .header'));
+      if (eventName == 'EVENT_ON_ACTIVATE_SUGGEST_ROW' || eventName == 'EVENT_ON_DETAIL_SUGGEST_ROW')
         eventParams['focused'] = row.getAttribute('aria-label');
       else if (eventName == 'EVENT_ON_SELECT_SUGGEST_ROW')
         eventParams['selected'] = row.getAttribute('aria-label');
-
     }
     
     sendEvent(eventName, eventParams);
@@ -845,36 +851,25 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         mutations.forEach(function (mutation) {
 
           if (mutation.target.classList.contains('monaco-list-rows') && mutation.addedNodes.length) {
-
             let element = mutation.addedNodes[0];
-
             if (element.classList.contains('monaco-list-row') && element.classList.contains('focused')) {
-
               removeSuggestListInactiveDetails();
               generateEventWithSuggestData('EVENT_ON_ACTIVATE_SUGGEST_ROW', 'focus', element);
-
               if (editor.alwaysDisplaySuggestDetails) {
                 document.querySelectorAll('.monaco-list-rows .details-label').forEach(function (node) {
                   node.classList.add('inactive-detail');
                 });
                 document.querySelector('.monaco-list-rows .focused .details-label').classList.remove('inactive-detail');
               }
-
             }
-
           }
-          else if (mutation.target.classList.contains('type')) {
-
+          else if (mutation.target.classList.contains('type')|| mutation.target.classList.contains('docs')) {
             let element = document.querySelector('.monaco-list-rows .focused');
-
             if (element) {
-
               if (hasParentWithClass(mutation.target, 'details') && hasParentWithClass(mutation.target, 'suggest-widget')) {
                 generateEventWithSuggestData('EVENT_ON_DETAIL_SUGGEST_ROW', 'focus', element);
               }
-
             }
-
           }
 
         })
@@ -1131,7 +1126,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
-  setSuggestItemDetailById = function (rowId, detail) {
+  setSuggestItemDetailById = function (rowId, detailInList, documentation = null) {
 
     let i = parseInt(rowId);
     let suggestWidget = editor._contentWidgets['editor.widget.suggestWidget'];
@@ -1139,30 +1134,38 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     if (suggestWidget && i < suggestWidget.widget.list.view.items.length) {
 
       let suggest_item = suggestWidget.widget.list.view.items[i];
-      suggest_item.element.completion.detail = detail;      
-      
+      suggest_item.element.completion.detail = detailInList;      
+      if (!documentation)
+        suggest_item.element.completion.documentation = documentation;      
+     
       let detail_element = getChildtWithClass(suggest_item.row.domNode,'details-label');
 
-      if (detail_element) {
-        detail_element.innerText = detail
-      }
+      if (detail_element)
+        detail_element.innerText = detailInList
 
     }
 
   }
 
-  setActiveSuggestDetail = function (detail) {
+  setActiveSuggestDetail = function (detailInList, detailInSide = null, maxSideHeightInPixels = 800) {
 
-    let element = document.querySelector('.monaco-list-rows .focused .details-label');
+    let listRowDetail = document.querySelector('.monaco-list-rows .focused .details-label');
 
-    if (element)
-      element.innerText = detail;
+    if (listRowDetail)
+      listRowDetail.innerText = detailInList;
 
-    element = document.querySelector('.suggest-widget.docs-side .details .header');
-        
-    if (element)
-      element.innerText = detail;
-
+    sideDetailHeader = document.querySelector('.suggest-widget.docs-side .details .header');
+    if (sideDetailHeader)
+    {
+      if (!detailInSide)
+        detailInSide = detailInList;
+      sideDetailHeader.innerText = detailInSide;
+      sideDetailElement = document.querySelector('.suggest-widget.docs-side .details');
+      //contentHeightInPixels = sideDetailElement.scrollHeight; // not working, it seems that parent element will update "scrollHeight" property later
+      contentHeightInPixels = sideDetailHeader.scrollHeight;
+      viewportHeightInPixels = Math.min(maxSideHeightInPixels, contentHeightInPixels);
+      sideDetailElement.style.height = viewportHeightInPixels.toString() + 'px';
+    }
   }
 
   hasTextFocus = function () {
@@ -1607,8 +1610,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       // Enter
       let element = document.querySelector('.monaco-list-row.focused');
       if (element) {
-        generateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', 'selection', element);
-        stopEventIfSuggestListIsClosed(e);
+        e.preventDefault();
+        e.stopPropagation();
+        setTimeout(() => {
+          generateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', 'selection', element);
+        }, 10);
+        // stopEventIfSuggestListIsClosed(e);
       }
     }
     else if (e.ctrlKey && (e.keyCode == 36 || e.keyCode == 38)) {
@@ -1639,8 +1646,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       if (generateSelectSuggestEvent) {
         let element = document.querySelector('.monaco-list-row.focused');
         if (element) {
-          generateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', 'selection', element);
-          stopEventIfSuggestListIsClosed(e);
+          e.preventDefault();
+          e.stopPropagation();
+          setTimeout(() => {
+            generateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', 'selection', element);
+          }, 10);
+          // stopEventIfSuggestListIsClosed(e);  
         }
       }
     }
@@ -1668,12 +1679,11 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   function stopEventIfSuggestListIsClosed(e) {
     element = document.querySelector('.monaco-list-row.focused');
     if (!element) {
-      //   e.preventDefault() // sometimes it does not help
       e.preventDefault();
       e.stopPropagation();
     }
   }
-  
+
   function  initContextMenuActions() {
 
     contextActions.forEach(action => {
@@ -2284,6 +2294,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   
   function onSuggestListMouseOver(activationEventEnabled) {
 
+    return; // Disabled until fix https://github.com/salexdv/bsl_console/issues/190
     let widget = editor._contentWidgets['editor.widget.suggestWidget'].widget;
 
     if (activationEventEnabled) {
@@ -2386,8 +2397,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     
     if (editor.autoResizeEditorLayout)
       editor.layout();
-  
-    resizeStatusBar();    
+    else
+      resizeStatusBar();    
     
   }, true);
   // #endregion
