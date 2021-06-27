@@ -99,6 +99,27 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     editor.checkBookmarks = true;
   }
 
+  setContent = function(text) {
+
+    readOnly = readOnlyMode;
+    modEvent = generateModificationEvent;
+    
+    if (readOnly)
+      setReadOnly(false);
+
+    if (modEvent)    
+      enableModificationEvent(false);
+
+    editor.setValue(text)
+
+    if (modEvent)    
+      enableModificationEvent(true);
+
+    if (readOnly)
+      setReadOnly(true);
+
+  }
+
   eraseText = function () {
     
     setText('', editor.getModel().getFullModelRange(), false);    
