@@ -1056,7 +1056,7 @@ class bslHelper {
 		let objName = this.getLastNExpression(2);
 		let word = this.lastRawExpression;
 
-		if (objName) {
+		if (this.getLastCharacter() == '.' && objName) {
 
 			for (const [key, value] of Object.entries(data)) {
 				
