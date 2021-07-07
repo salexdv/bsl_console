@@ -104,7 +104,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       setReadOnly(true);
 
     editor.checkBookmarks = true;
-    
+
   }
 
   setContent = function(text) {
@@ -1186,18 +1186,23 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     if (listRowDetail)
       listRowDetail.innerText = detailInList;
 
-    sideDetailHeader = document.querySelector('.suggest-widget.docs-side .details .header');
-    if (sideDetailHeader)
-    {
+    let sideDetailHeader = document.querySelector('.suggest-widget.docs-side .details .header');
+    
+    if (sideDetailHeader) {
+      
       if (!detailInSide)
         detailInSide = detailInList;
+
       sideDetailHeader.innerText = detailInSide;
-      sideDetailElement = document.querySelector('.suggest-widget.docs-side .details');
-      //contentHeightInPixels = sideDetailElement.scrollHeight; // not working, it seems that parent element will update "scrollHeight" property later
-      contentHeightInPixels = sideDetailHeader.scrollHeight;
-      viewportHeightInPixels = Math.min(maxSideHeightInPixels, contentHeightInPixels);
+      
+      let sideDetailElement = document.querySelector('.suggest-widget.docs-side .details');      
+      let contentHeightInPixels = sideDetailHeader.scrollHeight;
+      let viewportHeightInPixels = Math.min(maxSideHeightInPixels, contentHeightInPixels);
+
       sideDetailElement.style.height = viewportHeightInPixels.toString() + 'px';
+
     }
+    
   }
 
   hasTextFocus = function () {
