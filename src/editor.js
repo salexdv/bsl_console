@@ -842,12 +842,15 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     }
 
     if (row) {
-      eventParams['kind'] = row.childNodes[1].childNodes[0].childNodes[0].childNodes[0].className; // https://github.com/salexdv/bsl_console/issues/201
+      
+      eventParams['kind'] = getChildWithClass(row, 'suggest-icon').className;
       eventParams['sideDetailIsOpened'] = (null != document.querySelector('.suggest-widget.docs-side .details .header'));
+
       if (eventName == 'EVENT_ON_ACTIVATE_SUGGEST_ROW' || eventName == 'EVENT_ON_DETAIL_SUGGEST_ROW')
         eventParams['focused'] = row.getAttribute('aria-label');
       else if (eventName == 'EVENT_ON_SELECT_SUGGEST_ROW')
         eventParams['selected'] = row.getAttribute('aria-label');
+
     }
     
     sendEvent(eventName, eventParams);
@@ -1159,7 +1162,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       if (!documentation)
         suggest_item.element.completion.documentation = documentation;      
      
-      let detail_element = getChildtWithClass(suggest_item.row.domNode,'details-label');
+      let detail_element = getChildWithClass(suggest_item.row.domNode,'details-label');
 
       if (detail_element)
         detail_element.innerText = detailInList
@@ -1788,7 +1791,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
-  function getChildtWithClass(element, className) {
+  function getChildWithClass(element, className) {
 
     for (var i = 0; i < element.childNodes.length; i++) {
       
@@ -1797,7 +1800,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       if (child.className && 0 <= child.className.split(' ').indexOf(className))
         return child
       else if (child.childNodes.length) {
-        child = getChildtWithClass(child, className);
+        child = getChildWithClass(child, className);
         if (child)
           return child;
       }
@@ -2333,14 +2336,14 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
             
             if (!parent_row.classList.contains('focused')) {
               
-              let details = getChildtWithClass(parent_row, 'details-label');
+              let details = getChildWithClass(parent_row, 'details-label');
               
               if (details) {
                 details.classList.add('inactive-detail');
                 generateEventWithSuggestData('EVENT_ON_ACTIVATE_SUGGEST_ROW', 'hover', parent_row);
               }
 
-              let read_more = getChildtWithClass(parent_row, 'readMore');
+              let read_more = getChildWithClass(parent_row, 'readMore');
               
               if (read_more)
                 read_more.classList.add('inactive-more');
