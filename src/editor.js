@@ -70,33 +70,41 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     editor.checkBookmarks = true;
 
   }
-
-  // https://github.com/salexdv/bsl_console/issues/58
-  // https://github.com/salexdv/bsl_console/issues/202
-  // https://github.com/salexdv/bsl_console/issues/203
+  
   updateText = function(txt, clearUndoHistory = true) {
+
     readOnly = readOnlyMode;
     modEvent = generateModificationEvent;
     editor.checkBookmarks = false;   
+
     reserMark();  
+
     if (readOnly)
       setReadOnly(false);
+
     if (modEvent)    
       enableModificationEvent(false);
+
     eraseTextBeforeUpdate();
+    
     if (clearUndoHistory)
       editor.setValue(txt);
     else
       setText(txt);
+
     if (getText())
       checkBookmarksCount();
     else
       removeAllBookmarks();
+
     if (modEvent)    
       enableModificationEvent(true);
+
     if (readOnly)
       setReadOnly(true);
+
     editor.checkBookmarks = true;
+    
   }
 
   setContent = function(text) {
