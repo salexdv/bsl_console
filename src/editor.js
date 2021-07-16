@@ -47,6 +47,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   sendEvent = function(eventName, eventParams) {
 
+    console.debug(eventName, eventParams);
     let lastEvent = new MouseEvent('click');
     lastEvent.eventData1C = {event : eventName, params: eventParams};
     return dispatchEvent(lastEvent);
@@ -1167,6 +1168,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
       let suggest_item = suggestWidget.widget.list.view.items[i];
       suggest_item.element.completion.detail = detailInList;      
+      
       if (!documentation)
         suggest_item.element.completion.documentation = documentation;      
      
