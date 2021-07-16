@@ -887,6 +887,39 @@ class bslHelper {
 	}
 
 	/**
+	 * Fills suggestions from systemEnum
+	 * 
+	 * @param {array} suggestions the list of suggestions
+	 * @param {object} obj object from BSL-JSON dictionary
+	 */
+	getSystemEnumSuggestions(suggestions, obj) {
+
+		if (obj.hasOwnProperty('values')) {
+
+			for (const [pkey, pvalue] of Object.entries(obj.values)) {
+
+				let command = null;
+
+				if (pvalue.hasOwnProperty('ref'))
+					command = { id: 'vs.editor.ICodeEditor:1:saveref', arguments: [{ "name": pvalue[this.nameField], "data": { "ref": pvalue.ref, "sig": null } }] };
+
+				suggestions.push({
+					label: pvalue[this.nameField],
+					kind: monaco.languages.CompletionItemKind.Field,
+					insertText: pvalue[this.nameField],
+					insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+					detail: pvalue.description,
+					documentation: '',
+					command: command
+				});
+
+			}
+
+		}
+
+	}
+
+	/**
 	 * Fills the suggestions for reference-type object
 	 * 
 	 * @param {array} suggestions the list of suggestions
@@ -919,6 +952,11 @@ class bslHelper {
 						if (itemName == 'classes' || itemName == 'types') {
 							if (this.objectHasProperties(bslGlobals, itemName, subItemName)) {
 								this.getClassSuggestions(suggestions, bslGlobals[itemName][subItemName]);
+							}
+						}
+						else if (itemName == 'systemEnum') {
+							if (this.objectHasProperties(bslGlobals, itemName, subItemName)) {
+								this.getSystemEnumSuggestions(suggestions, bslGlobals[itemName][subItemName]);
 							}
 						}
 						else {
