@@ -2040,6 +2040,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
 	}
 
+  function isThereChanges(diffEditor) {
+    
+    return diffEditor.getOriginalEditor().getValue() != diffEditor.getModifiedEditor().getValue();
+
+  }
+
   function getDiffChanges() {
 
     const changes = diffEditor.getLineChanges();
@@ -2049,37 +2055,41 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       editor.diffCount = changes.length;
       editor.diff_decorations = [];
   
-      changes.forEach(function (e) {
-  
-        const startLineNumber = e.modifiedStartLineNumber;
-        const endLineNumber = e.modifiedEndLineNumber || startLineNumber;
-  
-        let color = '#f8a62b';
-        let class_name = 'diff-changed';
-        let range = new monaco.Range(startLineNumber, 1, endLineNumber, 1);
-  
-        if (e.originalEndLineNumber === 0) {
-          color = '#10aa00';
-          class_name = 'diff-new';
-        } else if (e.modifiedEndLineNumber === 0) {
-          color = '#dd0000';
-          class_name = 'diff-removed';
-          range = new monaco.Range(startLineNumber, Number.MAX_VALUE, startLineNumber, Number.MAX_VALUE);
-        }
-  
-        editor.diff_decorations.push({
-          range: range,
-          options: {
-            isWholeLine: true,
-            linesDecorationsClassName: 'diff-navi ' + class_name,
-            overviewRuler: {
-              color: color,
-              darkColor: color,
-              position: 4
-            }
+      if (isThereChanges(diffEditor)) {
+
+        changes.forEach(function (e) {
+    
+          const startLineNumber = e.modifiedStartLineNumber;
+          const endLineNumber = e.modifiedEndLineNumber || startLineNumber;
+    
+          let color = '#f8a62b';
+          let class_name = 'diff-changed';
+          let range = new monaco.Range(startLineNumber, 1, endLineNumber, 1);
+    
+          if (e.originalEndLineNumber === 0) {
+            color = '#10aa00';
+            class_name = 'diff-new';
+          } else if (e.modifiedEndLineNumber === 0) {
+            color = '#dd0000';
+            class_name = 'diff-removed';
+            range = new monaco.Range(startLineNumber, Number.MAX_VALUE, startLineNumber, Number.MAX_VALUE);
           }
+    
+          editor.diff_decorations.push({
+            range: range,
+            options: {
+              isWholeLine: true,
+              linesDecorationsClassName: 'diff-navi ' + class_name,
+              overviewRuler: {
+                color: color,
+                darkColor: color,
+                position: 4
+              }
+            }
+          });
         });
-      });
+
+      }
   
       editor.updateDecorations([]);
       editor.diffTimer = 0;
