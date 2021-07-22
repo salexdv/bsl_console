@@ -35,6 +35,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   diffEditor = null;  
   inlineDiffEditor = null;
   inlineDiffWidget = null;
+  events_queue = [];
   // #endregion
 
   // #region public API
@@ -47,10 +48,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   sendEvent = function(eventName, eventParams) {
 
-    console.debug(eventName, eventParams);
-    let lastEvent = new MouseEvent('click');
-    lastEvent.eventData1C = {event : eventName, params: eventParams};
-    return dispatchEvent(lastEvent);
+    events_queue.push({event : eventName, params: eventParams});
+    document.getElementById('event-button').click();
     
   }
 
@@ -2453,6 +2452,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
       if (hasParentWithClass(e.target, 'find-widget'))
         setFindWidgetDisplay('none');
+
+    }
+    else if (e.target.id == 'event-button' && events_queue.length) {
+      let eventData1C = events_queue.shift();
+      e.eventData1C = eventData1C;
+      console.debug(eventData1C.event, eventData1C.params);
 
     }
 

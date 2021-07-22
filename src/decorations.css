@@ -1,3 +1,7 @@
+#event-button {
+	display: none;
+}
+
 .error-string {
 	background-color: #ffa07a;
 }
