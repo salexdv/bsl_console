@@ -1496,12 +1496,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       }
 
       let element = e.target.element;
-      if (element.tagName.toLowerCase() == 'a') {
-        sendEvent("EVENT_ON_LINK_CLICK", { label: element.innerText, href: element.dataset.href });
-        setTimeout(() => {
-          editor.focus();
-        }, 100);
-      }
+      checkOnLinkClick(element);
 
       if (e.event.detail == 2 && element.classList.contains('line-numbers')) {
         let line = e.target.position.lineNumber;
@@ -1547,6 +1542,54 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   // #endregion
     
   // #region non-public functions
+
+
+  function getNativeLinkHref(element, isForwardDirection) {
+
+    let href = '';
+
+    if (element.classList.contains('detected-link-active')) {
+
+      href = element.innerText;
+
+  
+      if (isForwardDirection && element.nextSibling || isForwardDirection == null)
+        href += getNativeLinkHref(element.nextSibling, true);
+
+      if (!isForwardDirection && element.previousSibling || isForwardDirection == null)
+        href = getNativeLinkHref(element.previousSibling, false) + href;
+
+    }
+
+    return href;
+
+  }
+
+  function checkOnLinkClick(element) {
+
+    if (element.tagName.toLowerCase() == 'a') {
+
+      sendEvent("EVENT_ON_LINK_CLICK", { label: element.innerText, href: element.dataset.href });
+      setTimeout(() => {
+        editor.focus();
+      }, 100);
+
+    }
+    else if (element.classList.contains('detected-link-active')) {
+
+      let href = getNativeLinkHref(element, null);
+
+      if (href) {
+        sendEvent("EVENT_ON_LINK_CLICK", { label: href, href: href });
+        setTimeout(() => {
+          editor.focus();
+        }, 100);
+      }
+
+    }
+
+  }
+
   function deltaDecorationsForDiffEditor(standalone_editor) {
 
     let diffDecor = standalone_editor.diffDecor;
