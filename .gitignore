@@ -1,4 +1,6 @@
 pic/
 release/
+dist/
+node_modules/
 src/.vscode/
 src/src.zip
