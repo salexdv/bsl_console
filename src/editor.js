@@ -1555,7 +1555,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       if (isForwardDirection && element.nextSibling || isForwardDirection == null)
         href += getNativeLinkHref(element.nextSibling, true);
 
-      if (!isForwardDirection && element.previousSibling || isForwardDirection == null)
+      if (!isForwardDirection && element.previousSibling)
         href = getNativeLinkHref(element.previousSibling, false) + href;
 
     }
@@ -2082,7 +2082,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
 	}
 
-  function isThereChanges(diffEditor) {
+  function isDiffEditorHasChanges() {
     
     return diffEditor.getOriginalEditor().getValue() != diffEditor.getModifiedEditor().getValue();
 
@@ -2097,7 +2097,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       editor.diffCount = changes.length;
       editor.diff_decorations = [];
   
-      if (isThereChanges(diffEditor)) {
+      if (isDiffEditorHasChanges()) {
 
         changes.forEach(function (e) {
     
