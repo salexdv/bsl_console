@@ -331,6 +331,18 @@ describe("Проверка автокомлита и подсказок реда
         expect(help).to.have.property('activeParameter');
       });
 
+      it("проверка подсказки переопределенных параметров для функции Состояние", function () {
+        let strJSON = '{ "Состояние": [ { "label": "(Первый, Второй)", "documentation": "Описание сигнатуры", "parameters": [ { "label": "Первый", "documentation": "Описание первого" }, { "label": "Второй", "documentation": "Описание второго" } ] } ] }';
+        assert.equal(setCustomSignatures(strJSON), true);        
+        let position = new monaco.Position(28, 12);
+        let model = editor.getModel();
+        editor.setPosition(position);
+        bsl = new bslHelper(model, position);
+        let help = bsl.getCustomSigHelp();
+        expect(help).to.have.property('activeParameter');
+        assert.equal(setCustomSignatures('{}'), true);        
+      });
+
       it("проверка автокомплита для функции 'Тип'", function () {
         bsl = helper('Тип("');
         assert.equal(bsl.requireType(), true);
@@ -630,6 +642,51 @@ describe("Проверка автокомлита и подсказок реда
         expect(suggestions).to.be.an('array').that.not.is.empty;
         assert.equal(suggestions.some(suggest => suggest.label === "Себестоимость"), true);
       });
+
+      it("проверка подсказки определяемой по стеку", function () {              	                                
+        
+        let position = new monaco.Position(95, 17);
+        let model = editor.getModel();
+        editor.setPosition(position);
+        bsl = new bslHelper(model, position);
+        let suggestions = [];
+        bsl.getMetadataStackCompletition(suggestions);
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "ПодотчетноеЛицо"), true);
+        assert.equal(suggestions.some(suggest => suggest.label === "Заблокировать"), true);
+
+        position = new monaco.Position(100, 19);
+        editor.setPosition(position);
+        bsl = new bslHelper(model, position);
+        suggestions = [];
+        bsl.getMetadataStackCompletition(suggestions);
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "СуммаДокумента"), true);
+        assert.equal(suggestions.some(suggest => suggest.label === "Заблокировать"), true);
+
+        map = new Map();
+        map.set('товарссылка', {list:[], ref: 'catalogs.Товары', sig: null});
+        contextData.set(102, map);
+
+        position = new monaco.Position(104, 18);
+        editor.setPosition(position);
+        bsl = new bslHelper(model, position);
+        suggestions = [];
+        bsl.getMetadataStackCompletition(suggestions);
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "Ставка"), true);
+        assert.equal(suggestions.some(suggest => suggest.label === "Заблокировать"), true);
+
+        position = new monaco.Position(107, 24);
+        editor.setPosition(position);
+        bsl = new bslHelper(model, position);
+        suggestions = [];
+        bsl.getMetadataStackCompletition(suggestions);
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "СтавкаНДС"), true);        
+
+      });
+      
 
     }
 

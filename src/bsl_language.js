@@ -76,13 +76,20 @@ define([], function () {
                 'foreground': '#d4d4d4',
                 'editor.background': '#1e1e1e',
                 'editor.selectionBackground': '#062f4a',
+                'editor.selectionHighlightBackground': '#495662',
+                'editor.inactiveSelectionBackground': '#495662',
                 'editorCursor.foreground': '#d4d4d4',
                 'editorSuggestWidget.background': '#252526',
                 'editorSuggestWidget.foreground': '#d4d4d4',
                 'editorSuggestWidget.selectedBackground': '#062f4a',
                 'editorWidget.background': '#252526',
                 'editorWidget.foreground': '#d4d4d4',
-                'editorWidget.border': '#d4d4d4'
+                'editorWidget.border': '#d4d4d4'                
+            },
+            white: {
+                'editor.selectionBackground': '#ffe877',
+                'editor.selectionHighlightBackground': '#fef6d0',
+                'editor.inactiveSelectionBackground': '#fef6d0'
             }
         }
     }
@@ -96,7 +103,7 @@ define([], function () {
             ignoreCase: true,
             brackets: [
                 { open: '[', close: ']', token: 'delimiter.square' },
-                { open: '(', close: ')', token: 'delimiter.parenthesis' },
+                { open: '(', close: ')', token: 'delimiter.parenthesis' }
             ],
             keywords: [
                 'КонецПроцедуры', 'EndProcedure', 'КонецФункции', 'EndFunction',
@@ -119,7 +126,7 @@ define([], function () {
             operators: ['=', '<=', '>=', '<>', '<', '>', '+', '-', '*', '/', '%'],
             symbols: /[=><!~?:&+\-*\/\^%]+/,
             // escape sequences
-            escapes: /\\(?:[abfnrtv\\"']|x[0-9A-Fa-f]{1,4}|u[0-9A-Fa-f]{4}|U[0-9A-Fa-f]{8})/,
+            escapes: /(?:[abfnrtv']|x[0-9A-Fa-f]{1,4}|u[0-9A-Fa-f]{4}|U[0-9A-Fa-f]{8})/,
             queryWords: [
                 'ВЫБРАТЬ', 'РАЗРЕШЕННЫЕ', 'РАЗЛИЧНЫЕ', 'ПЕРВЫЕ', 'КАК', 'ПУСТАЯТАБЛИЦА', 'ПОМЕСТИТЬ',
                 'ИЗ', 'ВНУТРЕННЕЕ', 'ЛЕВОЕ', 'ВНЕШНЕЕ', 'ПРАВОЕ', 'ПОЛНОЕ', 'СОЕДИНЕНИЕ',
@@ -130,9 +137,11 @@ define([], function () {
                 'JOIN', 'ON', 'WHERE', 'GROUP', 'BY', 'HAVING', 'UNION',
                 'ALL', 'ORDER', 'AUTOORDER', 'TOTALS', 'OVERALL', 'ONLY', 'HIERARCHY',
                 'СГРУППИРОВАНОПО', 'GROUPEDBY', 'БУЛЕВО', 'BOOLEAN', 'ВОЗР', 'ASC',
-                'ГРУППИРУЮЩИМ', 'GROUPING', 'ЗНАЧЕНИЕ', 'VALUE', 'ИНДЕКСИРОВАТЬ', 'INDEX',
-                'НАБОРАМ', 'SETS', 'ТИП', 'TYPE', 'ТИПЗНАЧЕНИЯ', 'VALUETYPE',
-                'УБЫВ', 'DESC', 'УНИЧТОЖИТЬ', 'DROP'
+                'ЗНАЧЕНИЕ', 'VALUE', 'ИНДЕКСИРОВАТЬ', 'INDEX', 'ТИП', 'TYPE', 'ТИПЗНАЧЕНИЯ',
+                'VALUETYPE', 'УБЫВ', 'DESC', 'УНИЧТОЖИТЬ', 'DROP'
+            ],
+            queryWords_8_3_16: [
+                'ГРУППИРУЮЩИМ', 'НАБОРАМ', 'GROUPING', 'SETS'
             ],
             queryExp: [
                 'АВТОНОМЕРЗАПИСИ', 'RECORDAUTONUMBER', 'В', 'IN', 'ВЫБОР', 'CASE',
@@ -153,6 +162,28 @@ define([], function () {
                 'СУММА', 'SUM', 'ТОГДА', 'THEN', 'УБЫВ', 'DESC', 'ЧАС', 'HOUR',
                 'ЧИСЛО', 'NUMBER', 'NULL', 'КОГДА', 'WHEN'
             ],
+            queryExp_8_3_20: [
+                'СТРОКА', 'STRING', 'СОКРЛП', 'TRIMALL', 'СОКРП', 'TRIMAR', 'СОКРЛ', 'TRIMAL',
+                'ACOS', 'ASIN', 'ATAN', 'COS', 'EXP', 'LOG', 'LOG10', 'SIN', 'SQRT', 'POW',
+                'TAN', 'ОКР', 'ROUND', 'ЦЕЛ', 'INT', 'ДЛИНАСТРОКИ', 'STRINGLENGTH', 'ЛЕВ',
+                'LEFT', 'ПРАВ', 'RIGHT', 'СТРНАЙТИ', 'STRFIND', 'ВРЕГ', 'UPPER', 'НРЕГ',
+                'LOWER', 'СТРЗАМЕНИТЬ', 'STRREPLACE', 'РАЗМЕРХРАНИМЫХДАННЫХ', 'STOREDDATASIZE'
+            ],
+            DCSExp: [
+                'ВЫБОР', 'CASE', 'КОГДА', 'WHEN', 'ТОГДА', 'THEN', 'ИЛИ', 'OR',
+                'ИНАЧЕ', 'ELSE', 'ИСТИНА', 'TRUE', 'КОНЕЦ', 'END', 'ЛОЖЬ', 'FALSE'
+            ],
+            DCSFunctions: [
+                'ВЫЧИСЛИТЬ', 'EVAL', 'ВЫЧИСЛИТЬВЫРАЖЕНИЕ', 'EVALEXPRESSION',
+                'ВЫЧИСЛИТЬВЫРАЖЕНИЕСГРУППИРОВКОЙМАССИВ', 'EVALEXPRESSIONWITHGROUPARRAY',
+                'ВЫЧИСЛИТЬВЫРАЖЕНИЕСГРУППИРОВКОЙТАБЛИЦАЗНАЧЕНИЙ', 'EVALEXPRESSIONWITHGROUPVALUETABLE',
+                'СТРОКА', 'STRING', 'ACOS', 'ASIN', 'ATAN', 'COS', 'EXP', 'LOG', 'LOG10', 'SIN',
+                'SQRT', 'POW', 'TAN', 'ОКР', 'ROUND', 'ЦЕЛ', 'INT', 'ДЛИНАСТРОКИ', 'STRINGLENGTH',
+                'СТРОКА', 'STRING', 'СОКРЛП', 'TRIMALL', 'СОКРП', 'TRIMAR', 'СОКРЛ', 'TRIMAL',
+                'ЛЕВ', 'LEFT', 'ПРАВ', 'RIGHT', 'СТРНАЙТИ', 'STRFIND', 'ВРЕГ', 'UPPER', 'НРЕГ',
+                'LOWER', 'СТРЗАМЕНИТЬ', 'STRREPLACE', 'НСТР', 'NSTR'
+
+            ],
             queryOperators: /[=><+\-*\/%;,]+/,
             // The main tokenizer for our languages
             tokenizer: {
@@ -160,15 +191,7 @@ define([], function () {
                     [/(\.)(выполнить)(\(?)/, ['delimiter', 'identifier', 'delimiter.parenthesis']],
                     [/[a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]*/, { cases: { '@keywords': 'keyword', '@default': 'identifier' } }],
                     // whitespace
-                    { include: '@whitespace' },
-                    // delimiters and operators
-                    [/}/, {
-                        cases: {
-                            '$S2==interpolatedstring': { token: 'string.quote', next: '@pop' },
-                            '$S2==litinterpstring': { token: 'string.quote', next: '@pop' },
-                            '@default': '@brackets'
-                        }
-                    }],
+                    { include: '@whitespace' },                    
                     [/^\s*#.*$/, 'preproc'],
                     [/[()\[\]]/, '@brackets'],
                     [/@symbols/, {
@@ -188,7 +211,7 @@ define([], function () {
                         {token: 'query.keyword'}                        
                     ]],
                     [/"([^"\\]|\\.)*$/, 'string.invalid'],
-                    [/["|]/, { token: 'string.quote', next: '@string' }],
+                    [/["|]/, { token: 'string.invalid', next: '@string' }],
                     [/\$\@"/, { token: 'string.quote', next: '@litinterpstring' }],
                     [/\@"/, { token: 'string.quote', next: '@litstring' }],
                     [/\$"/, { token: 'string.quote', next: '@interpolatedstring' }],
@@ -201,19 +224,27 @@ define([], function () {
                     [/[a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]*/, {
                         cases: {
                             '@queryWords': 'query.keyword',
+                            '@queryWords_8_3_16': 'query.keyword',
                             '@queryExp': 'query.exp',
+                            '@queryExp_8_3_20': 'query.exp',
                             '@default': 'query'
                         }
                     }],
                     [/&[a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]*/, 'query.param'],
                     [/&/, 'query.param'],
                     [/"".*""/, 'query.string'],
-                    [/[()]/, 'query.brackets'],
-                    [/\/\//, 'query.comment'],
+                    [/[({})]/, 'query.brackets'],
+                    [/\/\/.*$/, 'comment'],
+                    [/(\|\s*)(\/\/.*$)/, [
+                        {token: 'query'},
+                        {token: 'query.comment'}
+                    ]],
                     [/@queryOperators/, 'query.operator'],
                     [/[0-9_]*\.[0-9_]+([eE][\-+]?\d+)?[fFdD]?/, 'query.float'],
                     [/[0-9_]+/, 'query.int'],
+                    [/^\s*#.*$/, 'preproc'],
                     [/\|/, 'query'],
+                    [/\./, 'query'],
                     [/[?!@#$^*_]+/, 'query'],
                     [/"/, { token: 'query.quote', next: '@pop' }],
                 ],
@@ -221,9 +252,10 @@ define([], function () {
                     [/\/\/.*$/, 'comment'],
                 ],
                 string: [
+                    [/^\s*\/\/.*$/, 'comment'],
                     [/[^\\"]+/, 'string'],
                     [/@escapes/, 'string.escape'],
-                    [/\\./, 'string.escape.invalid'],
+                    [/\\./, 'string'],
                     [/"/, { token: 'string.quote', next: '@pop' }],
                     [/\|.*"/, { token: 'string.quote', next: '@pop' }],
                 ],
@@ -259,12 +291,14 @@ define([], function () {
                 base: 'vs',
                 name: 'bsl-white',
                 inherit: true,
+                colors: themes.colors.white,
                 rules: themes.rules.white
             },            
             whiteQueryTheme: {
                 base: 'vs',
                 name: 'bsl-white-query',
                 inherit: true,
+                colors: themes.colors.white,
                 rules: themes.rules.white.concat(themes.rules.whiteQueryOn)
             },            
             darkTheme: {
@@ -284,6 +318,9 @@ define([], function () {
         }        
     }
 
+    let query_expressions = bsl_language.rules.queryExp.concat(bsl_language.rules.queryExp_8_3_20);
+    let query_keywords = bsl_language.rules.queryWords.concat(bsl_language.rules.queryWords_8_3_16);
+
     let query_language = {
 
         id: 'bsl_query',
@@ -291,17 +328,37 @@ define([], function () {
             defaultToken: '',
             tokenPostfix: 'bsl',
             ignoreCase: true,            
-            keywords: bsl_language.rules.queryWords,
-            expressions: bsl_language.rules.queryExp,            
+            keywords: query_keywords,
+            expressions: query_expressions,
             operators: /[=><+\-*\/%;,]+/,
+            expBeforeAs: [
+                'КОНЕЦ', 'END'
+            ],
             tokenizer: {
-                root: [                               
-                    [/(как|as\s+)(.+)(,?)/, [
+                root: [                      
+                    [/([a-zA-Z\u0410-\u044F]+)(\s+)(как|as)(\s+)([a-zA-Z\u0410-\u044F0-9]+)/, [
+                        { cases: {
+                            '@expBeforeAs': 'query.exp',                            
+                            '@default': 'query'
+                        }},
+                        {token: 'query'},
                         {token: 'query.keyword'},
+                        {token: 'query'},
+                        {token: 'query'},
+                    ]],                    
+                    [/(как|as)(\s+)([a-zA-Z\u0410-\u044F]+)(\()/, [
+                        {token: 'query.keyword'},
+                        {token: 'query'},
+                        {token: 'query.exp'},
+                        {token: 'query.brackets'}
+                    ]],
+                    [/(как|as)(\s+)([a-zA-Z\u0410-\u044F_0-9]+)([,\s]*)/, [
+                        {token: 'query.keyword'},
+                        {token: 'query'},
                         {token: 'query'},
                         {token: 'query.operator'}
                     ]],
-                    [/(\.)([a-zA-Z\u0410-\u044F_]+)/, [
+                    [/(\.)([a-zA-Z\u0410-\u044F_0-9]+)/, [
                         {token: 'query'},
                         {token: 'query'}                        
                     ]],
@@ -311,10 +368,10 @@ define([], function () {
                         '@expressions': 'query.exp',
                         '@default': 'query'
                     }}],
-                    [/".*"/, 'query.string'],
+                    [/".*?"/, 'query.string'],
                     [/&[a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]*/, 'query.param'],
                     [/&/, 'query.param'],
-                    [/[()]/, 'query.brackets'],
+                    [/[({})]/, 'query.brackets'],
                     [/\/\/.*$/, 'comment'],
                     [/@operators/, 'query.operator'],
                     [/[0-9_]*\.[0-9_]+([eE][\-+]?\d+)?[fFdD]?/, 'query.float'],
@@ -326,14 +383,25 @@ define([], function () {
         themes: bsl_language.themes        
     }
 
+    let dcs_language = {
+        id: 'dcs_query',
+        rules: Object.assign({}, query_language.rules)
+    }
+    
+    let dcs_expressions = query_expressions.concat(bsl_language.rules.DCSFunctions);
+    dcs_language.rules.expressions = dcs_expressions; 
+
     languages = {
         bsl: {
             languageDef: bsl_language,
             completionProvider: {
-                triggerCharacters: ['.', '"'],
-                provideCompletionItems: function (model, position) {
+                triggerCharacters: ['.', '"', ' '],
+                provideCompletionItems: function (model, position, context, token) {                    
+                    resetSuggestWidgetDisplay();
                     let bsl = new bslHelper(model, position);
-                    return bsl.getCompletition();
+                    let completition = bsl.getCompletition(context, token);
+                    bsl.onProvideCompletion(context, completition);
+                    return completition;
                 }
             },
             foldingProvider: {
@@ -344,15 +412,24 @@ define([], function () {
             signatureProvider: {
                 signatureHelpTriggerCharacters: ['(', ','],
                 signatureHelpRetriggerCharacters: [')'],
-                provideSignatureHelp: (model, position) => {
+                provideSignatureHelp: (model, position, token, context) => {
+                    resetSignatureWidgetDisplay();
                     let bsl = new bslHelper(model, position);
-                    return bsl.getSigHelp();
+                    let helper = bsl.getSigHelp(context);
+                    onProvideSignature(bsl, context, position);
+                    return helper;
                 }
             },
             hoverProvider: {
-                provideHover: function (model, position) {
+                provideHover: function (model, position) {                    
                     let bsl = new bslHelper(model, position);
-                    return bsl.getHover();
+                    bsl.onProvideHover();
+                    if (!ctrlPressed) {                        
+                        return bsl.getHover();
+                    }
+                    else {
+                        return null;
+                    }
                 }
             },
             formatProvider: {
@@ -366,15 +443,39 @@ define([], function () {
             codeLenses: {
                 provider: () => {},                
                 resolver: () => {}
-            }
+            },
+            autoIndentation: true,
+            indentationRules: {
+                increaseIndentPattern: /^\s*(функция|function|процедура|procedure|если|if|пока|while|для|for|попытка|try|исключение|except).*$/i,
+                decreaseIndentPattern: /^\s*(конецфункции|endfunction|конецпроцедуры|endprocedure|конецесли|endif|конеццикла|enddo|конецпопытки|endtry).*$/i
+            },
+            brackets: [
+                ['(', ')'],
+                ['[', ']'],
+                ['если', 'конецесли'],
+                ['if', 'endif'],
+                ['пока', 'конеццикла'],
+                ['для', 'конеццикла'],
+                ['while', 'enddo'],
+                ['for', 'enddo'],
+                ['попытка', 'конецпопытки'],
+                ['try', 'endtry'],
+                ['функция', 'конецфункции'],
+                ['function', 'endfunction'],
+                ['процедура', 'конецпроцедуры'],
+                ['procedure', 'endprocedure']
+            ]
         },
         query: {
             languageDef: query_language,
             completionProvider: {
                 triggerCharacters: ['.', '(', '&'],
-                provideCompletionItems: function (model, position) {
+                provideCompletionItems: function (model, position, context, token) {
+                    resetSuggestWidgetDisplay();
                     let bsl = new bslHelper(model, position);
-                    return bsl.getQueryCompletition(query_language);
+                    let completition = bsl.getQueryCompletition(query_language);
+                    bsl.onProvideCompletion(context, completition);
+                    return completition;
                 }
             },
             foldingProvider: {
@@ -385,13 +486,25 @@ define([], function () {
             signatureProvider: {
                 signatureHelpTriggerCharacters: ['(', ','],
                 signatureHelpRetriggerCharacters: [')'],
-                provideSignatureHelp: (model, position) => {
+                provideSignatureHelp: (model, position, token, context) => {
+                    resetSignatureWidgetDisplay();
                     let bsl = new bslHelper(model, position);
-                    return bsl.getQuerySigHelp();
+                    let helper = bsl.getQuerySigHelp();
+                    onProvideSignature(bsl, context, position);
+                    return helper;
                 }
             },
             hoverProvider: {
-                provideHover: () => {}
+                provideHover: function (model, position) {                    
+                    let bsl = new bslHelper(model, position);
+                    bsl.onProvideHover();
+                    if (!ctrlPressed) {                        
+                        return bsl.getCustomHover();
+                    }
+                    else {
+                        return null;
+                    }
+                }
             },
             formatProvider: {
                 provideDocumentFormattingEdits: () => {}
@@ -399,8 +512,108 @@ define([], function () {
             codeLenses: {
                 provider: () => {},                
                 resolver: () => {}
-            }
+            },
+            autoIndentation: false,
+            indentationRules: {
+                increaseIndentPattern: /^\s*(выбрать|из|выбор|когда).*$/i,
+                decreaseIndentPattern: /^\s*(тогда|иначе|конец).*$/i
+            },
+            brackets: [
+                ['(', ')'],
+                ['[', ']'],
+                ['{', '}']
+            ]
+        },
+        dcs: {
+            languageDef: dcs_language,
+            completionProvider: {
+                triggerCharacters: ['.', '(', '&'],
+                provideCompletionItems: function (model, position, context, token) {
+                    resetSuggestWidgetDisplay();
+                    let bsl = new bslHelper(model, position);
+                    let completition = bsl.getDCSCompletition();
+                    bsl.onProvideCompletion(context, completition);
+                    return completition;
+                }
+            },
+            foldingProvider: {
+                provideFoldingRanges: () => {}
+            },
+            signatureProvider: {
+                signatureHelpTriggerCharacters: ['(', ','],
+                signatureHelpRetriggerCharacters: [')'],
+                provideSignatureHelp: (model, position, token, context) => {
+                    resetSignatureWidgetDisplay();
+                    let bsl = new bslHelper(model, position);
+                    let helper = bsl.getDCSSigHelp();
+                    onProvideSignature(bsl, context, position);
+                    return helper;
+                }
+            },
+            hoverProvider: {
+                provideHover: function (model, position) {                    
+                    let bsl = new bslHelper(model, position);
+                    bsl.onProvideHover();
+                    if (!ctrlPressed) {                        
+                        return bsl.getCustomHover();
+                    }
+                    else {
+                        return null;
+                    }
+                }
+            },
+            formatProvider: {
+                provideDocumentFormattingEdits: () => {}
+            },
+            codeLenses: {
+                provider: () => {},                
+                resolver: () => {}
+            },
+            autoIndentation: false,
+            indentationRules: null,
+            brackets: [
+                ['(', ')'],
+                ['[', ']']                
+            ]
         }
+
     };
 
 });
+
+function onProvideSignature(bsl, context, position) {
+    if (generateBeforeSignatureEvent) {
+        let activeSignature = context.activeSignatureHelp ? context.activeSignatureHelp.activeSignature : 0;
+        let params = {
+            word: bsl.getWordUntilOpenBracket(),
+            line: position.lineNumber,
+            column: position.column,
+            activeParameter: bsl.textBeforePosition.split(',').length - 1,
+            activeSignature: activeSignature,
+            triggerCharacter: context.triggerCharacter
+        };
+        sendEvent('EVENT_BEFORE_SIGNATURE', params);
+    }
+}
+
+function resetSuggestWidgetDisplay() {
+
+    let widget = document.querySelector('.suggest-widget');
+
+    if (widget) {
+        widget.style.display = '';
+        widget.style.visibility = '';      
+    }
+
+}
+
+function resetSignatureWidgetDisplay() {
+
+    let widget = document.querySelector('.parameter-hints-widget');
+
+    if (widget) {
+        widget.style.display = '';
+        signatureVisible = true;
+    }
+
+}

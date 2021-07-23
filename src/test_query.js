@@ -61,7 +61,7 @@ describe("Проверка автокомлита и подсказок реда
     
     it("проверка подсказки ключевых слов запроса", function () {
       bsl = helper('Выра');
-      let suggestions = bsl.getQueryCompletition(languages.query.languageDef);
+      let suggestions = bsl.getQueryCompletition();
       expect(suggestions).to.be.an('object');
       expect(suggestions.suggestions).to.be.an('array').that.not.is.empty;
       assert.equal(suggestions.suggestions.some(suggest => suggest.label === "ВЫРАЗИТЬ"), true);
@@ -129,6 +129,18 @@ describe("Проверка автокомлита и подсказок реда
       assert.equal(suggestions.some(suggest => suggest.label === "Справочник"), true);      
     });
 
+    it("проверка подсказки для метаданных в конструкции ИЗ ИЛИ СОЕДИНЕНИЕ после запятой", function () {
+      bsl = helper(`ВЫБРАТЬ
+      *
+      ИЗ      
+        Справочники.Товары КАК Товары,
+      `);      
+      let suggestions = [];
+      bsl.getQuerySourceCompletition(suggestions, null);
+      expect(suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(suggestions.some(suggest => suggest.label === "Справочник"), true);      
+    });
+
     it("проверка подсказки для объекта метаданных в конструкции ИЗ ИЛИ СОЕДИНЕНИЕ ", function () {
       bsl = helper(`ВЫБРАТЬ
       *
@@ -155,6 +167,7 @@ describe("Проверка автокомлита и подсказок реда
       bsl.getQueryValuesCompletition(suggestions, bslQuery.values, null)
       expect(suggestions).to.be.an('array').that.not.is.empty;
       assert.equal(suggestions.some(suggest => suggest.label === "Справочник"), true);
+      assert.equal(suggestions.some(suggest => suggest.label === "ВидДвиженияБухгалтерии"), true);
 
       bsl = helper("ЗНАЧЕНИЕ(Справочник.");
       suggestions = [];
@@ -168,6 +181,12 @@ describe("Проверка автокомлита и подсказок реда
       expect(suggestions).to.be.an('array').that.not.is.empty;
       assert.equal(suggestions.some(suggest => suggest.label === "ПустаяСсылка"), true);
       assert.equal(suggestions.some(suggest => suggest.label === "Услуга"), true);
+
+      bsl = helper("ЗНАЧЕНИЕ(ВидДвиженияБухгалтерии.");
+      suggestions = [];
+      bsl.getQueryValuesCompletition(suggestions, bslQuery.values, null)
+      expect(suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(suggestions.some(suggest => suggest.label === "Дебет"), true);
 
     });
 
@@ -260,6 +279,96 @@ describe("Проверка автокомлита и подсказок реда
       assert.equal(suggestions.some(suggest => suggest.label === "КоличествоПриход"), false);      
       assert.equal(suggestions.some(suggest => suggest.label === "КоличествоОстаток"), false);
       assert.equal(suggestions.some(suggest => suggest.label === "КоличествоНачальныйОстаток"), false);
+    });
+
+    it("проверка подсказки для ссылочного поля, когда поле не выбиралось руками (динамическое обновление ссылок) ", function () {
+      bsl = helper(`ВЫБРАТЬ
+      Товары.СтавкаНДС.
+      ИЗ      
+      Справочник.Товары КАК Товары`, 2, 24);      
+      let suggestions = [];
+      bsl.getQueryFieldsCompletition(suggestions);
+      expect(suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(suggestions.some(suggest => suggest.label === "Наименование"), true);
+    });
+
+    it("проверка подсказки для функций в режим СКД ", function () {
+      switchDCSMode();
+      bsl = helper("ВычислитьВыражениеСГрупп");                  
+      result = bsl.getDCSCompletition();
+      expect(result.suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(result.suggestions.some(suggest => suggest.label === "ВычислитьВыражениеСГруппировкойМассив"), true);
+      switchDCSMode();
+    });
+
+    it("проверка подсказки ключевых слов в режим СКД ", function () {
+      switchDCSMode();
+      bsl = helper("ТОГ");                  
+      result = bsl.getDCSCompletition();
+      expect(result.suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(result.suggestions.some(suggest => suggest.label === "ТОГДА"), true);
+      switchDCSMode();
+    });
+
+    it("проверка подсказки для функции ЗНАЧЕНИЕ в режиме СКД", function () {
+      
+      switchDCSMode();
+      
+      bsl = helper("ЗНАЧЕНИЕ(");
+      let suggestions = [];
+      bsl.getQueryValuesCompletition(suggestions, bslQuery.values, null)
+      expect(suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(suggestions.some(suggest => suggest.label === "Справочник"), true);
+      assert.equal(suggestions.some(suggest => suggest.label === "ВидДвиженияБухгалтерии"), true);
+
+      bsl = helper("ЗНАЧЕНИЕ(Справочник.");
+      suggestions = [];
+      bsl.getQueryValuesCompletition(suggestions, bslQuery.values, null)
+      expect(suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(suggestions.some(suggest => suggest.label === "Товары"), true);
+
+      bsl = helper("ЗНАЧЕНИЕ(Справочник.Товары.");
+      suggestions = [];
+      bsl.getQueryValuesCompletition(suggestions, bslQuery.values, null)
+      expect(suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(suggestions.some(suggest => suggest.label === "ПустаяСсылка"), true);
+      assert.equal(suggestions.some(suggest => suggest.label === "Услуга"), true);
+      
+      switchDCSMode();
+
+    });
+
+    it("проверка подсказки функций и ключевых слов запроса в зависимости от версии 1С", function () {
+
+      init('8.3.15.1');
+
+      bsl = helper('Сокр');
+        
+      suggestions = bsl.getQueryCompletition();
+      expect(suggestions).to.be.an('array').that.is.empty;
+
+      bsl = helper('Групп');
+        
+      suggestions = bsl.getQueryCompletition();
+      expect(suggestions).to.be.an('array').that.is.empty;
+
+      init('8.3.20.1')     
+      
+      bsl = helper('Сокр'); 
+
+      suggestions = bsl.getQueryCompletition();
+      expect(suggestions).to.be.an('object');
+      expect(suggestions.suggestions).to.be.an('array').that.is.not.empty;
+      assert.equal(suggestions.suggestions.some(suggest => suggest.label === "СОКРЛП"), true);
+
+      bsl = helper('Групп');
+        
+      suggestions = bsl.getQueryCompletition();
+      expect(suggestions).to.be.an('object');
+      expect(suggestions.suggestions).to.be.an('array').that.is.not.empty;
+      assert.equal(suggestions.suggestions.some(suggest => suggest.label === "ГРУППИРУЮЩИМ"), true);
+      
+
     });
 
     switchQueryMode();

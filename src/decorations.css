@@ -3,7 +3,151 @@
 }
 
 .error-mark {
-	background: #ff0000;	
-	width: 5px !important;			
-	margin-left: 3px;	
+	width: 0 !important;
+	height: 0 !important;
+    margin-left: 7px;
+    top: 3px !important;
+	border-top: 7px solid transparent;
+	border-left: 14px solid #ff0000;
+	border-bottom: 7px solid transparent;
+}
+
+.bookmark {
+	background: #7e96a8;
+    width: 15px !important;
+    height: 15px !important;
+    left: 4px !important;
+    top: 3px !important;
+    border-radius: 20%;	
+}
+
+.statusbar-widget {
+	background: #028fef;
+	color: #fff;
+}
+
+.editor-widget.find-widget.visible {
+	min-height: 33px;
+}
+
+.editor-widget.find-widget.visible .input {
+	min-height: 24px;
+}
+
+.editor-widget.find-widget.visible.replaceToggled {
+	min-height: 62px;
+}
+
+.suggest-widget .monaco-list .monaco-list-row .inactive-detail {
+	display: inline !important;
+	color: #b3b3b3;
+}
+
+.suggest-widget .monaco-list .monaco-list-row .readMore.inactive-more {
+	display: inline !important;
+	visibility: visible !important;
+}
+
+.diff-navi {
+	border-left: 3px solid;	
+	width: 10px !important;
+	margin-left: 5px;
+	cursor: pointer;
+}
+
+.diff-navi:hover {
+	border-left: 9px solid;
+	margin-left: 2px;
+	cursor: pointer;
+	transition: all .25s;
+}
+
+.diff-new {
+	border-color: #10aa00;
+}
+
+.diff-new:hover {		
+	border-color: #10aa00;
+}
+
+.diff-changed {
+	border-color: #f8a62b;
+}
+
+.diff-changed:hover {	
+	border-color: #f8a62b;	
+}
+
+.diff-removed {
+	border-color: #dd0000;
+}
+
+.diff-removed:hover {	
+	border-color: #dd0000;	
+}
+
+.diff-close {
+	position: absolute;
+	right: 0;
+	top: 3px;
+	width: 15px;
+	height: 20px;
+	opacity: 0.3;
+	cursor: pointer;
+}
+
+.diff-close:hover {
+	opacity: 1;	
+}
+
+.diff-close:before, .diff-close:after {
+	position: absolute;	
+	content: ' ';
+	height: 15px;
+	width: 2px;
+	background-color: #333;
+}
+
+.dark .diff-close:before, .dark .diff-close:after {
+	background-color: #fff;
+}
+
+.diff-close:before {
+	transform: rotate(45deg);
+}
+
+.diff-close:after {
+	transform: rotate(-45deg);
+}
+
+.diff-header {
+	font-size: 12px;
+	padding-left: 5px;
+	border-left: 1px solid;
+	border-right: 1px solid;
+	border-top: 1px solid;
+	height: 20px;
+	background-color: #fff;
+}
+
+.diff-header.dark {
+	background-color: #1e1e1e;
+	color: #9b9b9b;
+}
+
+.diff-body {
+	border: 1px solid;
+	height: 100%;
+}
+
+.new-block {		
+	border-color: #10aa00;	
+}
+
+.changed-block {		
+	border-color: #f8a62b;	
+}
+
+.removed-block {		
+	border-color: #dd0000;	
 }
