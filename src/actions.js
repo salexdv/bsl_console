@@ -1,297 +1,297 @@
-define(['vs/editor/editor.main'], function () {
+const monaco = require('monaco-editor/esm/vs/editor/editor.api');
 
-    getSortedBookmarks = function () {
+window.getSortedBookmarks = function () {
 
-        return new Map([...editor.bookmarks.entries()].sort((a, b) => a[0] - b[0]));
+    return new Map([...editor.bookmarks.entries()].sort((a, b) => a[0] - b[0]));
 
-    }
+}
 
-    updateBookmarks = function (line) {
+window.updateBookmarks = function (line) {
 
-        if (line != undefined) {
+    if (line != undefined) {
 
-            let bookmark = editor.bookmarks.get(line);
+        let bookmark = window.editor.bookmarks.get(line);
 
-            if (bookmark) {
-                editor.bookmarks.delete(line);
-            }
-            else {
-                bookmark = { range: new monaco.Range(line, 1, line), options: { isWholeLine: true, linesDecorationsClassName: 'bookmark' } };
-                editor.bookmarks.set(line, bookmark);
-            }
-
+        if (bookmark) {
+            window.editor.bookmarks.delete(line);
+        }
+        else {
+            bookmark = { range: new monaco.Range(line, 1, line), options: { isWholeLine: true, linesDecorationsClassName: 'bookmark' } };
+            window.editor.bookmarks.set(line, bookmark);
         }
 
-        editor.updateDecorations([]);        
-
     }
 
-    function goToCurrentBookmark(sorted_bookmarks) {
+    window.editor.updateDecorations([]);        
 
-        let idx = 0;
-        let count = getLineCount();
+}
 
-        sorted_bookmarks.forEach(function (value, key) {
-            if (idx == currentBookmark && key <= count) {
-                editor.revealLineInCenter(key);
-                editor.setPosition(new monaco.Position(key, 1));
-            }
-            idx++;
-        });
+function goToCurrentBookmark(sorted_bookmarks) {
 
-    }
+    let idx = 0;
+    let count = window.getLineCount();
 
-    goNextBookmark = function () {
+    sorted_bookmarks.forEach(function (value, key) {
+        if (idx == window.currentBookmark && key <= count) {
+            window.editor.revealLineInCenter(key);
+            window.editor.setPosition(new monaco.Position(key, 1));
+        }
+        idx++;
+    });
 
-        let sorted_bookmarks = getSortedBookmarks();
+}
 
-        if (sorted_bookmarks.size - 1 <= currentBookmark)
-            currentBookmark = -1;
+window.goNextBookmark = function () {
 
-        currentBookmark++;
-        goToCurrentBookmark(sorted_bookmarks);
+    let sorted_bookmarks = window.getSortedBookmarks();
 
-    }
+    if (sorted_bookmarks.size - 1 <= window.currentBookmark)
+        window.currentBookmark = -1;
 
-    goPreviousBookmark = function () {
+    window.currentBookmark++;
+    goToCurrentBookmark(sorted_bookmarks);
 
-        let sorted_bookmarks = getSortedBookmarks();
+}
 
-        currentBookmark--;
+window.goPreviousBookmark = function () {
 
-        if (currentBookmark < 0)
-            currentBookmark = sorted_bookmarks.size - 1;
+    let sorted_bookmarks = window.getSortedBookmarks();
 
-        goToCurrentBookmark(sorted_bookmarks);
+    window.currentBookmark--;
 
-    }
+    if (window.currentBookmark < 0)
+        window.currentBookmark = sorted_bookmarks.size - 1;
 
-    getActions = function(version1C) {
+    goToCurrentBookmark(sorted_bookmarks);
 
-        let actions = {};
+}
 
-        if (!editor.disableContextCommands) {
+let getActions = function(version1C) {
 
-            let overrideCopyPaste = true;
+    let actions = {};
 
-            const verArray = version1C.split('.');
+    if (!window.editor.disableContextCommands) {
 
-            if (3 < verArray.length) {
-                overrideCopyPaste = !((8 <= parseInt(verArray[0])) && (3 <= parseInt(verArray[1])) && (18 <= parseInt(verArray[2])));
-            }
+        let overrideCopyPaste = true;
 
-            overrideCopyPaste = false;
+        const verArray = version1C.split('.');
 
-            if (overrideCopyPaste) {
-                actions.copy_bsl = {
-                    label: 'Копировать',
-                    key: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_C,
-                    cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_C),
-                    order: 1.1,
-                    callback: function (ed) {
-                        selectionText = editor.getModel().getValueInRange(editor.getSelection());
-                        return null;
-                    }
-                };
-                actions.paste_bsl = {
-                    label: 'Вставить',
-                    key: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_V,
-                    cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_V),
-                    order: 1.2,
-                    callback: function (ed) {
-                        setText(selectionText, null, false);
-                        return null;
-                    }
-                };
-            }
+        if (3 < verArray.length) {
+            overrideCopyPaste = !((8 <= parseInt(verArray[0])) && (3 <= parseInt(verArray[1])) && (18 <= parseInt(verArray[2])));
+        }
 
-            if (!DCSMode && !editor.disableContextQueryConstructor) {
+        overrideCopyPaste = false;
 
-                actions.query_bsl = {
-                    label: 'Конструктор запроса...',
-                    key: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_D,
-                    cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_D),
-                    order: 1.3,
-                    callback: function (ed) {
-                        sendEvent('EVENT_QUERY_CONSTRUCT', queryMode ? getText() : getQuery());
-                        return null;
-                    }
-                };
-
-            }
-
-            actions.comment_bsl = {
-                label: 'Добавить комментарий',
-                key: monaco.KeyMod.CtrlCmd | monaco.KeyCode.NUMPAD_DIVIDE,
-                cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.NUMPAD_DIVIDE),
-                order: 1.5,
+        if (overrideCopyPaste) {
+            actions.copy_bsl = {
+                label: 'Копировать',
+                key: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_C,
+                cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_C),
+                order: 1.1,
                 callback: function (ed) {
-                    addComment();
+                    window.selectionText = window.editor.getModel().getValueInRange(window.editor.getSelection());
+                    return null;
+                }
+            };
+            actions.paste_bsl = {
+                label: 'Вставить',
+                key: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_V,
+                cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_V),
+                order: 1.2,
+                callback: function (ed) {
+                    window.setText(window.selectionText, null, false);
+                    return null;
+                }
+            };
+        }
+
+        if (!window.DCSMode && !window.editor.disableContextQueryConstructor) {
+
+            actions.query_bsl = {
+                label: 'Конструктор запроса...',
+                key: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_D,
+                cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_D),
+                order: 1.3,
+                callback: function (ed) {
+                    window.sendEvent('EVENT_QUERY_CONSTRUCT', window.queryMode ? window.getText() : window.getQuery());
                     return null;
                 }
             };
 
-            actions.uncomment_bsl = {
-                label: 'Удалить комментарий',
-                key: monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.NUMPAD_DIVIDE,
-                cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.NUMPAD_DIVIDE),
-                order: 1.6,
+        }
+
+        actions.comment_bsl = {
+            label: 'Добавить комментарий',
+            key: monaco.KeyMod.CtrlCmd | monaco.KeyCode.NUMPAD_DIVIDE,
+            cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.NUMPAD_DIVIDE),
+            order: 1.5,
+            callback: function (ed) {
+                window.addComment();
+                return null;
+            }
+        };
+
+        actions.uncomment_bsl = {
+            label: 'Удалить комментарий',
+            key: monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.NUMPAD_DIVIDE,
+            cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.NUMPAD_DIVIDE),
+            order: 1.6,
+            callback: function (ed) {
+                window.removeComment();
+                return null;
+            }
+        };
+
+        if (!window.queryMode && !window.DCSMode) {
+
+            actions.formatstr_bsl = {
+                label: 'Конструктор форматной строки...',
+                key: null,
+                cmd: null,
+                order: 1.4,
                 callback: function (ed) {
-                    removeComment();
+                    window.sendEvent('EVENT_FORMAT_CONSTRUCT', window.getFormatString());
                     return null;
                 }
             };
 
-            if (!queryMode && !DCSMode) {
+            actions.format_bsl = {
+                label: 'Форматировать',
+                key: monaco.KeyMod.Alt | monaco.KeyMod.Shift | monaco.KeyCode.KEY_F,
+                cmd: monaco.KeyMod.chord(monaco.KeyMod.Alt | monaco.KeyMod.Shift | monaco.KeyCode.KEY_F),
+                order: 1.7,
+                callback: function (ed) {
+                    window.editor.trigger('', 'editor.action.formatDocument');
+                    return null;
+                }
+            };
 
-                actions.formatstr_bsl = {
-                    label: 'Конструктор форматной строки...',
-                    key: null,
-                    cmd: null,
-                    order: 1.4,
-                    callback: function (ed) {
-                        sendEvent('EVENT_FORMAT_CONSTRUCT', getFormatString());
-                        return null;
-                    }
-                };
+            actions.wordwrap_bsl = {
+                label: 'Добавить перенос строки',
+                order: 1.8,
+                callback: function (ed) {
+                    window.addWordWrap();
+                    return null;
+                }
+            };
 
-                actions.format_bsl = {
-                    label: 'Форматировать',
-                    key: monaco.KeyMod.Alt | monaco.KeyMod.Shift | monaco.KeyCode.KEY_F,
-                    cmd: monaco.KeyMod.chord(monaco.KeyMod.Alt | monaco.KeyMod.Shift | monaco.KeyCode.KEY_F),
-                    order: 1.7,
-                    callback: function (ed) {
-                        editor.trigger('', 'editor.action.formatDocument');
-                        return null;
-                    }
-                };
-
-                actions.wordwrap_bsl = {
-                    label: 'Добавить перенос строки',
-                    order: 1.8,
-                    callback: function (ed) {
-                        addWordWrap();
-                        return null;
-                    }
-                };
-
-                actions.unwordwrap_bsl = {
-                    label: 'Удалить перенос строки',
-                    order: 1.8,
-                    callback: function (ed) {
-                        removeWordWrap();
-                        return null;
-                    }
-                };
-
-            }
-
-            if (!DCSMode) {
-
-                actions.add_bookmark_bsl = {
-                    label: 'Установить/удалить закладку',
-                    key: monaco.KeyMod.Alt | monaco.KeyCode.F2,
-                    cmd: monaco.KeyMod.chord(monaco.KeyMod.Alt | monaco.KeyCode.F2),
-                    order: 1.9,
-                    callback: function (ed) {
-                        let line = getCurrentLine();
-                        updateBookmarks(line);
-                        return null;
-                    }
-                };
-
-                actions.next_bookmark_bsl = {
-                    label: 'Следующая закладка',
-                    key: monaco.KeyCode.F2,
-                    cmd: monaco.KeyMod.chord(monaco.KeyCode.F2),
-                    order: 2.0,
-                    callback: function (ed) {
-                        goNextBookmark();
-                        return null;
-                    }
-                };
-
-            }
+            actions.unwordwrap_bsl = {
+                label: 'Удалить перенос строки',
+                order: 1.8,
+                callback: function (ed) {
+                    window.removeWordWrap();
+                    return null;
+                }
+            };
 
         }
-        
-        return actions;
+
+        if (!window.DCSMode) {
+
+            actions.add_bookmark_bsl = {
+                label: 'Установить/удалить закладку',
+                key: monaco.KeyMod.Alt | monaco.KeyCode.F2,
+                cmd: monaco.KeyMod.chord(monaco.KeyMod.Alt | monaco.KeyCode.F2),
+                order: 1.9,
+                callback: function (ed) {
+                    let line = window.getCurrentLine();
+                    window.updateBookmarks(line);
+                    return null;
+                }
+            };
+
+            actions.next_bookmark_bsl = {
+                label: 'Следующая закладка',
+                key: monaco.KeyCode.F2,
+                cmd: monaco.KeyMod.chord(monaco.KeyCode.F2),
+                order: 2.0,
+                callback: function (ed) {
+                    window.goNextBookmark();
+                    return null;
+                }
+            };
+
+        }
 
     }
+    
+    return actions;
 
-    permanentActions = {
-        saveref: {
-            label: 'Сохранение ссылки, на которую указывает конкретная позиция',
-            description: 'Служебное действие. Используется для подсказки любых ссылочных реквизитов через точку',
-            key: 0,
-            cmd: 0,
-            order: 0,
-            callback: function (e, obj) {                                
-                if (obj && obj.hasOwnProperty('data')) {
-                    let position = editor.getPosition();
-                    let lineContextData = contextData.get(position.lineNumber);
-                    if (!lineContextData) {
-                        contextData.set(position.lineNumber, new Map());
-                    }
-                    lineContextData = contextData.get(position.lineNumber);
-                    lineContextData.set(obj.name.toLowerCase(), obj.data);
+}
+
+let permanentActions = {
+    saveref: {
+        label: 'Сохранение ссылки, на которую указывает конкретная позиция',
+        description: 'Служебное действие. Используется для подсказки любых ссылочных реквизитов через точку',
+        key: 0,
+        cmd: 0,
+        order: 0,
+        callback: function (e, obj) {                                
+            if (obj && obj.hasOwnProperty('data')) {
+                let position = window.editor.getPosition();
+                let lineContextData = window.contextData.get(position.lineNumber);
+                if (!lineContextData) {
+                    window.contextData.set(position.lineNumber, new Map());
                 }
-                return null;
+                lineContextData = window.contextData.get(position.lineNumber);
+                lineContextData.set(obj.name.toLowerCase(), obj.data);
             }
-        },
-        requestMetadata: {
-            label: 'Запрос динамического обновления метаданных',
-            description: 'Служебное действие. Используется для запроса метаданных справочника/документа и т.п. при выборе его из списка подсказок',
-            key: 0,
-            cmd: 0,
-            order: 0,
-            callback: function (e, obj) {                                
-                if (obj && obj.hasOwnProperty('metadata')) {
-                    requestMetadata(obj.metadata);
-                }
-                return null;
+            return null;
+        }
+    },
+    requestMetadata: {
+        label: 'Запрос динамического обновления метаданных',
+        description: 'Служебное действие. Используется для запроса метаданных справочника/документа и т.п. при выборе его из списка подсказок',
+        key: 0,
+        cmd: 0,
+        order: 0,
+        callback: function (e, obj) {                                
+            if (obj && obj.hasOwnProperty('metadata')) {
+                window.requestMetadata(obj.metadata);
             }
-        },
-        delLine: {
-            label: 'Удалить текущую строку',
-            key: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_L,
-            cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_L),
-            order: 0,
-            callback: function (ed) {
-                editor.trigger('', 'editor.action.deleteLines', {})
-                return null;
-            }
-        },
-        jumpToBracketOpen: {
-            label: 'Перейти к скобке',
-            key: monaco.KeyMod.CtrlCmd | monaco.KeyCode.US_OPEN_SQUARE_BRACKET,
-            cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.US_OPEN_SQUARE_BRACKET),
-            order: 0,
-            callback: function (ed) {
-                jumpToBracket();
-                return null;
-            }
-        },
-        jumpToBracketClose: {
-            label: 'Перейти к скобке',
-            key: monaco.KeyMod.CtrlCmd | monaco.KeyCode.US_CLOSE_SQUARE_BRACKET,
-            cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.US_CLOSE_SQUARE_BRACKET),
-            order: 0,
-            callback: function (ed) {
-                jumpToBracket();
-                return null;
-            }
-        },
-        selectToBracket: {
-            label: 'Выделить скобки и текст между ними',
-            key: monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.KEY_B,
-            cmd: monaco.KeyMod.chord(monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.KEY_B),
-            order: 0,
-            callback: function (ed) {
-                selectToBracket();
-                return null;
-            }
+            return null;
+        }
+    },
+    delLine: {
+        label: 'Удалить текущую строку',
+        key: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_L,
+        cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_L),
+        order: 0,
+        callback: function (ed) {
+            window.editor.trigger('', 'editor.action.deleteLines', {})
+            return null;
+        }
+    },
+    jumpToBracketOpen: {
+        label: 'Перейти к скобке',
+        key: monaco.KeyMod.CtrlCmd | monaco.KeyCode.US_OPEN_SQUARE_BRACKET,
+        cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.US_OPEN_SQUARE_BRACKET),
+        order: 0,
+        callback: function (ed) {
+            window.jumpToBracket();
+            return null;
+        }
+    },
+    jumpToBracketClose: {
+        label: 'Перейти к скобке',
+        key: monaco.KeyMod.CtrlCmd | monaco.KeyCode.US_CLOSE_SQUARE_BRACKET,
+        cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.US_CLOSE_SQUARE_BRACKET),
+        order: 0,
+        callback: function (ed) {
+            window.jumpToBracket();
+            return null;
+        }
+    },
+    selectToBracket: {
+        label: 'Выделить скобки и текст между ними',
+        key: monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.KEY_B,
+        cmd: monaco.KeyMod.chord(monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.KEY_B),
+        order: 0,
+        callback: function (ed) {
+            window.selectToBracket();
+            return null;
         }
     }
+}
 
-});
+export { getActions, permanentActions };

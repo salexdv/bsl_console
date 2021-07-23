@@ -1,9 +1,10 @@
+import bslHelper from './bsl_helper';
 
-describe("Проверка автокомлита и подсказок редактора кода", function () {
+setTimeout(() => {
 
-  require(['editor'], function () {
+  describe("Проверка автокомлита и подсказок редактора кода", function () {
 
-    init('8.3.18.1');
+    window.init('8.3.18.1');
 
     var assert = chai.assert;
     var expect = chai.expect;
@@ -52,11 +53,11 @@ describe("Проверка автокомлита и подсказок реда
     let bsl = helper('', 1, 1);
     
     it("проверка существования глобальной переменной editor", function () {
-      assert.notEqual(editor, undefined);
+      assert.notEqual(window.editor, undefined);
     });
 
     it("проверка загрузки bslMetadata", function () {
-      assert.notEqual(bslMetadata, undefined);
+      assert.notEqual(window.bslMetadata, undefined);
     });
     
     it("проверка подсказки ключевых слов запроса", function () {
@@ -69,7 +70,7 @@ describe("Проверка автокомлита и подсказок реда
 
     it("проверка подсказки параметров для функции запроса", function () {                                                     
       bsl = helper('РАЗНОСТЬДАТ(');
-      let help = bsl.getCommonSigHelp(bslQuery.functions);
+      let help = bsl.getCommonSigHelp(window.bslQuery.functions);
       expect(help).to.have.property('activeParameter');              
     });
 
@@ -92,13 +93,13 @@ describe("Проверка автокомлита и подсказок реда
     it("проверка подсказки ссылочных реквизитов", function () {              	                                
       bsl = helper('Товары.СтавкаНДС.');      
       let suggestions = [];
-      contextData = new Map([
+      window.contextData = new Map([
         [1, new Map([["ставкандс", { "ref": "catalogs.СтавкиНДС", "sig": null }]])]
       ]);
       bsl.getRefCompletition(suggestions);
       expect(suggestions).to.be.an('array').that.not.is.empty;
       assert.equal(suggestions.some(suggest => suggest.label === "Ставка"), true);
-      contextData = new Map();
+      window.contextData = new Map();
     });
 
     it("проверка подсказки для таблицы запроса", function () {
@@ -164,27 +165,27 @@ describe("Проверка автокомлита и подсказок реда
       
       bsl = helper("ЗНАЧЕНИЕ(");
       let suggestions = [];
-      bsl.getQueryValuesCompletition(suggestions, bslQuery.values, null)
+      bsl.getQueryValuesCompletition(suggestions, window.bslQuery.values, null)
       expect(suggestions).to.be.an('array').that.not.is.empty;
       assert.equal(suggestions.some(suggest => suggest.label === "Справочник"), true);
       assert.equal(suggestions.some(suggest => suggest.label === "ВидДвиженияБухгалтерии"), true);
 
       bsl = helper("ЗНАЧЕНИЕ(Справочник.");
       suggestions = [];
-      bsl.getQueryValuesCompletition(suggestions, bslQuery.values, null)
+      bsl.getQueryValuesCompletition(suggestions, window.bslQuery.values, null)
       expect(suggestions).to.be.an('array').that.not.is.empty;
       assert.equal(suggestions.some(suggest => suggest.label === "Товары"), true);
 
       bsl = helper("ЗНАЧЕНИЕ(Справочник.Товары.");
       suggestions = [];
-      bsl.getQueryValuesCompletition(suggestions, bslQuery.values, null)
+      bsl.getQueryValuesCompletition(suggestions, window.bslQuery.values, null)
       expect(suggestions).to.be.an('array').that.not.is.empty;
       assert.equal(suggestions.some(suggest => suggest.label === "ПустаяСсылка"), true);
       assert.equal(suggestions.some(suggest => suggest.label === "Услуга"), true);
 
       bsl = helper("ЗНАЧЕНИЕ(ВидДвиженияБухгалтерии.");
       suggestions = [];
-      bsl.getQueryValuesCompletition(suggestions, bslQuery.values, null)
+      bsl.getQueryValuesCompletition(suggestions, window.bslQuery.values, null)
       expect(suggestions).to.be.an('array').that.not.is.empty;
       assert.equal(suggestions.some(suggest => suggest.label === "Дебет"), true);
 
@@ -285,7 +286,7 @@ describe("Проверка автокомлита и подсказок реда
       bsl = helper(`ВЫБРАТЬ
       Товары.СтавкаНДС.
       ИЗ      
-      Справочник.Товары КАК Товары`, 2, 24);      
+      Справочник.Товары КАК Товары`, 2, 22);
       let suggestions = [];
       bsl.getQueryFieldsCompletition(suggestions);
       expect(suggestions).to.be.an('array').that.not.is.empty;
@@ -293,58 +294,58 @@ describe("Проверка автокомлита и подсказок реда
     });
 
     it("проверка подсказки для функций в режим СКД ", function () {
-      switchDCSMode();
+      window.switchDCSMode();
       bsl = helper("ВычислитьВыражениеСГрупп");                  
-      result = bsl.getDCSCompletition();
+      let result = bsl.getDCSCompletition();
       expect(result.suggestions).to.be.an('array').that.not.is.empty;
       assert.equal(result.suggestions.some(suggest => suggest.label === "ВычислитьВыражениеСГруппировкойМассив"), true);
-      switchDCSMode();
+      window.switchDCSMode();
     });
 
     it("проверка подсказки ключевых слов в режим СКД ", function () {
-      switchDCSMode();
+      window.switchDCSMode();
       bsl = helper("ТОГ");                  
-      result = bsl.getDCSCompletition();
+      let result = bsl.getDCSCompletition();
       expect(result.suggestions).to.be.an('array').that.not.is.empty;
       assert.equal(result.suggestions.some(suggest => suggest.label === "Тогда"), true);
-      switchDCSMode();
+      window.switchDCSMode();
     });
 
     it("проверка подсказки для функции ЗНАЧЕНИЕ в режиме СКД", function () {
       
-      switchDCSMode();
+      window.switchDCSMode();
       
       bsl = helper("ЗНАЧЕНИЕ(");
       let suggestions = [];
-      bsl.getQueryValuesCompletition(suggestions, bslQuery.values, null)
+      bsl.getQueryValuesCompletition(suggestions, window.bslQuery.values, null)
       expect(suggestions).to.be.an('array').that.not.is.empty;
       assert.equal(suggestions.some(suggest => suggest.label === "Справочник"), true);
       assert.equal(suggestions.some(suggest => suggest.label === "ВидДвиженияБухгалтерии"), true);
 
       bsl = helper("ЗНАЧЕНИЕ(Справочник.");
       suggestions = [];
-      bsl.getQueryValuesCompletition(suggestions, bslQuery.values, null)
+      bsl.getQueryValuesCompletition(suggestions, window.bslQuery.values, null)
       expect(suggestions).to.be.an('array').that.not.is.empty;
       assert.equal(suggestions.some(suggest => suggest.label === "Товары"), true);
 
       bsl = helper("ЗНАЧЕНИЕ(Справочник.Товары.");
       suggestions = [];
-      bsl.getQueryValuesCompletition(suggestions, bslQuery.values, null)
+      bsl.getQueryValuesCompletition(suggestions, window.bslQuery.values, null)
       expect(suggestions).to.be.an('array').that.not.is.empty;
       assert.equal(suggestions.some(suggest => suggest.label === "ПустаяСсылка"), true);
       assert.equal(suggestions.some(suggest => suggest.label === "Услуга"), true);
       
-      switchDCSMode();
+      window.switchDCSMode();
 
     });
 
     it("проверка подсказки функций и ключевых слов запроса в зависимости от версии 1С", function () {
 
-      init('8.3.15.1');
+      window.init('8.3.15.1');
 
       bsl = helper('Сокр');
         
-      suggestions = bsl.getQueryCompletition();
+      let suggestions = bsl.getQueryCompletition();
       expect(suggestions).to.be.an('array').that.is.empty;
 
       bsl = helper('Групп');
@@ -352,7 +353,7 @@ describe("Проверка автокомлита и подсказок реда
       suggestions = bsl.getQueryCompletition();
       expect(suggestions).to.be.an('array').that.is.empty;
 
-      init('8.3.20.1')     
+      window.init('8.3.20.1')     
       
       bsl = helper('Сокр'); 
 
@@ -371,10 +372,10 @@ describe("Проверка автокомлита и подсказок реда
 
     });
 
-    switchQueryMode();
+    window.switchQueryMode();
         
     mocha.run();
 
-  });
+  })
 
-});
+}, 1000);

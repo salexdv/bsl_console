@@ -35,8 +35,8 @@ class bslHelper {
 		this.lastExpression = this.getLastExpression();
 		this.lastRawExpression = this.getLastRawExpression();
 		
-		this.nameField = engLang ? 'name_en': 'name';
-		this.queryNameField = engLang ? 'query_name_en' : 'query_name';
+		this.nameField = window.engLang ? 'name_en': 'name';
+		this.queryNameField = window.engLang ? 'query_name_en' : 'query_name';
 		this.token = this.getLastToken();
 
 	}
@@ -60,9 +60,9 @@ class bslHelper {
 
 		let lang_id = '';
 
-		if (queryMode)
+		if (window.queryMode)
 			lang_id = 'bsl_query';
-		else if (DCSMode)
+		else if (window.DCSMode)
 			lang_id = 'dcs_query';
 		else
 			lang_id = 'bsl';
@@ -544,7 +544,7 @@ class bslHelper {
 	 */
 	requireQueryRef() {
 
-		let match = editor.getModel().findPreviousMatch('\\s+(ссылка|refs)\\s+' , editor.getPosition(), true);		
+		let match = window.editor.getModel().findPreviousMatch('\\s+(ссылка|refs)\\s+' , window.editor.getPosition(), true);		
 		return (match && match.range.startLineNumber == this.lineNumber);
 
 	}	
@@ -630,7 +630,7 @@ class bslHelper {
 				}
 				else {
 
-					if ( (key != 'ru' && key != 'en') || (key == 'ru' && !engLang) || (key == 'en' && engLang)) {
+					if ( (key != 'ru' && key != 'en') || (key == 'ru' && !window.engLang) || (key == 'en' && window.engLang)) {
 
 						for (const [inkey, invalue] of Object.entries(value)) {
 							let postfix = '';
@@ -892,7 +892,7 @@ class bslHelper {
 	 * @param {array} suggestions the list of suggestions
 	 * @param {object} obj object from BSL-JSON dictionary
 	 */
-	getSystemEnumSuggestions(suggestions, obj) {
+	 getSystemEnumSuggestions(suggestions, obj) {
 
 		if (obj.hasOwnProperty('values')) {
 
@@ -940,18 +940,18 @@ class bslHelper {
 					let itemName = refArray[0];
 					let subItemName = refArray[1];
 
-					if (queryMode || DCSMode) {
-						if (this.objectHasProperties(bslMetadata, itemName, 'items', subItemName, 'properties'))
-							this.fillSuggestionsForMetadataItem(suggestions, bslMetadata[itemName].items[subItemName]);
-						else if (this.objectHasProperties(bslMetadata, itemName, 'items', subItemName))
-							requestMetadata(itemName + '.' + subItemName);
-						else if (this.objectHasProperties(bslMetadata, itemName, 'items'))
-							requestMetadata(itemName);						
+					if (window.queryMode || window.DCSMode) {
+						if (this.objectHasProperties(window.bslMetadata, itemName, 'items', subItemName, 'properties'))
+							this.fillSuggestionsForMetadataItem(suggestions, window.bslMetadata[itemName].items[subItemName]);
+						else if (this.objectHasProperties(window.bslMetadata, itemName, 'items', subItemName))
+							window.requestMetadata(itemName + '.' + subItemName);
+						else if (this.objectHasProperties(window.bslMetadata, itemName, 'items'))
+							window.requestMetadata(itemName);						
 					}
 					else {
 						if (itemName == 'classes' || itemName == 'types') {
-							if (this.objectHasProperties(bslGlobals, itemName, subItemName)) {
-								this.getClassSuggestions(suggestions, bslGlobals[itemName][subItemName]);
+							if (this.objectHasProperties(window.bslGlobals, itemName, subItemName)) {
+								this.getClassSuggestions(suggestions, window.bslGlobals[itemName][subItemName]);
 							}
 						}
 						else if (itemName == 'systemEnum') {
@@ -964,16 +964,16 @@ class bslHelper {
 							let isObject = (refArray.length == 3 && refArray[2] == 'obj');
 							let methodsName = isObject ? 'objMethods' : 'refMethods'
 
-							if (this.objectHasProperties(bslMetadata, itemName, 'items', subItemName, 'properties')) {
-								this.fillSuggestionsForMetadataItem(suggestions, bslMetadata[itemName].items[subItemName]);
-								this.getMetadataMethods(suggestions, bslMetadata[itemName], methodsName, itemName, subItemName);
+							if (this.objectHasProperties(window.bslMetadata, itemName, 'items', subItemName, 'properties')) {
+								this.fillSuggestionsForMetadataItem(suggestions, window.bslMetadata[itemName].items[subItemName]);
+								this.getMetadataMethods(suggestions, window.bslMetadata[itemName], methodsName, itemName, subItemName);
 								if (isObject)
-									this.getMetadataCommmonObjectProperties(suggestions, bslMetadata[itemName]);
+									this.getMetadataCommmonObjectProperties(suggestions, window.bslMetadata[itemName]);
 							}
-							else if (this.objectHasProperties(bslMetadata, itemName, 'items', subItemName))
-								requestMetadata(itemName + '.' + subItemName);
-							else if (this.objectHasProperties(bslMetadata, itemName, 'items'))
-								requestMetadata(itemName);
+							else if (this.objectHasProperties(window.bslMetadata, itemName, 'items', subItemName))
+								window.requestMetadata(itemName + '.' + subItemName);
+							else if (this.objectHasProperties(window.bslMetadata, itemName, 'items'))
+								window.requestMetadata(itemName);
 
 						}
 					}
@@ -1008,7 +1008,7 @@ class bslHelper {
 
 			if (position.lineNumber = currentPosition.lineNumber) {
 
-				let lineContextData = contextData.get(position.lineNumber)
+				let lineContextData = window.contextData.get(position.lineNumber)
 
 				if (lineContextData) {
 
@@ -1050,7 +1050,7 @@ class bslHelper {
 
 						if (match) {
 
-							lineContextData = contextData.get(match.range.startLineNumber);
+							lineContextData = window.contextData.get(match.range.startLineNumber);
 
 							if (lineContextData) {
 								wordContext = lineContextData.get(match.matches[match.matches.length - 1].toLowerCase());
@@ -1145,7 +1145,7 @@ class bslHelper {
 	}
 
 	/**
-	 * Fills the suggestions for objects from bslGlobals 
+	 * Fills the suggestions for objects from window.bslGlobals 
 	 * like classes or types
 	 * 
 	 * @param {array} suggestions the list of suggestions
@@ -1519,7 +1519,7 @@ class bslHelper {
 								}
 								else {
 
-									requestMetadata(metadataName.toLowerCase() + '.' + metadataItem.toLowerCase());
+									window.requestMetadata(metadataName.toLowerCase() + '.' + metadataItem.toLowerCase());
 									
 								}
 							}
@@ -1529,7 +1529,7 @@ class bslHelper {
 					}
 					else {
 
-						requestMetadata(metadataName.toLowerCase());
+						window.requestMetadata(metadataName.toLowerCase());
 
 					}
 
@@ -1704,7 +1704,7 @@ class bslHelper {
 
 							}
 							else {
-								requestMetadata(metadataName);
+								window.requestMetadata(metadataName);
 							}
 
 						}
@@ -1728,11 +1728,11 @@ class bslHelper {
 			}
 
 			if (updateItemNode) {
-				requestMetadata(metadataName + '.' + metadataItem);
+				window.requestMetadata(metadataName + '.' + metadataItem);
 				suggestions = [];
 			}
 			else if (metadataName && metadataExists && !metadataItem && !suggestions.length)				
-				requestMetadata(metadataName);
+				window.requestMetadata(metadataName);
 
 		}
 
@@ -1812,13 +1812,13 @@ class bslHelper {
 	 */
 	setContextDataForRefExpression(expression, ref, line) {
 												
-		let lineContextData = contextData.get(line);
+		let lineContextData = window.contextData.get(line);
 		
 		if (!lineContextData) {
-			contextData.set(line, new Map());
+			window.contextData.set(line, new Map());
 		}
 
-		lineContextData = contextData.get(line);
+		lineContextData = window.contextData.get(line);
 		let data = { "ref": ref, "sig": null };
 		lineContextData.set(expression, data);
 
@@ -1871,7 +1871,7 @@ class bslHelper {
 	 */
 	setContextDataForCustomObjectFromStack(stack, item, index) {
 
-		for (const [key, value] of Object.entries(bslMetadata.customObjects.items)) {
+		for (const [key, value] of Object.entries(window.bslMetadata.customObjects.items)) {
 
 			if (key.toLowerCase() == item.var) {
 
@@ -1910,7 +1910,7 @@ class bslHelper {
 			let metadataName = stack[0].var;
 			let metadataItem = stack[1].var;
 			let metadataFunc = stack[2].var;
-			let result = this.getMetadataItemCompletitionFromFullDefinition(metadata_suggestions, bslMetadata, metadataName, metadataItem, metadataFunc);
+			let result = this.getMetadataItemCompletitionFromFullDefinition(metadata_suggestions, window.bslMetadata, metadataName, metadataItem, metadataFunc);
 			itemExists = result.itemExists;			
 
 			if (itemExists) {
@@ -1977,7 +1977,7 @@ class bslHelper {
 				}
 				if (i == 0) {
 					prev_ref = this.getRefCompletitionFromPosition(metadata_suggestions, position, false);
-					if (!prev_ref && i + 1 < stack.length && bslMetadata.customObjects.hasOwnProperty('items'))
+					if (!prev_ref && i + 1 < stack.length && window.bslMetadata.customObjects.hasOwnProperty('items'))
 						this.setContextDataForCustomObjectFromStack(stack, stack_item, i);
 				}
 				else {					
@@ -2051,9 +2051,9 @@ class bslHelper {
 
 				if (key.toLowerCase() == subType) {
 
-					if (value.hasOwnProperty('ref') && bslMetadata.hasOwnProperty(value.ref) && bslMetadata[value.ref].hasOwnProperty('items')) {
+					if (value.hasOwnProperty('ref') && window.bslMetadata.hasOwnProperty(value.ref) && window.bslMetadata[value.ref].hasOwnProperty('items')) {
 
-						for (const [mkey, mvalue] of Object.entries(bslMetadata[value.ref].items)) {
+						for (const [mkey, mvalue] of Object.entries(window.bslMetadata[value.ref].items)) {
 
 							suggestions.push({
 								label: mkey,
@@ -2118,9 +2118,9 @@ class bslHelper {
 		let funcLine = 0;
 
 		if (currentLine == 0)
-			matches = editor.getModel().findMatches('(?:процедура|функция)\\s+[a-zA-Z0-9\u0410-\u044F_]+\\(([a-zA-Z0-9\u0410-\u044F_,\\s=]+)\\)', true, true, false, null, true);					
+			matches = window.editor.getModel().findMatches('(?:процедура|функция)\\s+[a-zA-Z0-9\u0410-\u044F_]+\\(([a-zA-Z0-9\u0410-\u044F_,\\s=]+)\\)', true, true, false, null, true);					
 		else {
-			funcDef = editor.getModel().findPreviousMatch('(?:процедура|функция)\\s+[a-zA-Z0-9\u0410-\u044F_]+\\(([a-zA-Z0-9\u0410-\u044F_,\\s=]+)\\)', true, true, false, null, true);
+			funcDef = window.editor.getModel().findPreviousMatch('(?:процедура|функция)\\s+[a-zA-Z0-9\u0410-\u044F_]+\\(([a-zA-Z0-9\u0410-\u044F_,\\s=]+)\\)', true, true, false, null, true);
 			if (funcDef) {
 				funcLine = funcDef.range.startLineNumber;
 				matches.push(funcDef);
@@ -2140,7 +2140,7 @@ class bslHelper {
 
 		}
 				
-		matches = editor.getModel().findMatches('(?:перем|var)\\s+([a-zA-Z0-9\u0410-\u044F_,\\s]+);', true, true, false, null, true);
+		matches = window.editor.getModel().findMatches('(?:перем|var)\\s+([a-zA-Z0-9\u0410-\u044F_,\\s]+);', true, true, false, null, true);
 
 		for (let idx = 0; idx < matches.length; idx++) {
 
@@ -2210,7 +2210,7 @@ class bslHelper {
 
 		if (context.triggerCharacter && context.triggerCharacter == ' ') {
 			
-			this.getClassCompletition(suggestions, bslGlobals.classes, true);
+			this.getClassCompletition(suggestions, window.bslGlobals.classes, true);
 
 		}
 		else 
@@ -2224,33 +2224,33 @@ class bslHelper {
 
 					if (!suggestions.length) {
 
-						if (!this.getClassCompletition(suggestions, bslGlobals.classes, false)) {
+						if (!this.getClassCompletition(suggestions, window.bslGlobals.classes, false)) {
 
-							if (!this.getClassCompletition(suggestions, bslGlobals.systemEnum, false)) {
+							if (!this.getClassCompletition(suggestions, window.bslGlobals.systemEnum, false)) {
 
-								if (!this.getMetadataCompletition(suggestions, bslMetadata)) {
+								if (!this.getMetadataCompletition(suggestions, window.bslMetadata)) {
 
 									if (!suggestions.length)
 										this.getVariablesCompetition(suggestions);
 
-									if (engLang)
-										this.getCommonCompletition(suggestions, bslGlobals.keywords, monaco.languages.CompletionItemKind.Keyword, true);
+									if (window.engLang)
+										this.getCommonCompletition(suggestions, window.bslGlobals.keywords, monaco.languages.CompletionItemKind.Keyword, true);
 									else
-										this.getCommonCompletition(suggestions, bslGlobals.keywords, monaco.languages.CompletionItemKind.Keyword, true);
+										this.getCommonCompletition(suggestions, window.bslGlobals.keywords, monaco.languages.CompletionItemKind.Keyword, true);
 
 									if (this.requireClass()) {
-										this.getClassNamesCompletion(suggestions, bslGlobals.classes, false);
+										this.getClassNamesCompletion(suggestions, window.bslGlobals.classes, false);
 									}
 									else {
-										this.getCommonCompletition(suggestions, bslGlobals.globalfunctions, monaco.languages.CompletionItemKind.Function, true);
-										this.getCommonCompletition(suggestions, bslGlobals.globalvariables, monaco.languages.CompletionItemKind.Class, true);
-										this.getCommonCompletition(suggestions, bslGlobals.systemEnum, monaco.languages.CompletionItemKind.Enum, false);
-										this.getCommonCompletition(suggestions, bslGlobals.customFunctions, monaco.languages.CompletionItemKind.Function, true);
-										this.getCommonCompletition(suggestions, bslMetadata.commonModules, monaco.languages.CompletionItemKind.Module, true);
-										this.getCustomObjectsCompletition(suggestions, bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
+										this.getCommonCompletition(suggestions, window.bslGlobals.globalfunctions, monaco.languages.CompletionItemKind.Function, true);
+										this.getCommonCompletition(suggestions, window.bslGlobals.globalvariables, monaco.languages.CompletionItemKind.Class, true);
+										this.getCommonCompletition(suggestions, window.bslGlobals.systemEnum, monaco.languages.CompletionItemKind.Enum, false);
+										this.getCommonCompletition(suggestions, window.bslGlobals.customFunctions, monaco.languages.CompletionItemKind.Function, true);
+										this.getCommonCompletition(suggestions, window.bslMetadata.commonModules, monaco.languages.CompletionItemKind.Module, true);
+										this.getCustomObjectsCompletition(suggestions, window.bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
 									}
 
-									this.getSnippets(suggestions, snippets);
+									this.getSnippets(suggestions, window.snippets);
 
 								}
 
@@ -2267,7 +2267,7 @@ class bslHelper {
 
 			}
 			else {
-				this.getTypesCompletition(suggestions, bslGlobals.types, monaco.languages.CompletionItemKind.Enum);
+				this.getTypesCompletition(suggestions, window.bslGlobals.types, monaco.languages.CompletionItemKind.Enum);
 			}
 
 		}
@@ -2288,7 +2288,7 @@ class bslHelper {
 
 		let suggestions = this.getCustomSuggestions(true);
 
-		if (!suggestions.length && !editor.disableNativeSuggestions) {
+		if (!suggestions.length && !window.editor.disableNativeSuggestions) {
 
 			if (!this.isItStringLiteral()) {				
 				suggestions = this.getCodeCompletition(context, token);
@@ -2343,17 +2343,17 @@ class bslHelper {
 
 					if (key.toLowerCase() == metadataName) {
 
-						if (value.hasOwnProperty('ref') && bslMetadata.hasOwnProperty(value.ref) && bslMetadata[value.ref].hasOwnProperty('items')) {
+						if (value.hasOwnProperty('ref') && window.bslMetadata.hasOwnProperty(value.ref) && window.bslMetadata[value.ref].hasOwnProperty('items')) {
 
 							if (metadataItem) {
 
-								for (const [mkey, mvalue] of Object.entries(bslMetadata[value.ref].items)) {
+								for (const [mkey, mvalue] of Object.entries(window.bslMetadata[value.ref].items)) {
 
 									if (mkey.toLowerCase() == metadataItem) {
 
 										if (value.ref == 'enums' && mvalue.hasOwnProperty('properties')) {
 
-											for (const [ikey, ivalue] of Object.entries(bslMetadata[value.ref].items[mkey].properties)) {
+											for (const [ikey, ivalue] of Object.entries(window.bslMetadata[value.ref].items[mkey].properties)) {
 												suggestions.push({
 													label:  ikey,
 													kind: kind,
@@ -2365,7 +2365,7 @@ class bslHelper {
 										}
 										else if (mvalue.hasOwnProperty('predefined')) {
 											
-											for (const [pkey, pvalue] of Object.entries(bslMetadata[value.ref].items[mkey].predefined)) {
+											for (const [pkey, pvalue] of Object.entries(window.bslMetadata[value.ref].items[mkey].predefined)) {
 												suggestions.push({
 													label:  pvalue ? pvalue : pkey,
 													kind: kind,
@@ -2375,10 +2375,10 @@ class bslHelper {
 											}
 										}
 										else {
-											requestMetadata(bslMetadata[value.ref].name.toLowerCase() + '.' + metadataItem);
+											window.requestMetadata(window.bslMetadata[value.ref].name.toLowerCase() + '.' + metadataItem);
 										}
 
-										let EmptyRef = engLang ? 'EmptyRef' : 'ПустаяСсылка';
+										let EmptyRef = window.engLang ? 'EmptyRef' : 'ПустаяСсылка';
 
 										suggestions.push({
 											label:  EmptyRef,
@@ -2395,12 +2395,12 @@ class bslHelper {
 							else {
 
 
-								if (!Object.keys(bslMetadata[value.ref].items).length) {									
-									requestMetadata(bslMetadata[value.ref].name.toLowerCase());
+								if (!Object.keys(window.bslMetadata[value.ref].items).length) {									
+									window.requestMetadata(window.bslMetadata[value.ref].name.toLowerCase());
 								}
 								else {
 								
-									for (const [mkey, mvalue] of Object.entries(bslMetadata[value.ref].items)) {
+									for (const [mkey, mvalue] of Object.entries(window.bslMetadata[value.ref].items)) {
 
 										suggestions.push({
 											label: mkey,
@@ -2462,7 +2462,7 @@ class bslHelper {
 					if (upperCase)
 						value = value.toUpperCase();
 
-					if (engLang) {
+					if (window.engLang) {
 						if (!/^[A-Za-z]*$/.test(expression))
 							expression = '';
 					}
@@ -2520,13 +2520,13 @@ class bslHelper {
 	 */
 	currentVersionIsMatch(version) {
 
-		return 0 <= this.compareVersions(version1C, version);
+		return 0 <= this.compareVersions(window.version1C, version);
 
 	}
 
 	/**
 	 * Returns query functions depending on current version of 1C
-	 * @param {object} bslQueryDef query definition like bslQuery or bslDCS 
+	 * @param {object} bslQueryDef query definition like window.bslQuery or window.bslDCS 
 	 * @returns {object}
 	 */
 	getQueryFunctions(bslQueryDef) {
@@ -2628,7 +2628,7 @@ class bslHelper {
 		if (word) {
 
 			let values = []			
-			let rules = languages.bsl.languageDef.rules;
+			let rules = window.languages.bsl.languageDef.rules;
 
 			let keywords = this.getQueryKeywords(rules);
 			for (const [key, keyword] of Object.entries(keywords)) {
@@ -2690,7 +2690,7 @@ class bslHelper {
 
 		let subresouces = {};
 
-		if (engLang) {
+		if (window.engLang) {
 
 			if (subTable == 'balance') {
 				subresouces = {				
@@ -2861,7 +2861,7 @@ class bslHelper {
 			let metadataName = sourceArray[1].toLowerCase();
 			let metadataSubtable = (2 < sourceArray.length) ? sourceArray[2].toLowerCase() : '';
 
-			for (const [key, value] of Object.entries(bslMetadata)) {
+			for (const [key, value] of Object.entries(window.bslMetadata)) {
 				
 				if (value.hasOwnProperty(this.queryNameField) && value[this.queryNameField].toLowerCase() == metadataType) {
 				
@@ -2874,7 +2874,7 @@ class bslHelper {
 								if (ivalue.hasOwnProperty('properties'))
 									this.fillSuggestionsForMetadataItemInQuery(suggestions, ivalue, metadataSubtable);
 								else
-									requestMetadata(value.name.toLowerCase() + '.' + ikey.toLowerCase());
+									window.requestMetadata(value.name.toLowerCase() + '.' + ikey.toLowerCase());
 
 							}
 
@@ -2883,7 +2883,7 @@ class bslHelper {
 					}
 					else {
 						
-						requestMetadata(value.name.toLowerCase());
+						window.requestMetadata(value.name.toLowerCase());
 
 					}
 
@@ -3011,13 +3011,13 @@ class bslHelper {
 					
 						if (command_context.hasOwnProperty('data')) {							
 					
-							let lineContextData = contextData.get(this.position.lineNumber);
+							let lineContextData = window.contextData.get(this.position.lineNumber);
 					
 							if (!lineContextData) {
-								contextData.set(this.position.lineNumber, new Map());
+								window.contextData.set(this.position.lineNumber, new Map());
 							}
 
-							lineContextData = contextData.get(this.position.lineNumber);
+							lineContextData = window.contextData.get(this.position.lineNumber);
 							lineContextData.set(field_name, command_context.data);
 							this.getRefCompletition(prev_suggestions);
 
@@ -3105,7 +3105,7 @@ class bslHelper {
 
 		let tables = {};
 
-		if (engLang) {
+		if (window.engLang) {
 
 			if (type == 'periodical') {
 				tables = {				
@@ -3240,7 +3240,7 @@ class bslHelper {
 	
 		let sourceExist = false;
 
-		for (const [key, value] of Object.entries(bslMetadata)) {
+		for (const [key, value] of Object.entries(window.bslMetadata)) {
 
 			if (value.hasOwnProperty(this.queryNameField) && value[this.queryNameField].toLowerCase() == metadataName.toLowerCase()) {
 
@@ -3266,7 +3266,7 @@ class bslHelper {
 
 					}
 					else {
-						requestMetadata(value.name.toLowerCase());
+						window.requestMetadata(value.name.toLowerCase());
 					}
 
 				}
@@ -3295,7 +3295,7 @@ class bslHelper {
 
 		if (startMatch) {
 
-			let matches = editor.getModel().findMatches('(?:поместить|into)\\s+([a-zA-Z0-9\u0410-\u044F_]+)', null, true, false, null, true);
+			let matches = window.editor.getModel().findMatches('(?:поместить|into)\\s+([a-zA-Z0-9\u0410-\u044F_]+)', null, true, false, null, true);
 
 			if (matches) {
 				
@@ -3332,7 +3332,7 @@ class bslHelper {
 
 		let sourceExist = false;
 
-		for (const [key, value] of Object.entries(bslMetadata)) {
+		for (const [key, value] of Object.entries(window.bslMetadata)) {
 
 			if (value.hasOwnProperty(this.queryNameField)) {
 
@@ -3497,9 +3497,9 @@ class bslHelper {
 	}
 
 	/**
-	 * Returns completition array from customSuggestions
+	 * Returns completition array from window.customSuggestions
 	 * 
-	 * @param {bool} erase on not customSuggestions
+	 * @param {bool} erase on not window.customSuggestions
 	 * 
 	 * @returns {array} array of completition
 	 */
@@ -3507,13 +3507,13 @@ class bslHelper {
 
 		let suggestions = [];
 		
-		if (customSuggestions.length) {
+		if (window.customSuggestions.length) {
 			
-			suggestions = customSuggestions.slice();
-			editor.previousCustomSuggestions = [...suggestions];
+			suggestions = window.customSuggestions.slice();
+			window.editor.previousCustomSuggestions = [...suggestions];
 			
 			if (erase)
-				customSuggestions = [];
+				window.customSuggestions = [];
 
 		}
 
@@ -3530,7 +3530,7 @@ class bslHelper {
 
 		let suggestions = this.getCustomSuggestions(true);		
 		
-		if (!suggestions.length && !editor.disableNativeSuggestions) {
+		if (!suggestions.length && !window.editor.disableNativeSuggestions) {
 		
 			if (!this.requireQueryValue()) {
 
@@ -3539,17 +3539,17 @@ class bslHelper {
 					if (!this.getQuerySourceCompletition(suggestions, monaco.languages.CompletionItemKind.Enum)) {
 
 						if (this.lastOperator != '"') {
-							let functions = this.getQueryFunctions(bslQuery);
+							let functions = this.getQueryFunctions(window.bslQuery);
 							this.getCommonCompletition(suggestions, functions, monaco.languages.CompletionItemKind.Function, true);
 							this.getRefCompletition(suggestions);
 							this.getQueryTablesCompletition(suggestions, monaco.languages.CompletionItemKind.Class);
-							this.getCustomObjectsCompletition(suggestions, bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
+							this.getCustomObjectsCompletition(suggestions, window.bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
 						}
 
 						this.getQueryCommonCompletition(suggestions, monaco.languages.CompletionItemKind.Module);
 						this.getQueryParamsCompletition(suggestions, monaco.languages.CompletionItemKind.Enum);				
 						this.getQueryFieldsCompletition(suggestions);
-						this.getSnippets(suggestions, querySnippets);
+						this.getSnippets(suggestions, window.querySnippets);
 
 					}
 
@@ -3563,7 +3563,7 @@ class bslHelper {
 			}
 			else {
 				
-				this.getQueryValuesCompletition(suggestions, bslQuery.values, monaco.languages.CompletionItemKind.Enum);
+				this.getQueryValuesCompletition(suggestions, window.bslQuery.values, monaco.languages.CompletionItemKind.Enum);
 
 			}
 		}
@@ -3584,23 +3584,23 @@ class bslHelper {
 
 		let suggestions = this.getCustomSuggestions(true);
 		
-		if (!suggestions.length && !editor.disableNativeSuggestions) {
+		if (!suggestions.length && !window.editor.disableNativeSuggestions) {
 
 			if (!this.requireQueryValue()) {
 
 				if (this.lastOperator != '"') {
 					this.getFillSuggestionsFromArray(suggestions, languages.bsl.languageDef.rules.DCSExp, monaco.languages.CompletionItemKind.Module, false);
-					let functions = this.getQueryFunctions(bslDCS);
+					let functions = this.getQueryFunctions(window.bslDCS);
 					this.getCommonCompletition(suggestions, functions, monaco.languages.CompletionItemKind.Function, true);
-					this.getCustomObjectsCompletition(suggestions, bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
+					this.getCustomObjectsCompletition(suggestions, window.bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
 					this.getRefCompletition(suggestions);
-					this.getSnippets(suggestions, DCSSnippets);
+					this.getSnippets(suggestions, window.DCSSnippets);
 				}
 
 			}
 			else {
 				
-				this.getQueryValuesCompletition(suggestions, bslQuery.values, monaco.languages.CompletionItemKind.Enum);
+				this.getQueryValuesCompletition(suggestions, window.bslQuery.values, monaco.languages.CompletionItemKind.Enum);
 
 			}
 		}
@@ -3964,7 +3964,7 @@ class bslHelper {
 	}
 
 	/**
-	 * Fills array of completition for snippets	 
+	 * Fills array of completition for window.snippets	 
 	 * 
 	 * @param {array} suggestions array of suggestions for provideCompletionItems
 	 * @param {object} data objects from BSL-JSON dictionary
@@ -4009,7 +4009,7 @@ class bslHelper {
 		
 		if (word) {
 			
-			for (const [key, value] of Object.entries(customSignatures)) {			
+			for (const [key, value] of Object.entries(window.customSignatures)) {			
 		
 				if (key.toLowerCase() == word && value) {
 
@@ -4049,7 +4049,7 @@ class bslHelper {
 
 			if (position.lineNumber = this.lineNumber) {
 
-				let lineContextData = contextData.get(position.lineNumber)
+				let lineContextData = window.contextData.get(position.lineNumber)
 				let wordContext = null;
 
 				if (lineContextData) {
@@ -4090,22 +4090,22 @@ class bslHelper {
 
 			let helper = this.getCustomSigHelp(context);
 
-			if (!editor.disableNativeSignatures) {
+			if (!window.editor.disableNativeSignatures) {
 
 				if (!helper)
 					helper = this.getRefSigHelp();
 
 				if (!helper)
-					helper = this.getMetadataSigHelp(bslMetadata);
+					helper = this.getMetadataSigHelp(window.bslMetadata);
 
 				if (!helper)
-					helper = this.getClassSigHelp(bslGlobals.classes);
+					helper = this.getClassSigHelp(window.bslGlobals.classes);
 
 				if (!helper)
-					helper = this.getCommonSigHelp(bslGlobals.globalfunctions);
+					helper = this.getCommonSigHelp(window.bslGlobals.globalfunctions);
 
 				if (!helper)
-					helper = this.getCommonSigHelp(bslGlobals.customFunctions);
+					helper = this.getCommonSigHelp(window.bslGlobals.customFunctions);
 
 			}
 
@@ -4131,8 +4131,8 @@ class bslHelper {
 			
 			let helper = this.getCustomSigHelp(context);
 
-			if (!helper && !editor.disableNativeSignatures) {
-				let functions = this.getQueryFunctions(bslQuery);
+			if (!helper && !window.editor.disableNativeSignatures) {
+				let functions = this.getQueryFunctions(window.bslQuery);
 				helper = this.getCommonSigHelp(functions);
 			}
 			
@@ -4158,13 +4158,13 @@ class bslHelper {
 
 			let helper = this.getCustomSigHelp(context);
 
-			if (!helper && !editor.disableNativeSignatures) {
+			if (!helper && !window.editor.disableNativeSignatures) {
 
-				let functions = this.getQueryFunctions(bslDCS);
+				let functions = this.getQueryFunctions(window.bslDCS);
 				helper = this.getCommonSigHelp(functions);
 
 				if (!helper) {
-					functions = this.getQueryFunctions(bslQuery);
+					functions = this.getQueryFunctions(window.bslQuery);
 					helper = this.getCommonSigHelp(functions);
 				}
 
@@ -4178,7 +4178,7 @@ class bslHelper {
 	}
 
 	/**
-	 * Updates bslMetadata from JSON-string which
+	 * Updates window.bslMetadata from JSON-string which
 	 * was received from 1C
 	 * 
 	 * @param {string} metadata JSON-string with metadata info
@@ -4193,8 +4193,8 @@ class bslHelper {
 
 			if (path) {
 
-				if (this.objectHasPropertiesFromArray(bslMetadata, path.split('.'))) {
-					this.setObjectProperty(bslMetadata, path, metadataObj);
+				if (this.objectHasPropertiesFromArray(window.bslMetadata, path.split('.'))) {
+					this.setObjectProperty(window.bslMetadata, path, metadataObj);
 					return true;
 				}
 				else {
@@ -4206,7 +4206,7 @@ class bslHelper {
 
 				if (metadataObj.hasOwnProperty('catalogs') || metadataObj.hasOwnProperty('customObjects')) {
 					for (const [key, value] of Object.entries(metadataObj)) {
-						bslMetadata[key].items = value;
+						window.bslMetadata[key].items = value;
 					}
 					return true;
 				}
@@ -4239,13 +4239,13 @@ class bslHelper {
 	}
 
 	/**
-	 * Updates snippets from JSON-string which
+	 * Updates window.snippets from JSON-string which
 	 * was received from 1C
 	 * 
-	 * @param {string} data JSON-string with snippets info
+	 * @param {string} data JSON-string with window.snippets info
 	 * @param {boolean} replace whether or not to replace native snippents
 	 * 
-	 * @returns {true|object} true - snippets was updated, {errorDescription} - not
+	 * @returns {true|object} true - window.snippets was updated, {errorDescription} - not
 	 */
 	static updateSnippets(data, replace) {
 
@@ -4253,17 +4253,17 @@ class bslHelper {
 			let snippetsObj = JSON.parse(this.escapeJSON(data));
 			if (snippetsObj.hasOwnProperty('snippets')) {
 				if (replace) {
-					snippets = snippetsObj.snippets;
+					window.snippets = snippetsObj.snippets;
 				}
 				else {
 					for (const [key, value] of Object.entries(snippetsObj.snippets)) {
-						snippets[key] = value;
+						window.snippets[key] = value;
 					}
 				}
 				return true;
 			}
 			else {
-				throw new TypeError("Wrong structure of snippets");
+				throw new TypeError("Wrong structure of window.snippets");
 			}
 
 		}
@@ -4287,7 +4287,7 @@ class bslHelper {
 		try {			
 			let funcObj = JSON.parse(data);
 			if (funcObj.hasOwnProperty('customFunctions')) {
-				bslGlobals.customFunctions = funcObj.customFunctions;
+				window.bslGlobals.customFunctions = funcObj.customFunctions;
 				return true;
 			}
 			else {
@@ -4470,7 +4470,7 @@ class bslHelper {
 				
     	if (matches) {
 			
-			let last_line = editor.getModel().getLineCount();
+			let last_line = window.editor.getModel().getLineCount();
 
       		for (let idx = 0; idx < matches.length; idx++) {
 				
@@ -4604,7 +4604,7 @@ class bslHelper {
 	 */
 	getCustomHover() {
 
-		for (const [key, value] of Object.entries(customHovers)) {			
+		for (const [key, value] of Object.entries(window.customHovers)) {			
 			
 			if (key.toLowerCase() == this.word && value) {
 				
@@ -4641,9 +4641,9 @@ class bslHelper {
 
 		let hover = this.getCustomHover();
 
-		if (!hover && !editor.disableNativeHovers) {
+		if (!hover && !window.editor.disableNativeHovers) {
 
-			for (const [key, value] of Object.entries(bslGlobals)) {
+			for (const [key, value] of Object.entries(window.bslGlobals)) {
 
 				for (const [ikey, ivalue] of Object.entries(value)) {
 
@@ -4766,7 +4766,7 @@ class bslHelper {
 	 */
 	addPrefix(prefix) {
 
-		let selection = editor.getSelection();
+		let selection = window.editor.getSelection();
 		let minColumn = this.getMinColumn(selection);
 		let oneLine = (selection.startLineNumber == selection.endLineNumber);
 		let maxLine = 0;
@@ -4794,7 +4794,7 @@ class bslHelper {
 		}
 
 		if (0 < maxLine)
-			editor.setSelection(new monaco.Range(selection.startLineNumber, 1, maxLine, this.model.getLineMaxColumn(maxLine)));
+			window.editor.setSelection(new monaco.Range(selection.startLineNumber, 1, maxLine, this.model.getLineMaxColumn(maxLine)));
 
 	}
 
@@ -4806,7 +4806,7 @@ class bslHelper {
 	 */
 	removePrefix(prefix) {
 
-		let selection = editor.getSelection();
+		let selection = window.editor.getSelection();
 		let maxLine = 0;		
 
 		for (let line = selection.startLineNumber; line <= selection.endLineNumber; line++) {
@@ -4840,7 +4840,7 @@ class bslHelper {
 		}		
 
 		if (0 < maxLine)
-			editor.setSelection(new monaco.Range(selection.startLineNumber, 1, maxLine, this.model.getLineMaxColumn(maxLine)));
+			window.editor.setSelection(new monaco.Range(selection.startLineNumber, 1, maxLine, this.model.getLineMaxColumn(maxLine)));
 
 	}
 
@@ -4888,13 +4888,13 @@ class bslHelper {
 	 */
 	static setText(txt, range, usePadding) {
 		
-		let insertRange = range ? range : monaco.Range.fromPositions(editor.getPosition());
+		let insertRange = range ? range : monaco.Range.fromPositions(window.editor.getPosition());
 		let startColumn = insertRange.startColumn;		
 
 		if (usePadding && 1 < startColumn) {
 			// Replacing tab to whitespaces for calculation number of appended tabs/whitespaces
-			let tabSize = editor.getModel().getOptions().tabSize;
-			let valueBefore =  editor.getModel().getValueInRange(
+			let tabSize = window.editor.getModel().getOptions().tabSize;
+			let valueBefore =  window.editor.getModel().getValueInRange(
 				new monaco.Range(insertRange.startLineNumber, 1, insertRange.startLineNumber, startColumn)
 			);
 			if (valueBefore.trim().length == 0) {
@@ -4916,7 +4916,7 @@ class bslHelper {
 				text: txt,
 				forceMoveMarkers: true
 			};
-			editor.executeEdits(txt, [operation]);
+			window.editor.executeEdits(txt, [operation]);
 		}
 
 	}
@@ -5021,25 +5021,25 @@ class bslHelper {
 
 	onProvideHover() {
 
-		if (generateBeforeHoverEvent) {
+		if (window.generateBeforeHoverEvent) {
 			let token = this.getLastToken();
 			let params = {
 				word: this.model.getWordAtPosition(this.position),
 				token: token,
 				line: this.lineNumber,
 				column: this.column,
-				altKey: altPressed,
-				ctrlKey: ctrlPressed,
-				shiftKey: shiftPressed
+				altKey: window.altPressed,
+				ctrlKey: window.ctrlPressed,
+				shiftKey: window.shiftPressed
 			}
-			sendEvent('EVENT_BEFORE_HOVER', params);
+			window.sendEvent('EVENT_BEFORE_HOVER', params);
 		}
 
 	}
 
 	onProvideCompletion(context, completition) {
 
-		if (generateBeforeShowSuggestEvent) {                			
+		if (window.generateBeforeShowSuggestEvent) {                			
 			
 			let rows = [];
 			if (Object.keys(completition).length) {
@@ -5051,7 +5051,7 @@ class bslHelper {
 			let trigger = context.triggerCharacter;
 			
 			if (!trigger) {
-				switch (editor.lastKeyCode) {
+				switch (window.editor.lastKeyCode) {
 					case 1:
 						trigger = 'backspace';
 						break;
@@ -5063,9 +5063,11 @@ class bslHelper {
 				}
 			}
 
-			generateEventWithSuggestData('EVENT_BEFORE_SHOW_SUGGEST', trigger, null, rows);
+			genarateEventWithSuggestData('EVENT_BEFORE_SHOW_SUGGEST', trigger, null, rows);
 		}
 
 	}
 
 }
+
+export default bslHelper;

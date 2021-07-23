@@ -1,9 +1,10 @@
+import bslHelper from './bsl_helper';
 
-describe("Проверка автокомлита и подсказок редактора кода", function () {
+setTimeout(() => {
 
-  require(['editor'], function () {
+  describe("Проверка автокомлита и подсказок редактора кода", function () {
 
-    init('8.3.18.1');
+    window.init('8.3.18.1');
 
     var assert = chai.assert;
     var expect = chai.expect;
@@ -44,7 +45,7 @@ describe("Проверка автокомлита и подсказок реда
     }
 
     let bsl = helper('');
-    let bslLoaded = (bslGlobals != undefined);
+    let bslLoaded = (window.bslGlobals != undefined);
 
     it("проверка загрузки bslGlobals", function () {
       assert.equal(bslLoaded, true);
@@ -53,38 +54,38 @@ describe("Проверка автокомлита и подсказок реда
     if (bslLoaded) {
 
       it("проверка существования глобальной переменной editor", function () {
-        assert.notEqual(editor, undefined);
+        assert.notEqual(window.editor, undefined);
       });
 
       it("проверка определения русского языка", function () {
         assert.equal(bsl.hasRu('тест'), true);
       });
-   
+  
       it("проверка автокомплита для глобальной функции Найти", function () {
         bsl = helper('най');
         let suggestions = [];
-        bsl.getCommonCompletition(suggestions, bslGlobals.globalfunctions, monaco.languages.CompletionItemKind.Function)
+        bsl.getCommonCompletition(suggestions, window.bslGlobals.globalfunctions, monaco.languages.CompletionItemKind.Function)
         expect(suggestions).to.be.an('array').that.not.is.empty;
       });
 
       it("проверка автокомплита для глобальной функции Найти обернутой в функцию", function () {
         bsl = helper('СтрНайти(Най');
         let suggestions = [];
-        bsl.getCommonCompletition(suggestions, bslGlobals.globalfunctions, monaco.languages.CompletionItemKind.Function)
+        bsl.getCommonCompletition(suggestions, window.bslGlobals.globalfunctions, monaco.languages.CompletionItemKind.Function)
         expect(suggestions).to.be.an('array').that.not.is.empty;
       });
 
       it("проверка подсказки параметров для глобальной функции Найти(", function () {
         bsl = helper('Найти(');        
         let suggestions = [];
-        let help = bsl.getCommonSigHelp(bslGlobals.globalfunctions);
+        let help = bsl.getCommonSigHelp(window.bslGlobals.globalfunctions);
         expect(help).to.have.property('activeParameter');
       });
 
       it("проверка подсказки параметров для глобальной функции Найти обернутой в функцию", function () {
         bsl = helper('СтрНайти(Найти(');
         let suggestions = [];
-        let help = bsl.getCommonSigHelp(bslGlobals.globalfunctions);
+        let help = bsl.getCommonSigHelp(window.bslGlobals.globalfunctions);
         expect(help).to.have.property('activeParameter');
       });
 
@@ -92,38 +93,38 @@ describe("Проверка автокомлита и подсказок реда
         bsl = helper('Запрос = Новый HTTPЗа');
         assert.equal(bsl.requireClass(), true);
         let suggestions = [];
-        bsl.getCommonCompletition(suggestions, bslGlobals.classes, monaco.languages.CompletionItemKind.Constructor)
+        bsl.getCommonCompletition(suggestions, window.bslGlobals.classes, monaco.languages.CompletionItemKind.Constructor)        
         expect(suggestions).to.be.an('array').that.not.is.empty;
-        expect(suggestions).to.have.deep.property('[0].label', 'HTTPЗапрос');
+        assert.equal(suggestions.some(suggest => suggest.label === "HTTPЗапрос"), true);
       });
 
       it("проверка автокомплита для конструктора HTTPЗапрос обернутого в функцию", function () {
         bsl = helper('СтрНайти(Новый HTTPЗа');
         assert.equal(bsl.requireClass(), true);
         let suggestions = [];
-        bsl.getCommonCompletition(suggestions, bslGlobals.classes, monaco.languages.CompletionItemKind.Constructor)
+        bsl.getCommonCompletition(suggestions, window.bslGlobals.classes, monaco.languages.CompletionItemKind.Constructor)
         expect(suggestions).to.be.an('array').that.not.is.empty;
-        expect(suggestions).to.have.deep.property('[0].label', 'HTTPЗапрос');
+        assert.equal(suggestions.some(suggest => suggest.label === "HTTPЗапрос"), true);      
       });
 
       it("проверка подсказки параметров для конструктора HTTPЗапрос", function () {
         bsl = helper('Новый HTTPЗапрос(');
         let suggestions = [];
-        let help = bsl.getClassSigHelp(bslGlobals.classes);
+        let help = bsl.getClassSigHelp(window.bslGlobals.classes);
         expect(help).to.have.property('activeParameter');
       });
 
       it("проверка подсказки параметров для конструктора HTTPЗапрос обернутого в функцию", function () {
         bsl = helper('СтрНайти(Новый HTTPЗапрос(');
         let suggestions = [];
-        let help = bsl.getClassSigHelp(bslGlobals.classes);
+        let help = bsl.getClassSigHelp(window.bslGlobals.classes);
         expect(help).to.have.property('activeParameter');
       });
 
       it("проверка автокомплита объекта HTTPЗапрос (список свойств и методов)", function () {
         bsl = helper('HTTPЗапрос.');
         let suggestions = [];
-        bsl.getClassCompletition(suggestions, bslGlobals.classes);
+        bsl.getClassCompletition(suggestions, window.bslGlobals.classes);
         expect(suggestions).to.be.an('array').that.not.is.empty;
         assert.equal(suggestions.some(suggest => suggest.label === "УстановитьПараметр"), false);
       });
@@ -131,7 +132,7 @@ describe("Проверка автокомлита и подсказок реда
       it("проверка автокомплита для экземпляра объекта HTTPЗапрос (список свойств и методов)", function () {
         bsl = helper('Запрос = Новый HTTPЗапрос();\nЗапрос.');
         let suggestions = [];
-        bsl.getClassCompletition(suggestions, bslGlobals.classes);
+        bsl.getClassCompletition(suggestions, window.bslGlobals.classes);
         expect(suggestions).to.be.an('array').that.not.is.empty;
         assert.equal(suggestions.some(suggest => suggest.label === "УстановитьПараметр"), false);
       });      
@@ -139,14 +140,14 @@ describe("Проверка автокомлита и подсказок реда
       it("проверка автокомплита объекта HTTPЗапрос (список свойств и методов) обернутого в функцию", function () {
         bsl = helper('Найти(HTTPЗапрос.');
         let suggestions = [];
-        bsl.getClassCompletition(suggestions, bslGlobals.classes);
+        bsl.getClassCompletition(suggestions, window.bslGlobals.classes);
         expect(suggestions).to.be.an('array').that.not.is.empty;
       });
 
       it("проверка автокомплита метода УстановитьИмяФайлаТела объекта HTTPЗапрос", function () {
         bsl = helper('HTTPЗапрос.УстановитьИмя');
         let suggestions = [];
-        bsl.getClassCompletition(suggestions, bslGlobals.classes);
+        bsl.getClassCompletition(suggestions, window.bslGlobals.classes);
         expect(suggestions).to.be.an('array').that.not.is.empty;
         assert.equal(suggestions.some(suggest => suggest.label === "УстановитьИмяФайлаТела"), true);
       });
@@ -154,7 +155,7 @@ describe("Проверка автокомлита и подсказок реда
       it("проверка автокомплита метода УстановитьИмяФайлаТела объекта HTTPЗапрос обернутого в функцию", function () {
         bsl = helper('Найти(HTTPЗапрос.УстановитьИмя');
         let suggestions = [];
-        bsl.getClassCompletition(suggestions, bslGlobals.classes);
+        bsl.getClassCompletition(suggestions, window.bslGlobals.classes);
         expect(suggestions).to.be.an('array').that.not.is.empty;
         assert.equal(suggestions.some(suggest => suggest.label === "УстановитьИмяФайлаТела"), true);
       });
@@ -162,51 +163,51 @@ describe("Проверка автокомлита и подсказок реда
       it("проверка автокомплита для объекта метаданных 'Справочники'", function () {
         bsl = helper('Товар = Справоч');
         let suggestions = [];
-        bsl.getCommonCompletition(suggestions, bslGlobals.globalvariables, monaco.languages.CompletionItemKind.Class)
+        bsl.getCommonCompletition(suggestions, window.bslGlobals.globalvariables, monaco.languages.CompletionItemKind.Class)
         expect(suggestions).to.be.an('array').that.not.is.empty;
-        expect(suggestions).to.have.deep.property('[0].label', 'Справочники');
+        assert.equal(suggestions.some(suggest => suggest.label === "Справочники"), true);      
       });
 
       it("проверка автокомплита для объекта метаданных 'Справочники.' обернутого в функцию", function () {
         bsl = helper('Найти(Справочн');
         let suggestions = [];
-        bsl.getCommonCompletition(suggestions, bslGlobals.globalvariables, monaco.languages.CompletionItemKind.Class)
-        expect(suggestions).to.be.an('array').that.not.is.empty;
-        expect(suggestions).to.have.deep.property('[0].label', 'Справочники');
+        bsl.getCommonCompletition(suggestions, window.bslGlobals.globalvariables, monaco.languages.CompletionItemKind.Class)
+        expect(suggestions).to.be.an('array').that.not.is.empty;      
+        assert.equal(suggestions.some(suggest => suggest.label === "Справочники"), true);
       });
 
       it("проверка автокомплита для объекта метаданных 'Справочники.' (список справочников)", function () {
         bsl = helper('Товар = Справочники.');
         let suggestions = [];
-        bsl.getMetadataCompletition(suggestions, bslMetadata)
+        bsl.getMetadataCompletition(suggestions, window.bslMetadata)
         expect(suggestions).to.be.an('array').that.not.is.empty;
       });
 
       it("проверка автокомплита для объекта метаданных 'Справочники.' (список справочников) обернутого в функцию", function () {
         bsl = helper('Найти(Справочники.');
         let suggestions = [];
-        bsl.getMetadataCompletition(suggestions, bslMetadata)
+        bsl.getMetadataCompletition(suggestions, window.bslMetadata)
         expect(suggestions).to.be.an('array').that.not.is.empty;
       });
 
       it("проверка автокомплита для объекта метаданных 'Справочники.Товары.' (список функций менеджера)", function () {
         bsl = helper('Товар = Справочники.Товары.');
         let suggestions = [];
-        bsl.getMetadataCompletition(suggestions, bslMetadata)
+        bsl.getMetadataCompletition(suggestions, window.bslMetadata)
         expect(suggestions).to.be.an('array').that.not.is.empty;
       });
 
       it("проверка автокомплита для объекта метаданных 'Справочники.Товары.' (список функций менеджера) обернутого в функцию", function () {
         bsl = helper('Найти(Справочники.Товары.');
         let suggestions = [];
-        bsl.getMetadataCompletition(suggestions, bslMetadata)
+        bsl.getMetadataCompletition(suggestions, window.bslMetadata)
         expect(suggestions).to.be.an('array').that.not.is.empty;
       });
 
       it("проверка автокомплита для элемента справочника 'Товары.' (список реквизитов и функций объекта)", function () {
         bsl = helper('Товар = Справочники.Товары.НайтиПоКоду(1);\nТовар.');
         let suggestions = [];
-        bsl.getMetadataCompletition(suggestions, bslMetadata)
+        bsl.getMetadataCompletition(suggestions, window.bslMetadata)
         expect(suggestions).to.be.an('array').that.not.is.empty;
         assert.equal(suggestions.some(suggest => suggest.label === "Цена"), true);
       });
@@ -214,7 +215,7 @@ describe("Проверка автокомлита и подсказок реда
       it("проверка автокомплита для элемента справочника 'Товары.' (список предопределенных)", function () {
         bsl = helper('Товар = Справочники.Товары.');
         let suggestions = [];
-        bsl.getMetadataCompletition(suggestions, bslMetadata)
+        bsl.getMetadataCompletition(suggestions, window.bslMetadata)
         expect(suggestions).to.be.an('array').that.not.is.empty;
         assert.equal(suggestions.some(suggest => suggest.label === "Услуга"), true);
       });
@@ -222,7 +223,7 @@ describe("Проверка автокомлита и подсказок реда
       it("проверка автокомплита для элемента справочника 'Товары.' (список реквизитов и функций объекта) обернутого в функцию", function () {
         bsl = helper('Товар = Справочники.Товары.НайтиПоКоду(1);\nНайти(Товар.');
         let suggestions = [];
-        bsl.getMetadataCompletition(suggestions, bslMetadata)
+        bsl.getMetadataCompletition(suggestions, window.bslMetadata)
         expect(suggestions).to.be.an('array').that.not.is.empty;
         assert.equal(suggestions.some(suggest => suggest.label === "Цена"), true);
       });
@@ -230,63 +231,63 @@ describe("Проверка автокомлита и подсказок реда
       it("проверка подсказки параметров для метода 'Записать' документа 'АвансовыйОтчет'", function () {
         bsl = helper('Док = Документы.АвансовыйОтчет.НайтиПоНомеру(1);\nДок.Записать(');
         let suggestions = [];
-        let help = bsl.getMetadataSigHelp(bslMetadata);
+        let help = bsl.getMetadataSigHelp(window.bslMetadata);
         expect(help).to.have.property('activeParameter');
       });
 
       it("проверка получения существующего текста запроса", function () {        
-      	editor.setPosition(new monaco.Position(10, 1));
-        assert.notEqual(getQuery(), null);
+        window.editor.setPosition(new monaco.Position(10, 1));
+        assert.notEqual(window.getQuery(), null);
       });
 
       it("проверка получения несуществующего текста запроса", function () {        
-      	editor.setPosition(new monaco.Position(1, 1));
-        assert.equal(getQuery(), null);
+        window.editor.setPosition(new monaco.Position(1, 1));
+        assert.equal(window.getQuery(), null);
       });
 
       it("проверка очистки всего текста", function () {              	
-        let text = editor.getValue();
-        eraseText();
-        assert.equal(editor.getValue(), getText());
-        editor.setValue(text);
-        assert.equal(text, getText());
+        let text = window.editor.getValue();
+        window.eraseText();
+        assert.equal(window.editor.getValue(), window.getText());
+        window.editor.setValue(text);
+        assert.equal(text, window.getText());
       });
 
       it("проверка обновления метаданных", function () {              	                
-        let mCopy = JSON.parse(JSON.stringify(bslMetadata));        
-        assert.notEqual(updateMetadata(123), true);
+        let mCopy = JSON.parse(JSON.stringify(window.bslMetadata));        
+        assert.notEqual(window.updateMetadata(123), true);
         let strJSON = '{"catalogs": {"АвансовыйОтчетПрисоединенныеФайлы": {"properties": {"Автор": "Автор","ВладелецФайла": "Размещение","ДатаМодификацииУниверсальная": "Дата изменения (универсальное время)","ДатаСоздания": "Дата создания","Зашифрован": "Зашифрован","Изменил": "Отредактировал","ИндексКартинки": "Индекс значка","Описание": "Описание","ПодписанЭП": "Подписан электронно","ПутьКФайлу": "Путь к файлу","Размер": "Размер (байт)","Расширение": "Расширение","Редактирует": "Редактирует","СтатусИзвлеченияТекста": "Статус извлечения текста","ТекстХранилище": "Текст","ТипХраненияФайла": "Тип хранения файла","Том": "Том","ФайлХранилище": "Временное хранилище файла","ДатаЗаема": "Дата заема","ХранитьВерсии": "Хранить версии","ИмяПредопределенныхДанных": "","Предопределенный": "","Ссылка": "","ПометкаУдаления": "","Наименование": ""}}}}';                
-        assert.equal(updateMetadata(strJSON), true);
+        assert.equal(window.updateMetadata(strJSON), true);
         bsl = helper('Отчет = Справочники.АвансовыйОтчетПрисоединенныеФайлы.НайтиПоКоду(1);\nОтчет.');
         let suggestions = [];
-        bsl.getMetadataCompletition(suggestions, bslMetadata)        
+        bsl.getMetadataCompletition(suggestions, window.bslMetadata)        
         expect(suggestions).to.be.an('array').that.not.is.empty;
         assert.equal(suggestions.some(suggest => suggest.label === "ДатаМодификацииУниверсальная"), true);
-        bslMetadata = JSON.parse(JSON.stringify(mCopy));
+        window.bslMetadata = JSON.parse(JSON.stringify(mCopy));
       });
 
       it("проверка обновления сниппетов", function () {              	                
-        let sCopy = JSON.parse(JSON.stringify(snippets));        
-        assert.notEqual(updateSnippets(123), true);
+        let sCopy = JSON.parse(JSON.stringify(window.snippets));        
+        assert.notEqual(window.updateSnippets(123), true);
         let strJSON = '{"snippets": { "ЕслиЧто": { "prefix": "Если", "body": "Если ${1:Условие} Тогда\n\t$0\nКонецЕсли;", "description": "ЕслиЧто"}}}';
-        assert.equal(updateSnippets(strJSON), true);
+        assert.equal(window.updateSnippets(strJSON), true);
         bsl = helper('ЕслиЧто');
         let suggestions = [];
-        bsl.getSnippets(suggestions, snippets);        
+        bsl.getSnippets(suggestions, window.snippets);        
         expect(suggestions).to.be.an('array').that.not.is.empty;        
         assert.equal(suggestions.some(suggest => suggest.detail === "ЕслиЧто"), true);
-        snippets = JSON.parse(JSON.stringify(sCopy));
+        window.snippets = JSON.parse(JSON.stringify(sCopy));
       });
 
       it("проверка замены сниппетов", function () {              	                
-        let sCopy = JSON.parse(JSON.stringify(snippets));                
+        let sCopy = JSON.parse(JSON.stringify(window.snippets));                
         let strJSON = '{"snippets": { "ЕслиЧто": { "prefix": "Если", "body": "Если ${1:Условие} Тогда\n\t$0\nКонецЕсли;", "description": "ЕслиЧто"}}}';
-        assert.equal(updateSnippets(strJSON, true), true);
+        assert.equal(window.updateSnippets(strJSON, true), true);
         bsl = helper('Если');
         let suggestions = [];
-        bsl.getSnippets(suggestions, snippets);
+        bsl.getSnippets(suggestions, window.snippets);
         assert.equal(suggestions.length, 1);
-        snippets = JSON.parse(JSON.stringify(sCopy));
+        window.snippets = JSON.parse(JSON.stringify(sCopy));
       });
 
       it("проверка всплывающей подсказки", function () {        
@@ -300,54 +301,54 @@ describe("Проверка автокомлита и подсказок реда
       });
 
       it("проверка получения существующей форматной строки", function () {        
-      	editor.setPosition(new monaco.Position(47, 33));
-        assert.notEqual(getFormatString(), null);
+        window.editor.setPosition(new monaco.Position(47, 33));
+        assert.notEqual(window.getFormatString(), null);
       });
 
       it("проверка получения несуществующей форматной строки", function () {        
-        editor.setPosition(new monaco.Position(47, 21));
-        assert.equal(getFormatString(), null);
-        editor.setPosition(new monaco.Position(10, 1));
-        assert.equal(getFormatString(), null);
+        window.editor.setPosition(new monaco.Position(47, 21));
+        assert.equal(window.getFormatString(), null);
+        window.editor.setPosition(new monaco.Position(10, 1));
+        assert.equal(window.getFormatString(), null);
       });
 
       it("проверка загрузки пользовательских функций", function () {
         let strJSON = '{ "customFunctions":{ "МояФункция1":{ "name":"МояФункция1", "name_en":"MyFuntion1", "description":"Получает из строки закодированной по алгоритму base64 двоичные данные.", "returns":"Тип: ДвоичныеДанные. ", "signature":{ "default":{ "СтрокаПараметров":"(Строка: Строка): ДвоичныеДанные", "Параметры":{ "Строка":"Строка, закодированная по алгоритму base64." } } } }, "МояФункция2":{ "name":"МояФункция2", "name_en":"MyFuntion2", "description":"Выполняет сериализацию значения в формат XML.", "template":"МояФункция2(ВызовЗависимойФункции(${1:ПервыйЗависимыйПараметр}, ${2:ВторойЗависимыйПараметр}), ${0:ПараметрМоейФункции}))", "signature":{ "ЗаписатьБезИмени":{ "СтрокаПараметров":"(ЗаписьXML: ЗаписьXML, Значение: Произвольный, НазначениеТипа?: НазначениеТипаXML)", "Параметры":{ "ЗаписьXML":"Объект, через который осуществляется запись XML, полученный через зависимою функцию", "Значение":"Записываемое в поток XML значение. Тип параметра определяется совокупностью типов, для которых определена XML-сериализация." } }, "ЗаписатьСПолнымИменем":{ "СтрокаПараметров":"(ЗаписьXML: ЗаписьXML, Значение: Произвольный, ПолноеИмя: Строка, НазначениеТипа?: НазначениеТипаXML)", "Параметры":{ "ЗаписьXML":"Объект, через который осуществляется запись XML.", "Значение":"Записываемое в поток XML значение. Тип параметра определяется совокупностью типов, для которых определена XML-сериализация.", "ПолноеИмя":"Полное имя элемента XML, в который будет записано значение.", "НазначениеТипа":"Определяет необходимость назначения типа элементу XML. Значение по умолчанию: Неявное." } }, "ЗаписатьСЛокальнымИменемИПространствомИмен":{ "СтрокаПараметров":"(ЗаписьXML: ЗаписьXML, Значение: Произвольный, ЛокальноеИмя: Строка, URIПространстваИмен: Строка, НазначениеТипа?: НазначениеТипаXML)", "Параметры":{ "ЗаписьXML":"Объект, через который осуществляется запись XML.", "Значение":"Записываемое в поток XML значение. Тип параметра определяется совокупностью типов, для которых определена XML-сериализация.", "ЛокальноеИмя":"Локальное имя элемента XML, в который будет записано значение.", "URIПространстваИмен":"URI пространства имен, к которому принадлежит указанное ЛокальноеИмя.", "НазначениеТипа":"Определяет необходимость назначения типа элементу XML. Значение по умолчанию: Неявное." } } } } } }';
-        assert.notEqual(updateCustomFunctions(123), true);
-        assert.equal(updateCustomFunctions(strJSON), true);
+        assert.notEqual(window.updateCustomFunctions(123), true);
+        assert.equal(window.updateCustomFunctions(strJSON), true);
       });
 
       it("проверка автокомплита для пользовательской функции МояФункция2", function () {
         bsl = helper('мояфу');
         let suggestions = [];
-        bsl.getCommonCompletition(suggestions, bslGlobals.customFunctions, monaco.languages.CompletionItemKind.Function)
+        bsl.getCommonCompletition(suggestions, window.bslGlobals.customFunctions, monaco.languages.CompletionItemKind.Function)
         expect(suggestions).to.be.an('array').that.not.is.empty;
       });
 
       it("проверка подсказки параметров для пользовательской функции МояФункция2", function () {
         bsl = helper('МояФункция2');        
         let suggestions = [];
-        let help = bsl.getCommonSigHelp(bslGlobals.customFunctions);
+        let help = bsl.getCommonSigHelp(window.bslGlobals.customFunctions);
         expect(help).to.have.property('activeParameter');
       });
 
       it("проверка подсказки переопределенных параметров для функции Состояние", function () {
         let strJSON = '{ "Состояние": [ { "label": "(Первый, Второй)", "documentation": "Описание сигнатуры", "parameters": [ { "label": "Первый", "documentation": "Описание первого" }, { "label": "Второй", "documentation": "Описание второго" } ] } ] }';
-        assert.equal(setCustomSignatures(strJSON), true);        
+        assert.equal(window.setCustomSignatures(strJSON), true);        
         let position = new monaco.Position(28, 12);
-        let model = editor.getModel();
-        editor.setPosition(position);
+        let model = window.editor.getModel();
+        window.editor.setPosition(position);
         bsl = new bslHelper(model, position);
         let help = bsl.getCustomSigHelp();
         expect(help).to.have.property('activeParameter');
-        assert.equal(setCustomSignatures('{}'), true);        
+        assert.equal(window.setCustomSignatures('{}'), true);        
       });
 
       it("проверка автокомплита для функции 'Тип'", function () {
         bsl = helper('Тип("');
         assert.equal(bsl.requireType(), true);
         let suggestions = [];
-        bsl.getTypesCompletition(suggestions, bslGlobals.types, monaco.languages.CompletionItemKind.Enum)
+        bsl.getTypesCompletition(suggestions, window.bslGlobals.types, monaco.languages.CompletionItemKind.Enum)
         expect(suggestions).to.be.an('array').that.not.is.empty;
         assert.equal(suggestions.some(suggest => suggest.label === "СправочникСсылка"), true);        
       });
@@ -356,7 +357,7 @@ describe("Проверка автокомлита и подсказок реда
         bsl = helper('Поиск = Найти(Тип("');
         assert.equal(bsl.requireType(), true);
         let suggestions = [];
-        bsl.getTypesCompletition(suggestions, bslGlobals.types, monaco.languages.CompletionItemKind.Enum)
+        bsl.getTypesCompletition(suggestions, window.bslGlobals.types, monaco.languages.CompletionItemKind.Enum)
         expect(suggestions).to.be.an('array').that.not.is.empty;
         assert.equal(suggestions.some(suggest => suggest.label === "СправочникСсылка"), true);        
       });
@@ -365,7 +366,7 @@ describe("Проверка автокомлита и подсказок реда
         bsl = helper('Тип("СправочникСсылка.');
         assert.equal(bsl.requireType(), true);
         let suggestions = [];
-        bsl.getTypesCompletition(suggestions, bslGlobals.types, monaco.languages.CompletionItemKind.Enum)
+        bsl.getTypesCompletition(suggestions, window.bslGlobals.types, monaco.languages.CompletionItemKind.Enum)
         expect(suggestions).to.be.an('array').that.not.is.empty;
         assert.equal(suggestions.some(suggest => suggest.label === "Товары"), true);        
       });
@@ -373,17 +374,17 @@ describe("Проверка автокомлита и подсказок реда
       it("проверка загрузки пользовательских объектов", function () {              	                        
         let strJSON = `{
           "customObjects":{
-             "_СтруктураВыгрузки":{
+            "_СтруктураВыгрузки":{
                 "ref": "classes.Структура",
                 "properties":{
-                   "Номенклатура":{
+                  "Номенклатура":{
                       "name":"Номенклатура",
                       "description":"Ссылка на справочник номенклатуры",
                       "ref":"catalogs.Товары"
-                   },
-                   "Остаток":{
+                  },
+                  "Остаток":{
                       "name":"Остаток"
-                   }
+                  }
                 },
                 "methods":{
                   "ВставитьВСтруктуру": {
@@ -407,24 +408,24 @@ describe("Проверка автокомлита и подсказок реда
                       "returns": "Тип: Число. "
                   }
                 }
-             },
-             "_ОстаткиТовара":{
+            },
+            "_ОстаткиТовара":{
                 "properties":{
-                   "Партия":{
+                  "Партия":{
                       "name":"Партия",
                       "description":"Ссылка на приходный документ",
                       "ref":"documents.ПриходнаяНакладная"
-                   },
-                   "Номенклатура":{
+                  },
+                  "Номенклатура":{
                       "name":"Номенклатура",
                       "ref":"catalogs.Товары"
-                   },
-                   "Оборот":{
+                  },
+                  "Оборот":{
                       "name":"Оборот"
-                   }
+                  }
                 }
-             },
-             "_ОбъектСВложениями":{
+            },
+            "_ОбъектСВложениями":{
                 "ref": "classes.Структура",
                 "properties":{
                   "Товар":{
@@ -480,14 +481,14 @@ describe("Проверка автокомлита и подсказок реда
                     }
                   }
                 }
-             }           
+            }           
           }
         }`;                
-        let res = updateMetadata(strJSON);
+        let res = window.updateMetadata(strJSON);
         assert.equal(res, true);
         bsl = helper('_ОстаткиТ');
         let suggestions = [];
-        bsl.getCustomObjectsCompletition(suggestions, bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
+        bsl.getCustomObjectsCompletition(suggestions, window.bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
         expect(suggestions).to.be.an('array').that.not.is.empty;
         assert.equal(suggestions.some(suggest => suggest.label === "_ОстаткиТовара"), true);        
       });
@@ -495,20 +496,20 @@ describe("Проверка автокомлита и подсказок реда
       it("проверка подсказки для вложенного пользовательского объекта", function () {
         bsl = helper('_ОбъектСВложениями.');
         let suggestions = [];
-        bsl.getCustomObjectsCompletition(suggestions, bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
+        bsl.getCustomObjectsCompletition(suggestions, window.bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
         expect(suggestions).to.be.an('array').that.not.is.empty;
         assert.equal(suggestions.some(suggest => suggest.label === "ВложенныйОбъект"), true);
         suggestions.forEach(function (suggestion) {
           if (suggestion.label == "ВложенныйОбъект") {
             let command = suggestion.command.arguments[0];
-            contextData = new Map([
+            window.contextData = new Map([
               [1, new Map([[command.name.toLowerCase(), command.data]])]
             ]);
             suggestions = [];
             bsl = helper('_ОбъектСВложениями.ВложенныйОбъект.');
             bsl.getRefCompletition(suggestions);
             assert.equal(suggestions.some(suggest => suggest.label === "ПервыйРеквизитОбъекта"), true);        
-            contextData = new Map();
+            window.contextData = new Map();
           }
         });                                
       });
@@ -516,7 +517,7 @@ describe("Проверка автокомлита и подсказок реда
       it("проверка подсказки методов, когда у пользовательского объекта явна задана ссылка", function () {
         bsl = helper('_СтруктураВыгрузки.');
         let suggestions = [];
-        bsl.getCustomObjectsCompletition(suggestions, bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
+        bsl.getCustomObjectsCompletition(suggestions, window.bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
         expect(suggestions).to.be.an('array').that.not.is.empty;
         assert.equal(suggestions.some(suggest => suggest.label === "Вставить"), true);
       });
@@ -524,7 +525,7 @@ describe("Проверка автокомлита и подсказок реда
       it("проверка подсказки собственных методов для пользовательского объекта", function () {
         bsl = helper('_СтруктураВыгрузки.');
         let suggestions = [];
-        bsl.getCustomObjectsCompletition(suggestions, bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
+        bsl.getCustomObjectsCompletition(suggestions, window.bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
         expect(suggestions).to.be.an('array').that.not.is.empty;
         assert.equal(suggestions.some(suggest => suggest.label === "КоличествоЗаписейВВыгрузке"), true);
       });
@@ -532,7 +533,7 @@ describe("Проверка автокомлита и подсказок реда
       it("проверка подсказки ссылочных реквизитов", function () {              	                                
         bsl = helper('_ОстаткиТовара.Номенклатура.');
         let suggestions = [];
-        contextData = new Map([
+        window.contextData = new Map([
           [1, new Map([["номенклатура", { "ref": "catalogs.Товары", "sig": null }]])]
         ]);
         bsl.getRefCompletition(suggestions);
@@ -542,20 +543,20 @@ describe("Проверка автокомлита и подсказок реда
         bsl = helper('_ОстаткиТовара.Наминклатура.');
         bsl.getRefCompletition(suggestions);
         expect(suggestions).to.be.an('array').that.is.empty;
-        contextData = new Map();
+        window.contextData = new Map();
       });
 
       it("проверка подсказки для таблицы, полученной из результата запроса", function () {              	                                
         bsl = helper('ОбъектЗапрос = Новый Запрос();\nРезультат = ОбъектЗапрос.Выполнить();\nТаблица = Результат.Выгрузить();\nТаблица.');
         let suggestions = [];        
-        contextData = new Map([
+        window.contextData = new Map([
           [2, new Map([["выполнить", { "ref": "types.РезультатЗапроса", "sig": null }]])],
           [3, new Map([["выгрузить", { "ref": "classes.ТаблицаЗначений", "sig": null }]])]
         ]);        
         bsl.getRefCompletition(suggestions);
         expect(suggestions).to.be.an('array').that.not.is.empty;
         assert.equal(suggestions.some(suggest => suggest.label === "ВыгрузитьКолонку"), true);        
-        contextData = new Map();
+        window.contextData = new Map();
       });
 
       it("проверка подсказки параметров для функции ВыгрузитьКолонку таблицы значений, полученной из другой таблицы", function () {              	                                
@@ -569,38 +570,38 @@ describe("Проверка автокомлита и подсказок реда
             }
           }
         };
-        contextData = new Map([
+        window.contextData = new Map([
           [2, new Map([["скопировать", { "ref": "classes.ТаблицаЗначений", "sig": null }]])],
           [3, new Map([["выгрузитьколонку", { "ref": "classes.Массив", "sig": signature }]])]
         ]);        
         let help = bsl.getRefSigHelp();        
         expect(help).to.have.property('activeParameter');
-        contextData = new Map();
+        window.contextData = new Map();
       });
 
       it("проверка подсказки для таблицы, полученной функцией НайтиПоСсылкам", function () {              	                                
         bsl = helper('Таблица = НайтиПоСсылкам();\nТаблица.');
         let suggestions = [];        
-        contextData = new Map([
+        window.contextData = new Map([
           [1, new Map([["найтипоссылкам", { "ref": "classes.ТаблицаЗначений", "sig": null }]])]          
         ]);        
         bsl.getRefCompletition(suggestions);
         expect(suggestions).to.be.an('array').that.not.is.empty;
         assert.equal(suggestions.some(suggest => suggest.label === "ВыгрузитьКолонку"), true);        
-        contextData = new Map();
+        window.contextData = new Map();
       });
 
       it("проверка подсказки для таблицы, полученной из результата запроса в одну строку", function () {              	                                
         bsl = helper('ОбъектЗапрос = Новый Запрос();\nТаблица = ОбъектЗапрос.Выполнить().Выгрузить().');
         let suggestions = [];        
-        contextData = new Map([
+        window.contextData = new Map([
           [2, new Map([["выполнить", { "ref": "types.РезультатЗапроса", "sig": null }]])],
           [2, new Map([["выгрузить", { "ref": "classes.ТаблицаЗначений", "sig": null }]])]
         ]);        
         bsl.getRefCompletition(suggestions);
         expect(suggestions).to.be.an('array').that.not.is.empty;
         assert.equal(suggestions.some(suggest => suggest.label === "Скопировать"), true);        
-        contextData = new Map();
+        window.contextData = new Map();
       });
 
       it("проверка подсказки переменных из параметров функции", function () {              	                                
@@ -614,31 +615,31 @@ describe("Проверка автокомлита и подсказок реда
       it("проверка подсказки для реквизитов составного типа", function () {              	                                
         bsl = helper('_ОстаткиТовара.Номенклатура.');
         let suggestions = [];
-        contextData = new Map([
+        window.contextData = new Map([
           [1, new Map([["номенклатура", { "ref": "catalogs.Товары, documents.ПриходнаяНакладная", "sig": null }]])]
         ]);
         bsl.getRefCompletition(suggestions);
         expect(suggestions).to.be.an('array').that.not.is.empty;
         assert.equal(suggestions.some(suggest => suggest.label === "СтавкаНДС") && suggestions.some(suggest => suggest.label === "СуммаДокумента"), true);
-        contextData = new Map();
+        window.contextData = new Map();
       });
 
       it("проверка подсказки объекта, полученного методом ПолучитьОбъект()", function () {              	                                
         bsl = helper('СправочникСсылка = Справочник.Товары.НайтиПоКоду(1);\nСправочникОбъект = СправочникСсылка.ПолучитьОбъект();\nСправочникОбъект.');
         let suggestions = [];        
-        contextData = new Map([
+        window.contextData = new Map([
           [2, new Map([["получитьобъект", { "ref": "catalogs.Товары.obj", "sig": null }]])],          
         ]);        
         bsl.getRefCompletition(suggestions);
         expect(suggestions).to.be.an('array').that.not.is.empty;
         assert.equal(suggestions.some(suggest => suggest.label === "Заблокирован"), true);        
-        contextData = new Map();
+        window.contextData = new Map();
       });
 
       it("проверка подсказки ресурсов регистра", function () {              	                                
         bsl = helper('Рег = РегистрыНакопления.ОстаткиТоваров.СоздатьНаборЗаписей();(1);\nРег.');
         let suggestions = [];                
-        bsl.getMetadataCompletition(suggestions, bslMetadata);
+        bsl.getMetadataCompletition(suggestions, window.bslMetadata);
         expect(suggestions).to.be.an('array').that.not.is.empty;
         assert.equal(suggestions.some(suggest => suggest.label === "Себестоимость"), true);
       });
@@ -646,8 +647,8 @@ describe("Проверка автокомлита и подсказок реда
       it("проверка подсказки определяемой по стеку", function () {              	                                
         
         let position = new monaco.Position(95, 17);
-        let model = editor.getModel();
-        editor.setPosition(position);
+        let model = window.editor.getModel();
+        window.editor.setPosition(position);
         bsl = new bslHelper(model, position);
         let suggestions = [];
         bsl.getMetadataStackCompletition(suggestions);
@@ -656,7 +657,7 @@ describe("Проверка автокомлита и подсказок реда
         assert.equal(suggestions.some(suggest => suggest.label === "Заблокировать"), true);
 
         position = new monaco.Position(100, 19);
-        editor.setPosition(position);
+        window.editor.setPosition(position);
         bsl = new bslHelper(model, position);
         suggestions = [];
         bsl.getMetadataStackCompletition(suggestions);
@@ -664,12 +665,12 @@ describe("Проверка автокомлита и подсказок реда
         assert.equal(suggestions.some(suggest => suggest.label === "СуммаДокумента"), true);
         assert.equal(suggestions.some(suggest => suggest.label === "Заблокировать"), true);
 
-        map = new Map();
+        let map = new Map();
         map.set('товарссылка', {list:[], ref: 'catalogs.Товары', sig: null});
-        contextData.set(102, map);
+        window.contextData.set(102, map);
 
         position = new monaco.Position(104, 18);
-        editor.setPosition(position);
+        window.editor.setPosition(position);
         bsl = new bslHelper(model, position);
         suggestions = [];
         bsl.getMetadataStackCompletition(suggestions);
@@ -678,7 +679,7 @@ describe("Проверка автокомлита и подсказок реда
         assert.equal(suggestions.some(suggest => suggest.label === "Заблокировать"), true);
 
         position = new monaco.Position(107, 24);
-        editor.setPosition(position);
+        window.editor.setPosition(position);
         bsl = new bslHelper(model, position);
         suggestions = [];
         bsl.getMetadataStackCompletition(suggestions);
@@ -691,7 +692,7 @@ describe("Проверка автокомлита и подсказок реда
         
         bsl = helper('Спр = Справочники.Товары.НайтиПоКоду(1);\nСпр2 = Спр.ПолучитьОбъект();\nСпр2.');
         let suggestions = [];
-        contextData = new Map([
+        window.contextData = new Map([
           [2, new Map([["получитьобъект", { "ref": "catalogs.Товары.obj", "sig": null }]])],          
         ]);        
         bsl.getRefCompletition(suggestions);
@@ -700,7 +701,7 @@ describe("Проверка автокомлита и подсказок реда
 
         bsl = helper('Спр = Справочники.Товары.НайтиПоКоду(1);\nСпр2 = Спр.ПолучитьОбъект();\nСпр2.ОбменДанными.');
         suggestions = [];
-        contextData = new Map([
+        window.contextData = new Map([
           [3, new Map([["обменданными", { "ref": "types.ПараметрыОбменаДанными", "sig": null }]])],          
         ]);        
         bsl.getRefCompletition(suggestions);
@@ -713,6 +714,6 @@ describe("Проверка автокомлита и подсказок реда
 
     mocha.run();
 
-  });
+  })
 
-});
+}, 1000);

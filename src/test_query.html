@@ -4,13 +4,10 @@
 <head>
 	<title>Test BSL-editor (query mode)</title>
 	<meta charset="utf-8">
-	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/mocha/2.1.0/mocha.css">
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/mocha/2.1.0/mocha.js"></script>
-	<script>
-		mocha.setup('bdd');
-	</script>
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/chai/2.0.0/chai.js"></script>	
-	<link href="./decorations.css" rel="stylesheet">
+	<link rel="stylesheet" href="node_modules/mocha/mocha.css">
+  	<script src="node_modules/mocha/mocha.js"></script>
+  	<script src="node_modules/chai/chai.js"></script>
+  	<script>mocha.setup('bdd')</script>	
 </head>
 
 <body>
@@ -1178,11 +1175,6 @@
 
   <div id="container" style="width:100%;height:600px;border:1px solid grey"></div>  
   <button id="event-button"></button>
-
-  <script src="./vs/loader.js"></script>
-  <script src="./bsl_helper.js"></script>
-  <script src="./test_query.js"></script>
-  <script src="./init.js"></script>
 
   <div id="mocha"></div>
 
