@@ -89,6 +89,7 @@ npm run build  -- --customOptions "automaticLayout: true, someOption: false"
 | [`getPositionOffset`](docs/get_position_offset.md) | Возвращает координаты текущей позиции курсора				             |
 | `jumpToBracket`                | Переход к парной скобке `CTRL+[]`	                                                         |
 | `selectToBracket`              | Выделяет скобки и текст между ними `SHIFT+ALT+B`	                                             |
+| `formatDocument`               | Форматирование выделенного фрагмента кода или всего кода `ALT+SHIFT+F`	                     |
 
 ### Управление режимом работы / настройками
 | Функция                        | Описание                                                                                      |

@@ -1326,6 +1326,12 @@ window.getDiffCount = function() {
   return window.editor.diffCount ? window.editor.diffCount : 0;
 
 }
+
+window.formatDocument = function() {
+
+  window.editor.trigger('', 'editor.action.formatDocument');
+
+}
 // #endregion
 
 // #region init editor
