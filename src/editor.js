@@ -1059,7 +1059,13 @@ window.setFontWeight = function(fontWeight)  {
 
   window.editor.updateOptions({fontWeight: fontWeight});
 
-}  
+}
+
+window.setLineHeight = function(lineHeight) {
+
+  window.editor.updateOptions({lineHeight: lineHeight});
+
+}
 
 window.renderWhitespace = function(enabled) {
 
