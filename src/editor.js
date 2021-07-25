@@ -1332,6 +1332,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     return editor.diffCount ? editor.diffCount : 0;
 
   }
+
+  formatDocument = function() {
+
+    editor.trigger('', 'editor.action.formatDocument');
+  
+  }
   // #endregion
 
   // #region init editor
