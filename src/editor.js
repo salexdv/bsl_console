@@ -1065,7 +1065,13 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
     editor.updateOptions({fontWeight: fontWeight});
 
-  }  
+  }
+
+  setLineHeight = function(lineHeight) {
+
+    editor.updateOptions({lineHeight: lineHeight});
+
+  }
 
   renderWhitespace = function(enabled) {
 
