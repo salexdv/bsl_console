@@ -1,6 +1,6 @@
 require.config( { 'vs/nls': { availableLanguages: { '*': "ru" } } } );
 
-define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/editor.main', 'actions', 'bslQuery', 'bslDCS'], function () {
+define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/editor.main', 'actions', 'bslQuery', 'bslDCS', 'colors'], function () {
 
   // #region global vars 
   selectionText = '';
@@ -1386,6 +1386,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       provideCodeLenses: lang.codeLenses.provider, 
       resolveCodeLens: lang.codeLenses.resolver
     });
+    monaco.languages.registerColorProvider(language.id, lang.colorProvider);
 
     if (lang.autoIndentation && lang.indentationRules)
       monaco.languages.setLanguageConfiguration(language.id, {indentationRules: lang.indentationRules});
