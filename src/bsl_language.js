@@ -446,14 +446,11 @@ let languages = {
             resolver: () => {}
         },
         colorProvider: {
-            provideColorPresentations: (model, colorInfo) => {                                
-                return [{
-                    label: ''
-                }];
+            provideColorPresentations: (model, colorInfo) => {
+                return bslHelper.provideColorPresentations(model, colorInfo);
             },
             provideDocumentColors: (model) => {
-                let bsl = new bslHelper(model, new monaco.Position(1, 1));
-                return bsl.getDocumentColors()
+                return bslHelper.getDocumentColors(model);
             }
         },
         autoIndentation: true,
