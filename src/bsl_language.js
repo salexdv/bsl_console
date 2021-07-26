@@ -445,6 +445,17 @@ let languages = {
             provider: () => {},                
             resolver: () => {}
         },
+        colorProvider: {
+            provideColorPresentations: (model, colorInfo) => {                                
+                return [{
+                    label: ''
+                }];
+            },
+            provideDocumentColors: (model) => {
+                let bsl = new bslHelper(model, new monaco.Position(1, 1));
+                return bsl.getDocumentColors()
+            }
+        },
         autoIndentation: true,
         indentationRules: {
             increaseIndentPattern: /^\s*(функция|function|процедура|procedure|если|if|пока|while|для|for|попытка|try|исключение|except).*$/i,
@@ -515,6 +526,10 @@ let languages = {
             provider: () => {},                
             resolver: () => {}
         },
+        colorProvider: {
+            provideColorPresentations: () => {},
+            provideDocumentColors: () => {}
+        },
         autoIndentation: false,
         indentationRules: {
             increaseIndentPattern: /^\s*(выбрать|из|выбор|когда).*$/i,
@@ -571,6 +586,10 @@ let languages = {
         codeLenses: {
             provider: () => {},                
             resolver: () => {}
+        },
+        colorProvider: {
+            provideColorPresentations: () => {},
+            provideDocumentColors: () => {}
         },
         autoIndentation: false,
         indentationRules: null,

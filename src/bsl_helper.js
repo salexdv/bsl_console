@@ -1,3 +1,4 @@
+import colors from "./colors";
 
 /**
  * Class for provideSignatureHelp
@@ -5065,6 +5066,88 @@ class bslHelper {
 
 			genarateEventWithSuggestData('EVENT_BEFORE_SHOW_SUGGEST', trigger, null, rows);
 		}
+
+	}
+
+	getWebColorByName(colorName) {
+
+		for (const [key, value] of Object.entries(window.colors.WebColors)) {
+			if (value.name.toLowerCase() == colorName || value.name_en.toLowerCase() == colorName)
+				return value;
+		}
+
+		return null;
+
+	}
+
+	getColorByParams(paramsStr) {
+
+		let color = null;
+		let color_params = paramsStr.split(',');
+
+		if (color_params.length == 3) {
+			color = {
+				r: parseInt(color_params[0]),
+				g: parseInt(color_params[1]),
+				b: parseInt(color_params[2]),
+			}
+		}
+
+		return color;
+
+	}
+
+	getDocumentColors() {
+
+		let document_colors = [];
+
+		let pattern = 'WebЦвета\.([a-zA-Z\u0410-\u044F]+)|WebColors\.([a-zA-Z\u0410-\u044F]+)|Новый Цвет\\s*\\((.*?)\\)|New Color\\s*\\((.*?)\\)';
+		let matches = this.model.findMatches(pattern, false, true, false, null, true);
+
+		for (let idx = 0; idx < matches.length; idx++) {
+
+			let match = matches[idx];
+
+			let word = match.matches[0].toLowerCase();
+
+			if (0 <= word.indexOf('web') && window.colors.hasOwnProperty('WebColors')) {
+
+				let color = this.getWebColorByName(match.matches[1].toLowerCase());
+
+				if (color) {
+					document_colors.push({
+						color: { red: color.r / 255, green: color.g / 255, blue: color.b / 255, alpha: 1 },
+						range: {
+							startLineNumber: match.range.startLineNumber,
+							startColumn: match.range.startColumn,
+							endLineNumber: match.range.startLineNumber,
+							endColumn: match.range.startColumn
+						}
+					});
+				}
+
+			}
+			else if (match.matches.length == 5 && typeof (match.matches[3]) == 'string') {
+
+				let color = this.getColorByParams(match.matches[3]);
+
+				if (color) {
+					document_colors.push({
+						color: { red: color.r / 255, green: color.g / 255, blue: color.b / 255, alpha: 1 },
+						range: {
+							startLineNumber: match.range.startLineNumber,
+							startColumn: match.range.startColumn,
+							endLineNumber: match.range.startLineNumber,
+							endColumn: match.range.startColumn
+						}
+					});
+				}
+
+			}
+
+		}
+
+		return document_colors;
 
 	}
 

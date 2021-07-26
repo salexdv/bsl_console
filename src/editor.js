@@ -53,6 +53,7 @@ window.diffEditor = null;
 window.inlineDiffEditor = null;
 window.inlineDiffWidget = null;
 window.events_queue = [];
+window.colors = {};
 // #endregion
 
 // #region public API
@@ -1380,6 +1381,7 @@ for (const [key, lang] of Object.entries(window.languages)) {
     provideCodeLenses: lang.codeLenses.provider, 
     resolveCodeLens: lang.codeLenses.resolver
   });
+  monaco.languages.registerColorProvider(language.id, lang.colorProvider);
 
   if (lang.autoIndentation && lang.indentationRules)
     monaco.languages.setLanguageConfiguration(language.id, {indentationRules: lang.indentationRules});
@@ -1421,6 +1423,10 @@ for (const [key, lang] of Object.entries(window.languages)) {
       import('./bsl_helper').then(({ default: bslHelper }) => {
         window.bslHelper = bslHelper
       }).catch((error) => 'An error occurred while loading the bsl_helper');
+
+      import('./colors').then(({ default: colors }) => {
+        window.colors = colors
+      }).catch((error) => 'An error occurred while loading the colors');
       
     });
 
