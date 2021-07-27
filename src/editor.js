@@ -1006,12 +1006,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   hideSuggestionsList = function() {
 
-      let widget = document.querySelector('.suggest-widget');
-      
-      if (widget) {
-        widget.style.display = 'hidden';
-        widget.style.visibility = 'hidden';
-      }
+    editor._contentWidgets['editor.widget.suggestWidget'].widget.hideWidget();
 
   }
 
