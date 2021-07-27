@@ -5019,6 +5019,10 @@ class bslHelper {
 		return result;
 	}
 
+	/**
+	 * Handler of hoverProvider
+	 * for EVENT_BEFORE_HOVER generation
+	 */
 	onProvideHover() {
 
 		if (generateBeforeHoverEvent) {
@@ -5037,6 +5041,12 @@ class bslHelper {
 
 	}
 
+	/**
+	 * Handler of completionProvider
+	 * for EVENT_BEFORE_SHOW_SUGGEST generation
+	 * @param {CompletionContext} context 
+	 * @param {object} list of completition 
+	 */
 	onProvideCompletion(context, completition) {
 
 		if (generateBeforeShowSuggestEvent) {                			
@@ -5067,8 +5077,15 @@ class bslHelper {
 		}
 
 	}
-
-	getWebColorByName(colorName) {
+	
+	/**
+	 * Looking for color in the global collection of colors
+	 * by it's name
+	 * @param {string} the name of color
+	 * 
+	 * @returns {object} color
+	 */
+	static getWebColorByName(colorName) {
 
 		for (const [key, value] of Object.entries(window.colors.WebColors)) {
 			if (value.name.toLowerCase() == colorName || value.name_en.toLowerCase() == colorName)
@@ -5079,7 +5096,13 @@ class bslHelper {
 
 	}
 
-	getColorByParams(paramsStr) {
+	/**
+	 * Extracts color parameters from string 
+	 * @param {string} color string like "255, 100, 180"
+	 * 
+	 * @returns {object/null} color
+	 */
+	static getColorByParams(paramsStr) {
 
 		let color = null;
 		let color_params = paramsStr.split(',');
@@ -5096,12 +5119,18 @@ class bslHelper {
 
 	}
 
-	getDocumentColors() {
+	/**
+	 * Returns ColorInformation for provideDocumentColors
+	 * @param {ITextModel} current model of editor
+	 * 
+	 * @returns {array} ColorInformation[]
+	 */
+	static getDocumentColors(model) {
 
 		let document_colors = [];
 
 		let pattern = 'WebЦвета\.([a-zA-Z\u0410-\u044F]+)|WebColors\.([a-zA-Z\u0410-\u044F]+)|Новый Цвет\\s*\\((.*?)\\)|New Color\\s*\\((.*?)\\)';
-		let matches = this.model.findMatches(pattern, false, true, false, null, true);
+		let matches = model.findMatches(pattern, false, true, false, null, true);
 
 		for (let idx = 0; idx < matches.length; idx++) {
 
@@ -5148,6 +5177,38 @@ class bslHelper {
 
 		return document_colors;
 
+	}
+
+	/**
+	 * Provide the string representations for a color.
+	 * @param {ITextModel} current model of editor 
+	 * @param {IColorInformation} color information
+	 * 
+	 * @returns {array} ColorPresentation[]
+	 */
+	static provideColorPresentations(model, colorInfo) {
+
+		let textEdit = null;
+		let pattern = 'WebЦвета\.([a-zA-Z\u0410-\u044F]+)|WebColors\.([a-zA-Z\u0410-\u044F]+)|Новый Цвет\\s*\\((.*?)\\)|New Color\\s*\\((.*?)\\)';
+		let range = colorInfo.range;
+
+		let match = model.findNextMatch(pattern, new monaco.Position(range.startLineNumber, range.startColumn), true, false, null, true);
+
+		let color = colorInfo.color;
+		let red = Math.round(color.red * 255);
+		let green = Math.round(color.green * 255);
+		let blue = Math.round(color.blue * 255);
+
+		if (match && match.range.startLineNumber == range.startLineNumber) {
+			let value = window.engLang ? 'New Color' : 'Новый Цвет';
+			value = value + "(" + red + ", " + green + ", " + blue + ")";
+			textEdit = { range: match.range, text: value };
+		}
+
+		return [{
+			label: '',
+			textEdit: textEdit
+		}];
 	}
 
 }
