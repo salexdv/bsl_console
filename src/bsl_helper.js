@@ -2074,36 +2074,38 @@ class bslHelper {
 	}
 
 	/**
-	 * Fills and returns array of variables names
+	 * Looks for variables with assigned a value
 	 * 
+	 * @param {string} the code
 	 * @param {int} currentLine the last line below which we don't search variables
 	 * 
 	 * @returns {array} array with variables names
 	 */
-	getVarsNames(currentLine) {
+	getAssignedVarsNames(text, currentLine) {
 
 		let names = [];
 		let comments = new Map();
+		let regexp = RegExp('\/\/', 'g');
+		let match = null;
 
-		const commentMatches = this.model.findMatches('\\/\\/', true, true, false, null, true);
-
-		for (let idx = 0; idx < commentMatches.length; idx++) {
-			comments.set(commentMatches[idx].range.startLineNumber, commentMatches[idx].range.startColumn);
+		while ((match = regexp.exec(text)) !== null) {
+			let position = this.model.getPositionAt(regexp.lastIndex);
+			comments.set(position.lineNumber, position.column);
 		}
 
-		let matches = this.model.findMatches('([a-zA-Z0-9\u0410-\u044F_]+)\\s?=\\s?.*(?:;|\\()\\s*$', true, true, false, null, true);
+		regexp = RegExp('([a-zA-Z0-9\u0410-\u044F_]+)\\s?=\\s?.*(?:;|\\()\\s*', 'gi');
 
-		for (let idx = 0; idx < matches.length; idx++) {
+		while ((match = regexp.exec(text)) !== null) {
 
-			let match = matches[idx];
-			
-			if (match.range.startLineNumber < currentLine || currentLine == 0) {
+			let position = this.model.getPositionAt(match.index);
 
-				let comment = comments.get(match.range.startLineNumber);
+			if (position.lineNumber < currentLine || currentLine == 0) {
 
-				if (!comment || match.range.startColumn < comment) {
-					
-					let varName = match.matches[match.matches.length - 1]
+				let comment = comments.get(position.lineNumber);
+
+				if (!comment || position.column < comment) {
+
+					let varName = match[match.length - 1];
 
 					if (!names.some(name => name === varName))
 						names.push(varName);
@@ -2113,47 +2115,77 @@ class bslHelper {
 			}
 
 		}
-		
-		matches = [];
-		let funcDef = [];
-		let funcLine = 0;
 
-		if (currentLine == 0)
-			matches = window.editor.getModel().findMatches('(?:процедура|функция)\\s+[a-zA-Z0-9\u0410-\u044F_]+\\(([a-zA-Z0-9\u0410-\u044F_,\\s=]+)\\)', true, true, false, null, true);					
-		else {
-			funcDef = window.editor.getModel().findPreviousMatch('(?:процедура|функция)\\s+[a-zA-Z0-9\u0410-\u044F_]+\\(([a-zA-Z0-9\u0410-\u044F_,\\s=]+)\\)', true, true, false, null, true);
-			if (funcDef) {
-				funcLine = funcDef.range.startLineNumber;
-				matches.push(funcDef);
-			}			
+		return names;
+
+	}
+
+	/**
+	 * Looks for variables into function definition
+	 * 
+	 * @param {string} the code
+	 * @param {int} currentLine the last line below which we don't search variables
+	 * @param {int} a line number where function is defined
+	 * 
+	 * @returns {array} array with variables names
+	 */
+	getFunctionsVarsNames(text, currentLine, funcLine) {
+
+		let names = [];
+		let regexp = RegExp('(?:процедура|функция|procedure|function)\\s+[a-zA-Z0-9\u0410-\u044F_]+\\(([a-zA-Z0-9\u0410-\u044F_,\\s=]+)\\)', 'gi');
+		let match = null;
+
+		while ((match = regexp.exec(text)) !== null) {
+
+			let position = this.model.getPositionAt(match.index);
+
+			if (position.lineNumber < currentLine || currentLine == 0) {
+
+				let params = match[1].split(',');
+
+				params.forEach(function (param) {
+					let paramName = param.split('=')[0].trim();
+					if (!names.some(name => name === paramName))
+						names.push(paramName);
+				});
+
+				if (0 < currentLine)
+					funcLine = position.lineNumber;
+
+			}
+
 		}
 
-		for (let idx = 0; idx < matches.length; idx++) {
-		
-			let match = matches[idx];
-			let params = match.matches[1].split(',');
-			
-			params.forEach(function(param) {
-				let paramName = param.split('=')[0].trim();
-				if (!names.some(name => name === paramName))
-					names.push(paramName);
-			});
+		return names;
 
-		}
-				
-		matches = window.editor.getModel().findMatches('(?:перем|var)\\s+([a-zA-Z0-9\u0410-\u044F_,\\s]+);', true, true, false, null, true);
+	}
 
-		for (let idx = 0; idx < matches.length; idx++) {
+	/**
+	 * Looks for variables with default definition
+	 * 
+	 * @param {string} the code
+	 * @param {int} currentLine the last line below which we don't search variables
+	 * @param {int} a line number where function is defined
+	 * 
+	 * @returns {array} array with variables names
+	 */
+	getDefaultVarsNames(text, currentLine, funcLine) {
 
-			let match = matches[idx];
-			
-			if (currentLine == 0 || funcLine < match.range.startLineNumber) {
+		let names = [];
+		let regexp = RegExp('(?:перем|var)\\s+([a-zA-Z0-9\u0410-\u044F_,\\s]+);', 'gi');
+		let match = null;
 
-				let varDef = match.matches[match.matches.length - 1];
+		while ((match = regexp.exec(text)) !== null) {
+
+			let position = this.model.getPositionAt(match.index);
+
+			if (currentLine == 0 || funcLine < position.lineNumber) {
+
+				let varDef = match[match.length - 1];
 
 				const params = varDef.split(',');
-			
-				params.forEach(function(param) {
+
+				params.forEach(function (param) {
 					let paramName = param.split('=')[0].trim();
 					if (!names.some(name => name === paramName))
 						names.push(paramName);
@@ -2162,7 +2194,27 @@ class bslHelper {
 			}
 
 		}
-				
+
+		return names;
+
+	}
+
+	/**
+	 * Fills and returns array of variables names
+	 * 
+	 * @param {int} currentLine the last line below which we don't search variables
+	 * 
+	 * @returns {array} array with variables names
+	 */
+	getVarsNames(currentLine) {
+
+		let text = this.model.getValue();
+		let names = this.getAssignedVarsNames(text, currentLine);
+
+		let funcLine = 0;
+		names = names.concat(this.getFunctionsVarsNames(text, currentLine, funcLine));
+		names = names.concat(this.getDefaultVarsNames(text, currentLine, funcLine));
+
 		return names;
 
 	}
