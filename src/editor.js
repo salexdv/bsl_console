@@ -1006,7 +1006,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   hideSuggestionsList = function() {
 
-    editor._contentWidgets['editor.widget.suggestWidget'].widget.hideWidget();
+    editor.trigger("editor", "hideSuggestWidget"); // https://github.com/salexdv/bsl_console/issues/209
 
   }
 
