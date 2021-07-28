@@ -1006,7 +1006,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   hideSuggestionsList = function() {
 
-    editor._contentWidgets['editor.widget.suggestWidget'].widget.hideWidget();
+    editor.getContribution("editor.contrib.suggestController").cancelSuggestWidget();
 
   }
 
