@@ -1,6 +1,6 @@
 require.config( { 'vs/nls': { availableLanguages: { '*': "ru" } } } );
 
-define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/editor.main', 'actions', 'bslQuery', 'bslDCS'], function () {
+define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/editor.main', 'actions', 'bslQuery', 'bslDCS', 'colors'], function () {
 
   // #region global vars 
   selectionText = '';
@@ -35,6 +35,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   diffEditor = null;  
   inlineDiffEditor = null;
   inlineDiffWidget = null;
+  events_queue = [];
   // #endregion
 
   // #region public API
@@ -47,10 +48,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   sendEvent = function(eventName, eventParams) {
 
-    console.debug(eventName, eventParams);
-    let lastEvent = new MouseEvent('click');
-    lastEvent.eventData1C = {event : eventName, params: eventParams};
-    return dispatchEvent(lastEvent);
+    events_queue.push({event : eventName, params: eventParams});
+    document.getElementById('event-button').click();
     
   }
 
@@ -1007,7 +1006,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   hideSuggestionsList = function() {
 
-    editor.trigger("editor", "hideSuggestWidget");
+    editor._contentWidgets['editor.widget.suggestWidget'].widget.hideWidget();
 
   }
 
@@ -1061,7 +1060,13 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
     editor.updateOptions({fontWeight: fontWeight});
 
-  }  
+  }
+
+  setLineHeight = function(lineHeight) {
+
+    editor.updateOptions({lineHeight: lineHeight});
+
+  }
 
   renderWhitespace = function(enabled) {
 
@@ -1322,6 +1327,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     return editor.diffCount ? editor.diffCount : 0;
 
   }
+
+  formatDocument = function() {
+
+    editor.trigger('', 'editor.action.formatDocument');
+  
+  }
   // #endregion
 
   // #region init editor
@@ -1370,6 +1381,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       provideCodeLenses: lang.codeLenses.provider, 
       resolveCodeLens: lang.codeLenses.resolver
     });
+    monaco.languages.registerColorProvider(language.id, lang.colorProvider);
 
     if (lang.autoIndentation && lang.indentationRules)
       monaco.languages.setLanguageConfiguration(language.id, {indentationRules: lang.indentationRules});
@@ -1551,7 +1563,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       if (isForwardDirection && element.nextSibling || isForwardDirection == null)
         href += getNativeLinkHref(element.nextSibling, true);
 
-      if (!isForwardDirection && element.previousSibling || isForwardDirection == null)
+      if (!isForwardDirection && element.previousSibling)
         href = getNativeLinkHref(element.previousSibling, false) + href;
 
     }
@@ -2078,7 +2090,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
 	}
 
-  function isThereChanges(diffEditor) {
+  function isDiffEditorHasChanges() {
     
     return diffEditor.getOriginalEditor().getValue() != diffEditor.getModifiedEditor().getValue();
 
@@ -2093,7 +2105,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       editor.diffCount = changes.length;
       editor.diff_decorations = [];
   
-      if (isThereChanges(diffEditor)) {
+      if (isDiffEditorHasChanges()) {
 
         changes.forEach(function (e) {
     
@@ -2448,6 +2460,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
       if (hasParentWithClass(e.target, 'find-widget'))
         setFindWidgetDisplay('none');
+
+    }
+    else if (e.target.id == 'event-button' && events_queue.length) {
+      let eventData1C = events_queue.shift();
+      e.eventData1C = eventData1C;
+      console.debug(eventData1C.event, eventData1C.params);
 
     }
 
