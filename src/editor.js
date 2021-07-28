@@ -1001,12 +1001,7 @@ window.enableBeforeSignatureEvent = function(enabled) {
 
 window.hideSuggestionsList = function() {
 
-    let widget = document.querySelector('.suggest-widget');
-    
-    if (widget) {
-      widget.style.display = 'hidden';
-      widget.style.visibility = 'hidden';
-    }
+  editor.trigger("editor", "hideSuggestWidget");
 
 }
 
