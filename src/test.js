@@ -604,12 +604,14 @@ setTimeout(() => {
         window.contextData = new Map();
       });
 
-      it("проверка подсказки переменных из параметров функции", function () {              	                                
-        bsl = helper('Функция МояФункция(Парам1, Парам2, Парам3)\nПар');        
+      it("проверка подсказки имен переменных", function () {              	                                
+        bsl = helper('Функция МояФункция(Парам1, Парам2, Парам3)\nПараметрыФормы = Новый Структура();\nПарам');        
         let suggestions = [];
         bsl.getVariablesCompetition(suggestions);
+        console.log(suggestions);
         expect(suggestions).to.be.an('array').that.not.is.empty;
         assert.equal(suggestions.some(suggest => suggest.label === "Парам1"), true);
+        assert.equal(suggestions.some(suggest => suggest.label === "ПараметрыФормы"), true);
       });
 
       it("проверка подсказки для реквизитов составного типа", function () {              	                                
