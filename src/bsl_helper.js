@@ -2653,26 +2653,24 @@ class bslHelper {
 	 * @param {array} suggestions array of suggestions for provideCompletionItems	 
 	 * @param {CompletionItemKind} kind - monaco.languages.CompletionItemKind (class, function, constructor etc.)
 	 */
-	getQueryParamsCompletition(suggestions, kind) {	
+	getQueryParamsCompletition(suggestions, kind) {
 
 		if (this.lastRawExpression.startsWith('&')) {
-		
-			const matches = this.model.findMatches('&([a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]*)[\\s\\n,\)]', true, true, false, null, true)
 
-			for (let idx = 0; idx < matches.length; idx++) {
+			let regexp = RegExp('&([a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]*)', 'gi');
+			let text = this.model.getValue();
+			let match = null;
 
-				let match = matches[idx];
-				let paramName = match.matches[match.matches.length - 1];
-				
+			while ((match = regexp.exec(text)) !== null) {
+				let paramName = match ? match[1] : '';
 				if (paramName && !suggestions.some(suggest => suggest.insertText === paramName)) {
 					suggestions.push({
 						label: '&' + paramName,
 						kind: kind,
 						insertText: paramName,
-						insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet						
+						insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
 					});
 				}
-
 			}
 
 		}
