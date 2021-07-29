@@ -4737,59 +4737,65 @@ class bslHelper {
 	 * @returns {object} object with text and range or null
 	 */
 	getQuery() {
-		
+
 		const regexp = RegExp('(".*(?:\\n(?:\\t|\\s)*\\|.*)+")', 'gi');
 
 		let match = null;
 		let queryFound = false;
-		let text = '';	
-		let range = null;	
+		let code = this.model.getValue();
+		let text = '';
+		let range = null;
 
-		while ((match = regexp.exec(this.model.getValue())) !== null && !queryFound) {
-			
+		while ((match = regexp.exec(code)) !== null && !queryFound) {
+
 			text = match[match.length - 1];
 			let start_position = this.model.getPositionAt(match.index);
 			let end_position = this.model.getPositionAt(match.index + text.length);
 			queryFound = (start_position.lineNumber <= this.lineNumber && this.lineNumber <= end_position.lineNumber);
-			
+
 			if (queryFound)
 				range = new monaco.Range(start_position.lineNumber, start_position.column, end_position.lineNumber, end_position.column);
 
 		}
-		
+
 		return queryFound ? { text: text, range: range } : null;
 
 	}
 
 	/**
-   	* Returns format string's text from current position
-   	* 
-   	* @returns {object} object with text and range or null
-   	*/
+	 * Returns format string's text from current position
+	 * 
+	 * @returns {object} object with text and range or null
+	 */
 	getFormatString() {
 
-		const matches = this.model.findMatches('"(.+)?"', false, true, false, null, true)
+		const regexp = RegExp('"(.+)?"', 'gi');
 
-		let idx = 0;
 		let match = null;
 		let stringFound = false;
+		let code = this.model.getValue();
+		let text = '';
+		let range = null;
 
-		if (matches) {
+		while ((match = regexp.exec(code)) !== null && !stringFound) {
 
-			while (idx < matches.length && !stringFound) {
-				match = matches[idx];
-				stringFound = (
-					match.range.startLineNumber == this.lineNumber
-					&& this.lineNumber == match.range.endLineNumber
-					&& match.range.startColumn <= this.column
-					&& this.column <= match.range.endColumn
-				);
-				idx++;
-			}
+			text = match[0];
+			let start_position = this.model.getPositionAt(match.index);
+			let end_position = this.model.getPositionAt(match.index + text.length);
+
+			stringFound = (
+				start_position.lineNumber == this.lineNumber
+				&& this.lineNumber == end_position.lineNumber
+				&& start_position.column <= this.column
+				&& this.column <= end_position.column
+			);
+
+			if (stringFound)
+				range = new monaco.Range(start_position.lineNumber, start_position.column, end_position.lineNumber, end_position.column);
 
 		}
 
-		return stringFound ? { text: match.matches[0], range: match.range } : null;
+		return stringFound ? { text: text, range: range } : null;
 
 	}
 
