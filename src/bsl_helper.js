@@ -2089,7 +2089,7 @@ class bslHelper {
 		let match = null;
 
 		while ((match = regexp.exec(text)) !== null) {
-			let position = this.model.getPositionAt(regexp.lastIndex);
+			let position = this.model.getPositionAt(match.index);
 			comments.set(position.lineNumber, position.column);
 		}
 
@@ -4738,23 +4738,26 @@ class bslHelper {
 	 */
 	getQuery() {
 		
-		const matches = this.model.findMatches('(".*$(?:\\n(?:\\t|\\s)*\\|.*)+")', false, true, false, null, true);
+		const regexp = RegExp('(".*(?:\\n(?:\\t|\\s)*\\|.*)+")', 'gi');
 
-		let idx = 0;
 		let match = null;
 		let queryFound = false;
+		let text = '';	
+		let range = null;	
 
-		if (matches) {
-
-			while (idx < matches.length && !queryFound) {
-				match = matches[idx];				
-				queryFound = (match.range.startLineNumber <= this.lineNumber && this.lineNumber <= match.range.endLineNumber);
-				idx++;
-			}
+		while ((match = regexp.exec(this.model.getValue())) !== null && !queryFound) {
+			
+			text = match[match.length - 1];
+			let start_position = this.model.getPositionAt(match.index);
+			let end_position = this.model.getPositionAt(match.index + text.length);
+			queryFound = (start_position.lineNumber <= this.lineNumber && this.lineNumber <= end_position.lineNumber);
+			
+			if (queryFound)
+				range = new monaco.Range(start_position.lineNumber, start_position.column, end_position.lineNumber, end_position.column);
 
 		}
-
-		return queryFound ? { text: match.matches[match.matches.length - 1], range: match.range } : null;
+		
+		return queryFound ? { text: text, range: range } : null;
 
 	}
 
