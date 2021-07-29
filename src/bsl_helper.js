@@ -580,6 +580,53 @@ class bslHelper {
 	}	
 
 	/**
+	 * Replacement for monaco's findPreviousMatch
+	 * https://microsoft.github.io/monaco-editor/api/interfaces/monaco.editor.itextmodel.html#findpreviousmatch
+	 * because it does't work linux
+	 * @param {ITextModel} model 
+	 * @param {string} pattern to look for
+	 * @param {IPosition} start position
+	 * @returns 
+	 */
+	findPreviousMatch(model, pattern, position) {
+
+		const code = model.getValue();
+		const offset = model.getOffsetAt(position);
+		let match = null;
+		let previous_match = null;
+		let last_match = null;
+
+		let regexp = RegExp(pattern, 'gi');
+
+		while ((match = regexp.exec(code)) !== null) {
+
+			last_match = match;
+
+			if (match.index < offset)
+				previous_match = match;
+			else
+				break;
+
+		}
+
+		if (!previous_match)
+			previous_match = last_match;
+
+		if (previous_match) {
+			let text = previous_match[0];
+			let start_position = model.getPositionAt(previous_match.index);
+			let end_position = model.getPositionAt(previous_match.index + text.length);
+			return {
+				range: new monaco.Range(start_position.lineNumber, start_position.column, end_position.lineNumber, end_position.column),
+				matches: previous_match
+			}
+		}
+		else
+			return null;
+
+	}
+
+	/**
 	 * Fills array of completition for language keywords, classes, global functions,
 	 * global variables and system enumarations
 	 * 
