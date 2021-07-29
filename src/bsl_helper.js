@@ -4992,10 +4992,13 @@ class bslHelper {
 
 		let lineNumber = 0;
 
-		const matches = this.model.findMatches(string);
-
-		if (matches.length)
-			lineNumber =  matches[0].range.startLineNumber;
+		const regexp = RegExp(string, 'gi');
+		const match = regexp.exec(this.model.getValue());
+		
+		if (match !== null && match.length)  {
+			let position = this.model.getPositionAt(match.index);
+			lineNumber =  position.lineNumber;
+		}
 
 		return lineNumber;
 

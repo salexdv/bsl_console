@@ -608,7 +608,6 @@ setTimeout(() => {
         bsl = helper('Функция МояФункция(Парам1, Парам2, Парам3)\nПараметрыФормы = Новый Структура();\nПарам');        
         let suggestions = [];
         bsl.getVariablesCompetition(suggestions);
-        console.log(suggestions);
         expect(suggestions).to.be.an('array').that.not.is.empty;
         assert.equal(suggestions.some(suggest => suggest.label === "Парам1"), true);
         assert.equal(suggestions.some(suggest => suggest.label === "ПараметрыФормы"), true);
