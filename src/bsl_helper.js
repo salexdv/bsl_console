@@ -1,4 +1,4 @@
-import colors from "./colors";
+import Finder from "./finder";
 
 /**
  * Class for provideSignatureHelp
@@ -5289,7 +5289,7 @@ class bslHelper {
 		let document_colors = [];
 
 		let pattern = 'WebЦвета\.([a-zA-Z\u0410-\u044F]+)|WebColors\.([a-zA-Z\u0410-\u044F]+)|Новый Цвет\\s*\\((.*?)\\)|New Color\\s*\\((.*?)\\)';
-		let matches = model.findMatches(pattern, false, true, false, null, true);
+		let matches = Finder.findMatches(model, pattern);
 
 		for (let idx = 0; idx < matches.length; idx++) {
 
@@ -5351,7 +5351,7 @@ class bslHelper {
 		let pattern = 'WebЦвета\.([a-zA-Z\u0410-\u044F]+)|WebColors\.([a-zA-Z\u0410-\u044F]+)|Новый Цвет\\s*\\((.*?)\\)|New Color\\s*\\((.*?)\\)';
 		let range = colorInfo.range;
 
-		let match = model.findNextMatch(pattern, new monaco.Position(range.startLineNumber, range.startColumn), true, false, null, true);
+		let match = Finder.findNextMatch(model, pattern, new monaco.Position(range.startLineNumber, range.startColumn));
 
 		let color = colorInfo.color;
 		let red = Math.round(color.red * 255);
