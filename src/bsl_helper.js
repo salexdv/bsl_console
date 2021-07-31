@@ -4519,7 +4519,7 @@ class bslHelper {
 
 		let ranges = [];
 		let match = null;
-		const matches = model.findMatches(regexp, false, true, false, null, true)
+		const matches = Finder.findMatches(model, regexp);
     	
     	if (matches) {
 			
