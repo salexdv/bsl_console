@@ -4463,10 +4463,10 @@ class bslHelper {
 		
 		let ranges = [];
 		
-		const startMatches = model.findMatches("(?:^|\\b)?(" + startString + ") ", false, true)	
+		const startMatches = Finder.findMatches(model, '(?:^|\\b)?(' + startString + ') ');
 		let startMatch = null;
 
-		const endMatches =  model.findMatches("(?:^|\\b)?(" + endString + ") ?;", false, true)	
+		const endMatches =  Finder.findMatches(model, '(?:^|\\b)?(' + endString + ') ?;');
 		let endMatch = null;
 		
 		let structFound = false;
