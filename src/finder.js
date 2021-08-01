@@ -107,13 +107,14 @@ class Finder {
 	 * Replacement for monaco's findMatches
 	 * https://microsoft.github.io/monaco-editor/api/interfaces/monaco.editor.itextmodel.html#findmatches
 	 * because it does't work linux
-	 * @param {ITextModel} model 
-	 * @param {string} pattern to look for	 
+	 * @param {ITextModel} model
+	 * @param {string} pattern to look for
+	 * @param {IRange} limit the searching to only search inside these range
 	 * @returns 
 	 */
-	 static findMatches(model, pattern) {
+	static findMatches(model, pattern, searchScope = null) {
 
-		const code = model.getValue();		
+		const code = model.getValue();
 		let matches = [];
 		let match = null;
 
@@ -124,14 +125,24 @@ class Finder {
 			let text = match[0];
 			let start_position = model.getPositionAt(match.index);
 			let end_position = model.getPositionAt(match.index + text.length);
-			matches.push({
-				range: new monaco.Range(start_position.lineNumber, start_position.column, end_position.lineNumber, end_position.column),
-				matches: match
-			});
+			let valid = true;
 
+			if (searchScope != null) {
+				valid = (searchScope.startLineNumber < start_position.lineNumber ||
+					(searchScope.startLineNumber == start_position.lineNumber && searchScope.startColumn <= start_position.column));
+					valid = Math.min(valid, (end_position.lineNumber < searchScope.endLineNumber ||
+					(end_position.lineNumber == searchScope.endLineNumber && end_position.column <= searchScope.endColumn)));
+			}
 
-		}		
-		
+			if (valid) {
+				matches.push({
+					range: new monaco.Range(start_position.lineNumber, start_position.column, end_position.lineNumber, end_position.column),
+					matches: match
+				});
+			}
+
+		}
+
 		return matches;
 
 	}
