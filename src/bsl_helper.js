@@ -4570,7 +4570,7 @@ class bslHelper {
 
 		let ranges = [];		
 		let match = null;
-		const matches = model.findMatches('(?:выбрать|select)[\\w\\s\u0410-\u044F&<>=*+-./,()]+', false, true, false, null, true);
+		const matches = Finder.findMatches(model, '(?:выбрать|select)[\\w\\s\u0410-\u044F&<>=*+-./,()]+');
 				
     	if (matches) {
 			
