@@ -4679,13 +4679,13 @@ class bslHelper {
 
 			while (scope_idx < scopes.length) {
 				let scope = scopes[scope_idx];
-				matches = matches.concat(model.findMatches(regexp, new monaco.Range(scope.start, 1, scope.end + 1, 1), true, false, null, true));
+				matches = matches.concat(Finder.findMatches(model, regexp, new monaco.Range(scope.start, 1, scope.end + 1, 1)));
 				scope_idx++;
 			}
 
 		}
 		else {
-			matches = model.findMatches(regexp, false, true, false, null, true);
+			matches = Finder.findMatches(model, regexp);
 		}
 
 		if (matches) {
