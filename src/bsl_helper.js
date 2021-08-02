@@ -3523,7 +3523,7 @@ class bslHelper {
 				
 				if (char == ',') {
 				
-					let fromMatch = this.model.findPreviousMatch('(?:из|from)', this.position, true);
+					let fromMatch = Finder.findPreviousMatch(this.model, '(?:из|from)', this.position);
 				
 					if (fromMatch && fromMatch.range.startLineNumber < this.lineNumber) {					
 						let ignore_keywords = ['как', 'as', 'по', 'on'];
