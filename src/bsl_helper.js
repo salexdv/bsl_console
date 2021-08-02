@@ -377,7 +377,7 @@ class bslHelper {
 		if (position == undefined)
 			position = this.position;
 
-		let match = this.model.findPreviousMatch('[\\s\\n]', position, true)
+		let match = Finder.findPreviousMatch(this.model, '[\\s\\n]', position);
 		
 		if (match) {
 			
@@ -386,7 +386,7 @@ class bslHelper {
 			if (match_pos.lineNumber < position.lineNumber || match_pos.lineNumber == position.lineNumber && match_pos.column < position.column) {
 
 				position = match_pos;
-				match = this.model.findPreviousMatch('[a-zA-Z0-9\u0410-\u044F]+', position, true, false, null, true);
+				match = Finder.findPreviousMatch(this.model, '[a-zA-Z0-9\u0410-\u044F]+', position);
 
 				if (match) {
 					
@@ -426,13 +426,13 @@ class bslHelper {
 
 		let pattern = '[a-zA-Z0-9\u0410-\u044F]+';
 		let position = this.position;
-		let match = this.model.findPreviousMatch(pattern, position, true, false, null, true);
+		let match = Finder.findPreviousMatch(this.model, pattern, position);
 		let step = 0;
 
 		while (match && step < nstep) {			
 			words.push(match.matches[0]);
 			position = new monaco.Position(match.range.startLineNumber, match.range.startColumn);
-			match = this.model.findPreviousMatch(pattern, position, true, false, null, true);
+			match = Finder.findPreviousMatch(this.model, pattern, position);
 			step++;
 		}
 
