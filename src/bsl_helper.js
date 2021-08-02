@@ -3113,7 +3113,7 @@ class bslHelper {
 	 */
 	getQueryFieldsChainCompletion(suggestions) {
 
-		let match = this.model.findMatches('[a-zA-Z0-9\u0410-\u044F]+', new monaco.Range(this.lineNumber, 1, this.lineNumber, this.column), true, false, null, true);
+		let match = Finder.findMatches(this.model, '[a-zA-Z0-9\u0410-\u044F]+', new monaco.Range(this.lineNumber, 1, this.lineNumber, this.column));
 		
 		if (match.length) {
 
