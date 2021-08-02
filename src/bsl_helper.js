@@ -3195,7 +3195,7 @@ class bslHelper {
 		if (this.getLastCharacter() == '.' && this.lastRawExpression) {
 			
 			// Let's find start of current query
-			let startMatch = this.model.findPreviousMatch('(?:выбрать|select)', this.position, true);
+			let startMatch = Finder.findPreviousMatch(this.model, '(?:выбрать|select)', this.position);
 			
 			if (startMatch) {
 								
@@ -3204,7 +3204,7 @@ class bslHelper {
 
 				// Temp table definition
 				let sourceDefinition = '';
-				let match = this.model.findNextMatch('^[\\s\\t]*([a-zA-Z0-9\u0410-\u044F_]+)\\s+(?:как|as)\\s+' + this.lastRawExpression + '[\\s,\\n]*$', position, true, false, null, true);
+				let match = Finder.findNextMatch(this.model, '^[\\s\\t]*([a-zA-Z0-9\u0410-\u044F_]+)\\s+(?:как|as)\\s+' + this.lastRawExpression + '[\\s,\\n]*$', position);
 
 				if (match) {
 
@@ -3215,13 +3215,13 @@ class bslHelper {
 				else {
 					
 					// Metadata table definition
-					match = this.model.findNextMatch('(?:из|from)[\\s\\S\\n]*?(?:как|as)\\s+' +  this.lastRawExpression + '[\\s,\\n]*$' , position, true);
+					match = Finder.findNextMatch(this.model, '(?:из|from)[\\s\\S\\n]*?(?:как|as)\\s+' +  this.lastRawExpression + '[\\s,\\n]*$' , position);
 											
 					if (match) {					
 											
 						// Searching the source
 						position =  new monaco.Position(match.range.endLineNumber, match.range.endColumn);
-						match = this.model.findPreviousMatch('[a-zA-Z0-9\u0410-\u044F]+\\.[a-zA-Z0-9\u0410-\u044F_]+(?:\\.[a-zA-Z0-9\u0410-\u044F]+)?', position, true, false, null, true);
+						match = Finder.findPreviousMatch(this.model, '[a-zA-Z0-9\u0410-\u044F]+\\.[a-zA-Z0-9\u0410-\u044F_]+(?:\\.[a-zA-Z0-9\u0410-\u044F]+)?', position);
 				
 						if (match) {									
 							sourceDefinition = match.matches[0];
