@@ -466,7 +466,7 @@ class bslHelper {
 
 		let word = '';
 
-		let match = Finder.findPreviousMatch(this.model, '(', this.position);
+		let match = Finder.findPreviousMatch(this.model, '\\(', this.position);
 		
 		if (match) {
 
@@ -1097,7 +1097,7 @@ class bslHelper {
 	 getRefCompletitionFromPosition(suggestions, currentPosition, allowLookBehind) {
 		
 		let wordContext = null;
-		let match = this.model.findPreviousMatch('.', currentPosition, false);
+		let match = Finder.findPreviousMatch(this.model, '\\.', currentPosition);
 		
 		if (match) {
 
@@ -1134,16 +1134,16 @@ class bslHelper {
 					*/
 					
 					// So we have to use 2 rexep to detect last function`s (field`s) reference
-					match = this.model.findPreviousMatch(this.lastRawExpression + '\\s?=\\s?.*', currentPosition, true, false, null, true);					
+					match = Finder.findPreviousMatch(this.model, this.lastRawExpression + '\\s?=\\s?.*', currentPosition);
 			
 					if (match) {
 
 						position = new monaco.Position(match.range.endLineNumber, match.range.endColumn);
 
-						match = this.model.findPreviousMatch('\\.([^.]*?)\\s?(?:;|\\()', position, true, false, null, true);					
+						match = Finder.findPreviousMatch(this.model, '\\.([^.]*?)\\s?(?:;|\\()', position);
 
 						if (!match)
-							match = this.model.findPreviousMatch('([a-zA-Z0-9\u0410-\u044F_]+)\\(', position, true, false, null, true);
+							match = Finder.findPreviousMatch(this.model, '([a-zA-Z0-9\u0410-\u044F_]+)\\(', position);
 
 						if (match) {
 
