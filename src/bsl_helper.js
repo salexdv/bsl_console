@@ -3438,7 +3438,7 @@ class bslHelper {
 	getQuerySourceTempraryTablesCompletition(suggestions) {
 
 		let sourceExist = false;
-		let startMatch = this.model.findPreviousMatch('(?:выбрать|select)', this.position, true);
+		let startMatch = Finder.findPreviousMatch(this.model, '(?:выбрать|select)', this.position);
 
 		if (startMatch) {
 
