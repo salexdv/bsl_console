@@ -3573,29 +3573,29 @@ class bslHelper {
 		if (this.getLastCharacter() != '.' && this.getLastCharacter() != '(' && this.lastExpression.indexOf('&') < 0) {
 
 			// Let's find start of current query
-			let startMatch = this.model.findPreviousMatch('(?:выбрать|select)', this.position, true);
+			let startMatch = Finder.findPreviousMatch(this.model, '(?:выбрать|select)', this.position);
 
 			if (startMatch) {
 
 				let template = '(?:из|from)\\s+(?:(?:.|\\n|\\r)*?)\\s*(?:\\s|\\t)*(?:сгруппировать|объединить|упорядочить|имеющие|где|индексировать|havin|where|index|group|union|order|;)'
 				let position = new monaco.Position(startMatch.range.startLineNumber, startMatch.range.startColumn);
-				let fromMatch = this.model.findNextMatch(template, position, true);
+				let fromMatch = Finder.findNextMatch(this.model, template, position);
 
 				if (!fromMatch) {
 					template = '(?:из|from)\\s+(?:(?:.|\\n|\\r)*?)\\s*(?:\\s|\\t)*$';
-					fromMatch = this.model.findNextMatch(template, position, true);
+					fromMatch = Finder.findNextMatch(this.model, template, position);
 				}
 
 				if (fromMatch && fromMatch.range.startLineNumber < startMatch.range.startLineNumber) {								
 					// This is loops to the beginning. Trying another template
-					fromMatch = this.model.findNextMatch('(?:из|from)\\s+(?:(?:.|\\n|\\r)+)$', position, true);
+					fromMatch = Finder.findNextMatch(this.model, '(?:из|from)\\s+(?:(?:.|\\n|\\r)+)$', position);
 				}
 
 				if (fromMatch) {
 					
 					// Now we need to find tables definitions
 					let range = new monaco.Range(fromMatch.range.startLineNumber, 1, fromMatch.range.endLineNumber, fromMatch.range.endColumn);
-					let matches = this.model.findMatches('\\s+(?:как|as)\\s+([a-zA-Z0-9\u0410-\u044F_]+)', range, true, false, null, true);
+					let matches = Finder.findMatches(this.model, '\\s+(?:как|as)\\s+([a-zA-Z0-9\u0410-\u044F_]+)', range);
 					
 					for (let idx = 0; idx < matches.length; idx++) {
 
