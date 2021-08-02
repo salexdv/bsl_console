@@ -1413,7 +1413,7 @@ class bslHelper {
 
 			// 1C does not support positive/negative lookbehind yet
 			// const match = this.model.findPreviousMatch('(?<!\\/\\/.*)' + exp + '\\s?=\\s?(?:new|новый)\\s+(.*?)(?:\\(|;)', this.position, true, false, null, true);		
-			const match = this.model.findPreviousMatch(exp + '\\s?=\\s?(?:new|новый)\\s+(.*?)(?:\\(|;)', this.position, true, false, null, true);
+			const match = Finder.findPreviousMatch(this.model, exp + '\\s?=\\s?(?:new|новый)\\s+(.*?)(?:\\(|;)', this.position);
 
 			if (match) {										
 				className = match.matches[match.matches.length - 1];
