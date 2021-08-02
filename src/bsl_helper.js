@@ -1122,17 +1122,7 @@ class bslHelper {
 				}
 
 				if (!suggestions.length && allowLookBehind) {
-					
-					// 1C does not support positive/negative lookbehind yet
-					//match = this.model.findPreviousMatch('(?<!\\/\\/.*)' + this.lastRawExpression + '\\s?=\\s?.*\\.([^.]*?)\\s?(?:;|\\()', this.position, true, false, null, true);
-					
-					// This also does not work inside 1C
-					/*
-					match = this.model.findPreviousMatch(this.lastRawExpression + '\\s?=\\s?.*\\.([^.]*?)\\s?(?:;|\\()', this.position, true, false, null, true);
-					if (!match)
-						match = this.model.findPreviousMatch(this.lastRawExpression + '\\s?=\\s?([a-zA-Z0-9\u0410-\u044F_]+)\\(', this.position, true, false, null, true);
-					*/
-					
+
 					// So we have to use 2 rexep to detect last function`s (field`s) reference
 					match = Finder.findPreviousMatch(this.model, this.lastRawExpression + '\\s?=\\s?.*', currentPosition);
 			
@@ -1411,8 +1401,6 @@ class bslHelper {
 
 		if (exp) {
 
-			// 1C does not support positive/negative lookbehind yet
-			// const match = this.model.findPreviousMatch('(?<!\\/\\/.*)' + exp + '\\s?=\\s?(?:new|новый)\\s+(.*?)(?:\\(|;)', this.position, true, false, null, true);		
 			const match = Finder.findPreviousMatch(this.model, exp + '\\s?=\\s?(?:new|новый)\\s+(.*?)(?:\\(|;)', this.position);
 
 			if (match) {										
