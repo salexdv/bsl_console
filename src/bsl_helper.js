@@ -4188,7 +4188,7 @@ class bslHelper {
 		
 		let helper = null;
 
-		let match = this.model.findPreviousMatch('(', this.position, false);
+		let match = Finder.findPreviousMatch(this.model, '\\(', this.position);
 		
 		if (match) {
 
