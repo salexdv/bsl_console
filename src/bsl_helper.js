@@ -466,7 +466,7 @@ class bslHelper {
 
 		let word = '';
 
-		let match = this.model.findPreviousMatch('(', this.position, false);
+		let match = Finder.findPreviousMatch(this.model, '(', this.position);
 		
 		if (match) {
 
