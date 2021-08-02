@@ -3056,20 +3056,20 @@ class bslHelper {
 		let tableExists = false;
 
 		// Let's find definition for temporary table
-		let intoMatch = this.model.findPreviousMatch('(?:поместить|into)\\s+' + sourceDefinition, startPosition, true);
+		let intoMatch = Finder.findPreviousMatch(this.model, '(?:поместить|into)\\s+' + sourceDefinition, startPosition);
 
 		if (intoMatch) {
 			
 			// Now we need to find start of this query
 			let position =  new monaco.Position(intoMatch.range.startLineNumber, intoMatch.range.startColumn);
-			let startMatch = this.model.findPreviousMatch('(?:выбрать|select)', position, true);
+			let startMatch = Finder.findPreviousMatch(this.model, '(?:выбрать|select)', position);
 
 			if (startMatch) {
 				
 				// Searching field's definition between select...into
 				let searchRange = new monaco.Range(startMatch.range.startLineNumber, 1, intoMatch.range.startLineNumber, 1);				
-				let matches = this.model.findMatches('^.*(?:как|as)\\s+([a-zA-Z0-9\u0410-\u044F_]*?),?$', searchRange, true, false, null, true);				
-				matches = matches.concat(this.model.findMatches('^\\s*[a-zA-Z0-9\u0410-\u044F_]*\\.([a-zA-Z0-9\u0410-\u044F_]*?)[,\\s]*$', searchRange, true, false, null, true));
+				let matches = Finder.findMatches(this.model, '^.*(?:как|as)\\s+([a-zA-Z0-9\u0410-\u044F_]*?),?$');
+				matches = matches.concat(Finder.findMatches(this.model, '^\\s*[a-zA-Z0-9\u0410-\u044F_]*\\.([a-zA-Z0-9\u0410-\u044F_]*?)[,\\s]*$', searchRange));
 				
 				if (matches) {
 					
