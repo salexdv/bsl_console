@@ -2160,36 +2160,34 @@ class bslHelper {
 	/**
 	 * Looks for variables with assigned a value
 	 * 
-	 * @param {string} the code
 	 * @param {int} currentLine the last line below which we don't search variables
 	 * 
 	 * @returns {array} array with variables names
 	 */
-	getAssignedVarsNames(text, currentLine) {
+	getAssignedVarsNames(currentLine) {
 
 		let names = [];
 		let comments = new Map();
-		let regexp = RegExp('\/\/', 'g');
-		let match = null;
 
-		while ((match = regexp.exec(text)) !== null) {
-			let position = this.model.getPositionAt(match.index);
-			comments.set(position.lineNumber, position.column);
+		const commentMatches = Finder.findMatches(this.model, '\\/\\/');
+
+		for (let idx = 0; idx < commentMatches.length; idx++) {
+			comments.set(commentMatches[idx].range.startLineNumber, commentMatches[idx].range.startColumn);
 		}
 
-		regexp = RegExp('([a-zA-Z0-9\u0410-\u044F_]+)\\s?=\\s?.*(?:;|\\()\\s*', 'gi');
+		let matches = Finder.findMatches(this.model, '([a-zA-Z0-9\u0410-\u044F_]+)\\s?=\\s?.*(?:;|\\()\\s*$');
 
-		while ((match = regexp.exec(text)) !== null) {
+		for (let idx = 0; idx < matches.length; idx++) {
 
-			let position = this.model.getPositionAt(match.index);
+			let match = matches[idx];
 
-			if (position.lineNumber < currentLine || currentLine == 0) {
+			if (match.range.startLineNumber < currentLine || currentLine == 0) {
 
-				let comment = comments.get(position.lineNumber);
+				let comment = comments.get(match.range.startLineNumber);
 
-				if (!comment || position.column < comment) {
+				if (!comment || match.range.startColumn < comment) {
 
-					let varName = match[match.length - 1];
+					let varName = match.matches[match.matches.length - 1]
 
 					if (!names.some(name => name === varName))
 						names.push(varName);
@@ -2206,26 +2204,24 @@ class bslHelper {
 
 	/**
 	 * Looks for variables into function definition
-	 * 
-	 * @param {string} the code
+	 * 	 
 	 * @param {int} currentLine the last line below which we don't search variables
 	 * @param {int} a line number where function is defined
 	 * 
 	 * @returns {array} array with variables names
 	 */
-	getFunctionsVarsNames(text, currentLine, funcLine) {
+	getFunctionsVarsNames(currentLine, funcLine) {
 
 		let names = [];
-		let regexp = RegExp('(?:процедура|функция|procedure|function)\\s+[a-zA-Z0-9\u0410-\u044F_]+\\(([a-zA-Z0-9\u0410-\u044F_,\\s=]+)\\)', 'gi');
-		let match = null;
+		let matches = Finder.findMatches(this.model, '(?:процедура|функция|procedure|function)\\s+[a-zA-Z0-9\u0410-\u044F_]+\\(([a-zA-Z0-9\u0410-\u044F_,\\s=]+)\\)');
 
-		while ((match = regexp.exec(text)) !== null) {
+		for (let idx = 0; idx < matches.length; idx++) {
 
-			let position = this.model.getPositionAt(match.index);
+			let match = matches[idx];
 
-			if (position.lineNumber < currentLine || currentLine == 0) {
+			if (match.range.startLineNumber < currentLine || currentLine == 0) {
 
-				let params = match[1].split(',');
+				let params = match.matches[1].split(',');
 
 				params.forEach(function (param) {
 					let paramName = param.split('=')[0].trim();
@@ -2234,7 +2230,7 @@ class bslHelper {
 				});
 
 				if (0 < currentLine)
-					funcLine = position.lineNumber;
+					funcLine = match.range.startLineNumber;
 
 			}
 
@@ -2247,25 +2243,23 @@ class bslHelper {
 	/**
 	 * Looks for variables with default definition
 	 * 
-	 * @param {string} the code
 	 * @param {int} currentLine the last line below which we don't search variables
 	 * @param {int} a line number where function is defined
 	 * 
 	 * @returns {array} array with variables names
 	 */
-	getDefaultVarsNames(text, currentLine, funcLine) {
+	getDefaultVarsNames(currentLine, funcLine) {
 
 		let names = [];
-		let regexp = RegExp('(?:перем|var)\\s+([a-zA-Z0-9\u0410-\u044F_,\\s]+);', 'gi');
-		let match = null;
+		let matches = Finder.findMatches(this.model, '(?:перем|var)\\s+([a-zA-Z0-9\u0410-\u044F_,\\s]+);');
 
-		while ((match = regexp.exec(text)) !== null) {
+		for (let idx = 0; idx < matches.length; idx++) {
 
-			let position = this.model.getPositionAt(match.index);
+			let match = matches[idx];
 
-			if (currentLine == 0 || funcLine < position.lineNumber) {
+			if (currentLine == 0 || (funcLine < match.range.startLineNumber && match.range.startLineNumber < currentLine)) {
 
-				let varDef = match[match.length - 1];
+				let varDef = match.matches[match.matches.length - 1];
 
 				const params = varDef.split(',');
 
@@ -2292,12 +2286,11 @@ class bslHelper {
 	 */
 	getVarsNames(currentLine) {
 
-		let text = this.model.getValue();
-		let names = this.getAssignedVarsNames(text, currentLine);
+		let names = this.getAssignedVarsNames(currentLine);
 
 		let funcLine = 0;
-		names = names.concat(this.getFunctionsVarsNames(text, currentLine, funcLine));
-		names = names.concat(this.getDefaultVarsNames(text, currentLine, funcLine));
+		names = names.concat(this.getFunctionsVarsNames(currentLine, funcLine));
+		names = names.concat(this.getDefaultVarsNames(currentLine, funcLine));
 
 		return names;
 
