@@ -922,7 +922,7 @@ window.enableSelectSuggestEvent = function(enabled) {
   
   window.generateSelectSuggestEvent = enabled;
 
-  let widget = window.editor._contentWidgets['editor.widget.suggestWidget'].widget;
+  let widget = getSuggestWidget().widget;
 
   if (widget) {
 
@@ -1157,7 +1157,7 @@ window.setActiveSuggestLabel = function (label) {
 window.setSuggestItemDetailById = function (rowId, detailInList, documentation = null) {
 
   let i = parseInt(rowId);
-  let suggestWidget = window.editor._contentWidgets['editor.widget.suggestWidget'];
+  let suggestWidget = getSuggestWidget();
 
   if (suggestWidget && i < suggestWidget.widget.list.view.items.length) {
 
@@ -1331,7 +1331,7 @@ window.formatDocument = function() {
 
 window.isSuggestWidgetVisible = function() {
   
-  return window.editor._contentWidgets['editor.widget.suggestWidget'].widget.suggestWidgetVisible.get();
+  return getSuggestWidget().widget.suggestWidgetVisible.get();
 
 }
 // #endregion
@@ -1590,6 +1590,12 @@ function initEditorEventListenersAndProperies() {
 // #endregion
   
 // #region non-public functions
+function getSuggestWidget() {
+
+  return window.editor._contentWidgets['editor.widget.suggestWidget'];
+
+}
+
 function getSuggestWidgetRows(element) {
 
   let rows = [];
@@ -2486,7 +2492,7 @@ function removeSuggestListInactiveDetails() {
 function onSuggestListMouseOver(activationEventEnabled) {
 
   return; // Disabled until fix https://github.com/salexdv/bsl_console/issues/190
-  let widget = window.editor._contentWidgets['editor.widget.suggestWidget'].widget;
+  let widget = getSuggestWidget().widget;
 
   if (activationEventEnabled) {
     
