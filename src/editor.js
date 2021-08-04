@@ -1328,6 +1328,12 @@ window.formatDocument = function() {
   window.editor.trigger('', 'editor.action.formatDocument');
 
 }
+
+window.isSuggestWidgetVisible = function() {
+  
+  return window.editor._contentWidgets['editor.widget.suggestWidget'].widget.suggestWidgetVisible.get();
+
+}
 // #endregion
 
 // #region init editor

@@ -2109,8 +2109,6 @@ class bslHelper {
 		let subType = this.getLastNExpression(2);
 
 		for (const [key, value] of Object.entries(data)) {
-
-			let values = [];
 			
 			if (!subType) {
 
@@ -2396,9 +2394,6 @@ class bslHelper {
 				}
 
 			}
-			else {
-				this.getTypesCompletition(suggestions, window.bslGlobals.types, monaco.languages.CompletionItemKind.Enum);
-			}
 
 		}
 
@@ -2422,6 +2417,10 @@ class bslHelper {
 
 			if (!this.isItStringLiteral()) {				
 				suggestions = this.getCodeCompletition(context, token);
+			}
+			else {
+				if (this.requireType())
+					this.getTypesCompletition(suggestions, window.bslGlobals.types, monaco.languages.CompletionItemKind.Enum);
 			}
 
 		}

@@ -414,10 +414,13 @@ let languages = {
             signatureHelpTriggerCharacters: ['(', ','],
             signatureHelpRetriggerCharacters: [')'],
             provideSignatureHelp: (model, position, token, context) => {
-                resetSignatureWidgetDisplay();
-                let bsl = new bslHelper(model, position);
-                let helper = bsl.getSigHelp(context);
-                onProvideSignature(bsl, context, position);
+                let helper = null;
+                if (!window.isSuggestWidgetVisible()) {
+                    resetSignatureWidgetDisplay();
+                    let bsl = new bslHelper(model, position);
+                    helper = bsl.getSigHelp(context);
+                    onProvideSignature(bsl, context, position);
+                }
                 return helper;
             }
         },
@@ -425,7 +428,7 @@ let languages = {
             provideHover: function (model, position) {                    
                 let bsl = new bslHelper(model, position);
                 bsl.onProvideHover();
-                if (!window.ctrlPressed) {                        
+                if (!window.ctrlPressed) {
                     return bsl.getHover();
                 }
                 else {
