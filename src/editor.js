@@ -927,7 +927,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     
     generateSelectSuggestEvent = enabled;
 
-    let widget = editor._contentWidgets['editor.widget.suggestWidget'].widget;
+    let widget = getSuggestWidget().widget;
 
     if (widget) {
 
@@ -1162,7 +1162,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   setSuggestItemDetailById = function (rowId, detailInList, documentation = null) {
 
     let i = parseInt(rowId);
-    let suggestWidget = editor._contentWidgets['editor.widget.suggestWidget'];
+    let suggestWidget = getSuggestWidget();
 
     if (suggestWidget && i < suggestWidget.widget.list.view.items.length) {
 
@@ -1331,6 +1331,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   formatDocument = function() {
 
     editor.trigger('', 'editor.action.formatDocument');
+  
+  }
+
+  isSuggestWidgetVisible = function() {
+  
+    return getSuggestWidget().widget.suggestWidgetVisible.get();
   
   }
   // #endregion
@@ -1549,7 +1555,11 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   // #endregion
     
   // #region non-public functions
+  function getSuggestWidget() {
 
+    return editor._contentWidgets['editor.widget.suggestWidget'];
+  
+  }
 
   function getNativeLinkHref(element, isForwardDirection) {
 
@@ -2394,7 +2404,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   function onSuggestListMouseOver(activationEventEnabled) {
 
     return; // Disabled until fix https://github.com/salexdv/bsl_console/issues/190
-    let widget = editor._contentWidgets['editor.widget.suggestWidget'].widget;
+    let widget = getSuggestWidget().widget;
 
     if (activationEventEnabled) {
       

@@ -414,10 +414,13 @@ define([], function () {
                 signatureHelpTriggerCharacters: ['(', ','],
                 signatureHelpRetriggerCharacters: [')'],
                 provideSignatureHelp: (model, position, token, context) => {
-                    resetSignatureWidgetDisplay();
-                    let bsl = new bslHelper(model, position);
-                    let helper = bsl.getSigHelp(context);
-                    onProvideSignature(bsl, context, position);
+                    let helper = null;
+                    if (!window.isSuggestWidgetVisible()) {
+                        resetSignatureWidgetDisplay();
+                        let bsl = new bslHelper(model, position);
+                        helper = bsl.getSigHelp(context);
+                        onProvideSignature(bsl, context, position);
+                    }
                     return helper;
                 }
             },
