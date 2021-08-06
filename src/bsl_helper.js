@@ -2050,16 +2050,22 @@ class bslHelper {
 				if (key.toLowerCase() == subType) {
 
 					if (value.hasOwnProperty('ref') && bslMetadata.hasOwnProperty(value.ref) && bslMetadata[value.ref].hasOwnProperty('items')) {
+					
+						if (bslMetadata[value.ref].items.length) {
 
-						for (const [mkey, mvalue] of Object.entries(bslMetadata[value.ref].items)) {
+							for (const [mkey, mvalue] of Object.entries(bslMetadata[value.ref].items)) {
 
-							suggestions.push({
-								label: mkey,
-								kind: kind,
-								insertText: mkey + '"',
-								insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-							});
+								suggestions.push({
+									label: mkey,
+									kind: kind,
+									insertText: mkey + '"',
+									insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+								});
 
+							}
+						}
+						else {
+							requestMetadata(bslMetadata[value.ref].name.toLowerCase());
 						}
 					}
 				}
