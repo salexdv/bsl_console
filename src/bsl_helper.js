@@ -2136,15 +2136,21 @@ class bslHelper {
 
 					if (value.hasOwnProperty('ref') && window.bslMetadata.hasOwnProperty(value.ref) && window.bslMetadata[value.ref].hasOwnProperty('items')) {
 
-						for (const [mkey, mvalue] of Object.entries(window.bslMetadata[value.ref].items)) {
+						if (window.bslMetadata[value.ref].items.length) {
 
-							suggestions.push({
-								label: mkey,
-								kind: kind,
-								insertText: mkey + '"',
-								insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-							});
+							for (const [mkey, mvalue] of Object.entries(window.bslMetadata[value.ref].items)) {
 
+								suggestions.push({
+									label: mkey,
+									kind: kind,
+									insertText: mkey + '"',
+									insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+								});
+
+							}
+						}
+						else {
+							requestMetadata(window.bslMetadata[value.ref].name.toLowerCase());
 						}
 					}
 				}
