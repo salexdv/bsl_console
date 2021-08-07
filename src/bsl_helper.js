@@ -2051,7 +2051,7 @@ class bslHelper {
 
 					if (value.hasOwnProperty('ref') && bslMetadata.hasOwnProperty(value.ref) && bslMetadata[value.ref].hasOwnProperty('items')) {
 					
-						if (bslMetadata[value.ref].items.length) {
+						if (Object.keys(bslMetadata[value.ref].items).length) {
 
 							for (const [mkey, mvalue] of Object.entries(bslMetadata[value.ref].items)) {
 
