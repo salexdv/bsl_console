@@ -5027,12 +5027,24 @@ class bslHelper {
 	/**
 	 * Sets text to current position or range
 	 * @param {string} txt text to add
-	 * @param {Range|null} range null for current position or Range
+	 * @param {Range|string| null} range null for current position or Range
 	 * @param {bool} usePadding true when need to allign block by fist column of position
 	 */
 	static setText(txt, range, usePadding) {
 		
-		let insertRange = range ? range : monaco.Range.fromPositions(window.editor.getPosition());
+		var insertRange
+		if (range){
+			if (typeof range === 'string' ) {
+				let rangeObject = JSON.parse(range)
+				insertRange= new monaco.Range(rangeObject.startLineNumber, rangeObject.startColumn, rangeObject.endLineNumber, rangeObject.endColumn)
+			} else {
+				insertRange = range
+			}
+		} else {
+			insertRange = monaco.Range.fromPositions(window.editor.getPosition())
+		}
+
+		// let insertRange = range ? range : monaco.Range.fromPositions(window.editor.getPosition());
 		let startColumn = insertRange.startColumn;		
 
 		if (usePadding && 1 < startColumn) {
