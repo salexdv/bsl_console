@@ -2136,7 +2136,7 @@ class bslHelper {
 
 					if (value.hasOwnProperty('ref') && window.bslMetadata.hasOwnProperty(value.ref) && window.bslMetadata[value.ref].hasOwnProperty('items')) {
 
-						if (window.bslMetadata[value.ref].items.length) {
+						if (Object.keys(window.bslMetadata[value.ref].items).length) {
 
 							for (const [mkey, mvalue] of Object.entries(window.bslMetadata[value.ref].items)) {
 
