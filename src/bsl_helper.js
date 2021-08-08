@@ -5032,7 +5032,8 @@ class bslHelper {
 	 */
 	static setText(txt, range, usePadding) {
 		
-		var insertRange
+		let insertRange;
+		
 		if (range){
 			if (typeof range === 'string' ) {
 				let rangeObject = JSON.parse(range)
