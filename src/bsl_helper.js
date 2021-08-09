@@ -4893,7 +4893,19 @@ class bslHelper {
 	 */
 	static setText(txt, range, usePadding) {
 		
-		let insertRange = range ? range : monaco.Range.fromPositions(editor.getPosition());
+		let insertRange;
+
+		if (range) {
+			if (typeof range === 'string') {
+				let rangeObject = JSON.parse(range)
+				insertRange = new monaco.Range(rangeObject.startLineNumber, rangeObject.startColumn, rangeObject.endLineNumber, rangeObject.endColumn)
+			} else {
+				insertRange = range
+			}
+		} else {
+			insertRange = monaco.Range.fromPositions(editor.getPosition())
+		}
+
 		let startColumn = insertRange.startColumn;		
 
 		if (usePadding && 1 < startColumn) {
