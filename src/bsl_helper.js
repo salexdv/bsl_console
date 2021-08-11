@@ -2331,6 +2331,31 @@ class bslHelper {
 	}
 
 	/**
+	 * Fills completitions for object's methods and properties
+	 * into expressions like 'Types = New Array; Types.Cou<-(unt)'
+	 * 
+	 * @param {array} array of suggestions for provideCompletionItems
+	 * @param {CompletionContext} context
+	 * @param {CancellationToken} token
+	 */
+	 getCompletitionForCurrentObject(suggestions, context, token) {
+
+		if (!suggestions.length && this.getLastNExpression(1) == '.' && this.getLastCharacter() != '.') {
+			
+			let column = this.column - this.lastRawExpression.length;
+			let position = new monaco.Position(this.lineNumber, column);
+			let bsl = new bslHelper(this.model, position);			
+			let object_suggestions = bsl.getCodeCompletition(context, token);
+
+			object_suggestions.forEach(suggest => {
+				suggestions.push(suggest);
+			});			
+
+		}
+
+	}
+
+	/**
 	 * Completition provider for code-mode
 	 * 
 	 * @param {CompletionContext} context
@@ -2355,6 +2380,7 @@ class bslHelper {
 				if (this.lastOperator != '"') {
 
 					this.getRefCompletition(suggestions);
+					this.getCompletitionForCurrentObject(suggestions, context, token);
 
 					if (!suggestions.length) {
 
