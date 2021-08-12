@@ -48,6 +48,11 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   sendEvent = function(eventName, eventParams) {
 
+    console.debug(eventName, eventParams);
+    let lastEvent = new MouseEvent('click');
+    lastEvent.eventData1C = {event : eventName, params: eventParams};
+    return dispatchEvent(lastEvent);
+    // The new event model is disabled until fix https://github.com/salexdv/bsl_console/issues/#217
     events_queue.push({event : eventName, params: eventParams});
     document.getElementById('event-button').click();
     
