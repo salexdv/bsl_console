@@ -1316,7 +1316,7 @@ class bslHelper {
 
 			// 1C does not support positive/negative lookbehind yet
 			// const match = this.model.findPreviousMatch('(?<!\\/\\/.*)' + exp + '\\s?=\\s?(?:new|новый)\\s+(.*?)(?:\\(|;)', this.position, true, false, null, true);		
-			const match = this.model.findPreviousMatch(exp + '\\s?=\\s?(?:new|новый)\\s+(.*?)(?:\\(|;)', this.position, true, false, null, true);
+			const match = this.model.findPreviousMatch(exp + '\\s?=\\s?(?:new|новый)\\s+([a-zA-Z\u0410-\u044F_]*)+[(;]', this.position, true, false, null, true);
 
 			if (match) {										
 				className = match.matches[match.matches.length - 1];
