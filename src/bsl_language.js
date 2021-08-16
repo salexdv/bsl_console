@@ -116,7 +116,7 @@ let bsl_language = {
             'New', 'Процедура', 'Procedure', 'Функция', 'Function', 'Перем', 'Var',
             'Экспорт', 'Export', 'Знач', 'Val', 'Неопределено', 'Выполнить',
             'Истина', 'Ложь', 'True', 'False', 'Undefined', 'Асинх', 'Async',
-            'Ждать', 'Await'
+            'Ждать', 'Await', 'Null'
         ],
         namespaceFollows: [
             'namespace', 'using',
