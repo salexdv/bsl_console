@@ -1401,7 +1401,7 @@ class bslHelper {
 
 		if (exp) {
 
-			const match = Finder.findPreviousMatch(this.model, exp + '\\s?=\\s?(?:new|новый)\\s+(.*?)(?:\\(|;)', this.position);
+			const match = Finder.findPreviousMatch(this.model, exp + '\\s?=\\s?(?:new|новый)\\s+([a-zA-Z\u0410-\u044F_]*)+[(;]', this.position);
 
 			if (match) {										
 				className = match.matches[match.matches.length - 1];
