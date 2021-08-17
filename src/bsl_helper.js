@@ -2225,58 +2225,86 @@ class bslHelper {
 
 	}
 
-	getCommonModulesCompletion(suggestions) {
+	getCommonModulesNameCompletion(suggestions) {
 
-		let word = this.word;
-
-		if (word) {
-
-			let values = [];
+		if (this.word) {
 
 			for (const [key, value] of Object.entries(bslMetadata.commonModules.items)) {
 
-				if (value.hasOwnProperty(this.nameField)) {
-
-					let postfix = '';
-					let signatures = this.getMethodsSignature(value);
-
-					if (signatures.length == 0 || (signatures.length == 1 && signatures[0].parameters.length == 0))
-						postfix = '()';
-
-					let command = null;
-
-					let ref = null;
-					if (value.hasOwnProperty('ref'))
-						ref = value.ref;
-
-					if (ref || signatures.length)
-						command = { id: 'vs.editor.ICodeEditor:1:saveref', arguments: [{ "name": value[this.nameField], "data": { "ref": ref, "sig": signatures } }] }
-
-					let template = value.hasOwnProperty('template') ? value.template : '';
-
-					values.push({ name: value[this.nameField], detail: value.description, description: value.hasOwnProperty('returns') ? value.returns : '', postfix: postfix, template: template, command: command });
-
-				}
-				else {
-					values.push({ name: key, detail: '', description: '', postfix: '', template: '', command: null });
+				if (key.toLowerCase().startsWith(this.word)) {
+					suggestions.push({
+						label: key,
+						kind: monaco.languages.CompletionItemKind.Module,
+						insertText: key,
+						insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+					});
 				}
 
 			}
 
-			values.forEach(function (value) {
-				if (value.name.toLowerCase().startsWith(word)) {
-					suggestions.push({
-						label: value.name,
-						kind: monaco.languages.CompletionItemKind.Module,
-						insertText: value.template ? value.template : value.name + value.postfix,
-						insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-						detail: value.detail,
-						documentation: value.description,
-						command: value.command
-					});
-				}
-			});
 		}
+
+	}
+
+	getCommonModulesFuncCompletion(suggestions) {
+
+		let module_name = this.getLastNExpression(2);
+
+		if (module_name) {
+
+			for (const [key, value] of Object.entries(bslMetadata.commonModules.items)) {
+
+				if (key.toLowerCase() == module_name) {
+
+					for (const [mkey, mvalue] of Object.entries(value)) {
+
+						if (mvalue.hasOwnProperty(this.nameField)) {
+
+							let postfix = '';
+							let signatures = this.getMethodsSignature(mvalue);
+
+							if (signatures.length == 0 || (signatures.length == 1 && signatures[0].parameters.length == 0))
+								postfix = '()';
+
+							let command = null;
+
+							let ref = null;
+							if (mvalue.hasOwnProperty('ref'))
+								ref = mvalue.ref;
+
+							if (ref || signatures.length)
+								command = { id: 'vs.editor.ICodeEditor:1:saveref', arguments: [{ "name": mvalue[this.nameField], "data": { "ref": ref, "sig": signatures } }] }
+
+							let template = mvalue.hasOwnProperty('template') ? mvalue.template : '';
+
+							suggestions.push({
+								label: mvalue[this.nameField],
+								kind: monaco.languages.CompletionItemKind.Function,
+								insertText: template ? template : mvalue[this.nameField] + postfix,
+								insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+								detail: mvalue.detail,
+								documentation: mvalue.description,
+								command: command
+							});
+
+						}
+
+					}
+
+				}
+
+			}
+
+		}
+
+	}
+
+	getCommonModulesCompletion(suggestions) {
+
+		if (this.getLastNExpression(1) == '.')
+			this.getCommonModulesFuncCompletion(suggestions);
+		else
+			this.getCommonModulesNameCompletion(suggestions);
 
 	}
 
