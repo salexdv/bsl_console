@@ -2233,36 +2233,32 @@ class bslHelper {
 
 			let values = [];
 
-			for (const [context_key, context_value] of Object.entries(bslMetadata.commonModules.items)) {
+			for (const [key, value] of Object.entries(bslMetadata.commonModules.items)) {
 
-				for (const [key, value] of Object.entries(context_value)) {
+				if (value.hasOwnProperty(this.nameField)) {
 
-					if (value.hasOwnProperty(this.nameField)) {
+					let postfix = '';
+					let signatures = this.getMethodsSignature(value);
 
-						let postfix = '';
-						let signatures = this.getMethodsSignature(value);
+					if (signatures.length == 0 || (signatures.length == 1 && signatures[0].parameters.length == 0))
+						postfix = '()';
 
-						if (signatures.length == 0 || (signatures.length == 1 && signatures[0].parameters.length == 0))
-							postfix = '()';
+					let command = null;
 
-						let command = null;
+					let ref = null;
+					if (value.hasOwnProperty('ref'))
+						ref = value.ref;
 
-						let ref = null;
-						if (value.hasOwnProperty('ref'))
-							ref = value.ref;
+					if (ref || signatures.length)
+						command = { id: 'vs.editor.ICodeEditor:1:saveref', arguments: [{ "name": value[this.nameField], "data": { "ref": ref, "sig": signatures } }] }
 
-						if (ref || signatures.length)
-							command = { id: 'vs.editor.ICodeEditor:1:saveref', arguments: [{ "name": value[this.nameField], "data": { "ref": ref, "sig": signatures } }] }
+					let template = value.hasOwnProperty('template') ? value.template : '';
 
-						let template = value.hasOwnProperty('template') ? value.template : '';
+					values.push({ name: value[this.nameField], detail: value.description, description: value.hasOwnProperty('returns') ? value.returns : '', postfix: postfix, template: template, command: command });
 
-						values.push({ name: value[this.nameField], detail: value.description, description: value.hasOwnProperty('returns') ? value.returns : '', postfix: postfix, template: template, command: command });
-
-					}
-					else {
-						values.push({ name: key, detail: '', description: '', postfix: '', template: '', command: null });
-					}
-
+				}
+				else {
+					values.push({ name: key, detail: '', description: '', postfix: '', template: '', command: null });
 				}
 
 			}
@@ -4314,19 +4310,15 @@ class bslHelper {
 
 	}
 
-	static parseCommonModule(moduleName, moduleText, context) {
+	static parseCommonModule(moduleName, moduleText) {
 
 		let model = monaco.editor.createModel(moduleText);
 		let matches = model.findMatches('(?:процедура|функция|procedure|function)\\s+([a-zA-Z0-9\u0410-\u044F_]+)\\(([a-zA-Z0-9\u0410-\u044F_,\\s=]+)\\)', true, true, false, null, true);
 
 		if (matches && matches.length) {
 
-			let context_name = context ? context : 'default_context';
-			let context_modules = {};
+			let modules = bslMetadata.commonModules.items;
 			let module = {};
-
-			if (bslMetadata.commonModules.items.hasOwnProperty(context_name))
-				context_modules = bslMetadata.commonModules.items[context_name];
 
 			for (let idx = 0; idx < matches.length; idx++) {
 
@@ -4361,8 +4353,8 @@ class bslHelper {
 
 			}
 
-			context_modules[moduleName] = module;
-			bslMetadata.commonModules.items[context_name] = context_modules;
+			modules[moduleName] = module;
+			bslMetadata.commonModules.items = modules;
 
 		}
 
