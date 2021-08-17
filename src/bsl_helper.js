@@ -2225,6 +2225,65 @@ class bslHelper {
 
 	}
 
+	getCommonModulesCompletion(suggestions) {
+
+		let word = this.word;
+
+		if (word) {
+
+			let values = [];
+
+			for (const [context_key, context_value] of Object.entries(bslMetadata.commonModules.items)) {
+
+				for (const [key, value] of Object.entries(context_value)) {
+
+					if (value.hasOwnProperty(this.nameField)) {
+
+						let postfix = '';
+						let signatures = this.getMethodsSignature(value);
+
+						if (signatures.length == 0 || (signatures.length == 1 && signatures[0].parameters.length == 0))
+							postfix = '()';
+
+						let command = null;
+
+						let ref = null;
+						if (value.hasOwnProperty('ref'))
+							ref = value.ref;
+
+						if (ref || signatures.length)
+							command = { id: 'vs.editor.ICodeEditor:1:saveref', arguments: [{ "name": value[this.nameField], "data": { "ref": ref, "sig": signatures } }] }
+
+						let template = value.hasOwnProperty('template') ? value.template : '';
+
+						values.push({ name: value[this.nameField], detail: value.description, description: value.hasOwnProperty('returns') ? value.returns : '', postfix: postfix, template: template, command: command });
+
+					}
+					else {
+						values.push({ name: key, detail: '', description: '', postfix: '', template: '', command: null });
+					}
+
+				}
+
+			}
+
+			values.forEach(function (value) {
+				if (value.name.toLowerCase().startsWith(word)) {
+					suggestions.push({
+						label: value.name,
+						kind: monaco.languages.CompletionItemKind.Module,
+						insertText: value.template ? value.template : value.name + value.postfix,
+						insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+						detail: value.detail,
+						documentation: value.description,
+						command: value.command
+					});
+				}
+			});
+		}
+
+	}
+
 	/**
 	 * Completition provider for code-mode
 	 * 
@@ -2276,7 +2335,7 @@ class bslHelper {
 										this.getCommonCompletition(suggestions, bslGlobals.globalvariables, monaco.languages.CompletionItemKind.Class, true);
 										this.getCommonCompletition(suggestions, bslGlobals.systemEnum, monaco.languages.CompletionItemKind.Enum, false);
 										this.getCommonCompletition(suggestions, bslGlobals.customFunctions, monaco.languages.CompletionItemKind.Function, true);
-										this.getCommonCompletition(suggestions, bslMetadata.commonModules, monaco.languages.CompletionItemKind.Module, true);
+										this.getCommonModulesCompletion(suggestions);
 										this.getCustomObjectsCompletition(suggestions, bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
 									}
 
