@@ -4255,6 +4255,60 @@ class bslHelper {
 
 	}
 
+	static parseCommonModule(moduleName, moduleText, context) {
+
+		let model = monaco.editor.createModel(moduleText);
+		let matches = model.findMatches('(?:процедура|функция|procedure|function)\\s+([a-zA-Z0-9\u0410-\u044F_]+)\\(([a-zA-Z0-9\u0410-\u044F_,\\s=]+)\\)', true, true, false, null, true);
+
+		if (matches && matches.length) {
+
+			let context_name = context ? context : 'default_context';
+			let context_modules = {};
+			let module = {};
+
+			if (bslMetadata.commonModules.items.hasOwnProperty(context_name))
+				context_modules = bslMetadata.commonModules.items[context_name];
+
+			for (let idx = 0; idx < matches.length; idx++) {
+
+				let match = matches[idx];
+				let method_name = match.matches[1];
+				let params_str = match.matches[2];
+				let sig_params = {};
+				let params = params_str.split(',');
+
+				params.forEach(function (param) {
+					let param_name = param.split('=')[0].trim();
+					sig_params[param_name] = 'Описание отсутствует';
+				});
+
+				let method = {
+					name: method_name,
+					name_en: method_name,
+					description: "Описание отсутствует",
+					returns: "Описание отсутствует",
+				}
+
+				if (Object.keys(sig_params).length) {
+					method['signature'] = {
+						default: {
+							СтрокаПараметров: "(" + params_str + ")",
+							Параметры: sig_params
+						}
+					}
+				}
+
+				module[method_name] = method;
+
+			}
+
+			context_modules[moduleName] = module;
+			bslMetadata.commonModules.items[context_name] = context_modules;
+
+		}
+
+	}
+
 	/**
 	 * Escapes special character in json-string
 	 * before parsing
