@@ -4338,6 +4338,37 @@ class bslHelper {
 
 	}
 
+	static parseFunctionDescription(model, funcLineNumber) {
+
+		let short_description = '';
+		let full_description = '';
+		let line_number = funcLineNumber - 1;
+
+		while (0 < line_number && model.getValueInRange(new monaco.Range(line_number, 1, line_number, 3)) == '//') {
+			line_number--;
+		}
+
+		line_number++;
+
+		const matches = model.findMatches('([\\s\\S\\n]+)параметры:', new monaco.Range(line_number, 1, funcLineNumber, 1), true, false, null, true);
+
+		if (matches && matches.length)
+			short_description = matches[0].matches[1];
+		else
+			short_description = model.getValueInRange(new monaco.Range(line_number, 1, funcLineNumber, 1));
+
+		full_description = model.getValueInRange(new monaco.Range(line_number, 1, funcLineNumber, 1))
+
+		short_description = short_description.replaceAll('//', '').trim();
+		full_description = full_description.replaceAll('//', '').trim();
+
+		return {
+			short: short_description,
+			full: full_description,
+		}
+
+	}
+
 	static parseCommonModule(moduleName, moduleText, isGlobal) {
 
 		const model = monaco.editor.createModel(moduleText);
@@ -4356,6 +4387,7 @@ class bslHelper {
 				let params_str = match.matches[2];
 				let sig_params = {};
 				let params = params_str.split(',');
+				const description = this.parseFunctionDescription(model, match.range.startLineNumber)
 
 				params.forEach(function (param) {
 					let param_name = param.split('=')[0].trim();
@@ -4365,7 +4397,8 @@ class bslHelper {
 				let method = {
 					name: method_name,
 					name_en: method_name,
-					description: '',
+					description: description.full,
+					detail: description.short,
 					returns: '',
 				}
 
