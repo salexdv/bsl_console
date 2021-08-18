@@ -4359,14 +4359,14 @@ class bslHelper {
 
 				params.forEach(function (param) {
 					let param_name = param.split('=')[0].trim();
-					sig_params[param_name] = 'Описание отсутствует';
+					sig_params[param_name] = '';
 				});
 
 				let method = {
 					name: method_name,
 					name_en: method_name,
-					description: "Описание отсутствует",
-					returns: "Описание отсутствует",
+					description: '',
+					returns: '',
 				}
 
 				if (Object.keys(sig_params).length) {
