@@ -4338,7 +4338,7 @@ class bslHelper {
 
 	}
 
-	static parseCommonModule(moduleName, moduleText) {
+	static parseCommonModule(moduleName, moduleText, isGlobal) {
 
 		const model = monaco.editor.createModel(moduleText);
 		const pattern = '(?:процедура|функция|procedure|function)\\s+([a-zA-Z0-9\u0410-\u044F_]+)\\(([a-zA-Z0-9\u0410-\u044F_,\\s\\n="]+)\\)\\s+(?:экспорт|export)';
@@ -4378,11 +4378,16 @@ class bslHelper {
 					}
 				}
 
-				module[method_name] = method;
+				if (isGlobal)
+					bslGlobals.globalfunctions[method_name] = method;
+				else
+					module[method_name] = method;
 
 			}
 
-			modules[moduleName] = module;
+			if (!isGlobal)
+				modules[moduleName] = module;
+
 			bslMetadata.commonModules.items = modules;
 
 		}
