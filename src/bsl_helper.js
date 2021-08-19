@@ -2224,7 +2224,12 @@ class bslHelper {
 		}
 
 	}
-	
+
+	/**
+	 * Fills suggestions for names of common modules
+	 *
+	 * @param {array} array of suggestions for provideCompletionItems
+	 */
 	getCommonModulesNameCompletion(suggestions) {
 
 		if (this.word) {
@@ -2246,6 +2251,11 @@ class bslHelper {
 
 	}
 
+	/**
+	 * Fills suggestions for a specific common module
+	 *
+	 * @param {array} array of suggestions for provideCompletionItems
+	 */
 	getCommonModulesFuncCompletion(suggestions) {
 
 		let module_name = this.getLastNExpression(2);
@@ -2305,6 +2315,11 @@ class bslHelper {
 
 	}
 
+	/**
+	 * Fills suggestions for common modules (list of modules and specific module)
+	 *
+	 * @param {array} array of suggestions for provideCompletionItems
+	 */
 	getCommonModulesCompletion(suggestions) {
 
 		if (this.getLastNExpression(1) == '.')
@@ -4344,6 +4359,14 @@ class bslHelper {
 
 	}
 
+	/**
+	 * Returns a function description from comment above
+	 *
+	 * @param {ITextModel} text model of module
+	 * @param {int} line of function definition
+	 *
+	 * @returns {string} the function description
+	 */
 	static parseFunctionDescription(model, funcLineNumber) {
 
 		let short_description = '';
@@ -4375,6 +4398,14 @@ class bslHelper {
 
 	}
 
+	/**
+	 * Parsing a module text and building bslMetadata structure
+	 * for common modules
+	 * 
+	 * @param {string} a name of common module
+	 * @param {string} a text of module
+	 * @param {bool} is modal global or not
+	 */
 	static parseCommonModule(moduleName, moduleText, isGlobal) {
 
 		const model = monaco.editor.createModel(moduleText);
