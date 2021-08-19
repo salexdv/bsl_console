@@ -2224,7 +2224,7 @@ class bslHelper {
 		}
 
 	}
-
+	
 	getCommonModulesNameCompletion(suggestions) {
 
 		if (this.word) {
@@ -2256,39 +2256,45 @@ class bslHelper {
 
 				if (key.toLowerCase() == module_name) {
 
-					for (const [mkey, mvalue] of Object.entries(value)) {
+					if (Object.keys(value).length) {
 
-						if (mvalue.hasOwnProperty(this.nameField)) {
+						for (const [mkey, mvalue] of Object.entries(value)) {
 
-							let postfix = '';
-							let signatures = this.getMethodsSignature(mvalue);
+							if (mvalue.hasOwnProperty(this.nameField)) {
 
-							if (signatures.length == 0 || (signatures.length == 1 && signatures[0].parameters.length == 0))
-								postfix = '()';
+								let postfix = '';
+								let signatures = this.getMethodsSignature(mvalue);
 
-							let command = null;
+								if (signatures.length == 0 || (signatures.length == 1 && signatures[0].parameters.length == 0))
+									postfix = '()';
 
-							let ref = null;
-							if (mvalue.hasOwnProperty('ref'))
-								ref = mvalue.ref;
+								let command = null;
 
-							if (ref || signatures.length)
-								command = { id: 'vs.editor.ICodeEditor:1:saveref', arguments: [{ "name": mvalue[this.nameField], "data": { "ref": ref, "sig": signatures } }] }
+								let ref = null;
+								if (mvalue.hasOwnProperty('ref'))
+									ref = mvalue.ref;
 
-							let template = mvalue.hasOwnProperty('template') ? mvalue.template : '';
+								if (ref || signatures.length)
+									command = { id: 'vs.editor.ICodeEditor:1:saveref', arguments: [{ "name": mvalue[this.nameField], "data": { "ref": ref, "sig": signatures } }] }
 
-							suggestions.push({
-								label: mvalue[this.nameField],
-								kind: monaco.languages.CompletionItemKind.Function,
-								insertText: template ? template : mvalue[this.nameField] + postfix,
-								insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-								detail: mvalue.detail,
-								documentation: mvalue.description,
-								command: command
-							});
+								let template = mvalue.hasOwnProperty('template') ? mvalue.template : '';
+
+								suggestions.push({
+									label: mvalue[this.nameField],
+									kind: monaco.languages.CompletionItemKind.Function,
+									insertText: template ? template : mvalue[this.nameField] + postfix,
+									insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+									detail: mvalue.detail,
+									documentation: mvalue.description,
+									command: command
+								});
+
+							}
 
 						}
-
+					}
+					else {
+						requestMetadata('module.' + module_name);
 					}
 
 				}
