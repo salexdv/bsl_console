@@ -2356,6 +2356,110 @@ class bslHelper {
 	}
 
 	/**
+	 * Fills suggestions for names of common modules
+	 *
+	 * @param {array} array of suggestions for provideCompletionItems
+	 */
+	 getCommonModulesNameCompletion(suggestions) {
+
+		if (this.word) {
+
+			for (const [key, value] of Object.entries(window.bslMetadata.commonModules.items)) {
+
+				if (key.toLowerCase().startsWith(this.word)) {
+					suggestions.push({
+						label: key,
+						kind: monaco.languages.CompletionItemKind.Module,
+						insertText: key,
+						insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+					});
+				}
+
+			}
+
+		}
+
+	}
+
+	/**
+	 * Fills suggestions for a specific common module
+	 *
+	 * @param {array} array of suggestions for provideCompletionItems
+	 */
+	getCommonModulesFuncCompletion(suggestions) {
+
+		let module_name = this.getLastNExpression(2);
+
+		if (module_name) {
+
+			for (const [key, value] of Object.entries(window.bslMetadata.commonModules.items)) {
+
+				if (key.toLowerCase() == module_name) {
+
+					if (Object.keys(value).length) {
+
+						for (const [mkey, mvalue] of Object.entries(value)) {
+
+							if (mvalue.hasOwnProperty(this.nameField)) {
+
+								let postfix = '';
+								let signatures = this.getMethodsSignature(mvalue);
+
+								if (signatures.length == 0 || (signatures.length == 1 && signatures[0].parameters.length == 0))
+									postfix = '()';
+
+								let command = null;
+
+								let ref = null;
+								if (mvalue.hasOwnProperty('ref'))
+									ref = mvalue.ref;
+
+								if (ref || signatures.length)
+									command = { id: 'vs.editor.ICodeEditor:1:saveref', arguments: [{ "name": mvalue[this.nameField], "data": { "ref": ref, "sig": signatures } }] }
+
+								let template = mvalue.hasOwnProperty('template') ? mvalue.template : '';
+
+								suggestions.push({
+									label: mvalue[this.nameField],
+									kind: monaco.languages.CompletionItemKind.Function,
+									insertText: template ? template : mvalue[this.nameField] + postfix,
+									insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+									detail: mvalue.detail,
+									documentation: mvalue.description,
+									command: command
+								});
+
+							}
+
+						}
+					}
+					else {
+						window.requestMetadata('module.' + module_name);
+					}
+
+				}
+
+			}
+
+		}
+
+	}
+
+	/**
+	 * Fills suggestions for common modules (list of modules and specific module)
+	 *
+	 * @param {array} array of suggestions for provideCompletionItems
+	 */
+	getCommonModulesCompletion(suggestions) {
+
+		if (this.getLastNExpression(1) == '.')
+			this.getCommonModulesFuncCompletion(suggestions);
+		else
+			this.getCommonModulesNameCompletion(suggestions);
+
+	}
+
+	/**
 	 * Completition provider for code-mode
 	 * 
 	 * @param {CompletionContext} context
@@ -2406,7 +2510,7 @@ class bslHelper {
 										this.getCommonCompletition(suggestions, window.bslGlobals.globalvariables, monaco.languages.CompletionItemKind.Class, true);
 										this.getCommonCompletition(suggestions, window.bslGlobals.systemEnum, monaco.languages.CompletionItemKind.Enum, false);
 										this.getCommonCompletition(suggestions, window.bslGlobals.customFunctions, monaco.languages.CompletionItemKind.Function, true);
-										this.getCommonCompletition(suggestions, window.bslMetadata.commonModules, monaco.languages.CompletionItemKind.Module, true);
+										this.getCommonModulesCompletion(suggestions);
 										this.getCustomObjectsCompletition(suggestions, window.bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
 									}
 
