@@ -4386,6 +4386,111 @@ class bslHelper {
 	}
 
 	/**
+	 * Returns a function description from comment above
+	 *
+	 * @param {ITextModel} text model of module
+	 * @param {int} line of function definition
+	 *
+	 * @returns {string} the function description
+	 */
+	static parseFunctionDescription(model, funcLineNumber) {
+
+		let short_description = '';
+		let full_description = '';
+		let line_number = funcLineNumber - 1;
+
+		while (0 < line_number && model.getValueInRange(new monaco.Range(line_number, 1, line_number, 3)) == '//') {
+			line_number--;
+		}
+
+		line_number++;
+
+		const matches = model.findMatches('([\\s\\S\\n]+)параметры:', new monaco.Range(line_number, 1, funcLineNumber, 1), true, false, null, true);
+
+		if (matches && matches.length)
+			short_description = matches[0].matches[1];
+		else
+			short_description = model.getValueInRange(new monaco.Range(line_number, 1, funcLineNumber, 1));
+
+		full_description = model.getValueInRange(new monaco.Range(line_number, 1, funcLineNumber, 1))
+
+		short_description = short_description.replaceAll('//', '').trim();
+		full_description = full_description.replaceAll('//', '').trim();
+
+		return {
+			short: short_description,
+			full: full_description,
+		}
+
+	}
+
+	/**
+	 * Parsing a module text and building bslMetadata structure
+	 * for common modules
+	 * 
+	 * @param {string} a name of common module
+	 * @param {string} a text of module
+	 * @param {bool} is modal global or not
+	 */
+	static parseCommonModule(moduleName, moduleText, isGlobal) {
+
+		const model = monaco.editor.createModel(moduleText);
+		const pattern = '(?:процедура|функция|procedure|function)\\s+([a-zA-Z0-9\u0410-\u044F_]+)\\(([a-zA-Z0-9\u0410-\u044F_,\\s\\n="]+)\\)\\s+(?:экспорт|export)';
+		const matches = model.findMatches(pattern, true, true, false, null, true);
+
+		if (matches && matches.length) {
+
+			let modules = bslMetadata.commonModules.items;
+			let module = {};
+
+			for (let idx = 0; idx < matches.length; idx++) {
+
+				let match = matches[idx];
+				let method_name = match.matches[1];
+				let params_str = match.matches[2];
+				let sig_params = {};
+				let params = params_str.split(',');
+				const description = this.parseFunctionDescription(model, match.range.startLineNumber)
+
+				params.forEach(function (param) {
+					let param_name = param.split('=')[0].trim();
+					sig_params[param_name] = '';
+				});
+
+				let method = {
+					name: method_name,
+					name_en: method_name,
+					description: description.full,
+					detail: description.short,
+					returns: '',
+				}
+
+				if (Object.keys(sig_params).length) {
+					method['signature'] = {
+						default: {
+							СтрокаПараметров: "(" + params_str + ")",
+							Параметры: sig_params
+						}
+					}
+				}
+
+				if (isGlobal)
+					bslGlobals.globalfunctions[method_name] = method;
+				else
+					module[method_name] = method;
+
+			}
+
+			if (!isGlobal)
+				modules[moduleName] = module;
+
+			bslMetadata.commonModules.items = modules;
+
+		}
+
+	}
+
+	/**
 	 * Escapes special character in json-string
 	 * before parsing
 	 * 
