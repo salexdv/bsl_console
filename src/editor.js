@@ -1642,13 +1642,21 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   function diffEditorOnDidChangeCursorPosition(e) {
 
-    if (e.source != 'api') {
+    if (e.source != 'api') {      
+      
       editor.getModifiedEditor().diffDecor.position = 0;
       editor.getOriginalEditor().diffDecor.position = 0;
       getActiveDiffEditor().diffDecor.position = e.position.lineNumber;
       editor.diffEditorUpdateDecorations();
       editor.diffCount = editor.getLineChanges().length;
+
+      if (editor.getModifiedEditor().getPosition().equals(e.position))
+        editor.getOriginalEditor().setPosition(e.position);
+      else
+        editor.getModifiedEditor().setPosition(e.position);
+
       updateStatusBar();
+
     }
 
   }
