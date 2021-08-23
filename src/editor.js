@@ -1455,6 +1455,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
       permanent_decor = permanent_decor.concat(editor.diff_decorations);
 
+      getQueryDelimiterDecorations(permanent_decor);
+
       editor.decorations = editor.deltaDecorations(editor.decorations, permanent_decor.concat(new_decorations));
     }
 
@@ -1566,6 +1568,34 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   // #endregion
     
   // #region non-public functions
+  function getQueryDelimiterDecorations(decorations) {
+
+    if (queryMode && editor.renderQueryDelimiters) {
+
+      const matches = editor.getModel().findMatches('^\\s*;\\s*$', false, true, false, null, true);
+      const color = '#2f90d4';
+
+      for (let idx = 0; idx < matches.length; idx++) {
+        let match = matches[idx];
+        decorations.push({
+          range: new monaco.Range(match.range.startLineNumber, 1, match.range.startLineNumber),
+          options: {
+            isWholeLine: true,
+            className: 'query-delimiter',
+            overviewRuler: {
+              color: color,
+              darkColor: color,
+              position: 7
+            }
+          }
+        });
+
+      }
+
+    }
+
+  }
+
   function getSuggestWidget() {
 
     return editor._contentWidgets['editor.widget.suggestWidget'];
