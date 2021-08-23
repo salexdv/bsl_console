@@ -1107,7 +1107,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   addBookmark = function(lineNumber) {
 
-    if (lineNumber < getLineCount()) {
+    if (lineNumber <= getLineCount()) {
 
       let bookmark = editor.bookmarks.get(lineNumber);
 
