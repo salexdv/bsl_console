@@ -1573,7 +1573,17 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     if (queryMode && editor.renderQueryDelimiters) {
 
       const matches = editor.getModel().findMatches('^\\s*;\\s*$', false, true, false, null, true);
-      const color = '#2f90d4';
+      
+      let color = '#f2f2f2';
+      let class_name  = 'query-delimiter';
+      
+      const current_theme = getCurrentThemeName();
+      const is_dark_theme = (0 <= current_theme.indexOf('dark'));
+
+      if (is_dark_theme) {
+        class_name = 'query-delimiter-dark';
+        color = '#2d2d2d'
+      }
 
       for (let idx = 0; idx < matches.length; idx++) {
         let match = matches[idx];
@@ -1581,7 +1591,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
           range: new monaco.Range(match.range.startLineNumber, 1, match.range.startLineNumber),
           options: {
             isWholeLine: true,
-            className: 'query-delimiter',
+            className: class_name,
             overviewRuler: {
               color: color,
               darkColor: color,
