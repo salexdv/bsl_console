@@ -1685,13 +1685,14 @@ class bslHelper {
 		let metadataExists = false;
 
 		let unclosed = this.unclosedString(this.textBeforePosition);
+		let expression = this.lastExpression;
 
-		let regex = null;
+		if (unclosed.string) {
+			let exp = unclosed.string.slice(1);
+			expression = exp.split(' ').pop();
+		}
 
-		if (unclosed.string)
-			regex = /(.+?)(?:\.(.*?))?\.?(?:\.(.*?))?\(?$/.exec(unclosed.string.slice(1));
-		else
-			regex = /(.+?)(?:\.(.*?))?\.?(?:\.(.*?))?\(?$/.exec(this.lastExpression);
+		let regex = /(.+?)(?:\.(.*?))?\.?(?:\.(.*?))?\(?$/.exec(expression);
 		
 		let metadataName = regex && 1 < regex.length ? regex[1] : '';
 		let metadataItem = regex && 2 < regex.length ? regex[2] : '';
