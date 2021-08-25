@@ -115,7 +115,8 @@ define([], function () {
                 'Do', 'КонецЦикла', 'EndDo', 'НЕ', 'NOT', 'И', 'AND', 'ИЛИ', 'OR', 'Новый',
                 'New', 'Процедура', 'Procedure', 'Функция', 'Function', 'Перем', 'Var',
                 'Экспорт', 'Export', 'Знач', 'Val', 'Неопределено', 'Выполнить',
-                'Истина', 'Ложь', 'True', 'False', 'Undefined'
+                'Истина', 'Ложь', 'True', 'False', 'Undefined', 'Асинх', 'Async',
+                'Ждать', 'Await', 'Null'
             ],
             namespaceFollows: [
                 'namespace', 'using',
@@ -170,8 +171,8 @@ define([], function () {
                 'LOWER', 'СТРЗАМЕНИТЬ', 'STRREPLACE', 'РАЗМЕРХРАНИМЫХДАННЫХ', 'STOREDDATASIZE'
             ],
             DCSExp: [
-                'ВЫБОР', 'CASE', 'КОГДА', 'WHEN', 'ТОГДА', 'THEN', 'ИЛИ', 'OR',
-                'ИНАЧЕ', 'ELSE', 'ИСТИНА', 'TRUE', 'КОНЕЦ', 'END', 'ЛОЖЬ', 'FALSE'
+                'Выбор', 'Case', 'Когда', 'When', 'Тогда', 'Then', 'Или', 'Or',
+                'Иначе', 'Else', 'Истина', 'True', 'Конец', 'End', 'Ложь', 'False'
             ],
             DCSFunctions: [
                 'ВЫЧИСЛИТЬ', 'EVAL', 'ВЫЧИСЛИТЬВЫРАЖЕНИЕ', 'EVALEXPRESSION',
@@ -192,7 +193,7 @@ define([], function () {
                     [/[a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]*/, { cases: { '@keywords': 'keyword', '@default': 'identifier' } }],
                     // whitespace
                     { include: '@whitespace' },                    
-                    [/^\s*#.*$/, 'preproc'],
+                    [/^\s*[#&].*$/, 'preproc'],
                     [/[()\[\]]/, '@brackets'],
                     [/@symbols/, {
                         cases: {
@@ -413,10 +414,13 @@ define([], function () {
                 signatureHelpTriggerCharacters: ['(', ','],
                 signatureHelpRetriggerCharacters: [')'],
                 provideSignatureHelp: (model, position, token, context) => {
-                    resetSignatureWidgetDisplay();
-                    let bsl = new bslHelper(model, position);
-                    let helper = bsl.getSigHelp(context);
-                    onProvideSignature(bsl, context, position);
+                    let helper = null;
+                    if (!window.isSuggestWidgetVisible()) {
+                        resetSignatureWidgetDisplay();
+                        let bsl = new bslHelper(model, position);
+                        helper = bsl.getSigHelp(context);
+                        onProvideSignature(bsl, context, position);
+                    }
                     return helper;
                 }
             },
@@ -444,6 +448,14 @@ define([], function () {
                 provider: () => {},                
                 resolver: () => {}
             },
+            colorProvider: {
+                provideColorPresentations: (model, colorInfo) => {
+                    return bslHelper.provideColorPresentations(model, colorInfo);
+                },
+                provideDocumentColors: (model) => {
+                    return bslHelper.getDocumentColors(model);
+                }
+            },
             autoIndentation: true,
             indentationRules: {
                 increaseIndentPattern: /^\s*(функция|function|процедура|procedure|если|if|пока|while|для|for|попытка|try|исключение|except).*$/i,
@@ -464,7 +476,8 @@ define([], function () {
                 ['function', 'endfunction'],
                 ['процедура', 'конецпроцедуры'],
                 ['procedure', 'endprocedure']
-            ]
+            ],
+            autoClosingPairs: []
         },
         query: {
             languageDef: query_language,
@@ -489,7 +502,7 @@ define([], function () {
                 provideSignatureHelp: (model, position, token, context) => {
                     resetSignatureWidgetDisplay();
                     let bsl = new bslHelper(model, position);
-                    let helper = bsl.getQuerySigHelp();
+                    let helper = bsl.getQuerySigHelp(context);
                     onProvideSignature(bsl, context, position);
                     return helper;
                 }
@@ -513,6 +526,10 @@ define([], function () {
                 provider: () => {},                
                 resolver: () => {}
             },
+            colorProvider: {
+                provideColorPresentations: () => {},
+                provideDocumentColors: () => {}
+            },
             autoIndentation: false,
             indentationRules: {
                 increaseIndentPattern: /^\s*(выбрать|из|выбор|когда).*$/i,
@@ -522,7 +539,8 @@ define([], function () {
                 ['(', ')'],
                 ['[', ']'],
                 ['{', '}']
-            ]
+            ],
+            autoClosingPairs: []
         },
         dcs: {
             languageDef: dcs_language,
@@ -545,7 +563,7 @@ define([], function () {
                 provideSignatureHelp: (model, position, token, context) => {
                     resetSignatureWidgetDisplay();
                     let bsl = new bslHelper(model, position);
-                    let helper = bsl.getDCSSigHelp();
+                    let helper = bsl.getDCSSigHelp(context);
                     onProvideSignature(bsl, context, position);
                     return helper;
                 }
@@ -569,12 +587,17 @@ define([], function () {
                 provider: () => {},                
                 resolver: () => {}
             },
+            colorProvider: {
+                provideColorPresentations: () => {},
+                provideDocumentColors: () => {}
+            },
             autoIndentation: false,
             indentationRules: null,
             brackets: [
                 ['(', ')'],
                 ['[', ']']                
-            ]
+            ],
+            autoClosingPairs: []
         }
 
     };

@@ -177,10 +177,14 @@ class bslHelper {
 
 		let char = '';
 
-		let column = this.model.getLineLastNonWhitespaceColumn(lineNumber);
+		if (lineNumber) {
 
-		if (0 < column)
-			char = this.model.getValueInRange(new monaco.Range(lineNumber, column - 1, lineNumber, column));
+			let column = this.model.getLineLastNonWhitespaceColumn(lineNumber);
+
+			if (0 < column)
+				char = this.model.getValueInRange(new monaco.Range(lineNumber, column - 1, lineNumber, column));
+
+		}
 
 		return char;
 
@@ -812,6 +816,41 @@ class bslHelper {
 	}
 
 	/**
+	 * Gets the list of commmon properties owned by object
+	 * and fills the suggestions by it
+	 * 
+	 * @param {array} suggestions the list of suggestions
+	 * @param {object} obj object from BSL-JSON dictionary
+	 */
+	getMetadataCommmonObjectProperties(suggestions, obj) {
+
+		if (obj.hasOwnProperty('objProperties')) {
+			
+			let signatures = [];
+
+			for (const [mkey, mvalue] of Object.entries(obj.objProperties)) {
+
+				let command = null;
+							
+				if (mvalue.hasOwnProperty('ref'))
+					command = { id: 'vs.editor.ICodeEditor:1:saveref', arguments: [{ "name": mvalue[this.nameField], "data": { "ref": mvalue.ref, "sig": null } }] };
+				
+				suggestions.push({
+					label: mvalue[this.nameField],
+					kind: monaco.languages.CompletionItemKind.Field,
+					insertText: mvalue.name,
+					insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+					detail: mvalue.description,
+					command: command
+				});
+
+			}
+			
+		}			
+
+	}
+
+	/**
 	 * Fills suggestions from saved list
 	 * 
 	 * @param {array} suggestions the list of suggestions
@@ -843,6 +882,39 @@ class bslHelper {
 
 			});
 							
+		}
+
+	}
+
+	/**
+	 * Fills suggestions from systemEnum
+	 * 
+	 * @param {array} suggestions the list of suggestions
+	 * @param {object} obj object from BSL-JSON dictionary
+	 */
+	getSystemEnumSuggestions(suggestions, obj) {
+
+		if (obj.hasOwnProperty('values')) {
+
+			for (const [pkey, pvalue] of Object.entries(obj.values)) {
+
+				let command = null;
+
+				if (pvalue.hasOwnProperty('ref'))
+					command = { id: 'vs.editor.ICodeEditor:1:saveref', arguments: [{ "name": pvalue[this.nameField], "data": { "ref": pvalue.ref, "sig": null } }] };
+
+				suggestions.push({
+					label: pvalue[this.nameField],
+					kind: monaco.languages.CompletionItemKind.Field,
+					insertText: pvalue[this.nameField],
+					insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+					detail: pvalue.description,
+					documentation: '',
+					command: command
+				});
+
+			}
+
 		}
 
 	}
@@ -882,13 +954,21 @@ class bslHelper {
 								this.getClassSuggestions(suggestions, bslGlobals[itemName][subItemName]);
 							}
 						}
+						else if (itemName == 'systemEnum') {
+							if (this.objectHasProperties(bslGlobals, itemName, subItemName)) {
+								this.getSystemEnumSuggestions(suggestions, bslGlobals[itemName][subItemName]);
+							}
+						}
 						else {
 
-							let methodsName = (refArray.length == 3 && refArray[2] == 'obj') ? 'objMethods' : 'refMethods'
+							let isObject = (refArray.length == 3 && refArray[2] == 'obj');
+							let methodsName = isObject ? 'objMethods' : 'refMethods'
 
 							if (this.objectHasProperties(bslMetadata, itemName, 'items', subItemName, 'properties')) {
 								this.fillSuggestionsForMetadataItem(suggestions, bslMetadata[itemName].items[subItemName]);
 								this.getMetadataMethods(suggestions, bslMetadata[itemName], methodsName, itemName, subItemName);
+								if (isObject)
+									this.getMetadataCommmonObjectProperties(suggestions, bslMetadata[itemName]);
 							}
 							else if (this.objectHasProperties(bslMetadata, itemName, 'items', subItemName))
 								requestMetadata(itemName + '.' + subItemName);
@@ -1014,7 +1094,7 @@ class bslHelper {
 		let objName = this.getLastNExpression(2);
 		let word = this.lastRawExpression;
 
-		if (objName) {
+		if (this.getLastCharacter() == '.' && objName) {
 
 			for (const [key, value] of Object.entries(data)) {
 				
@@ -1236,7 +1316,7 @@ class bslHelper {
 
 			// 1C does not support positive/negative lookbehind yet
 			// const match = this.model.findPreviousMatch('(?<!\\/\\/.*)' + exp + '\\s?=\\s?(?:new|новый)\\s+(.*?)(?:\\(|;)', this.position, true, false, null, true);		
-			const match = this.model.findPreviousMatch(exp + '\\s?=\\s?(?:new|новый)\\s+(.*?)(?:\\(|;)', this.position, true, false, null, true);
+			const match = this.model.findPreviousMatch(exp + '\\s?=\\s?(?:new|новый)\\s+([a-zA-Z\u0410-\u044F_]*)+[(;]', this.position, true, false, null, true);
 
 			if (match) {										
 				className = match.matches[match.matches.length - 1];
@@ -1424,11 +1504,15 @@ class bslHelper {
 								if (ivalue.hasOwnProperty('properties')) {
 
 									let methodDef = this.getMetadataMethodByName(value, metadataFunc);
-									let methodsName = (methodDef && methodDef.hasOwnProperty('ref') && methodDef.ref.indexOf(':obj') != -1) ? 'objMethods' : 'refMethods';
+									let isObject = (methodDef && methodDef.hasOwnProperty('ref') && methodDef.ref.indexOf(':obj') != -1);
+									let methodsName = isObject ? 'objMethods' : 'refMethods';
 
 									itemExists = true;
 									this.fillSuggestionsForMetadataItem(suggestions, ivalue);
 									this.getMetadataMethods(suggestions, value, methodsName, key, ikey);
+
+									if (isObject)
+										this.getMetadataCommmonObjectProperties(suggestions, value);
 
 									refType = key + '.' + ikey + (methodsName == 'objMethods' ? '.obj' : '');									
 
@@ -1516,13 +1600,14 @@ class bslHelper {
 		let metadataExists = false;
 
 		let unclosed = this.unclosedString(this.textBeforePosition);
+		let expression = this.lastExpression;
 
-		let regex = null;
+		if (unclosed.string) {
+			let exp = unclosed.string.slice(1);
+			expression = exp.split(' ').pop();
+		}
 
-		if (unclosed.string)
-			regex = /(.+?)(?:\.(.*?))?\.?(?:\.(.*?))?\(?$/.exec(unclosed.string.slice(1));
-		else
-			regex = /(.+?)(?:\.(.*?))?\.?(?:\.(.*?))?\(?$/.exec(this.lastExpression);
+		let regex = /(.+?)(?:\.(.*?))?\.?(?:\.(.*?))?\(?$/.exec(expression);
 		
 		let metadataName = regex && 1 < regex.length ? regex[1] : '';
 		let metadataItem = regex && 2 < regex.length ? regex[2] : '';
@@ -1941,8 +2026,6 @@ class bslHelper {
 
 		for (const [key, value] of Object.entries(data)) {
 
-			let values = [];
-			
 			if (!subType) {
 
 				let suggestion = {
@@ -1968,16 +2051,22 @@ class bslHelper {
 				if (key.toLowerCase() == subType) {
 
 					if (value.hasOwnProperty('ref') && bslMetadata.hasOwnProperty(value.ref) && bslMetadata[value.ref].hasOwnProperty('items')) {
+					
+						if (Object.keys(bslMetadata[value.ref].items).length) {
 
-						for (const [mkey, mvalue] of Object.entries(bslMetadata[value.ref].items)) {
+							for (const [mkey, mvalue] of Object.entries(bslMetadata[value.ref].items)) {
 
-							suggestions.push({
-								label: mkey,
-								kind: kind,
-								insertText: mkey + '"',
-								insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-							});
+								suggestions.push({
+									label: mkey,
+									kind: kind,
+									insertText: mkey + '"',
+									insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+								});
 
+							}
+						}
+						else {
+							requestMetadata(bslMetadata[value.ref].name.toLowerCase());
 						}
 					}
 				}
@@ -2113,6 +2202,135 @@ class bslHelper {
 	}
 
 	/**
+	 * Fills completitions for object's methods and properties
+	 * into expressions like 'Types = New Array; Types.Cou<-(unt)'
+	 * 
+	 * @param {array} array of suggestions for provideCompletionItems
+	 * @param {CompletionContext} context
+	 * @param {CancellationToken} token
+	 */
+	getCompletitionForCurrentObject(suggestions, context, token) {
+
+		if (!suggestions.length && this.getLastNExpression(1) == '.' && this.getLastCharacter() != '.') {
+			
+			let column = this.column - this.lastRawExpression.length;
+			let position = new monaco.Position(this.lineNumber, column);
+			let bsl = new bslHelper(this.model, position);			
+			let object_suggestions = bsl.getCodeCompletition(context, token);
+
+			object_suggestions.forEach(suggest => {
+				suggestions.push(suggest);
+			});			
+
+		}
+
+	}
+
+	/**
+	 * Fills suggestions for names of common modules
+	 *
+	 * @param {array} array of suggestions for provideCompletionItems
+	 */
+	getCommonModulesNameCompletion(suggestions) {
+
+		if (this.word) {
+
+			for (const [key, value] of Object.entries(bslMetadata.commonModules.items)) {
+
+				if (key.toLowerCase().startsWith(this.word)) {
+					suggestions.push({
+						label: key,
+						kind: monaco.languages.CompletionItemKind.Module,
+						insertText: key,
+						insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+					});
+				}
+
+			}
+
+		}
+
+	}
+
+	/**
+	 * Fills suggestions for a specific common module
+	 *
+	 * @param {array} array of suggestions for provideCompletionItems
+	 */
+	getCommonModulesFuncCompletion(suggestions) {
+
+		let module_name = this.getLastNExpression(2);
+
+		if (module_name) {
+
+			for (const [key, value] of Object.entries(bslMetadata.commonModules.items)) {
+
+				if (key.toLowerCase() == module_name) {
+
+					if (Object.keys(value).length) {
+
+						for (const [mkey, mvalue] of Object.entries(value)) {
+
+							if (mvalue.hasOwnProperty(this.nameField)) {
+
+								let postfix = '';
+								let signatures = this.getMethodsSignature(mvalue);
+
+								if (signatures.length == 0 || (signatures.length == 1 && signatures[0].parameters.length == 0))
+									postfix = '()';
+
+								let command = null;
+
+								let ref = null;
+								if (mvalue.hasOwnProperty('ref'))
+									ref = mvalue.ref;
+
+								if (ref || signatures.length)
+									command = { id: 'vs.editor.ICodeEditor:1:saveref', arguments: [{ "name": mvalue[this.nameField], "data": { "ref": ref, "sig": signatures } }] }
+
+								let template = mvalue.hasOwnProperty('template') ? mvalue.template : '';
+
+								suggestions.push({
+									label: mvalue[this.nameField],
+									kind: monaco.languages.CompletionItemKind.Function,
+									insertText: template ? template : mvalue[this.nameField] + postfix,
+									insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+									detail: mvalue.detail,
+									documentation: mvalue.description,
+									command: command
+								});
+
+							}
+
+						}
+					}
+					else {
+						requestMetadata('module.' + module_name);
+					}
+
+				}
+
+			}
+
+		}
+
+	}
+
+	/**
+	 * Fills suggestions for common modules (list of modules and specific module)
+	 *
+	 * @param {array} array of suggestions for provideCompletionItems
+	 */
+	getCommonModulesCompletion(suggestions) {
+
+		if (this.getLastNExpression(1) == '.')
+			this.getCommonModulesFuncCompletion(suggestions);
+		else
+			this.getCommonModulesNameCompletion(suggestions);
+
+	}
+
+	/**
 	 * Completition provider for code-mode
 	 * 
 	 * @param {CompletionContext} context
@@ -2137,6 +2355,7 @@ class bslHelper {
 				if (this.lastOperator != '"') {
 
 					this.getRefCompletition(suggestions);
+					this.getCompletitionForCurrentObject(suggestions, context, token);
 
 					if (!suggestions.length) {
 
@@ -2162,7 +2381,7 @@ class bslHelper {
 										this.getCommonCompletition(suggestions, bslGlobals.globalvariables, monaco.languages.CompletionItemKind.Class, true);
 										this.getCommonCompletition(suggestions, bslGlobals.systemEnum, monaco.languages.CompletionItemKind.Enum, false);
 										this.getCommonCompletition(suggestions, bslGlobals.customFunctions, monaco.languages.CompletionItemKind.Function, true);
-										this.getCommonCompletition(suggestions, bslMetadata.commonModules, monaco.languages.CompletionItemKind.Module, true);
+										this.getCommonModulesCompletion(suggestions);
 										this.getCustomObjectsCompletition(suggestions, bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
 									}
 
@@ -2181,9 +2400,6 @@ class bslHelper {
 
 				}
 
-			}
-			else {
-				this.getTypesCompletition(suggestions, bslGlobals.types, monaco.languages.CompletionItemKind.Enum);
 			}
 
 		}
@@ -2204,10 +2420,14 @@ class bslHelper {
 
 		let suggestions = this.getCustomSuggestions(true);
 
-		if (!suggestions.length) {			
+		if (!suggestions.length && !editor.disableNativeSuggestions) {
 
 			if (!this.isItStringLiteral()) {				
 				suggestions = this.getCodeCompletition(context, token);
+			}
+			else {
+				if (this.requireType())
+					this.getTypesCompletition(suggestions, bslGlobals.types, monaco.languages.CompletionItemKind.Enum);
 			}
 
 		}
@@ -2361,8 +2581,9 @@ class bslHelper {
 	 * @param {array} suggestions array of suggestions for provideCompletionItems
 	 * @param {array} values array of values
 	 * @param {CompletionItemKind} kind - monaco.languages.CompletionItemKind (class, function, constructor etc.)
+	 * @param {bool} upperCase turn expression into upper case or not
 	 */
-	 getFillSuggestionsFromArray(suggestions, values, kind) {
+	 getFillSuggestionsFromArray(suggestions, values, kind, upperCase) {
 
 		let word = this.word;
 
@@ -2372,7 +2593,10 @@ class bslHelper {
 
 				if (value.toLowerCase().startsWith(word)) {
 
-					let expression = value.toUpperCase();
+					let expression = value;
+
+					if (upperCase)
+						value = value.toUpperCase();
 
 					if (engLang) {
 						if (!/^[A-Za-z]*$/.test(expression))
@@ -2552,7 +2776,7 @@ class bslHelper {
 				values.push(keyword);
 			}
 
-			this.getFillSuggestionsFromArray(suggestions, values, kind);
+			this.getFillSuggestionsFromArray(suggestions, values, kind, true);
 
 		}
 
@@ -3335,7 +3559,7 @@ class bslHelper {
 	 */
 	getQueryTablesCompletition(suggestions, kind) {
 		
-		if (this.getLastCharacter() != '.' && this.lastExpression.indexOf('&') < 0) {
+		if (this.getLastCharacter() != '.' && this.getLastCharacter() != '(' && this.lastExpression.indexOf('&') < 0) {
 
 			// Let's find start of current query
 			let startMatch = this.model.findPreviousMatch('(?:выбрать|select)', this.position, true);
@@ -3422,6 +3646,7 @@ class bslHelper {
 		if (customSuggestions.length) {
 			
 			suggestions = customSuggestions.slice();
+			editor.previousCustomSuggestions = [...suggestions];
 			
 			if (erase)
 				customSuggestions = [];
@@ -3441,7 +3666,7 @@ class bslHelper {
 
 		let suggestions = this.getCustomSuggestions(true);		
 		
-		if (!suggestions.length) {
+		if (!suggestions.length && !editor.disableNativeSuggestions) {
 		
 			if (!this.requireQueryValue()) {
 
@@ -3495,12 +3720,12 @@ class bslHelper {
 
 		let suggestions = this.getCustomSuggestions(true);
 		
-		if (!suggestions.length) {
+		if (!suggestions.length && !editor.disableNativeSuggestions) {
 
 			if (!this.requireQueryValue()) {
 
 				if (this.lastOperator != '"') {
-					this.getFillSuggestionsFromArray(suggestions, languages.bsl.languageDef.rules.DCSExp, monaco.languages.CompletionItemKind.Module);
+					this.getFillSuggestionsFromArray(suggestions, languages.bsl.languageDef.rules.DCSExp, monaco.languages.CompletionItemKind.Module, false);
 					let functions = this.getQueryFunctions(bslDCS);
 					this.getCommonCompletition(suggestions, functions, monaco.languages.CompletionItemKind.Function, true);
 					this.getCustomObjectsCompletition(suggestions, bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
@@ -4001,20 +4226,24 @@ class bslHelper {
 
 			let helper = this.getCustomSigHelp(context);
 
-			if (!helper)
-				helper = this.getRefSigHelp();
+			if (!editor.disableNativeSignatures) {
 
-			if (!helper)
-				helper = this.getMetadataSigHelp(bslMetadata);
+				if (!helper)
+					helper = this.getRefSigHelp();
 
-			if (!helper)
-				helper = this.getClassSigHelp(bslGlobals.classes);
+				if (!helper)
+					helper = this.getMetadataSigHelp(bslMetadata);
 
-			if (!helper)
-				helper = this.getCommonSigHelp(bslGlobals.globalfunctions);
+				if (!helper)
+					helper = this.getClassSigHelp(bslGlobals.classes);
 
-			if (!helper)
-				helper = this.getCommonSigHelp(bslGlobals.customFunctions);
+				if (!helper)
+					helper = this.getCommonSigHelp(bslGlobals.globalfunctions);
+
+				if (!helper)
+					helper = this.getCommonSigHelp(bslGlobals.customFunctions);
+
+			}
 
 			if (helper)
 				return new SignatureHelpResult(helper);
@@ -4026,16 +4255,22 @@ class bslHelper {
 	/**
 	 * Signature help provider for query language
 	 * 
+	 * @param {SignatureHelpContext} context signature help context
+	 * 
 	 * @returns {object} helper
 	 */
-	getQuerySigHelp() {
+	getQuerySigHelp(context) {
 		
 		let unclosed = this.unclosedString(this.textBeforePosition);
 
 		if (this.lastOperator != ')' && !this.requireQueryValue() && 0 <= unclosed.index) {
 			
-			let functions = this.getQueryFunctions(bslQuery);
-			let helper = this.getCommonSigHelp(functions);
+			let helper = this.getCustomSigHelp(context);
+
+			if (!helper && !editor.disableNativeSignatures) {
+				let functions = this.getQueryFunctions(bslQuery);
+				helper = this.getCommonSigHelp(functions);
+			}
 			
 			if (helper)
 				return new SignatureHelpResult(helper);
@@ -4047,20 +4282,28 @@ class bslHelper {
 	/**
  	 * Signature help provider for query language
  	 * 
+	 * @param {SignatureHelpContext} context signature help context
+	 * 
  	 * @returns {object} helper
  	 */
-	getDCSSigHelp() {
+	getDCSSigHelp(context) {
 
 		let unclosed = this.unclosedString(this.textBeforePosition);
 
 		if (this.lastOperator != ')' && 0 <= unclosed.index) {
 
-			let functions = this.getQueryFunctions(bslDCS);
-			let helper = this.getCommonSigHelp(functions);
+			let helper = this.getCustomSigHelp(context);
 
-			if (!helper) {
-				functions = this.getQueryFunctions(bslQuery);
+			if (!helper && !editor.disableNativeSignatures) {
+
+				let functions = this.getQueryFunctions(bslDCS);
 				helper = this.getCommonSigHelp(functions);
+
+				if (!helper) {
+					functions = this.getQueryFunctions(bslQuery);
+					helper = this.getCommonSigHelp(functions);
+				}
+
 			}
 
 			if (helper)
@@ -4114,6 +4357,111 @@ class bslHelper {
 			return { errorDescription: e.message };
 		}
 
+
+	}
+
+	/**
+	 * Returns a function description from comment above
+	 *
+	 * @param {ITextModel} text model of module
+	 * @param {int} line of function definition
+	 *
+	 * @returns {string} the function description
+	 */
+	static parseFunctionDescription(model, funcLineNumber) {
+
+		let short_description = '';
+		let full_description = '';
+		let line_number = funcLineNumber - 1;
+
+		while (0 < line_number && model.getValueInRange(new monaco.Range(line_number, 1, line_number, 3)) == '//') {
+			line_number--;
+		}
+
+		line_number++;
+
+		const matches = model.findMatches('([\\s\\S\\n]+)параметры:', new monaco.Range(line_number, 1, funcLineNumber, 1), true, false, null, true);
+
+		if (matches && matches.length)
+			short_description = matches[0].matches[1];
+		else
+			short_description = model.getValueInRange(new monaco.Range(line_number, 1, funcLineNumber, 1));
+
+		full_description = model.getValueInRange(new monaco.Range(line_number, 1, funcLineNumber, 1))
+
+		short_description = short_description.replaceAll('//', '').trim();
+		full_description = full_description.replaceAll('//', '').trim();
+
+		return {
+			short: short_description,
+			full: full_description,
+		}
+
+	}
+
+	/**
+	 * Parsing a module text and building bslMetadata structure
+	 * for common modules
+	 * 
+	 * @param {string} a name of common module
+	 * @param {string} a text of module
+	 * @param {bool} is modal global or not
+	 */
+	static parseCommonModule(moduleName, moduleText, isGlobal) {
+
+		const model = monaco.editor.createModel(moduleText);
+		const pattern = '(?:процедура|функция|procedure|function)\\s+([a-zA-Z0-9\u0410-\u044F_]+)\\(([a-zA-Z0-9\u0410-\u044F_,\\s\\n="]+)\\)\\s+(?:экспорт|export)';
+		const matches = model.findMatches(pattern, true, true, false, null, true);
+
+		if (matches && matches.length) {
+
+			let modules = bslMetadata.commonModules.items;
+			let module = {};
+
+			for (let idx = 0; idx < matches.length; idx++) {
+
+				let match = matches[idx];
+				let method_name = match.matches[1];
+				let params_str = match.matches[2];
+				let sig_params = {};
+				let params = params_str.split(',');
+				const description = this.parseFunctionDescription(model, match.range.startLineNumber)
+
+				params.forEach(function (param) {
+					let param_name = param.split('=')[0].trim();
+					sig_params[param_name] = '';
+				});
+
+				let method = {
+					name: method_name,
+					name_en: method_name,
+					description: description.full,
+					detail: description.short,
+					returns: '',
+				}
+
+				if (Object.keys(sig_params).length) {
+					method['signature'] = {
+						default: {
+							СтрокаПараметров: "(" + params_str + ")",
+							Параметры: sig_params
+						}
+					}
+				}
+
+				if (isGlobal)
+					bslGlobals.globalfunctions[method_name] = method;
+				else
+					module[method_name] = method;
+
+			}
+
+			if (!isGlobal)
+				modules[moduleName] = module;
+
+			bslMetadata.commonModules.items = modules;
+
+		}
 
 	}
 
@@ -4534,7 +4882,7 @@ class bslHelper {
 
 		let hover = this.getCustomHover();
 
-		if (!hover) {
+		if (!hover && !editor.disableNativeHovers) {
 
 			for (const [key, value] of Object.entries(bslGlobals)) {
 
@@ -4781,7 +5129,19 @@ class bslHelper {
 	 */
 	static setText(txt, range, usePadding) {
 		
-		let insertRange = range ? range : monaco.Range.fromPositions(editor.getPosition());
+		let insertRange;
+
+		if (range) {
+			if (typeof range === 'string') {
+				let rangeObject = JSON.parse(range)
+				insertRange = new monaco.Range(rangeObject.startLineNumber, rangeObject.startColumn, rangeObject.endLineNumber, rangeObject.endColumn)
+			} else {
+				insertRange = range
+			}
+		} else {
+			insertRange = monaco.Range.fromPositions(editor.getPosition())
+		}
+
 		let startColumn = insertRange.startColumn;		
 
 		if (usePadding && 1 < startColumn) {
@@ -4912,6 +5272,10 @@ class bslHelper {
 		return result;
 	}
 
+	/**
+	 * Handler of hoverProvider
+	 * for EVENT_BEFORE_HOVER generation
+	 */
 	onProvideHover() {
 
 		if (generateBeforeHoverEvent) {
@@ -4930,18 +5294,174 @@ class bslHelper {
 
 	}
 
+	/**
+	 * Handler of completionProvider
+	 * for EVENT_BEFORE_SHOW_SUGGEST generation
+	 * @param {CompletionContext} context 
+	 * @param {object} list of completition 
+	 */
 	onProvideCompletion(context, completition) {
 
-		if (generateBeforeShowSuggestEvent) {                
+		if (generateBeforeShowSuggestEvent) {                			
+			
 			let rows = [];
 			if (Object.keys(completition).length) {
 				for (const [key, value] of Object.entries(completition.suggestions)) {
 					rows.push(value.label);
 				}                        
 			}
-			genarateEventWithSuggestData('EVENT_BEFORE_SHOW_SUGGEST', context.triggerCharacter, null, rows);
+
+			let trigger = context.triggerCharacter;
+			
+			if (!trigger) {
+				switch (editor.lastKeyCode) {
+					case 1:
+						trigger = 'backspace';
+						break;
+					case 10:
+						trigger = 'space';
+						break;
+					default:
+						trigger = undefined;
+				}
+			}
+
+			generateEventWithSuggestData('EVENT_BEFORE_SHOW_SUGGEST', trigger, null, rows);
 		}
 
+	}
+	
+	/**
+	 * Looking for color in the global collection of colors
+	 * by it's name
+	 * @param {string} the name of color
+	 * 
+	 * @returns {object} color
+	 */
+	static getWebColorByName(colorName) {
+
+		for (const [key, value] of Object.entries(window.colors.WebColors)) {
+			if (value.name.toLowerCase() == colorName || value.name_en.toLowerCase() == colorName)
+				return value;
+		}
+
+		return null;
+
+	}
+
+	/**
+	 * Extracts color parameters from string 
+	 * @param {string} color string like "255, 100, 180"
+	 * 
+	 * @returns {object/null} color
+	 */
+	static getColorByParams(paramsStr) {
+
+		let color = null;
+		let color_params = paramsStr.split(',');
+
+		if (color_params.length == 3) {
+			color = {
+				r: parseInt(color_params[0]),
+				g: parseInt(color_params[1]),
+				b: parseInt(color_params[2]),
+			}
+		}
+
+		return color;
+
+	}
+
+	/**
+	 * Returns ColorInformation for provideDocumentColors
+	 * @param {ITextModel} current model of editor
+	 * 
+	 * @returns {array} ColorInformation[]
+	 */
+	static getDocumentColors(model) {
+
+		let document_colors = [];
+
+		let pattern = 'WebЦвета\.([a-zA-Z\u0410-\u044F]+)|WebColors\.([a-zA-Z\u0410-\u044F]+)|Новый Цвет\\s*\\((.*?)\\)|New Color\\s*\\((.*?)\\)';
+		let matches = model.findMatches(pattern, false, true, false, null, true);
+
+		for (let idx = 0; idx < matches.length; idx++) {
+
+			let match = matches[idx];
+
+			let word = match.matches[0].toLowerCase();
+
+			if (0 <= word.indexOf('web') && colors.hasOwnProperty('WebColors')) {
+
+				let color = this.getWebColorByName(match.matches[1].toLowerCase());
+
+				if (color) {
+					document_colors.push({
+						color: { red: color.r / 255, green: color.g / 255, blue: color.b / 255, alpha: 1 },
+						range: {
+							startLineNumber: match.range.startLineNumber,
+							startColumn: match.range.startColumn,
+							endLineNumber: match.range.startLineNumber,
+							endColumn: match.range.startColumn
+						}
+					});
+				}
+
+			}
+			else if (match.matches.length == 5 && typeof (match.matches[3]) == 'string') {
+
+				let color = this.getColorByParams(match.matches[3]);
+
+				if (color) {
+					document_colors.push({
+						color: { red: color.r / 255, green: color.g / 255, blue: color.b / 255, alpha: 1 },
+						range: {
+							startLineNumber: match.range.startLineNumber,
+							startColumn: match.range.startColumn,
+							endLineNumber: match.range.startLineNumber,
+							endColumn: match.range.startColumn
+						}
+					});
+				}
+
+			}
+
+		}
+
+		return document_colors;
+
+	}
+
+	/**
+	 * Provide the string representations for a color.
+	 * @param {ITextModel} current model of editor 
+	 * @param {IColorInformation} color information
+	 * 
+	 * @returns {array} ColorPresentation[]
+	 */
+	static provideColorPresentations(model, colorInfo) {
+
+		let textEdit = null;
+		let pattern = 'WebЦвета\.([a-zA-Z\u0410-\u044F]+)|WebColors\.([a-zA-Z\u0410-\u044F]+)|Новый Цвет\\s*\\((.*?)\\)|New Color\\s*\\((.*?)\\)';
+		let range = colorInfo.range;
+
+		let match = model.findNextMatch(pattern, new monaco.Position(range.startLineNumber, range.startColumn), true, false, null, true);
+
+		let color = colorInfo.color;
+		let red = Math.round(color.red * 255);
+		let green = Math.round(color.green * 255);
+		let blue = Math.round(color.blue * 255);
+
+		if (match && match.range.startLineNumber == range.startLineNumber) {
+			let value = window.engLang ? 'New Color' : 'Новый Цвет';
+			value = value + "(" + red + ", " + green + ", " + blue + ")";
+			textEdit = { range: match.range, text: value };
+		}
+
+		return [{
+			label: '',
+			textEdit: textEdit
+		}];
 	}
 
 }

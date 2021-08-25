@@ -1,3 +1,7 @@
+#event-button {
+	display: none;
+}
+
 .error-string {
 	background-color: #ffa07a;
 }
@@ -5,11 +9,32 @@
 .error-mark {
 	width: 0 !important;
 	height: 0 !important;
-    margin-left: 7px;
-    top: 3px !important;
-	border-top: 7px solid transparent;
-	border-left: 14px solid #ff0000;
-	border-bottom: 7px solid transparent;
+    margin-left: 11px;
+    top: 5px !important;
+	border-top: 5px solid transparent;
+	border-left: 10px solid #ff0000;
+	border-bottom: 5px solid transparent;
+}
+
+.diff-mark {
+	width: 0 !important;
+	height: 0 !important;
+    margin-left: -35px;
+    top: 5px !important;
+	border-top: 5px solid transparent;
+	border-left: 10px solid #d400ff;
+	border-bottom: 5px solid transparent;
+}
+
+.diff-editor-position {
+	width: 0 !important;
+	height: 0 !important;
+    margin-left: -35px;
+    top: 5px !important;
+	border-top: 5px solid transparent;
+	border-left: 10px solid #028fef;
+	border-bottom: 5px solid transparent;
+	z-index: 1;
 }
 
 .bookmark {
@@ -26,8 +51,13 @@
 	color: #fff;
 }
 
+.editor-widget.find-widget {
+	max-height: 0px;
+}
+
 .editor-widget.find-widget.visible {
 	min-height: 33px;
+	max-height: 100px;
 }
 
 .editor-widget.find-widget.visible .input {
@@ -50,14 +80,14 @@
 
 .diff-navi {
 	border-left: 3px solid;	
-	width: 10px !important;
-	margin-left: 5px;
+	width: 3px !important;
+	margin-left: 3px;
 	cursor: pointer;
 }
 
 .diff-navi:hover {
 	border-left: 9px solid;
-	margin-left: 2px;
+	margin-left: 0px;
 	cursor: pointer;
 	transition: all .25s;
 }
@@ -103,8 +133,9 @@
 .diff-close:before, .diff-close:after {
 	position: absolute;	
 	content: ' ';
-	height: 15px;
+	height: 12px;
 	width: 2px;
+	top: 2px;
 	background-color: #333;
 }
 
@@ -150,4 +181,12 @@
 
 .removed-block {		
 	border-color: #dd0000;	
+}
+
+.query-delimiter {
+	background-color: #e8ffe8;
+}
+
+.query-delimiter-dark {
+	background-color: #404040;
 }

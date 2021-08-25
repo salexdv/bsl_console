@@ -306,7 +306,7 @@ describe("Проверка автокомлита и подсказок реда
       bsl = helper("ТОГ");                  
       result = bsl.getDCSCompletition();
       expect(result.suggestions).to.be.an('array').that.not.is.empty;
-      assert.equal(result.suggestions.some(suggest => suggest.label === "ТОГДА"), true);
+      assert.equal(result.suggestions.some(suggest => suggest.label === "Тогда"), true);
       switchDCSMode();
     });
 
