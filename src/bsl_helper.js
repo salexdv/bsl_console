@@ -4380,10 +4380,12 @@ class bslHelper {
 
 		line_number++;
 
-		const matches = model.findMatches('([\\s\\S\\n]+)параметры:', new monaco.Range(line_number, 1, funcLineNumber, 1), true, false, null, true);
+		const matches = model.findMatches('параметры:', new monaco.Range(line_number, 1, funcLineNumber, 1), true, false);
 
-		if (matches && matches.length)
-			short_description = matches[0].matches[1];
+		if (matches && matches.length) {
+			let range = new monaco.Range(line_number, 1, matches[0].range.startLineNumber, matches[0].range.startColumn);
+			short_description = model.getValueInRange(range);
+		}
 		else
 			short_description = model.getValueInRange(new monaco.Range(line_number, 1, funcLineNumber, 1));
 
