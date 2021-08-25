@@ -9,6 +9,8 @@
 	* [kind](https://microsoft.github.io/monaco-editor/api/interfaces/monaco.languages.completionitem.html#kind) - одно из значений перечисления [CompletionItemKind](https://microsoft.github.io/monaco-editor/api/enums/monaco.languages.completionitemkind.html)
 	* [detail](https://microsoft.github.io/monaco-editor/api/interfaces/monaco.languages.completionitem.html#detail) - дополнительное описание элемента, показываемое в окне подсказок
 	* [description](https://microsoft.github.io/monaco-editor/api/interfaces/monaco.languages.completionitem.html#documentation) - документация к элементу
+	* [filter](https://microsoft.github.io/monaco-editor/api/interfaces/monaco.languages.completionitem.html#filtertext) - текст, используемый для фильтрации. Необязательно поле.
+	* [sort](https://microsoft.github.io/monaco-editor/api/interfaces/monaco.languages.completionitem.html#sorttext) - строка, используемая для сортировки элемента в списке. Необязательно поле.
 
 ## Пример вызова
 ```javascript
