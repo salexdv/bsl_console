@@ -6,6 +6,7 @@ import { getActions, permanentActions } from './actions';
 import './decorations.css'
 import { setLocaleData } from 'monaco-editor-nls';
 import ruLocale from 'monaco-editor-nls/locale/ru';
+import Finder from "./finder";
 
 const monaco = require('monaco-editor/esm/vs/editor/editor.api');
 
@@ -1485,6 +1486,8 @@ function initEditorEventListenersAndProperies() {
 
     permanent_decor = permanent_decor.concat(window.editor.diff_decorations);
 
+    getQueryDelimiterDecorations(permanent_decor);
+
     window.editor.decorations = window.editor.deltaDecorations(window.editor.decorations, permanent_decor.concat(new_decorations));
   }
 
@@ -1596,6 +1599,44 @@ function initEditorEventListenersAndProperies() {
 // #endregion
   
 // #region non-public functions
+function getQueryDelimiterDecorations(decorations) {
+
+  if (window.queryMode && window.editor.renderQueryDelimiters) {
+
+    const matches = Finder.findMatches(window.editor.getModel(), '^;\\s*');
+    
+    let color = '#f2f2f2';
+    let class_name  = 'query-delimiter';
+    
+    const current_theme = getCurrentThemeName();
+    const is_dark_theme = (0 <= current_theme.indexOf('dark'));
+
+    if (is_dark_theme) {
+      class_name = 'query-delimiter-dark';
+      color = '#2d2d2d'
+    }
+
+    for (let idx = 0; idx < matches.length; idx++) {
+      let match = matches[idx];
+      decorations.push({
+        range: new monaco.Range(match.range.startLineNumber, 1, match.range.startLineNumber),
+        options: {
+          isWholeLine: true,
+          className: class_name,
+          overviewRuler: {
+            color: color,
+            darkColor: color,
+            position: 7
+          }
+        }
+      });
+
+    }
+
+  }
+
+}
+
 function getSuggestWidget() {
 
   return window.editor._contentWidgets['editor.widget.suggestWidget'];

@@ -182,3 +182,11 @@
 .removed-block {		
 	border-color: #dd0000;	
 }
+
+.query-delimiter {
+	background-color: #e8ffe8;
+}
+
+.query-delimiter-dark {
+	background-color: #404040;
+}
