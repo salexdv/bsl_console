@@ -4380,17 +4380,19 @@ class bslHelper {
 
 		line_number++;
 
-		const matches = model.findMatches('([\\s\\S\\n]+)параметры:', new monaco.Range(line_number, 1, funcLineNumber, 1), true, false, null, true);
+		const matches = model.findMatches('параметры:', new monaco.Range(line_number, 1, funcLineNumber, 1), true, false);
 
-		if (matches && matches.length)
-			short_description = matches[0].matches[1];
+		if (matches && matches.length) {
+			let range = new monaco.Range(line_number, 1, matches[0].range.startLineNumber, matches[0].range.startColumn);
+			short_description = model.getValueInRange(range);
+		}
 		else
 			short_description = model.getValueInRange(new monaco.Range(line_number, 1, funcLineNumber, 1));
 
 		full_description = model.getValueInRange(new monaco.Range(line_number, 1, funcLineNumber, 1))
 
-		short_description = short_description.replaceAll('//', '').trim();
-		full_description = full_description.replaceAll('//', '').trim();
+		short_description = short_description.replace(/\/\//g, '').trim();
+		full_description = full_description.replace(/\/\//g, '').trim();
 
 		return {
 			short: short_description,
@@ -4406,15 +4408,19 @@ class bslHelper {
 	 * @param {string} a name of common module
 	 * @param {string} a text of module
 	 * @param {bool} is modal global or not
+	 * 
+	 * @returns {int} count of matches (export functions)
 	 */
 	static parseCommonModule(moduleName, moduleText, isGlobal) {
 
+		let count_matches = 0;
 		const model = monaco.editor.createModel(moduleText);
-		const pattern = '(?:процедура|функция|procedure|function)\\s+([a-zA-Z0-9\u0410-\u044F_]+)\\(([a-zA-Z0-9\u0410-\u044F_,\\s\\n="]+)\\)\\s+(?:экспорт|export)';
+		const pattern = '(?:процедура|функция|procedure|function)\\s+([a-zA-Z0-9\u0410-\u044F_]+)\\(([a-zA-Z0-9\u0410-\u044F_,\\s\\n="]*)\\)\\s+(?:экспорт|export)';
 		const matches = model.findMatches(pattern, true, true, false, null, true);
 
 		if (matches && matches.length) {
 
+			count_matches = matches.length;
 			let modules = bslMetadata.commonModules.items;
 			let module = {};
 
@@ -4462,6 +4468,8 @@ class bslHelper {
 			bslMetadata.commonModules.items = modules;
 
 		}
+
+		return count_matches;
 
 	}
 
@@ -4955,7 +4963,7 @@ class bslHelper {
    	*/
 	getFormatString() {
 
-		const matches = this.model.findMatches('"(.+)?"', false, true, false, null, true)
+		const matches = this.model.findMatches('"(.+?)"', false, true, false, null, true)
 
 		let idx = 0;
 		let match = null;

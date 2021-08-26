@@ -168,7 +168,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   parseCommonModule = function (moduleName, moduleText, isGlobal = false) {
 
-    bslHelper.parseCommonModule(moduleName, moduleText, isGlobal);
+    return bslHelper.parseCommonModule(moduleName, moduleText, isGlobal);
 
   }
 
