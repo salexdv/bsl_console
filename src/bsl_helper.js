@@ -4540,7 +4540,7 @@ class bslHelper {
 	static parseCommonModule(moduleName, moduleText, isGlobal) {
 
 		const model = monaco.editor.createModel(moduleText);
-		const pattern = '(?:процедура|функция|procedure|function)\\s+([a-zA-Z0-9\u0410-\u044F_]+)\\(([a-zA-Z0-9\u0410-\u044F_,\\s\\n="]+)\\)\\s+(?:экспорт|export)';
+		const pattern = '(?:процедура|функция|procedure|function)\\s+([a-zA-Z0-9\u0410-\u044F_]+)\\(([a-zA-Z0-9\u0410-\u044F_,\\s\\n="]*)\\)\\s+(?:экспорт|export)';
 		const matches = model.findMatches(pattern, true, true, false, null, true);
 
 		if (matches && matches.length) {
