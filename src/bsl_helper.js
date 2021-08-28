@@ -4521,8 +4521,8 @@ class bslHelper {
 
 		full_description = model.getValueInRange(new monaco.Range(line_number, 1, funcLineNumber, 1))
 
-		short_description = short_description.replaceAll('//', '').trim();
-		full_description = full_description.replaceAll('//', '').trim();
+		short_description = short_description.replace(/\/\//g, '').trim();
+		full_description = full_description.replace(/\/\//g, '').trim();
 
 		return {
 			short: short_description,
@@ -4541,12 +4541,14 @@ class bslHelper {
 	 */
 	static parseCommonModule(moduleName, moduleText, isGlobal) {
 
+		let count_matches = 0;
 		const model = monaco.editor.createModel(moduleText);
 		const pattern = '(?:процедура|функция|procedure|function)\\s+([a-zA-Z0-9\u0410-\u044F_]+)\\(([a-zA-Z0-9\u0410-\u044F_,\\s\\n="]*)\\)\\s+(?:экспорт|export)';
 		const matches = model.findMatches(pattern, true, true, false, null, true);
 
 		if (matches && matches.length) {
 
+			count_matches = matches.length;
 			let modules = bslMetadata.commonModules.items;
 			let module = {};
 
@@ -4594,6 +4596,8 @@ class bslHelper {
 			bslMetadata.commonModules.items = modules;
 
 		}
+
+		return count_matches;
 
 	}
 

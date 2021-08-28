@@ -190,7 +190,7 @@ window.updateMetadata = function (metadata, path = '') {
 
 window.parseCommonModule = function (moduleName, moduleText, isGlobal = false) {
 
-  bslHelper.parseCommonModule(moduleName, moduleText, isGlobal);
+  return bslHelper.parseCommonModule(moduleName, moduleText, isGlobal);
 
 }
 
