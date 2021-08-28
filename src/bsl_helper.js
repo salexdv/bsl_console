@@ -5089,7 +5089,7 @@ class bslHelper {
 	 */
 	getFormatString() {
 
-		const regexp = RegExp('"(.+)?"', 'gi');
+		const regexp = RegExp('"(.+?)"', 'gi');
 
 		let match = null;
 		let stringFound = false;
