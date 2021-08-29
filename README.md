@@ -141,7 +141,7 @@ npm run build  -- --customOptions "automaticLayout: true, someOption: false"
 ### Взаимодействие
 | Функция                        | Описание                                                                                      |
 | ------------------------------ | --------------------------------------------------------------------------------------------- |
-| `updateMetadata`               | Обновляет через JSON структуру метаданных (Справочники/Документы/пр.)                         |
+| [`updateMetadata`](docs/update_metadata.md) | Обновляет через JSON структуру метаданных (Справочники/Документы/пр.)            |
 | `clearMetadata`                | Очищает структуру метаданных                                                                  |
 | `updateSnippets`               | Обновляет пользовательские сниппеты                                                           |
 | `updateCustomFunctions`        | Обновляет пользовательские функции                                                            |
@@ -173,7 +173,7 @@ npm run build  -- --customOptions "automaticLayout: true, someOption: false"
 | `EVENT_QUERY_CONSTRUCT`        | При выборе пункта меню "Конструктор запросов". Возвращает текст и позицию запроса             |
 | `EVENT_FORMAT_CONSTRUCT`       | При выборе пункта меню "Конструктор форматной строки". Возвращает текст и позицию фор.строки  |
 | `EVENT_CONTENT_CHANGED`        | При любом изменении содержимого редактора. Вкл/откл через *enableModificationEvent*           |
-| `EVENT_GET_METADATA`       	 | Генерируется при отсутствии метаданных. В параметрах передается имя запрашиваемых метаданных  |
+| `EVENT_GET_METADATA`       	 | Генерируется при отсутствии метаданных. В параметрах передается имя запрашиваемых метаданных [(подробнее)](docs/get_metadata_event.md) |
 | `EVENT_XXX`                    | При выборе пользовательского пункта меню. *addContextMenuItem('Мой пункт', 'EVENT_MY')*       |
 | `EVENT_ON_ACTIVATE_SUGGEST_ROW`| При активации пункта в текущем списке подсказок [(подробнее)](docs/activation_event.md)		 |
 | `EVENT_ON_DETAIL_SUGGEST_ROW`  | При активации подробного описания пункта в текущем списке подсказок [(подробнее)](docs/activation_event.md) |
