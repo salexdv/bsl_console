@@ -272,7 +272,7 @@ describe("Проверка автокомлита и подсказок реда
         assert.equal(updateSnippets(strJSON), true);
         bsl = helper('ЕслиЧто');
         let suggestions = [];
-        bsl.getSnippets(suggestions, snippets);        
+        bsl.getSnippets(suggestions, snippets, false);        
         expect(suggestions).to.be.an('array').that.not.is.empty;        
         assert.equal(suggestions.some(suggest => suggest.detail === "ЕслиЧто"), true);
         snippets = JSON.parse(JSON.stringify(sCopy));
@@ -284,7 +284,7 @@ describe("Проверка автокомлита и подсказок реда
         assert.equal(updateSnippets(strJSON, true), true);
         bsl = helper('Если');
         let suggestions = [];
-        bsl.getSnippets(suggestions, snippets);
+        bsl.getSnippets(suggestions, snippets, false);
         assert.equal(suggestions.length, 1);
         snippets = JSON.parse(JSON.stringify(sCopy));
       });
