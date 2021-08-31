@@ -426,9 +426,9 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
-  selectedText = function(text, keepSelection = false) {
+  selectedText = function(text = undefined, keepSelection = false) {
 
-    if (!text)
+    if (text == undefined)
       
       return getSelectedText();    
 
