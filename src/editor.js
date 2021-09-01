@@ -459,9 +459,9 @@ window.setSelectionByLength = function(start, end) {
 
 }
 
-window.selectedText = function(text, keepSelection = false) {
+window.selectedText = function(text = undefined, keepSelection = false) {
 
-  if (!text)
+  if (text == undefined)
     
     return window.getSelectedText();    
 
