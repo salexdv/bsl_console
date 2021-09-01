@@ -400,9 +400,9 @@ define([], function () {
                 provideCompletionItems: function (model, position, context, token) {                    
                     resetSuggestWidgetDisplay();
                     let bsl = new bslHelper(model, position);
-                    let completition = bsl.getCompletition(context, token);
-                    bsl.onProvideCompletion(context, completition);
-                    return completition;
+                    let completion = bsl.getCompletion(context, token);
+                    bsl.onProvideCompletion(context, completion);
+                    return completion;
                 }
             },
             foldingProvider: {
@@ -486,9 +486,9 @@ define([], function () {
                 provideCompletionItems: function (model, position, context, token) {
                     resetSuggestWidgetDisplay();
                     let bsl = new bslHelper(model, position);
-                    let completition = bsl.getQueryCompletition(query_language);
-                    bsl.onProvideCompletion(context, completition);
-                    return completition;
+                    let completion = bsl.getQueryCompletion(query_language);
+                    bsl.onProvideCompletion(context, completion);
+                    return completion;
                 }
             },
             foldingProvider: {
@@ -549,9 +549,9 @@ define([], function () {
                 provideCompletionItems: function (model, position, context, token) {
                     resetSuggestWidgetDisplay();
                     let bsl = new bslHelper(model, position);
-                    let completition = bsl.getDCSCompletition();
-                    bsl.onProvideCompletion(context, completition);
-                    return completition;
+                    let completion = bsl.getDCSCompletion();
+                    bsl.onProvideCompletion(context, completion);
+                    return completion;
                 }
             },
             foldingProvider: {
