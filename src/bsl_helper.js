@@ -598,7 +598,9 @@ class bslHelper {
 								
 				if (value.hasOwnProperty(this.nameField)) {
 
+					let command = null;
 					let postfix = '';
+					let post_action = null;
 					let signatures = [];
 
 					if (kind == monaco.languages.CompletionItemKind.Constructor) {
@@ -608,13 +610,13 @@ class bslHelper {
 					}
 					else if (kind == monaco.languages.CompletionItemKind.Function) {
 						signatures = this.getMethodsSignature(value);
-						if (signatures.length)
+						if (signatures.length) {
 							postfix = '(';
+							post_action = 'editor.action.triggerParameterHints';
+						}
 						if (signatures.length == 0 || (signatures.length == 1 && signatures[0].parameters.length == 0))
 							postfix = '()';
 					}
-
-					let command = null;
 			
 					let ref = null;
 					if (value.hasOwnProperty('ref'))
@@ -622,7 +624,19 @@ class bslHelper {
 
 					if (ref || signatures.length) {
 						// If the attribute contains a ref, we need to run the command to save the position of ref
-						command = { id: 'vs.editor.ICodeEditor:1:saveref', arguments: [{ "name": value[this.nameField], "data": { "ref": ref, "sig": signatures } }] }
+						command = {
+							id: 'vs.editor.ICodeEditor:1:saveref',
+							arguments: [
+								{
+									"name": value[this.nameField],
+									"data": {
+										"ref": ref,
+										"sig": signatures
+									},
+									"post_action": post_action
+								}
+							]
+						}
 					}
 
 					let template = value.hasOwnProperty('template') ? value.template : '';
@@ -753,18 +767,20 @@ class bslHelper {
 
 			for (const [mkey, mvalue] of Object.entries(obj[methodsName])) {
 
+				let command = null;
 				let postfix = '';
+				let post_action = null;
 
 				signatures = this.getMethodsSignature(mvalue);
 
-				if (signatures.length)
+				if (signatures.length) {
 					postfix = '(';
-					
+					post_action = 'editor.action.triggerParameterHints';
+				}
+
 				if (signatures.length == 0 || (signatures.length == 1 && signatures[0].parameters.length == 0))
 					postfix = '()';
 
-				let command = null;
-			
 				let ref = null;
 				if (mvalue.hasOwnProperty('ref'))
 					ref = mvalue.ref;
@@ -777,7 +793,19 @@ class bslHelper {
 
 				if (ref || signatures.length) {
 					// If the attribute contains a ref, we need to run the command to save the position of ref
-					command = { id: 'vs.editor.ICodeEditor:1:saveref', arguments: [{ "name": mvalue[this.nameField], "data": { "ref": ref, "sig": signatures } }] }
+					command = {
+						id: 'vs.editor.ICodeEditor:1:saveref',
+						arguments: [
+							{
+								"name": mvalue[this.nameField],
+								"data": {
+									"ref": ref,
+									"sig": signatures
+								},
+								"post_action": post_action
+							}
+						]
+					}
 				}
 				
 				suggestions.push({
@@ -1165,15 +1193,17 @@ class bslHelper {
 
 				let description = mvalue.hasOwnProperty('returns') ? mvalue.returns : '';
 				let signatures = this.getMethodsSignature(mvalue);
-				let postfix = '';
+				let command = null;
+				let postfix = '';				
+				let post_action = null;
 
-				if (signatures.length)
+				if (signatures.length) {
 					postfix = '(';
+					post_action = 'editor.action.triggerParameterHints';
+				}
 
 				if (signatures.length == 0 || (signatures.length == 1 && signatures[0].parameters.length == 0))
 					postfix = '()';
-				
-				let command = null;
 				
 				let ref = null;
 				if (mvalue.hasOwnProperty('ref'))
@@ -1181,7 +1211,19 @@ class bslHelper {
 
 				if (ref || signatures.length) {					
 					// If the attribute contains a ref, we need to run the command to save the position of ref
-					command = { id: 'vs.editor.ICodeEditor:1:saveref', arguments: [{ "name": mvalue[this.nameField], "data": { "ref": ref, "sig": signatures } }] };
+					command = {
+						id: 'vs.editor.ICodeEditor:1:saveref',
+						arguments: [
+							{
+								"name": mvalue[this.nameField],
+								"data": {
+									"ref": ref,
+									"sig": signatures
+								},
+								"post_action": post_action
+							}
+						]
+					};
 				}
 
 				suggestions.push({
@@ -2287,23 +2329,38 @@ class bslHelper {
 
 							if (mvalue.hasOwnProperty(this.nameField)) {
 
+								let command = null;
 								let postfix = '';
+								let post_action = null;
 								let signatures = this.getMethodsSignature(mvalue);
 
-								if (signatures.length)
+								if (signatures.length) {
 									postfix = '(';
+									post_action = 'editor.action.triggerParameterHints';
+								}
 
 								if (signatures.length == 0 || (signatures.length == 1 && signatures[0].parameters.length == 0))
-									postfix = '()';
-
-								let command = null;
+									postfix = '()';								
 
 								let ref = null;
 								if (mvalue.hasOwnProperty('ref'))
 									ref = mvalue.ref;
 
-								if (ref || signatures.length)
-									command = { id: 'vs.editor.ICodeEditor:1:saveref', arguments: [{ "name": mvalue[this.nameField], "data": { "ref": ref, "sig": signatures } }] }
+								if (ref || signatures.length) {
+									command = {
+										id: 'vs.editor.ICodeEditor:1:saveref',
+										arguments: [
+											{
+												"name": mvalue[this.nameField],
+												"data": {
+													"ref": ref,
+													"sig": signatures
+												},
+												"post_action": post_action
+											}
+										]
+									}
+								}
 
 								let template = mvalue.hasOwnProperty('template') ? mvalue.template : '';
 
