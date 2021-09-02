@@ -14,6 +14,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   contextActions = [];
   customHovers = {};
   customSignatures = {};
+  customCodeLenses = [];
   originalText = '';
   metadataRequests = new Map();
   customSuggestions = [];
