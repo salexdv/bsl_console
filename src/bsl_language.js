@@ -445,6 +445,9 @@ define([], function () {
                 }
             },
             codeLenses: {
+                onDidChange: function(e) {
+                    editor.updateCodeLens = e;
+                },
                 provider: function (model, token) {
                     return bslHelper.provideCodeLenses(model, token);
                 },
@@ -525,7 +528,8 @@ define([], function () {
                 provideDocumentFormattingEdits: () => {}
             },
             codeLenses: {
-                provider: () => {},                
+                onDidChange: () => {},
+                provider: () => {},
                 resolver: () => {}
             },
             colorProvider: {
@@ -586,6 +590,7 @@ define([], function () {
                 provideDocumentFormattingEdits: () => {}
             },
             codeLenses: {
+                onDidChange: () => {},
                 provider: () => {},                
                 resolver: () => {}
             },

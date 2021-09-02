@@ -393,6 +393,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
     try {
 			customCodeLenses = JSON.parse(lensJSON);
+      editor.updateCodeLens();
 			return true;
 		}
 		catch (e) {
@@ -1409,6 +1410,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     monaco.languages.registerHoverProvider(language.id, lang.hoverProvider);    
     monaco.languages.registerDocumentFormattingEditProvider(language.id, lang.formatProvider);
     monaco.languages.registerCodeLensProvider(language.id, {
+      onDidChange: lang.codeLenses.onDidChange, 
       provideCodeLenses: lang.codeLenses.provider, 
       resolveCodeLens: lang.codeLenses.resolver
     });
