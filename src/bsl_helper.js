@@ -4839,7 +4839,7 @@ class bslHelper {
 	 * 
 	 * @returns {array} - array of folding ranges
 	 */
-	static getRangesForNesteBlock(model, regexp) {
+	static getRangesForNestedBlock(model, regexp) {
 
 		let ranges = [];		
 		let match = null;
@@ -4949,7 +4949,7 @@ class bslHelper {
 		
 		let ranges = [];
 
-		let nestedQueries = this.getRangesForNesteBlock(model, '\\((?:\\s|\\r)*(?:выбрать|select)');
+		let nestedQueries = this.getRangesForNestedBlock(model, '\\((?:\\s|\\r)*(?:выбрать|select)');
 
 		ranges = this.getRangesForQuery(model);				
 		ranges = ranges.concat(nestedQueries);
@@ -4968,7 +4968,7 @@ class bslHelper {
 		ranges = ranges.concat(this.getRangesForQueryBlock(model, '(?:из|from)\\s+(?:(?:.|\\n|\\r)*?)\\s*(?:\\s|\\t)*(?:сгруппировать|объединить|упорядочить|имеющие|где|индексировать|havin|where|index|group|union|order|;)', false, true, false));		
 		ranges = ranges.concat(this.getRangesForQueryBlock(model, '(?:из|from)\\s+(?:(?:.|\\n|\\r)*?)\\s*(?:\\s|\\t)*(?:сгруппировать|объединить|упорядочить|имеющие|где|индексировать|havin|where|index|group|union|order|;|\\))', nestedQueries, true, true));
 		ranges = ranges.concat(this.getRangesForQueryBlock(model, '(?:индексировать|index)\\s+(?:(?:.|\\n|\\r)*?)\\s*(?:\\s|\\t)*;', false, true, true));
-		ranges = ranges.concat(this.getRangesForNesteBlock(model, '(?:сумма|максимум|минимум|sum|min|max)\\s*\\('));
+		ranges = ranges.concat(this.getRangesForNestedBlock(model, '(?:сумма|максимум|минимум|sum|min|max)\\s*\\('));
 				
 		return ranges;
 
