@@ -389,6 +389,19 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  setCustomCodeLenses = function(lensJSON) {
+
+    try {
+			customCodeLenses = JSON.parse(lensJSON);
+			return true;
+		}
+		catch (e) {
+      customCodeLenses = [];
+			return { errorDescription: e.message };
+		}    
+
+  }
+
   getVarsNames = function () {
     
     let bsl = new bslHelper(editor.getModel(), editor.getPosition());		
