@@ -608,6 +608,8 @@ class bslHelper {
 					}
 					else if (kind == monaco.languages.CompletionItemKind.Function) {
 						signatures = this.getMethodsSignature(value);
+						if (signatures.length)
+							postfix = '(';
 						if (signatures.length == 0 || (signatures.length == 1 && signatures[0].parameters.length == 0))
 							postfix = '()';
 					}
@@ -754,6 +756,10 @@ class bslHelper {
 				let postfix = '';
 
 				signatures = this.getMethodsSignature(mvalue);
+
+				if (signatures.length)
+					postfix = '(';
+					
 				if (signatures.length == 0 || (signatures.length == 1 && signatures[0].parameters.length == 0))
 					postfix = '()';
 
@@ -1160,6 +1166,10 @@ class bslHelper {
 				let description = mvalue.hasOwnProperty('returns') ? mvalue.returns : '';
 				let signatures = this.getMethodsSignature(mvalue);
 				let postfix = '';
+
+				if (signatures.length)
+					postfix = '(';
+
 				if (signatures.length == 0 || (signatures.length == 1 && signatures[0].parameters.length == 0))
 					postfix = '()';
 				
@@ -1669,6 +1679,10 @@ class bslHelper {
 									let description = mvalue.hasOwnProperty('returns') ? mvalue.returns : '';
 									let signatures = this.getMethodsSignature(mvalue);
 									let postfix = '';
+
+									if (signatures.length)
+										postfix = '(';
+
 									if (signatures.length == 0 || (signatures.length == 1 && signatures[0].parameters.length == 0))
 										postfix = '()';
 									
@@ -2275,6 +2289,9 @@ class bslHelper {
 
 								let postfix = '';
 								let signatures = this.getMethodsSignature(mvalue);
+
+								if (signatures.length)
+									postfix = '(';
 
 								if (signatures.length == 0 || (signatures.length == 1 && signatures[0].parameters.length == 0))
 									postfix = '()';
