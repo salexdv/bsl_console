@@ -2411,6 +2411,7 @@ function createDiffWidget(e) {
 
       window.editor.diffZoneId = changeAccessor.addZone({
         afterLineNumber: line_number,
+        afterColumn: 1,
         heightInLines: 10,
         domNode: domNode,
         onDomNodeTop: function (top) {
