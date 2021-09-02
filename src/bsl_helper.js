@@ -4318,6 +4318,23 @@ class bslHelper {
 	}
 
 	/**
+	 * Code lens provider
+	 * @param {ITextModel} model current model
+	 * @param {CancellationToken} token 
+	 * 
+	 * @returns {array} lenses
+	 */	
+	static provideCodeLenses(model, token) {
+	
+		let lenses = [];
+		
+		return {
+			lenses: lenses
+		};
+
+	}
+
+	/**
 	 * Updates bslMetadata from JSON-string which
 	 * was received from 1C
 	 * 

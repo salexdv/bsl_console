@@ -445,7 +445,9 @@ define([], function () {
                 }
             },
             codeLenses: {
-                provider: () => {},                
+                provider: function (model, token) {
+                    return bslHelper.provideCodeLenses(model, token);
+                },
                 resolver: () => {}
             },
             colorProvider: {
