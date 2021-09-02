@@ -124,6 +124,7 @@
 | [`parseCommonModule`](docs/parse_module.md) |  Загружает структуру общего модуля                                               |
 | [`setCustomHovers`](docs/set_custom_hovers.md) | Обновляет пользовательские подсказки, показываемые при наведении              |
 | [`setCustomSignatures`](docs/set_custom_signatures.md) | Обновляет пользовательские подсказки по вызову процедуры/метода       |
+| [`setCustomCodeLenses`](docs/custom_code_lenses.md) | Загружает подсказки для Code Lens                                        |
 | [`addContextMenuItem`](docs/add_menu.md) | Регистрирует пользовательский пункт контекстного меню и связанное с ним событие     |
 | `markError`                    | Индикация ошибки в указанной строке                                                           |
 | [`triggerSuggestions`](docs/trigger_suggestions.md) | Принудительный вызов подсказок											 |
