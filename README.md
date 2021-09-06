@@ -146,6 +146,7 @@ npm run build  -- --customOptions "automaticLayout: true, someOption: false"
 | `clearMetadata`                | Очищает структуру метаданных                                                                  |
 | `updateSnippets`               | Обновляет пользовательские сниппеты                                                           |
 | `updateCustomFunctions`        | Обновляет пользовательские функции                                                            |
+| [`parseCommonModule`](docs/parse_module.md) |  Загружает структуру общего модуля                                               |
 | [`setCustomHovers`](docs/set_custom_hovers.md) | Обновляет пользовательские подсказки, показываемые при наведении              |
 | [`setCustomSignatures`](docs/set_custom_signatures.md) | Обновляет пользовательские подсказки по вызову процедуры/метода       |
 | [`addContextMenuItem`](docs/add_menu.md) | Регистрирует пользовательский пункт контекстного меню и связанное с ним событие     |
