@@ -114,7 +114,8 @@ npm run build  -- --customOptions "automaticLayout: true, someOption: false"
 | `getVarsNames`	     	 	 | Возвращает имена всех объявленных в коде переменных                     				         |
 | `switchXMLMode`	     	 	 | Переключение в режим просмотра XML с подсветкой и обратно               				         |
 | `disableContextMenu`	     	 | Отключает показ контекстного меню 						              				         |
-| `hideLineNumbers`	     	 	 | Скрывает отображение номеров строк в редакторе 			              				         |
+| `showLineNumbers`	     	 	 | Включает отображение номеров строк в редакторе 			              				         |
+| `hideLineNumbers`	     	 	 | Отключает отображение номеров строк в редакторе 			              				         |
 | `hideScrollX`	     	 	 	 | Скрывает стандартную горизонтальную полосу прокрутки           				         		 |
 | `hideScrollY`	     	 	 	 | Скрывает стандартную вертикальную полосу прокрутки               				         	 |
 | `openSearchWidget`	 	 	 | Открывает окно поиска 								               				         	 |
