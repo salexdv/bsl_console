@@ -1365,6 +1365,15 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     return getSuggestWidget().widget.suggestWidgetVisible.get();
   
   }
+
+  insertSnippet = function(snippet) {
+
+    let controller = editor.getContribution("snippetController2");
+    
+    if (controller)
+      controller.insert(snippet);
+
+  }
   // #endregion
 
   // #region init editor
