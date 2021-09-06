@@ -32,6 +32,7 @@ window.version1C = '';
 window.contextActions = [];
 window.customHovers = {};
 window.customSignatures = {};
+window.customCodeLenses = [];
 window.originalText = '';
 window.metadataRequests = new Map();
 window.customSuggestions = [];
@@ -418,6 +419,20 @@ window.setCustomSignatures = function(sigJSON) {
     window.customSignatures = {};
 		return { errorDescription: e.message };
 	}    
+
+}
+
+window.setCustomCodeLenses = function(lensJSON) {
+
+  try {
+    window.customCodeLenses = JSON.parse(lensJSON);
+    window.editor.updateCodeLens();
+    return true;
+  }
+  catch (e) {
+    window.customCodeLenses = [];
+    return { errorDescription: e.message };
+  }    
 
 }
 
@@ -1369,6 +1384,26 @@ function createEditor(language_id, text, theme) {
 
 }
 
+function registerCodeLensProviders() {
+
+  setTimeout(() => {
+
+    for (const [key, lang] of Object.entries(window.languages)) {
+      
+      let language = lang.languageDef;
+
+      monaco.languages.registerCodeLensProvider(language.id, {
+        onDidChange: lang.codeLenses.onDidChange, 
+        provideCodeLenses: lang.codeLenses.provider, 
+        resolveCodeLens: lang.codeLenses.resolver
+      });
+
+    }
+
+  }, 50);
+
+}
+
 // Register languages
 for (const [key, lang] of Object.entries(window.languages)) {
 
@@ -1385,10 +1420,6 @@ for (const [key, lang] of Object.entries(window.languages)) {
   monaco.languages.registerSignatureHelpProvider(language.id, lang.signatureProvider);
   monaco.languages.registerHoverProvider(language.id, lang.hoverProvider);    
   monaco.languages.registerDocumentFormattingEditProvider(language.id, lang.formatProvider);
-  monaco.languages.registerCodeLensProvider(language.id, {
-    provideCodeLenses: lang.codeLenses.provider, 
-    resolveCodeLens: lang.codeLenses.resolver
-  });
   monaco.languages.registerColorProvider(language.id, lang.colorProvider);
 
   if (lang.autoIndentation && lang.indentationRules)
@@ -1435,6 +1466,9 @@ for (const [key, lang] of Object.entries(window.languages)) {
       import('./colors').then(({ default: colors }) => {
         window.colors = colors
       }).catch((error) => 'An error occurred while loading the colors');
+
+      console.log('create', window.editor);
+      registerCodeLensProviders();
       
     });
 

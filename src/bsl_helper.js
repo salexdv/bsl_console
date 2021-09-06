@@ -4444,6 +4444,38 @@ class bslHelper {
 	}
 
 	/**
+	 * Code lens provider
+	 * @param {ITextModel} model current model
+	 * @param {CancellationToken} token 
+	 * 
+	 * @returns {array} lenses
+	 */	
+	 static provideCodeLenses(model, token) {
+
+		let lenses = [];
+
+		window.customCodeLenses.forEach(function (value) {
+			lenses.push({
+				range: {
+					startLineNumber: value.lineNumber,
+					startColumn: value.column,
+					endLineNumber: value.lineNumber,
+					endColumn: value.column + value.text.length
+				},
+				command: {
+					title: value.text
+				}
+			});
+		});
+		
+		return {
+			lenses: lenses,
+			dispose: () => {}
+		};
+
+	}
+
+	/**
 	 * Updates window.bslMetadata from JSON-string which
 	 * was received from 1C
 	 * 

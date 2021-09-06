@@ -445,7 +445,12 @@ let languages = {
             }
         },
         codeLenses: {
-            provider: () => {},                
+            onDidChange: function(e) {
+                window.editor.updateCodeLens = e;
+            },
+            provider: function (model, token) {
+                return bslHelper.provideCodeLenses(model, token);
+            },
             resolver: () => {}
         },
         colorProvider: {
@@ -523,7 +528,12 @@ let languages = {
             provideDocumentFormattingEdits: () => {}
         },
         codeLenses: {
-            provider: () => {},                
+            onDidChange: function(e) {
+                window.editor.updateCodeLens = e;
+            },
+            provider: function (model, token) {
+                return bslHelper.provideCodeLenses(model, token);
+            },
             resolver: () => {}
         },
         colorProvider: {
@@ -584,7 +594,12 @@ let languages = {
             provideDocumentFormattingEdits: () => {}
         },
         codeLenses: {
-            provider: () => {},                
+            onDidChange: function(e) {
+                window.editor.updateCodeLens = e;
+            },
+            provider: function (model, token) {
+                return bslHelper.provideCodeLenses(model, token);
+            },
             resolver: () => {}
         },
         colorProvider: {
