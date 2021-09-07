@@ -1641,6 +1641,50 @@ class bslHelper {
 	}
 
 	/**
+	 * Fills array of completion for metadata general fuctions
+	 * by method type like 'method', 'manager'
+	 * 
+	 * @param {object} object metadata object from BSL-JSON dictionary
+	 * @param {string} typeOfMethods type of method
+	 * @param {array} values array of completion for object
+	 */
+	 getMetadataGeneralMethodCompletionByType(object, methodType, values) {
+
+		if (object.hasOwnProperty(methodType)) {
+
+			for (const [mkey, mvalue] of Object.entries(object[methodType])) {
+
+				let description = mvalue.hasOwnProperty('returns') ? mvalue.returns : '';
+				let signatures = this.getMethodsSignature(mvalue);
+				
+				let postfix = '';
+				let command = null;
+
+				if (signatures.length) {
+					postfix = '(';
+					command = { id: 'editor.action.triggerParameterHints' };
+				}
+
+				if (signatures.length == 0 || (signatures.length == 1 && signatures[0].parameters.length == 0))
+					postfix = '()';
+
+				values.push({
+					name: mvalue[this.nameField],
+					postfix: postfix,
+					detail: mvalue.description,
+					description: description,
+					kind: monaco.languages.CompletionItemKind.Method,
+					insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+					command: command
+				});
+
+			}
+
+		}
+
+	}
+
+	/**
 	 * Fills array of completion for metadata item like Catalogs,
 	 * Documents, InformationRegisters, etc.
 	 * 
@@ -1708,38 +1752,15 @@ class bslHelper {
 										description: '',
 										kind: monaco.languages.CompletionItemKind.Field,
 										insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+										command: null
 									});
 																									
 								}
 
 							}
 
-							if (value.hasOwnProperty('methods')) {
-
-								for (const [mkey, mvalue] of Object.entries(value.methods)) {
-
-									let description = mvalue.hasOwnProperty('returns') ? mvalue.returns : '';
-									let signatures = this.getMethodsSignature(mvalue);
-									let postfix = '';
-
-									if (signatures.length)
-										postfix = '(';
-
-									if (signatures.length == 0 || (signatures.length == 1 && signatures[0].parameters.length == 0))
-										postfix = '()';
-									
-									values.push({
-										name: mvalue[this.nameField],
-										postfix: postfix,
-										detail: mvalue.description,
-										description: description,
-										kind: monaco.languages.CompletionItemKind.Method,
-										insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-									});									
-
-								}
-
-							}
+							this.getMetadataGeneralMethodCompletionByType(value, 'methods', values);
+							this.getMetadataGeneralMethodCompletionByType(value, 'manager', values);							
 							
 							if (key == 'enums') {
 								this.fillSuggestionsForMetadataItem(suggestions, itemNode)
@@ -1755,7 +1776,8 @@ class bslHelper {
 										detail: '',
 										description: '',
 										postfix: '',
-										kind: monaco.languages.CompletionItemKind.Field
+										kind: monaco.languages.CompletionItemKind.Field,
+										command: null
 									});
 								}
 
@@ -1774,7 +1796,8 @@ class bslHelper {
 								insertText: value.insertText ? value.insertText : value.name + value.postfix,
 								insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
 								detail: value.detail,
-								documentation: value.description
+								documentation: value.description,
+								command: value.command
 							});
 
 						});
