@@ -1648,7 +1648,7 @@ class bslHelper {
 	 * @param {string} typeOfMethods type of method
 	 * @param {array} values array of completion for object
 	 */
-	 getMetadataGeneralMethodCompletionByType(object, methodType, values) {
+	getMetadataGeneralMethodCompletionByType(object, methodType, values) {
 
 		if (object.hasOwnProperty(methodType)) {
 
@@ -4102,6 +4102,44 @@ class bslHelper {
 	}
 
 	/**
+	 * Finds signatures provided for metadata item methods
+	 * like FindByCode, CreateRecordManager by method type
+	 * like 'method', 'manager'
+	 * 
+	 * @param {object} object metadata object from BSL-JSON dictionary
+	 * @param {string} typeOfMethods type of method
+	 * @param {object} methodName method name for filtering
+	 * 
+	 * @returns {SignatureHelp} helper with signatures
+	 */
+	getMetadataSigHelpByMethodType(object, typeOfMethods, methodName) {
+
+		let helper = null;
+
+		if (object.hasOwnProperty(typeOfMethods)) {
+
+			for (const [mkey, mvalue] of Object.entries(object[typeOfMethods])) {
+
+				if (mvalue[this.nameField].toLowerCase() == methodName) {
+					let signatures = this.getMethodsSignature(mvalue);
+					if (signatures.length) {
+						helper = {
+							activeParameter: this.textBeforePosition.split(',').length - 1,
+							activeSignature: 0,
+							signatures: signatures,
+						}
+					}
+				}
+
+			}
+
+		}
+
+		return helper;
+
+	}
+
+	/**
 	 * Finds signatures provided for metadata item`s methods
 	 * like FindByCode, CreateRecordManager
 	 * 
@@ -4115,7 +4153,6 @@ class bslHelper {
 
 		let regex = /(.+?)(?:\.(.*?))?\.?(?:\.(.*?))?\(?$/.exec(this.lastExpression);
 		let metadataName = regex && 1 < regex.length ? regex[1] : '';
-		let metadataItem = regex && 2 < regex.length ? regex[2] : '';
 		let metadataFunc = regex && 3 < regex.length ? regex[3] : '';
 
 		if (metadataFunc) {
@@ -4126,24 +4163,10 @@ class bslHelper {
 
 					if (value[this.nameField].toLowerCase() == metadataName) {
 
-						if (value.hasOwnProperty('methods')) {
+						helper = this.getMetadataSigHelpByMethodType(value, 'methods', metadataFunc);
 
-							for (const [mkey, mvalue] of Object.entries(value.methods)) {
-
-								if (mvalue[this.nameField].toLowerCase() == metadataFunc) {
-									let signatures = this.getMethodsSignature(mvalue);
-									if (signatures.length) {
-										helper = {
-											activeParameter: this.textBeforePosition.split(',').length - 1,
-											activeSignature: 0,
-											signatures: signatures,
-										}
-									}
-								}
-
-							}
-
-						}
+						if (!helper)
+							helper = this.getMetadataSigHelpByMethodType(value, 'manager', metadataFunc);
 
 					}
 
