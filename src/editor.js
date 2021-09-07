@@ -799,9 +799,18 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   clearMetadata = function() {
 
     metadataRequests.clear();
+
     for (let [key, value] of Object.entries(bslMetadata)) {
+
       if (value.hasOwnProperty('items'))
         bslMetadata[key].items = {};
+
+      if (value.hasOwnProperty('manager'))
+        bslMetadata[key].manager = {};
+
+      if (value.hasOwnProperty('module'))
+        bslMetadata[key].module = {};
+
     }
 
   }
