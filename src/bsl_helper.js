@@ -1001,8 +1001,10 @@ class bslHelper {
 							if (this.objectHasProperties(bslMetadata, itemName, 'items', subItemName, 'properties')) {
 								this.fillSuggestionsForMetadataItem(suggestions, bslMetadata[itemName].items[subItemName]);
 								this.getMetadataMethods(suggestions, bslMetadata[itemName], methodsName, itemName, subItemName);
-								if (isObject)
+								if (isObject) {
 									this.getMetadataCommmonObjectProperties(suggestions, bslMetadata[itemName]);
+									this.getMetadataGeneralMethodCompletionByType(bslMetadata[itemName].items[subItemName], 'module', suggestions);
+								}
 							}
 							else if (this.objectHasProperties(bslMetadata, itemName, 'items', subItemName))
 								requestMetadata(itemName + '.' + subItemName);
@@ -1566,7 +1568,10 @@ class bslHelper {
 									if (isObject)
 										this.getMetadataCommmonObjectProperties(suggestions, value);
 
-									refType = key + '.' + ikey + (methodsName == 'objMethods' ? '.obj' : '');									
+									refType = key + '.' + ikey + (methodsName == 'objMethods' ? '.obj' : '');
+
+									if (isObject)
+										this.getMetadataGeneralMethodCompletionByType(ivalue, 'module', suggestions);
 
 								}
 								else {
@@ -1662,7 +1667,19 @@ class bslHelper {
 
 				if (signatures.length) {
 					postfix = '(';
-					command = { id: 'editor.action.triggerParameterHints' };
+					command = {
+						id: 'vs.editor.ICodeEditor:1:saveref',
+						arguments: [
+							{
+								"name": mvalue[this.nameField],
+								"data": {
+									"ref": null,
+									"sig": signatures
+								},
+								"post_action": 'editor.action.triggerParameterHints'
+							}
+						]
+					}
 				}
 
 				if (signatures.length == 0 || (signatures.length == 1 && signatures[0].parameters.length == 0))
