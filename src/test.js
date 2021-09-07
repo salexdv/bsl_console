@@ -707,7 +707,15 @@ describe("Проверка автокомлита и подсказок реда
         expect(suggestions).to.be.an('array').that.not.is.empty;
         assert.equal(suggestions.some(suggest => suggest.label === "Загрузка"), true);      
 
-      });            
+      });
+
+      it("проверка подсказки методов менеджера справочника", function () {              	                                
+        bsl = helper('Справочники.Товары.');
+        let suggestions = [];                
+        bsl.getMetadataCompletion(suggestions, bslMetadata);
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "ПервыйМетодМенеджера"), true);
+      });
 
     }
 
