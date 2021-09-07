@@ -4542,7 +4542,7 @@ class bslHelper {
 
 		line_number++;
 
-		const matches = model.findMatches('параметры:', new monaco.Range(line_number, 1, funcLineNumber, 1), true, false);
+		const matches = Finder.findMatches(model, 'параметры:', new monaco.Range(line_number, 1, funcLineNumber, 1));
 
 		if (matches && matches.length) {
 			let range = new monaco.Range(line_number, 1, matches[0].range.startLineNumber, matches[0].range.startColumn);
@@ -4576,7 +4576,7 @@ class bslHelper {
 		let count_matches = 0;
 		const model = monaco.editor.createModel(moduleText);
 		const pattern = '(?:процедура|функция|procedure|function)\\s+([a-zA-Z0-9\u0410-\u044F_]+)\\(([a-zA-Z0-9\u0410-\u044F_,\\s\\n="]*)\\)\\s+(?:экспорт|export)';
-		const matches = model.findMatches(pattern, true, true, false, null, true);
+		const matches = Finder.findMatches(model, pattern);
 
 		if (matches && matches.length) {
 
