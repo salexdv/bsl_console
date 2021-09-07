@@ -723,6 +723,21 @@ describe("Проверка автокомлита и подсказок реда
         expect(help).to.have.property('activeParameter');
       });
 
+      it("проверка подсказки методов объекта справочника", function () {              	                                
+        
+        bsl = helper('Спр = Справочники.Товары.НайтиПоКоду(1);\nСпр2 = Спр.');
+        let suggestions = [];                
+        bsl.getMetadataCompletion(suggestions, bslMetadata);
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "ПервыйМетодМенеджера"), false);
+        
+        bsl = helper('Спр = Справочники.Товары.НайтиПоКоду(1);\nСпр2 = Спр.ПолучитьОбъект();\nСпр2.');
+        suggestions = bsl.getCodeCompletion({triggerCharacter: ''});
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "ПервыйМетодОбъекта"), true);
+
+      });
+      
     }
 
     mocha.run();
