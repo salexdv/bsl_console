@@ -1646,9 +1646,9 @@ class bslHelper {
 	 * 
 	 * @param {object} object metadata object from BSL-JSON dictionary
 	 * @param {string} typeOfMethods type of method
-	 * @param {array} values array of completion for object
+	 * @param {array} suggestions array of completion for object
 	 */
-	getMetadataGeneralMethodCompletionByType(object, methodType, values) {
+	getMetadataGeneralMethodCompletionByType(object, methodType, suggestions) {
 
 		if (object.hasOwnProperty(methodType)) {
 
@@ -1668,13 +1668,13 @@ class bslHelper {
 				if (signatures.length == 0 || (signatures.length == 1 && signatures[0].parameters.length == 0))
 					postfix = '()';
 
-				values.push({
-					name: mvalue[this.nameField],
-					postfix: postfix,
-					detail: mvalue.description,
-					description: description,
+				suggestions.push({
+					label: mvalue[this.nameField],
 					kind: monaco.languages.CompletionItemKind.Method,
+					insertText: mvalue[this.nameField] + postfix,
 					insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+					detail: mvalue.description,
+					documentation: description,
 					command: command
 				});
 
@@ -1759,8 +1759,8 @@ class bslHelper {
 
 							}
 
-							this.getMetadataGeneralMethodCompletionByType(value, 'methods', values);
-							this.getMetadataGeneralMethodCompletionByType(value, 'manager', values);							
+							this.getMetadataGeneralMethodCompletionByType(value, 'methods', suggestions);
+							this.getMetadataGeneralMethodCompletionByType(itemNode, 'manager', suggestions);
 							
 							if (key == 'enums') {
 								this.fillSuggestionsForMetadataItem(suggestions, itemNode)
@@ -4153,6 +4153,7 @@ class bslHelper {
 
 		let regex = /(.+?)(?:\.(.*?))?\.?(?:\.(.*?))?\(?$/.exec(this.lastExpression);
 		let metadataName = regex && 1 < regex.length ? regex[1] : '';
+		let metadataItem = regex && 2 < regex.length ? regex[2] : '';
 		let metadataFunc = regex && 3 < regex.length ? regex[3] : '';
 
 		if (metadataFunc) {
@@ -4162,11 +4163,19 @@ class bslHelper {
 				if (value.hasOwnProperty(this.nameField)) {
 
 					if (value[this.nameField].toLowerCase() == metadataName) {
-
+						
 						helper = this.getMetadataSigHelpByMethodType(value, 'methods', metadataFunc);
 
-						if (!helper)
-							helper = this.getMetadataSigHelpByMethodType(value, 'manager', metadataFunc);
+						if (!helper && value.hasOwnProperty('items')) {
+						
+							for (const [ikey, ivalue] of Object.entries(value.items)) {
+
+								if (ikey.toLowerCase() == metadataItem)
+									helper = this.getMetadataSigHelpByMethodType(ivalue, 'manager', metadataFunc);
+
+							}
+							
+						}
 
 					}
 
