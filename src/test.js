@@ -717,6 +717,12 @@ describe("Проверка автокомлита и подсказок реда
         assert.equal(suggestions.some(suggest => suggest.label === "ПервыйМетодМенеджера"), true);
       });
 
+      it("проверка подсказки параметров для метода менеджера справочника", function () {
+        bsl = helper('Справочники.Товары.ПервыйМетодМенеджера(');
+        let help = bsl.getMetadataSigHelp(bslMetadata);
+        expect(help).to.have.property('activeParameter');
+      });
+
     }
 
     mocha.run();
