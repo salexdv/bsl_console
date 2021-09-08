@@ -712,7 +712,7 @@ class bslHelper {
 	 * 
 	 * @returns {boolean} true - the object contains every poperty, fasle - otherwise
 	 */
-	objectHasPropertiesFromArray(obj, props) {
+	static objectHasPropertiesFromArray(obj, props) {
 
 		for (let i = 0; i < props.length; i++) {
 
@@ -733,7 +733,7 @@ class bslHelper {
 	 * @param {string} path the path to property
 	 * @param {Object} value the value of property
 	 */
-	setObjectProperty(obj, path, value) {
+	static setObjectProperty(obj, path, value) {
 		
 		if (Object(obj) !== obj) return obj;
 	    
@@ -4694,12 +4694,28 @@ class bslHelper {
 	 * for module of manager/object
 	 * 	 
 	 * @param {string} moduleText text of module
-	 * @param {string} moduleType 'manager' or 'module'
+	 * @param {string} path path to metadata-property
 	 * 
 	 * @returns {int} count of matches (export functions)
 	 */
-	static parseMetadataModule(moduleText, moduleType) {
+	static parseMetadataModule(moduleText, path) {
 		
+		let parse = this.parseModule(moduleText);
+		let count = parse.count;		
+
+		if (count) {
+			
+			let path_array = path.split('.');
+			path_array.pop();
+			
+			if (this.objectHasPropertiesFromArray(bslMetadata, path_array))
+				this.setObjectProperty(bslMetadata, path.split('.'), parse.module);
+			else
+				count = 0;
+
+		}
+
+		return count;
 
 	}
 
