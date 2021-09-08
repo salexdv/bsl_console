@@ -4679,6 +4679,20 @@ class bslHelper {
 	}
 
 	/**
+	 * Parsing a module text and building bslMetadata structure
+	 * for module of manager/object
+	 * 	 
+	 * @param {string} moduleText text of module
+	 * @param {string} moduleType 'manager' or 'module'
+	 * 
+	 * @returns {int} count of matches (export functions)
+	 */
+	static parseMetadataModule(moduleText, moduleType) {
+		
+
+	}
+
+	/**
 	 * Escapes special character in json-string
 	 * before parsing
 	 * 
