@@ -22,6 +22,7 @@ enableSelectSuggestEvent(false);
   "last_word": "авансовыйотчет",
   "last_expression": "документы.авансовыйотчет.",
   "selected": "Выбрать",
+  "insert_text": "Выбрать",
   "rows": [
     "Выбрать",
     "НайтиПоНомеру",
