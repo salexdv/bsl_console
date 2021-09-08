@@ -864,7 +864,20 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   generateEventWithSuggestData = function(eventName, trigger, row, suggestRows = []) {
 
-    let bsl = new bslHelper(editor.getModel(), editor.getPosition());		
+    let bsl = new bslHelper(editor.getModel(), editor.getPosition());
+    let row_id = row ? row.getAttribute('data-index') : "";
+    let insert_text = '';
+
+    if (row_id) {
+
+      let suggestWidget = getSuggestWidget();
+
+      if (suggestWidget && row_id < suggestWidget.widget.list.view.items.length) {
+        let suggest_item = suggestWidget.widget.list.view.items[row_id];
+        insert_text = suggest_item.element.completion.insertText;
+      }
+
+    }
 
     eventParams = {
       trigger: trigger,
@@ -875,7 +888,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       altKey: altPressed,
 			ctrlKey: ctrlPressed,
 			shiftKey: shiftPressed,
-      row_id: row ? row.getAttribute('data-index') : ""
+      row_id: row_id,
+      insert_text: insert_text
     }
 
     if (row) {
