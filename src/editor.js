@@ -1405,6 +1405,26 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  function registerCodeLensProviders() {
+
+    setTimeout(() => {
+  
+      for (const [key, lang] of Object.entries(window.languages)) {
+        
+        let language = lang.languageDef;
+  
+        monaco.languages.registerCodeLensProvider(language.id, {
+          onDidChange: lang.codeLenses.onDidChange, 
+          provideCodeLenses: lang.codeLenses.provider, 
+          resolveCodeLens: lang.codeLenses.resolver
+        });
+  
+      }
+  
+    }, 50);
+  
+  }
+
   // Register languages
   for (const [key, lang] of Object.entries(languages)) {
   
@@ -1421,11 +1441,6 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     monaco.languages.registerSignatureHelpProvider(language.id, lang.signatureProvider);
     monaco.languages.registerHoverProvider(language.id, lang.hoverProvider);    
     monaco.languages.registerDocumentFormattingEditProvider(language.id, lang.formatProvider);
-    monaco.languages.registerCodeLensProvider(language.id, {
-      onDidChange: lang.codeLenses.onDidChange, 
-      provideCodeLenses: lang.codeLenses.provider, 
-      resolveCodeLens: lang.codeLenses.resolver
-    });
     monaco.languages.registerColorProvider(language.id, lang.colorProvider);
 
     if (lang.autoIndentation && lang.indentationRules)
@@ -1441,6 +1456,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       }
 
       createEditor(language.id, getCode(), 'bsl-white');
+      registerCodeLensProviders();
     
       contextMenuEnabled = editor.getRawOptions().contextmenu;
 
