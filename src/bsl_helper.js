@@ -4584,18 +4584,17 @@ class bslHelper {
 	}
 
 	/**
-	 * Parsing a module text and building bslMetadata structure
-	 * for common modules
+	 * Parsing a module text
+	 * 	 
+	 * @param {string} moduleText text of module	 
 	 * 
-	 * @param {string} a name of common module
-	 * @param {string} a text of module
-	 * @param {bool} is modal global or not
-	 * 
-	 * @returns {int} count of matches (export functions)
+	 * @returns {object} structure of module
 	 */
-	static parseCommonModule(moduleName, moduleText, isGlobal) {
+	static parseModule(moduleText) {
 
 		let count_matches = 0;
+		let module = {};
+
 		const model = monaco.editor.createModel(moduleText);
 		const pattern = '(?:процедура|функция|procedure|function)\\s+([a-zA-Z0-9\u0410-\u044F_]+)\\(([a-zA-Z0-9\u0410-\u044F_,\\s\\n="]*)\\)\\s+(?:экспорт|export)';
 		const matches = model.findMatches(pattern, true, true, false, null, true);
@@ -4604,7 +4603,6 @@ class bslHelper {
 
 			count_matches = matches.length;
 			let modules = bslMetadata.commonModules.items;
-			let module = {};
 
 			for (let idx = 0; idx < matches.length; idx++) {
 
@@ -4637,21 +4635,46 @@ class bslHelper {
 					}
 				}
 
-				if (isGlobal)
-					bslGlobals.globalfunctions[method_name] = method;
-				else
-					module[method_name] = method;
+				module[method_name] = method;
 
 			}
 
-			if (!isGlobal)
-				modules[moduleName] = module;
+		}
 
-			bslMetadata.commonModules.items = modules;
+		return {
+			module: module,
+			count: count_matches
+		};
+
+	}
+
+	/**
+	 * Parsing a module text and building bslMetadata structure
+	 * for common modules
+	 * 
+	 * @param {string} a name of common module
+	 * @param {string} a text of module
+	 * @param {bool} is modal global or not
+	 * 
+	 * @returns {int} count of matches (export functions)
+	 */
+	static parseCommonModule(moduleName, moduleText, isGlobal) {
+
+		let parse = this.parseModule(moduleText);
+
+		if (parse.count) {
+
+			if (isGlobal) {
+				for (const [key, value] of Object.entries(parse.module)) {
+					bslGlobals.globalfunctions[key] = value;
+				}
+			}
+			else
+				bslMetadata.commonModules.items[moduleName] = parse.module;
 
 		}
 
-		return count_matches;
+		return parse.count;
 
 	}
 
