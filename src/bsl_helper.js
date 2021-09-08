@@ -3765,8 +3765,19 @@ class bslHelper {
 			if (erase)
 				customSuggestions = [];
 
-			if (editor.showSnippetsOnCustomSuggestions)
-				this.getSnippets(suggestions, snippets, true);
+			if (editor.showSnippetsOnCustomSuggestions) {
+				
+				let snippents_collection = snippets;
+				
+				if (queryMode)
+					snippents_collection = querySnippets;
+
+				if (queryMode)
+					snippents_collection = DCSSnippets;
+
+				this.getSnippets(suggestions, snippents_collection, true);
+
+			}
 
 		}
 
