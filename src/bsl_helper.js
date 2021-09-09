@@ -979,7 +979,7 @@ class bslHelper {
 						if (this.objectHasProperties(bslMetadata, itemName, 'items', subItemName, 'properties'))
 							this.fillSuggestionsForMetadataItem(suggestions, bslMetadata[itemName].items[subItemName]);
 							if (!this.objectHasProperties(bslMetadata, itemName, 'items', subItemName, 'module')) {
-								let module_type = isObject ? 'module' : 'manager';
+								let module_type = isObject ? 'object' : 'manager';
 								requestMetadata('module.' + module_type + '.' + itemName + '.' + subItemName);
 							}
 						else if (this.objectHasProperties(bslMetadata, itemName, 'items', subItemName))
@@ -1005,7 +1005,7 @@ class bslHelper {
 
 							if (this.objectHasProperties(bslMetadata, itemName, 'items', subItemName, 'properties')) {
 								if (!this.objectHasProperties(bslMetadata, itemName, 'items', subItemName, 'module')) {
-									let module_type = isObject ? 'module' : 'manager';
+									let module_type = isObject ? 'object' : 'manager';
 									requestMetadata('module.' + module_type + '.' + itemName + '.' + subItemName);
 								}
 								this.fillSuggestionsForMetadataItem(suggestions, bslMetadata[itemName].items[subItemName]);
@@ -1571,7 +1571,7 @@ class bslHelper {
 									let methodsName = isObject ? 'objMethods' : 'refMethods';
 
 									if (!ivalue.hasOwnProperty('module')) {
-										let module_type = isObject ? 'module' : 'manager';
+										let module_type = isObject ? 'object' : 'manager';
 										requestMetadata('module.' + module_type + metadataName.toLowerCase() + '.' + metadataItem.toLowerCase());
 									}
 
