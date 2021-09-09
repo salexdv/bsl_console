@@ -21,3 +21,5 @@ parseMetadataModule('Тект модуля целиком', 'catalogs.items.Но
 | module.manager.справочники.<ИмяОбъекта>     | catalogs.items.<ИмяОбъекта>.manager        |
 | module.manager.документы.расходнаянакладная | documents.items.РасходнаяНакладная.manager |
 | module.object.документы.<ИмяОбъекта>        | documents.items.<ИмяОбъекта>.object        |
+
+Полный список соответствий для построения правильного `path` можно посмотреть в описании функции [`updateMetadata`](update_metadata.md)
