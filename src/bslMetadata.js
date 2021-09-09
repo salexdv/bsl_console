@@ -67,7 +67,7 @@ define([], function () {
                      "returns":"Строка"               
                   }
                },
-               "module": {
+               "object": {
                   "ПервыйМетодОбъекта":{
                      "name":"ПервыйМетодОбъекта",
                      "name_en":"FirstMethodOfObject",
@@ -1042,7 +1042,7 @@ define([], function () {
             }
          },
          "manager": {},
-         "module": {}
+         "object": {}
       },
       "infoRegs":{
          "name":"РегистрыСведений",
