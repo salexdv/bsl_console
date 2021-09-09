@@ -2686,7 +2686,8 @@ define([], function () {
                "name":"Создать",
                "name_en":"Create",
                "description":"Создает новый экземпляр отчета.",
-               "returns":"ОтчетОбъект"
+               "returns":"ОтчетОбъект",
+               "ref": "reports:obj"
             }
          }
       },
