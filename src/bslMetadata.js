@@ -2628,7 +2628,8 @@ define([], function () {
                "name":"Создать",
                "name_en":"Create",
                "description":"Создает новый экземпляр обработки.",
-               "returns":"ОбработкаОбъект"            
+               "returns":"ОбработкаОбъект",
+               "ref": "dataProc:obj"
             }
          }
       },
