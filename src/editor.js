@@ -173,6 +173,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  parseMetadataModule = function (moduleText, path) {
+
+    return bslHelper.parseMetadataModule(moduleText, path);
+
+  }  
+
   updateSnippets = function (snips, replace = false) {
         
     return bslHelper.updateSnippets(snips, replace);    
