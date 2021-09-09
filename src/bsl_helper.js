@@ -973,10 +973,15 @@ class bslHelper {
 
 					let itemName = refArray[0];
 					let subItemName = refArray[1];
+					let isObject = (refArray.length == 3 && refArray[2] == 'obj');
 
 					if (queryMode || DCSMode) {
 						if (this.objectHasProperties(bslMetadata, itemName, 'items', subItemName, 'properties'))
 							this.fillSuggestionsForMetadataItem(suggestions, bslMetadata[itemName].items[subItemName]);
+							if (!this.objectHasProperties(bslMetadata, itemName, 'items', subItemName, 'module')) {
+								let module_type = isObject ? 'module' : 'manager';
+								requestMetadata('module.' + module_type + '.' + itemName + '.' + subItemName);
+							}
 						else if (this.objectHasProperties(bslMetadata, itemName, 'items', subItemName))
 							requestMetadata(itemName + '.' + subItemName);
 						else if (this.objectHasProperties(bslMetadata, itemName, 'items'))
@@ -999,11 +1004,15 @@ class bslHelper {
 							let methodsName = isObject ? 'objMethods' : 'refMethods'
 
 							if (this.objectHasProperties(bslMetadata, itemName, 'items', subItemName, 'properties')) {
+								if (!this.objectHasProperties(bslMetadata, itemName, 'items', subItemName, 'module')) {
+									let module_type = isObject ? 'module' : 'manager';
+									requestMetadata('module.' + module_type + '.' + itemName + '.' + subItemName);
+								}
 								this.fillSuggestionsForMetadataItem(suggestions, bslMetadata[itemName].items[subItemName]);
 								this.getMetadataMethods(suggestions, bslMetadata[itemName], methodsName, itemName, subItemName);
 								if (isObject) {
 									this.getMetadataCommmonObjectProperties(suggestions, bslMetadata[itemName]);
-									this.getMetadataGeneralMethodCompletionByType(bslMetadata[itemName].items[subItemName], 'module', suggestions);
+									this.getMetadataGeneralMethodCompletionByType(bslMetadata[itemName].items[subItemName], 'module', suggestions, 'Interface');
 								}
 							}
 							else if (this.objectHasProperties(bslMetadata, itemName, 'items', subItemName))
@@ -1561,6 +1570,11 @@ class bslHelper {
 									let isObject = (methodDef && methodDef.hasOwnProperty('ref') && methodDef.ref.indexOf(':obj') != -1);
 									let methodsName = isObject ? 'objMethods' : 'refMethods';
 
+									if (!ivalue.hasOwnProperty('module')) {
+										let module_type = isObject ? 'module' : 'manager';
+										requestMetadata('module.' + module_type + metadataName.toLowerCase() + '.' + metadataItem.toLowerCase());
+									}
+
 									itemExists = true;
 									this.fillSuggestionsForMetadataItem(suggestions, ivalue);
 									this.getMetadataMethods(suggestions, value, methodsName, key, ikey);
@@ -1571,7 +1585,7 @@ class bslHelper {
 									refType = key + '.' + ikey + (methodsName == 'objMethods' ? '.obj' : '');
 
 									if (isObject)
-										this.getMetadataGeneralMethodCompletionByType(ivalue, 'module', suggestions);
+										this.getMetadataGeneralMethodCompletionByType(ivalue, 'module', suggestions, 'Interface');
 
 								}
 								else {
@@ -1652,8 +1666,9 @@ class bslHelper {
 	 * @param {object} object metadata object from BSL-JSON dictionary
 	 * @param {string} typeOfMethods type of method
 	 * @param {array} suggestions array of completion for object
+	 * @param {string} kind of suggestions (CompletionItemKind)
 	 */
-	getMetadataGeneralMethodCompletionByType(object, methodType, suggestions) {
+	getMetadataGeneralMethodCompletionByType(object, methodType, suggestions, kind) {
 
 		if (object.hasOwnProperty(methodType)) {
 
@@ -1687,7 +1702,7 @@ class bslHelper {
 
 				suggestions.push({
 					label: mvalue[this.nameField],
-					kind: monaco.languages.CompletionItemKind.Method,
+					kind: monaco.languages.CompletionItemKind[kind],
 					insertText: mvalue[this.nameField] + postfix,
 					insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
 					detail: mvalue.description,
@@ -1776,8 +1791,14 @@ class bslHelper {
 
 							}
 
-							this.getMetadataGeneralMethodCompletionByType(value, 'methods', suggestions);
-							this.getMetadataGeneralMethodCompletionByType(itemNode, 'manager', suggestions);
+							this.getMetadataGeneralMethodCompletionByType(value, 'methods', suggestions, 'Method');
+
+							if (!updateItemNode) {
+								if (itemNode.hasOwnProperty('manager'))									
+									this.getMetadataGeneralMethodCompletionByType(itemNode, 'manager', suggestions, 'Interface');
+								else
+									requestMetadata('module.manager.' + metadataName + '.' + metadataItem);
+							}
 							
 							if (key == 'enums') {
 								this.fillSuggestionsForMetadataItem(suggestions, itemNode)
@@ -4522,8 +4543,8 @@ class bslHelper {
 
 			if (path) {
 
-				if (this.objectHasPropertiesFromArray(bslMetadata, path.split('.'))) {
-					this.setObjectProperty(bslMetadata, path, metadataObj);
+				if (bslHelper.objectHasPropertiesFromArray(bslMetadata, path.split('.'))) {
+					bslHelper.setObjectProperty(bslMetadata, path, metadataObj);
 					return true;
 				}
 				else {
@@ -4708,8 +4729,8 @@ class bslHelper {
 			let path_array = path.split('.');
 			path_array.pop();
 			
-			if (this.objectHasPropertiesFromArray(bslMetadata, path_array))
-				this.setObjectProperty(bslMetadata, path.split('.'), parse.module);
+			if (bslHelper.objectHasPropertiesFromArray(bslMetadata, path_array))
+				bslHelper.setObjectProperty(bslMetadata, path.split('.'), parse.module);
 			else
 				count = 0;
 
