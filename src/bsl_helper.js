@@ -4614,6 +4614,58 @@ class bslHelper {
 	}
 
 	/**
+	 * Returns params description from comment above
+	 *
+	 * @param {ITextModel} text model of module
+	 * @param {string} parametersStr string with parameters
+	 * @param {int} funcLineNumber line of function definition
+	 *
+	 * @returns {object} parameters
+	 */
+	 static parseFunctionParameters(model, parametersStr, funcLineNumber) {
+
+		let sig_params = {};
+			
+		if (parametersStr) {
+					
+			let line_number = funcLineNumber - 1;
+			let paramsExist = false;
+
+			while (0 < line_number && !paramsExist && model.getValueInRange(new monaco.Range(line_number, 1, line_number, 3)) == '//') {
+				line_number--;
+				paramsExist = (model.getValueInRange(new monaco.Range(line_number, 1, line_number, 3)) == '// Параметры:');
+			}
+
+			line_number++;
+
+			let params = parametersStr.split(',');
+			
+			params.forEach(function (param) {
+				
+				let param_full_name = param.split('=')[0].trim();
+				let param_name = param_full_name.replace(/знач\s+/gi, '');
+				let pattern = '\/\/ параметры:[\\s\\SS\\n\\t]*?' + param_name + '([\\s\\SS\\n\\t]*?)(?:\/\/\\s{1,4}[a-zA-Z0-9\u0410-\u044F_])';
+				let match = model.findMatches(pattern, new monaco.Range(line_number, 1, funcLineNumber, 1), true, false, null, true);
+				let param_description = '';
+
+				if (match && match.length) {
+					param_description = match[0].matches[1];
+					param_description = param_description.replace(/^\/\/*/gm, '');
+					param_description = param_description.replace(/^\s*-\s*/gm, '');
+					param_description = param_description.replace(/^\s*/gm, '');
+				}
+
+				sig_params[param_full_name] = param_description;
+				
+			});
+
+		}
+		
+		return sig_params;
+
+	}
+
+	/**
 	 * Parsing a module text
 	 * 	 
 	 * @param {string} moduleText text of module	 
@@ -4632,24 +4684,15 @@ class bslHelper {
 		if (matches && matches.length) {
 
 			count_matches = matches.length;
-			let modules = bslMetadata.commonModules.items;
 
 			for (let idx = 0; idx < matches.length; idx++) {
 
 				let match = matches[idx];
 				let method_name = match.matches[1];
 				let params_str = match.matches[2];
-				let sig_params = {};
 				const description = this.parseFunctionDescription(model, match.range.startLineNumber)
-
-				if (params_str) {
-					let params = params_str.split(',');
-					params.forEach(function (param) {
-						let param_name = param.split('=')[0].trim();
-						sig_params[param_name] = '';
-					});
-				}
-
+				let sig_params = this.parseFunctionParameters(model, params_str, match.range.startLineNumber);
+				
 				let method = {
 					name: method_name,
 					name_en: method_name,
