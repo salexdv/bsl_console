@@ -4640,13 +4640,15 @@ class bslHelper {
 				let method_name = match.matches[1];
 				let params_str = match.matches[2];
 				let sig_params = {};
-				let params = params_str.split(',');
 				const description = this.parseFunctionDescription(model, match.range.startLineNumber)
 
-				params.forEach(function (param) {
-					let param_name = param.split('=')[0].trim();
-					sig_params[param_name] = '';
-				});
+				if (params_str) {
+					let params = params_str.split(',');
+					params.forEach(function (param) {
+						let param_name = param.split('=')[0].trim();
+						sig_params[param_name] = '';
+					});
+				}
 
 				let method = {
 					name: method_name,
