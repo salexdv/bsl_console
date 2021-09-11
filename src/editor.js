@@ -1801,11 +1801,18 @@ function diffEditorUpdateDecorations() {
 function diffEditorOnDidChangeCursorPosition(e) {
 
   if (e.source != 'api') {
+
     window.editor.getModifiedEditor().diffDecor.position = 0;
     window.editor.getOriginalEditor().diffDecor.position = 0;
     getActiveDiffEditor().diffDecor.position = e.position.lineNumber;
     window.editor.diffEditorUpdateDecorations();
     window.editor.diffCount = window.editor.getLineChanges().length;
+
+    if (editor.getModifiedEditor().getPosition().equals(e.position))
+      editor.getOriginalEditor().setPosition(e.position);
+    else
+      editor.getModifiedEditor().setPosition(e.position);
+
   }
 
 }
