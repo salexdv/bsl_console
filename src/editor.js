@@ -1707,6 +1707,19 @@ function getSuggestWidgetRows(element) {
 window.generateEventWithSuggestData = function(eventName, trigger, row, suggestRows = []) {
 
   let bsl = new bslHelper(window.editor.getModel(), window.editor.getPosition());		
+  let row_id = row ? row.getAttribute('data-index') : "";
+  let insert_text = '';
+
+  if (row_id) {
+
+    let suggestWidget = getSuggestWidget();
+
+    if (suggestWidget && row_id < suggestWidget.widget.list.view.items.length) {
+      let suggest_item = suggestWidget.widget.list.view.items[row_id];
+      insert_text = suggest_item.element.completion.insertText;
+    }
+
+  }
 
   eventParams = {
     trigger: trigger,
@@ -1717,7 +1730,8 @@ window.generateEventWithSuggestData = function(eventName, trigger, row, suggestR
     altKey: window.altPressed,
     ctrlKey: window.ctrlPressed,
     shiftKey: window.shiftPressed,
-    row_id: row ? row.getAttribute('data-index') : ""
+    row_id: row_id,
+    insert_text: insert_text
   }
 
   if (row) {
