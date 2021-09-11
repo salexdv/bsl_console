@@ -4530,7 +4530,7 @@ class bslHelper {
 	 *
 	 * @returns {string} the function description
 	 */
-	static parseFunctionDescription(model, funcLineNumber) {
+	 static parseFunctionDescription(model, funcLineNumber) {
 
 		let short_description = '';
 		let full_description = '';
@@ -4564,40 +4564,85 @@ class bslHelper {
 	}
 
 	/**
-	 * Parsing a module text and building bslMetadata structure
-	 * for common modules
-	 * 
-	 * @param {string} a name of common module
-	 * @param {string} a text of module
-	 * @param {bool} is modal global or not
+	 * Returns params description from comment above
+	 *
+	 * @param {ITextModel} text model of module
+	 * @param {string} parametersStr string with parameters
+	 * @param {int} funcLineNumber line of function definition
+	 *
+	 * @returns {object} parameters
 	 */
-	static parseCommonModule(moduleName, moduleText, isGlobal) {
+	 static parseFunctionParameters(model, parametersStr, funcLineNumber) {
+
+		let sig_params = {};
+			
+		if (parametersStr) {
+					
+			let line_number = funcLineNumber - 1;
+			let paramsExist = false;
+
+			while (0 < line_number && !paramsExist && model.getValueInRange(new monaco.Range(line_number, 1, line_number, 3)) == '//') {
+				line_number--;
+				paramsExist = (model.getValueInRange(new monaco.Range(line_number, 1, line_number, 3)) == '// Параметры:');
+			}
+
+			line_number++;
+
+			let params = parametersStr.split(',');
+			
+			params.forEach(function (param) {
+				
+				let param_full_name = param.split('=')[0].trim();
+				let param_name = param_full_name.replace(/знач\s+/gi, '');
+				let pattern = '\/\/ параметры:[\\s\\SS\\n\\t]*?' + param_name + '([\\s\\SS\\n\\t]*?)(?:\/\/\\s{1,4}[a-zA-Z0-9\u0410-\u044F_])';
+				let match = Finder.findMatches(model, pattern, new monaco.Range(line_number, 1, funcLineNumber, 1));
+				let param_description = '';
+
+				if (match && match.length) {
+					param_description = match[0].matches[1];
+					param_description = param_description.replace(/^\/\/*/gm, '');
+					param_description = param_description.replace(/^\s*-\s*/gm, '');
+					param_description = param_description.replace(/^\s*/gm, '');
+				}
+
+				sig_params[param_full_name] = param_description;
+				
+			});
+
+		}
+		
+		return sig_params;
+
+	}
+
+	/**
+	 * Parsing a module text
+	 * 	 
+	 * @param {string} moduleText text of module	 
+	 * 
+	 * @returns {object} structure of module
+	 */
+	static parseModule(moduleText) {
 
 		let count_matches = 0;
+		let module = {};
+
 		const model = monaco.editor.createModel(moduleText);
 		const pattern = '(?:процедура|функция|procedure|function)\\s+([a-zA-Z0-9\u0410-\u044F_]+)\\(([a-zA-Z0-9\u0410-\u044F_,\\s\\n="]*)\\)\\s+(?:экспорт|export)';
-		const matches = Finder.findMatches(model, pattern);
+		const matches = Finder.findMatches(monaco, pattern);
 
 		if (matches && matches.length) {
 
 			count_matches = matches.length;
-			let modules = bslMetadata.commonModules.items;
-			let module = {};
 
 			for (let idx = 0; idx < matches.length; idx++) {
 
 				let match = matches[idx];
 				let method_name = match.matches[1];
 				let params_str = match.matches[2];
-				let sig_params = {};
-				let params = params_str.split(',');
 				const description = this.parseFunctionDescription(model, match.range.startLineNumber)
-
-				params.forEach(function (param) {
-					let param_name = param.split('=')[0].trim();
-					sig_params[param_name] = '';
-				});
-
+				let sig_params = this.parseFunctionParameters(model, params_str, match.range.startLineNumber);
+				
 				let method = {
 					name: method_name,
 					name_en: method_name,
@@ -4615,21 +4660,76 @@ class bslHelper {
 					}
 				}
 
-				if (isGlobal)
-					bslGlobals.globalfunctions[method_name] = method;
-				else
-					module[method_name] = method;
+				module[method_name] = method;
 
 			}
 
-			if (!isGlobal)
-				modules[moduleName] = module;
+		}
 
-			bslMetadata.commonModules.items = modules;
+		return {
+			module: module,
+			count: count_matches
+		};
+
+	}
+
+	/**
+	 * Parsing a module text and building bslMetadata structure
+	 * for common modules
+	 * 
+	 * @param {string} a name of common module
+	 * @param {string} a text of module
+	 * @param {bool} is modal global or not
+	 * 
+	 * @returns {int} count of matches (export functions)
+	 */
+	static parseCommonModule(moduleName, moduleText, isGlobal) {
+
+		let parse = this.parseModule(moduleText);
+
+		if (parse.count) {
+
+			if (isGlobal) {
+				for (const [key, value] of Object.entries(parse.module)) {
+					window.bslGlobals.globalfunctions[key] = value;
+				}
+			}
+			else
+				window.bslMetadata.commonModules.items[moduleName] = parse.module;
 
 		}
 
-		return count_matches;
+		return parse.count;
+
+	}
+
+	/**
+	 * Parsing a module text and building bslMetadata structure
+	 * for module of manager/object
+	 * 	 
+	 * @param {string} moduleText text of module
+	 * @param {string} path path to metadata-property
+	 * 
+	 * @returns {int} count of matches (export functions)
+	 */
+	static parseMetadataModule(moduleText, path) {
+		
+		let parse = this.parseModule(moduleText);
+		let count = parse.count;		
+
+		if (count) {
+			
+			let path_array = path.split('.');
+			path_array.pop();
+			
+			if (bslHelper.objectHasPropertiesFromArray(window.bslMetadata, path_array))
+				bslHelper.setObjectProperty(window.bslMetadata, path.split('.'), parse.module);
+			else
+				count = 0;
+
+		}
+
+		return count;
 
 	}
 
