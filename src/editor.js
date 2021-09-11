@@ -1819,6 +1819,8 @@ function diffEditorOnDidChangeCursorPosition(e) {
     else
       editor.getModifiedEditor().setPosition(e.position);
 
+    updateStatusBar();
+
   }
 
 }
