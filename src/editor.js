@@ -189,11 +189,17 @@ window.updateMetadata = function (metadata, path = '') {
 
 }
 
-window.parseCommonModule = function (moduleName, moduleText, isGlobal = false) {
+parseCommonModule = function (moduleName, moduleText, isGlobal = false) {
 
   return bslHelper.parseCommonModule(moduleName, moduleText, isGlobal);
 
 }
+
+parseMetadataModule = function (moduleText, path) {
+
+  return bslHelper.parseMetadataModule(moduleText, path);
+
+} 
 
 window.updateSnippets = function (snips, replace = false) {
       
