@@ -227,14 +227,18 @@ let permanentActions = {
         cmd: 0,
         order: 0,
         callback: function (e, obj) {                                
-            if (obj && obj.hasOwnProperty('data')) {
-                let position = window.editor.getPosition();
-                let lineContextData = window.contextData.get(position.lineNumber);
-                if (!lineContextData) {
-                    window.contextData.set(position.lineNumber, new Map());
+            if (obj) {
+                if (obj.hasOwnProperty('data')) {
+                    let position = window.editor.getPosition();
+                    let lineContextData = window.contextData.get(position.lineNumber);
+                    if (!lineContextData) {
+                        window.contextData.set(position.lineNumber, new Map());
+                    }
+                    lineContextData = window.contextData.get(position.lineNumber);
+                    lineContextData.set(obj.name.toLowerCase(), obj.data);
                 }
-                lineContextData = window.contextData.get(position.lineNumber);
-                lineContextData.set(obj.name.toLowerCase(), obj.data);
+                if (obj.hasOwnProperty('post_action') && obj.post_action)
+                    editor.trigger('saveref', obj.post_action, {});
             }
             return null;
         }
