@@ -69,7 +69,9 @@ window.reserMark = function() {
 window.sendEvent = function(eventName, eventParams) {
 
   window.events_queue.push({event : eventName, params: eventParams});
-  document.getElementById('event-button').click();
+  setTimeout(() => {
+    document.getElementById('event-button').click();
+  }, 10);  
   
 }
 
@@ -189,13 +191,13 @@ window.updateMetadata = function (metadata, path = '') {
 
 }
 
-parseCommonModule = function (moduleName, moduleText, isGlobal = false) {
+window.parseCommonModule = function (moduleName, moduleText, isGlobal = false) {
 
   return bslHelper.parseCommonModule(moduleName, moduleText, isGlobal);
 
 }
 
-parseMetadataModule = function (moduleText, path) {
+window.parseMetadataModule = function (moduleText, path) {
 
   return bslHelper.parseMetadataModule(moduleText, path);
 
