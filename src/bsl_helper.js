@@ -4652,8 +4652,8 @@ class bslHelper {
 
 			if (path) {
 
-				if (this.objectHasPropertiesFromArray(window.bslMetadata, path.split('.'))) {
-					this.setObjectProperty(window.bslMetadata, path, metadataObj);
+				if (bslHelper.objectHasPropertiesFromArray(window.bslMetadata, path.split('.'))) {
+					bslHelper.setObjectProperty(window.bslMetadata, path, metadataObj);
 					return true;
 				}
 				else {
