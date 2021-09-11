@@ -793,7 +793,7 @@ class bslHelper {
 	 * 
 	 * @returns {boolean} true - the object contains every poperty, fasle - otherwise
 	 */
-	objectHasPropertiesFromArray(obj, props) {
+	static objectHasPropertiesFromArray(obj, props) {
 
 		for (let i = 0; i < props.length; i++) {
 
@@ -814,7 +814,7 @@ class bslHelper {
 	 * @param {string} path the path to property
 	 * @param {Object} value the value of property
 	 */
-	setObjectProperty(obj, path, value) {
+	static setObjectProperty(obj, path, value) {
 		
 		if (Object(obj) !== obj) return obj;
 	    
@@ -1040,6 +1040,9 @@ class bslHelper {
 					if (window.queryMode || window.DCSMode) {
 						if (this.objectHasProperties(window.bslMetadata, itemName, 'items', subItemName, 'properties'))
 							this.fillSuggestionsForMetadataItem(suggestions, window.bslMetadata[itemName].items[subItemName]);
+							let module_type = isObject ? 'object' : 'manager';
+							if (!this.objectHasProperties(bslMetadata, itemName, 'items', subItemName, module_type))
+								requestMetadata('module.' + module_type + '.' + itemName + '.' + subItemName);
 						else if (this.objectHasProperties(window.bslMetadata, itemName, 'items', subItemName))
 							window.requestMetadata(itemName + '.' + subItemName);
 						else if (this.objectHasProperties(window.bslMetadata, itemName, 'items'))
@@ -1062,10 +1065,15 @@ class bslHelper {
 							let methodsName = isObject ? 'objMethods' : 'refMethods'
 
 							if (this.objectHasProperties(window.bslMetadata, itemName, 'items', subItemName, 'properties')) {
+								let module_type = isObject ? 'object' : 'manager';
+								if (!this.objectHasProperties(bslMetadata, itemName, 'items', subItemName, module_type))
+									requestMetadata('module.' + module_type + '.' + itemName + '.' + subItemName);
 								this.fillSuggestionsForMetadataItem(suggestions, window.bslMetadata[itemName].items[subItemName]);
 								this.getMetadataMethods(suggestions, window.bslMetadata[itemName], methodsName, itemName, subItemName);
-								if (isObject)
-									this.getMetadataCommmonObjectProperties(suggestions, window.bslMetadata[itemName]);
+								if (isObject) {
+									this.getMetadataCommmonObjectProperties(suggestions, bslMetadata[itemName]);
+									this.getMetadataGeneralMethodCompletionByType(bslMetadata[itemName].items[subItemName], 'object', suggestions, 'Method');
+								}
 							}
 							else if (this.objectHasProperties(window.bslMetadata, itemName, 'items', subItemName))
 								window.requestMetadata(itemName + '.' + subItemName);
@@ -1592,6 +1600,11 @@ class bslHelper {
 									let isObject = (methodDef && methodDef.hasOwnProperty('ref') && methodDef.ref.indexOf(':obj') != -1);
 									let methodsName = isObject ? 'objMethods' : 'refMethods';
 
+									let module_type = isObject ? 'object' : 'manager';
+									
+									if (!ivalue.hasOwnProperty(module_type))
+										requestMetadata('module.' + module_type + '.' + metadataName.toLowerCase() + '.' + metadataItem.toLowerCase());
+
 									itemExists = true;
 									this.fillSuggestionsForMetadataItem(suggestions, ivalue);
 									this.getMetadataMethods(suggestions, value, methodsName, key, ikey);
@@ -1599,7 +1612,10 @@ class bslHelper {
 									if (isObject)
 										this.getMetadataCommmonObjectProperties(suggestions, value);
 
-									refType = key + '.' + ikey + (methodsName == 'objMethods' ? '.obj' : '');									
+									refType = key + '.' + ikey + (methodsName == 'objMethods' ? '.obj' : '');
+
+									if (isObject)
+										this.getMetadataGeneralMethodCompletionByType(ivalue, 'object', suggestions, 'Method');
 
 								}
 								else {
@@ -1670,6 +1686,63 @@ class bslHelper {
 		}
 
 		return itemExists;
+
+	}
+
+	/**
+	 * Fills array of completion for metadata general fuctions
+	 * by method type like 'method', 'manager'
+	 * 
+	 * @param {object} object metadata object from BSL-JSON dictionary
+	 * @param {string} typeOfMethods type of method
+	 * @param {array} suggestions array of completion for object
+	 * @param {string} kind of suggestions (CompletionItemKind)
+	 */
+	 getMetadataGeneralMethodCompletionByType(object, methodType, suggestions, kind) {
+
+		if (object.hasOwnProperty(methodType)) {
+
+			for (const [mkey, mvalue] of Object.entries(object[methodType])) {
+
+				let description = mvalue.hasOwnProperty('returns') ? mvalue.returns : '';
+				let signatures = this.getMethodsSignature(mvalue);
+				
+				let postfix = '';
+				let command = null;
+
+				if (signatures.length) {
+					postfix = '(';
+					command = {
+						id: 'vs.editor.ICodeEditor:1:saveref',
+						arguments: [
+							{
+								"name": mvalue[this.nameField],
+								"data": {
+									"ref": null,
+									"sig": signatures
+								},
+								"post_action": 'editor.action.triggerParameterHints'
+							}
+						]
+					}
+				}
+
+				if (signatures.length == 0 || (signatures.length == 1 && signatures[0].parameters.length == 0))
+					postfix = '()';
+
+				suggestions.push({
+					label: mvalue[this.nameField],
+					kind: monaco.languages.CompletionItemKind[kind],
+					insertText: mvalue[this.nameField] + postfix,
+					insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+					detail: mvalue.description,
+					documentation: description,
+					command: command
+				});
+
+			}
+
+		}
 
 	}
 
@@ -1747,27 +1820,13 @@ class bslHelper {
 
 							}
 
-							if (value.hasOwnProperty('methods')) {
+							this.getMetadataGeneralMethodCompletionByType(value, 'methods', suggestions, 'Method');
 
-								for (const [mkey, mvalue] of Object.entries(value.methods)) {
-
-									let description = mvalue.hasOwnProperty('returns') ? mvalue.returns : '';
-									let signatures = this.getMethodsSignature(mvalue);
-									let postfix = '';
-									if (signatures.length == 0 || (signatures.length == 1 && signatures[0].parameters.length == 0))
-										postfix = '()';
-									
-									values.push({
-										name: mvalue[this.nameField],
-										postfix: postfix,
-										detail: mvalue.description,
-										description: description,
-										kind: monaco.languages.CompletionItemKind.Method,
-										insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-									});									
-
-								}
-
+							if (!updateItemNode) {
+								if (itemNode.hasOwnProperty('manager'))									
+									this.getMetadataGeneralMethodCompletionByType(itemNode, 'manager', suggestions, 'Method');
+								else
+									requestMetadata('module.manager.' + metadataName + '.' + metadataItem);
 							}
 							
 							if (key == 'enums') {
@@ -4132,6 +4191,44 @@ class bslHelper {
 	}
 
 	/**
+	 * Finds signatures provided for metadata item methods
+	 * like FindByCode, CreateRecordManager by method type
+	 * like 'method', 'manager'
+	 * 
+	 * @param {object} object metadata object from BSL-JSON dictionary
+	 * @param {string} typeOfMethods type of method
+	 * @param {object} methodName method name for filtering
+	 * 
+	 * @returns {SignatureHelp} helper with signatures
+	 */
+	 getMetadataSigHelpByMethodType(object, typeOfMethods, methodName) {
+
+		let helper = null;
+
+		if (object.hasOwnProperty(typeOfMethods)) {
+
+			for (const [mkey, mvalue] of Object.entries(object[typeOfMethods])) {
+
+				if (mvalue[this.nameField].toLowerCase() == methodName) {
+					let signatures = this.getMethodsSignature(mvalue);
+					if (signatures.length) {
+						helper = {
+							activeParameter: this.textBeforePosition.split(',').length - 1,
+							activeSignature: 0,
+							signatures: signatures,
+						}
+					}
+				}
+
+			}
+
+		}
+
+		return helper;
+
+	}
+
+	/**
 	 * Finds signatures provided for metadata item`s methods
 	 * like FindByCode, CreateRecordManager
 	 * 
@@ -4156,23 +4253,17 @@ class bslHelper {
 
 					if (value[this.nameField].toLowerCase() == metadataName) {
 
-						if (value.hasOwnProperty('methods')) {
+						helper = this.getMetadataSigHelpByMethodType(value, 'methods', metadataFunc);
 
-							for (const [mkey, mvalue] of Object.entries(value.methods)) {
+						if (!helper && value.hasOwnProperty('items')) {
+						
+							for (const [ikey, ivalue] of Object.entries(value.items)) {
 
-								if (mvalue[this.nameField].toLowerCase() == metadataFunc) {
-									let signatures = this.getMethodsSignature(mvalue);
-									if (signatures.length) {
-										helper = {
-											activeParameter: this.textBeforePosition.split(',').length - 1,
-											activeSignature: 0,
-											signatures: signatures,
-										}
-									}
-								}
+								if (ikey.toLowerCase() == metadataItem)
+									helper = this.getMetadataSigHelpByMethodType(ivalue, 'manager', metadataFunc);
 
 							}
-
+							
 						}
 
 					}
@@ -4629,7 +4720,7 @@ class bslHelper {
 
 		const model = monaco.editor.createModel(moduleText);
 		const pattern = '(?:процедура|функция|procedure|function)\\s+([a-zA-Z0-9\u0410-\u044F_]+)\\(([a-zA-Z0-9\u0410-\u044F_,\\s\\n="]*)\\)\\s+(?:экспорт|export)';
-		const matches = Finder.findMatches(monaco, pattern);
+		const matches = Finder.findMatches(model, pattern);
 
 		if (matches && matches.length) {
 

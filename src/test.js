@@ -831,14 +831,14 @@ setTimeout(() => {
       it("проверка подсказки методов менеджера справочника", function () {              	                                
         bsl = helper('Справочники.Товары.');
         let suggestions = [];                
-        bsl.getMetadataCompletion(suggestions, bslMetadata);
+        bsl.getMetadataCompletion(suggestions, window.bslMetadata);
         expect(suggestions).to.be.an('array').that.not.is.empty;
         assert.equal(suggestions.some(suggest => suggest.label === "ПервыйМетодМенеджера"), true);
       });
 
       it("проверка подсказки параметров для метода менеджера справочника", function () {
         bsl = helper('Справочники.Товары.ПервыйМетодМенеджера(');
-        let help = bsl.getMetadataSigHelp(bslMetadata);
+        let help = bsl.getMetadataSigHelp(window.bslMetadata);
         expect(help).to.have.property('activeParameter');
       });
 
@@ -846,7 +846,7 @@ setTimeout(() => {
         
         bsl = helper('Спр = Справочники.Товары.НайтиПоКоду(1);\nСпр2 = Спр.');
         let suggestions = [];                
-        bsl.getMetadataCompletion(suggestions, bslMetadata);
+        bsl.getMetadataCompletion(suggestions, window.bslMetadata);
         expect(suggestions).to.be.an('array').that.not.is.empty;
         assert.equal(suggestions.some(suggest => suggest.label === "ПервыйМетодМенеджера"), false);
         
@@ -863,7 +863,7 @@ setTimeout(() => {
         bslHelper.parseCommonModule('ОбщегоНазначения', text, false);
         
         bsl = helper('ОбщегоНазначения.');
-        suggestions = bsl.getCodeCompletion({triggerCharacter: ''});
+        let suggestions = bsl.getCodeCompletion({triggerCharacter: ''});
         expect(suggestions).to.be.an('array').that.not.is.empty;
         assert.equal(suggestions.some(suggest => suggest.label === "ЗначениеРеквизитаОбъекта"), true);
 
@@ -886,7 +886,7 @@ setTimeout(() => {
 
         bsl = helper('Документы.АвансовыйОтчет.');
         let suggestions = [];                
-        bsl.getMetadataCompletion(suggestions, bslMetadata);
+        bsl.getMetadataCompletion(suggestions, window.bslMetadata);
         expect(suggestions).to.be.an('array').that.not.is.empty;
         assert.equal(suggestions.some(suggest => suggest.label === "ЗаменитьСсылки"), true);
 
