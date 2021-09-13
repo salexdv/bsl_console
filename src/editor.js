@@ -1475,7 +1475,6 @@ for (const [key, lang] of Object.entries(window.languages)) {
         window.colors = colors
       }).catch((error) => 'An error occurred while loading the colors');
 
-      console.log('create', window.editor);
       registerCodeLensProviders();
       
     });
