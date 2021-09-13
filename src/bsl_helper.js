@@ -4794,9 +4794,6 @@ class bslHelper {
 		let count_matches = 0;
 		let module = {};
 
-		let start = Date.now();
-		console.log('start parse', start);
-
 		const model = monaco.editor.createModel(moduleText);
 		const pattern = '(?:процедура|функция|procedure|function)\\s+([a-zA-Z0-9\u0410-\u044F_]+)\\(([a-zA-Z0-9\u0410-\u044F_,\\s\\n="]*)\\)\\s+(?:экспорт|export)';
 		const matches = Finder.findMatches(model, pattern);
@@ -4835,10 +4832,6 @@ class bslHelper {
 			}
 
 		}
-
-		let end = Date.now();
-		console.log('end parse', end);
-		console.log('time', end - start);
 
 		return {
 			module: module,
