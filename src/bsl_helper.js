@@ -1070,6 +1070,7 @@ class bslHelper {
 
 					let itemName = refArray[0];
 					let subItemName = refArray[1];
+					let isObject = (refArray.length == 3 && refArray[2] == 'obj');
 
 					if (window.queryMode || window.DCSMode) {
 						if (this.objectHasProperties(window.bslMetadata, itemName, 'items', subItemName, 'properties'))
