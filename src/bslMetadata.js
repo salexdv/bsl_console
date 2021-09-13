@@ -2625,7 +2625,8 @@ let bslMetadata = {
             "name":"Создать",
             "name_en":"Create",
             "description":"Создает новый экземпляр обработки.",
-            "returns":"ОбработкаОбъект"            
+            "returns":"ОбработкаОбъект",
+            "ref": "dataProc:obj"
          }
       }
    },
@@ -2682,7 +2683,8 @@ let bslMetadata = {
             "name":"Создать",
             "name_en":"Create",
             "description":"Создает новый экземпляр отчета.",
-            "returns":"ОтчетОбъект"
+            "returns":"ОтчетОбъект",
+            "ref": "reports:obj"
          }
       }
    },
