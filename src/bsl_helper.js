@@ -3910,6 +3910,20 @@ class bslHelper {
 			if (erase)
 				window.customSuggestions = [];
 
+			if (window.editor.showSnippetsOnCustomSuggestions) {
+			
+				let snippents_collection = window.snippets;
+				
+				if (queryMode)
+					snippents_collection = window.querySnippets;
+
+				if (queryMode)
+					snippents_collection = window.DCSSnippets;
+
+				this.getSnippets(suggestions, snippents_collection, true);
+
+			}
+
 		}
 
 		return suggestions;
