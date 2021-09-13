@@ -23,6 +23,7 @@ enableSuggestActivationEvent(false);
   "last_word": "авансовыйотчет",
   "last_expression": "документы.авансовыйотчет.",
   "focused": "Выбрать",
+  "insert_text": "Выбрать",
   "rows": [
     "Выбрать",
     "НайтиПоНомеру",
