@@ -25,8 +25,8 @@ class bslHelper {
 		this.lineNumber = position.lineNumber;
 		this.column = position.column;
 
-		let wordData = model.getWordAtPosition(position);
-		this.word = wordData ? wordData.word.toLowerCase() : '';
+		this.wordData = model.getWordAtPosition(position);
+		this.word = this.wordData ? this.wordData.word.toLowerCase() : '';
 
 		this.lastOperator = '';
 		this.hasWhitespace = false;
@@ -576,7 +576,58 @@ class bslHelper {
 
 		return label.replace(/(\()(.*)(\).*)/, '$2');
 
-	}	
+	}
+
+	/**
+	 * Determines is the current word has certain char before or not
+	 * 
+	 * @returns {bool}
+	 */
+	wordHasCharsBefore(chars) {
+
+		let charExists = false;
+		let data = this.wordData;
+
+		if (this.wordData) {
+			let range = new monaco.Range(this.lineNumber, data.startColumn - chars.length, this.lineNumber, data.startColumn);
+			let previous_char = this.model.getValueInRange(range);
+			charExists = (previous_char.toLowerCase() == chars.toLowerCase());
+		}
+
+		return charExists;
+
+	}
+
+	/**
+	 * Determines is the current word has certain char after or not
+	 * 
+	 * @returns {bool}
+	 */
+	wordHasCharsAfter(chars) {
+
+		let charExists = false;
+		let data = this.wordData;
+
+		if (this.wordData) {
+			let range = new monaco.Range(this.lineNumber, data.endColumn, this.lineNumber, data.endColumn + chars.length);
+			let next_char = this.model.getValueInRange(range);
+			charExists = (next_char.toLowerCase() == chars.toLowerCase());
+		}
+
+		return charExists;
+
+	}
+
+	/**
+	 * Determines is it function in the current position on not
+	 * 
+	 * @returns {bool}
+	 */
+	isItFunction() {
+
+		return this.wordHasCharsAfter('(');
+
+	}
 
 	/**
 	 * Fills array of completion for language keywords, classes, global functions,
@@ -5783,7 +5834,7 @@ class bslHelper {
 	}
 
 	/**
-	 * Provide the definition of the symbol at the given position and document
+	 * Provide the definition of the symbol at the given position of code
 	 * 
 	 * @returns {array} Location[]
 	 */
@@ -5793,9 +5844,15 @@ class bslHelper {
 
 		if (this.word) {
 
-			let match = this.model.findPreviousMatch(this.word + '\\s*=\\s*.*', this.position, true);
+			let pattern = this.word + '\\s*=\\s*.*';
 
-			if (match && match.range.startLineNumber <= this.lineNumber) {
+			if (this.isItFunction())
+				pattern = '(процедура|procedure|функция|function)\\s*' + this.word + '\\(';
+
+			let position = new monaco.Position(this.lineNumber, 1);
+			let match = this.model.findPreviousMatch(pattern, position, true);
+
+			if (match && match.range.startLineNumber < this.lineNumber) {
 				location = [{
 					uri: this.model.uri,
 					range: match.range
