@@ -1070,17 +1070,17 @@ class bslHelper {
 				if (!suggestions.length && allowLookBehind) {
 					
 					// 1C does not support positive/negative lookbehind yet
-					//match = this.model.findPreviousMatch('(?<!\\/\\/.*)' + this.lastRawExpression + '\\s?=\\s?.*\\.([^.]*?)\\s?(?:;|\\()', this.position, true, false, null, true);
+					//match = this.model.findPreviousMatch('(?<!\\/\\/.*)' + this.lastRawExpression + '\\s*=\\s*.*\\.([^.]*?)\\s?(?:;|\\()', this.position, true, false, null, true);
 					
 					// This also does not work inside 1C
 					/*
-					match = this.model.findPreviousMatch(this.lastRawExpression + '\\s?=\\s?.*\\.([^.]*?)\\s?(?:;|\\()', this.position, true, false, null, true);
+					match = this.model.findPreviousMatch(this.lastRawExpression + '\\s*=\\s*.*\\.([^.]*?)\\s?(?:;|\\()', this.position, true, false, null, true);
 					if (!match)
-						match = this.model.findPreviousMatch(this.lastRawExpression + '\\s?=\\s?([a-zA-Z0-9\u0410-\u044F_]+)\\(', this.position, true, false, null, true);
+						match = this.model.findPreviousMatch(this.lastRawExpression + '\\s*=\\s*([a-zA-Z0-9\u0410-\u044F_]+)\\(', this.position, true, false, null, true);
 					*/
 					
 					// So we have to use 2 rexep to detect last function`s (field`s) reference
-					match = this.model.findPreviousMatch(this.lastRawExpression + '\\s?=\\s?.*', currentPosition, true, false, null, true);					
+					match = this.model.findPreviousMatch(this.lastRawExpression + '\\s*=\\s*.*', currentPosition, true, false, null, true);
 			
 					if (match) {
 
@@ -1376,8 +1376,8 @@ class bslHelper {
 		if (exp) {
 
 			// 1C does not support positive/negative lookbehind yet
-			// const match = this.model.findPreviousMatch('(?<!\\/\\/.*)' + exp + '\\s?=\\s?(?:new|новый)\\s+(.*?)(?:\\(|;)', this.position, true, false, null, true);		
-			const match = this.model.findPreviousMatch(exp + '\\s?=\\s?(?:new|новый)\\s+([a-zA-Z\u0410-\u044F_]*)+[(;]', this.position, true, false, null, true);
+			// const match = this.model.findPreviousMatch('(?<!\\/\\/.*)' + exp + '\\s*=\\s*(?:new|новый)\\s+(.*?)(?:\\(|;)', this.position, true, false, null, true);		
+			const match = this.model.findPreviousMatch(exp + '\\s*=\\s*(?:new|новый)\\s+([a-zA-Z\u0410-\u044F_]*)+[(;]', this.position, true, false, null, true);
 
 			if (match) {										
 				className = match.matches[match.matches.length - 1];
@@ -1630,7 +1630,7 @@ class bslHelper {
 			let regex = null
 			
 			try {
-				regex = new RegExp(exp + '\\s?=\\s?(.*)\\(.*\\);', 'gi');
+				regex = new RegExp(exp + '\\s*=\\s*(.*)\\(.*\\);', 'gi');
 				regex = regex.exec(fullText);
 			}
 			catch (e) {
@@ -1871,7 +1871,7 @@ class bslHelper {
 
 		let stack = [];
 		let pattern_match_count = 4;
-		let match = this.model.findPreviousMatch('(' + varName + '\\s?=\\s?(.*?))\\.(.*)', position, true, false, null, true);
+		let match = this.model.findPreviousMatch('(' + varName + '\\s*=\\s*(.*?))\\.(.*)', position, true, false, null, true);
 
 		if (match && match.matches.length == pattern_match_count) {
 
@@ -2210,7 +2210,7 @@ class bslHelper {
 			comments.set(commentMatches[idx].range.startLineNumber, commentMatches[idx].range.startColumn);
 		}
 
-		let matches = this.model.findMatches('([a-zA-Z0-9\u0410-\u044F_]+)\\s?=\\s?.*(?:;|\\()\\s*$', true, true, false, null, true);
+		let matches = this.model.findMatches('([a-zA-Z0-9\u0410-\u044F_]+)\\s*=\\s*.*(?:;|\\()\\s*$', true, true, false, null, true);
 
 		for (let idx = 0; idx < matches.length; idx++) {
 
@@ -4074,7 +4074,7 @@ class bslHelper {
 			let fullText = this.getFullTextBeforePosition();
 			let regex = null;
 			try {
-				regex = new RegExp(exp + '\\s?=\\s?(.*)\\(.*\\);', 'gi');
+				regex = new RegExp(exp + '\\s*=\\s*(.*)\\(.*\\);', 'gi');
 			}
 			catch {
 				return helper;
