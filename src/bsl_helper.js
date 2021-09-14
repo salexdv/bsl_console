@@ -5791,6 +5791,19 @@ class bslHelper {
 
 		let location = null;
 
+		if (this.word) {
+
+			let match = this.model.findPreviousMatch(this.word + '\\s*=\\s*.*', this.position, true);
+
+			if (match && match.range.startLineNumber <= this.lineNumber) {
+				location = [{
+					uri: this.model.uri,
+					range: match.range
+				}];
+			}
+
+		}
+
 		return location;
 
 	}
