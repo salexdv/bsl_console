@@ -5865,4 +5865,64 @@ class bslHelper {
 
 	}
 
+	/**
+	 * Provide the definition of the symbol at the given position of query
+	 * 
+	 * @returns {array} Location[]
+	 */
+	provideQueryDefinition() {
+
+		let location = null;
+
+		if (this.word) {
+
+			if (this.wordHasCharsBefore('.')) {
+
+				let pattern = '(as|как)\\s*' + this.word;
+				let position = new monaco.Position(this.lineNumber, 1);
+				let match = this.model.findPreviousMatch(pattern, position, true);
+
+				if (match && match.range.startLineNumber < this.lineNumber) {
+					location = [{
+						uri: this.model.uri,
+						range: match.range
+					}];
+				}
+
+			}
+			else if (this.wordHasCharsAfter('.')) {
+
+				let pattern = '(as|как)\\s*' + this.word;
+				let position = new monaco.Position(this.lineNumber, this.model.getLineMaxColumn(this.lineNumber));
+				let match = this.model.findNextMatch(pattern, position, true);
+
+				if (match && match.range.startLineNumber > this.lineNumber) {
+					location = [{
+						uri: this.model.uri,
+						range: match.range
+					}];
+				}
+
+			}
+			else {
+
+				let pattern = '(поместить|into)[\\s\\n\\t]*' + this.word;
+				let position = new monaco.Position(this.lineNumber, 1);
+				let match = this.model.findNextMatch(pattern, position, true);
+
+				if (match && match.range.startLineNumber < this.lineNumber) {
+					location = [{
+						uri: this.model.uri,
+						range: match.range
+					}];
+				}
+
+			}
+
+		}
+
+		return location;
+
+	}
+
 }

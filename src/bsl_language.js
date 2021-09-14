@@ -547,7 +547,10 @@ define([], function () {
                 provideDocumentColors: () => {}
             },
             definitionProvider: {
-                provideDefinition: () => {}
+                provideDefinition: (model, position) => {
+                    let bsl = new bslHelper(model, position);
+                    return bsl.provideQueryDefinition();
+                }
             },
             autoIndentation: false,
             indentationRules: {
