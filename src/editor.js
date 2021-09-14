@@ -1462,6 +1462,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     monaco.languages.registerHoverProvider(language.id, lang.hoverProvider);    
     monaco.languages.registerDocumentFormattingEditProvider(language.id, lang.formatProvider);
     monaco.languages.registerColorProvider(language.id, lang.colorProvider);
+    monaco.languages.registerDefinitionProvider(language.id, lang.definitionProvider);
 
     if (lang.autoIndentation && lang.indentationRules)
       monaco.languages.setLanguageConfiguration(language.id, {indentationRules: lang.indentationRules});

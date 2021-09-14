@@ -5782,4 +5782,17 @@ class bslHelper {
 		}];
 	}
 
+	/**
+	 * Provide the definition of the symbol at the given position and document
+	 * 
+	 * @returns {array} Location[]
+	 */
+	provideDefinition() {
+
+		let location = null;
+
+		return location;
+
+	}
+
 }

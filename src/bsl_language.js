@@ -461,6 +461,12 @@ define([], function () {
                     return bslHelper.getDocumentColors(model);
                 }
             },
+            definitionProvider: {
+                provideDefinition: (model, position) => {
+                    let bsl = new bslHelper(model, position);
+                    return bsl.provideDefinition();
+                }
+            },
             autoIndentation: true,
             indentationRules: {
                 increaseIndentPattern: /^\s*(функция|function|процедура|procedure|если|if|пока|while|для|for|попытка|try|исключение|except).*$/i,
@@ -540,6 +546,9 @@ define([], function () {
                 provideColorPresentations: () => {},
                 provideDocumentColors: () => {}
             },
+            definitionProvider: {
+                provideDefinition: () => {}
+            },
             autoIndentation: false,
             indentationRules: {
                 increaseIndentPattern: /^\s*(выбрать|из|выбор|когда).*$/i,
@@ -605,6 +614,9 @@ define([], function () {
             colorProvider: {
                 provideColorPresentations: () => {},
                 provideDocumentColors: () => {}
+            },
+            definitionProvider: {
+                provideDefinition: () => {}
             },
             autoIndentation: false,
             indentationRules: null,
