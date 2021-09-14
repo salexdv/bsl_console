@@ -1167,7 +1167,7 @@ class bslHelper {
 				if (!suggestions.length && allowLookBehind) {
 
 					// So we have to use 2 rexep to detect last function`s (field`s) reference
-					match = Finder.findPreviousMatch(this.model, this.lastRawExpression + '\\s?=\\s?.*', currentPosition);
+					match = Finder.findPreviousMatch(this.model, this.lastRawExpression + '\\s*=\\s*.*', currentPosition);
 			
 					if (match) {
 
@@ -1462,7 +1462,7 @@ class bslHelper {
 
 		if (exp) {
 
-			const match = Finder.findPreviousMatch(this.model, exp + '\\s?=\\s?(?:new|новый)\\s+([a-zA-Z\u0410-\u044F_]*)+[(;]', this.position);
+			const match = Finder.findPreviousMatch(this.model, exp + '\\s*=\\s*(?:new|новый)\\s+([a-zA-Z\u0410-\u044F_]*)+[(;]', this.position);
 
 			if (match) {										
 				className = match.matches[match.matches.length - 1];
@@ -1715,7 +1715,7 @@ class bslHelper {
 			let regex = null
 			
 			try {
-				regex = new RegExp(exp + '\\s?=\\s?(.*)\\(.*\\);', 'gi');
+				regex = new RegExp(exp + '\\s*=\\s*(.*)\\(.*\\);', 'gi');
 				regex = regex.exec(fullText);
 			}
 			catch (e) {
@@ -1953,7 +1953,7 @@ class bslHelper {
 
 		let stack = [];
 		let pattern_match_count = 4;
-		let match = Finder.findPreviousMatch(this.model, '(' + varName + '\\s?=\\s?(.*?))\\.(.*)', position);
+		let match = Finder.findPreviousMatch(this.model, '(' + varName + '\\s*=\\s*(.*?))\\.(.*)', position);
 
 		if (match && match.matches.length == pattern_match_count) {
 
@@ -2292,7 +2292,7 @@ class bslHelper {
 			comments.set(commentMatches[idx].range.startLineNumber, commentMatches[idx].range.startColumn);
 		}
 
-		let matches = Finder.findMatches(this.model, '([a-zA-Z0-9\u0410-\u044F_]+)\\s?=\\s?.*(?:;|\\()\\s*$');
+		let matches = Finder.findMatches(this.model, '([a-zA-Z0-9\u0410-\u044F_]+)\\s*=\\s*.*(?:;|\\()\\s*$');
 
 		for (let idx = 0; idx < matches.length; idx++) {
 
@@ -4201,7 +4201,7 @@ class bslHelper {
 			let fullText = this.getFullTextBeforePosition();
 			let regex = null;
 			try {
-				regex = new RegExp(exp + '\\s?=\\s?(.*)\\(.*\\);', 'gi');
+				regex = new RegExp(exp + '\\s*=\\s*(.*)\\(.*\\);', 'gi');
 			}
 			catch {
 				return helper;
