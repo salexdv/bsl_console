@@ -1328,6 +1328,18 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  revealDefinition = function() {
+
+    editor.trigger('', 'editor.action.revealDefinition');
+
+  }
+
+  peekDefinition = function() {
+
+    editor.trigger('', 'editor.action.peekDefinition');
+
+  }
+
   setOriginalText = function (originalText, setEmptyOriginalText = false) {
 
     editor.originalText = originalText;
