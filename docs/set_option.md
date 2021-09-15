@@ -24,3 +24,4 @@ setOption("skipInsertSuggestionAcceptor", true);
 * `disableNativeSuggestions` - *boolean*, отключает стандартные подсказки
 * `disableNativeSignatures` - *boolean*, отключает стандартные подсказки по вызову процедуры/функции
 * `disableNativeHovers` - *boolean*, отключает стандартные всплывающие подсказки при наведении курсора мыши на слово
+* `showSnippetsOnCustomSuggestions` - *boolean*, включает показ стандартных сниппетов при выводе пользовательских подсказок через [`showCustomSuggestions`](custom_suggestions.md)

@@ -227,15 +227,19 @@ define(['vs/editor/editor.main'], function () {
             cmd: 0,
             order: 0,
             callback: function (e, obj) {                                
-                if (obj && obj.hasOwnProperty('data')) {
-                    let position = editor.getPosition();
-                    let lineContextData = contextData.get(position.lineNumber);
-                    if (!lineContextData) {
-                        contextData.set(position.lineNumber, new Map());
+                if (obj) {
+                    if (obj.hasOwnProperty('data')) {
+                        let position = editor.getPosition();
+                        let lineContextData = contextData.get(position.lineNumber);
+                        if (!lineContextData) {
+                            contextData.set(position.lineNumber, new Map());
+                        }
+                        lineContextData = contextData.get(position.lineNumber);
+                        lineContextData.set(obj.name.toLowerCase(), obj.data);
                     }
-                    lineContextData = contextData.get(position.lineNumber);
-                    lineContextData.set(obj.name.toLowerCase(), obj.data);
-                }
+                    if (obj.hasOwnProperty('post_action') && obj.post_action)
+                        editor.trigger('saveref', obj.post_action, {});
+                }                
                 return null;
             }
         },
@@ -289,6 +293,26 @@ define(['vs/editor/editor.main'], function () {
             order: 0,
             callback: function (ed) {
                 selectToBracket();
+                return null;
+            }
+        },
+        revealDefinition: {
+            label: 'Перейти к определению',
+            key: monaco.KeyCode.F12,
+            cmd: monaco.KeyMod.chord(monaco.KeyCode.F12),
+            order: 0,
+            callback: function (ed) {
+                revealDefinition();
+                return null;
+            }
+        },
+        peekDefinition: {
+            label: 'Показать определение',
+            key: monaco.KeyMod.CtrlCmd | monaco.KeyCode.F12,
+            cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.F12),
+            order: 0,
+            callback: function (ed) {
+                peekDefinition();
                 return null;
             }
         }

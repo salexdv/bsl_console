@@ -14,6 +14,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   contextActions = [];
   customHovers = {};
   customSignatures = {};
+  customCodeLenses = [];
   originalText = '';
   metadataRequests = new Map();
   customSuggestions = [];
@@ -171,6 +172,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     return bslHelper.parseCommonModule(moduleName, moduleText, isGlobal);
 
   }
+
+  parseMetadataModule = function (moduleText, path) {
+
+    return bslHelper.parseMetadataModule(moduleText, path);
+
+  }  
 
   updateSnippets = function (snips, replace = false) {
         
@@ -388,6 +395,20 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  setCustomCodeLenses = function(lensJSON) {
+
+    try {
+			customCodeLenses = JSON.parse(lensJSON);
+      editor.updateCodeLens();
+			return true;
+		}
+		catch (e) {
+      customCodeLenses = [];
+			return { errorDescription: e.message };
+		}    
+
+  }
+
   getVarsNames = function () {
     
     let bsl = new bslHelper(editor.getModel(), editor.getPosition());		
@@ -426,9 +447,9 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
-  selectedText = function(text, keepSelection = false) {
+  selectedText = function(text = undefined, keepSelection = false) {
 
-    if (!text)
+    if (text == undefined)
       
       return getSelectedText();    
 
@@ -784,9 +805,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   clearMetadata = function() {
 
     metadataRequests.clear();
+
     for (let [key, value] of Object.entries(bslMetadata)) {
+
       if (value.hasOwnProperty('items'))
         bslMetadata[key].items = {};
+
     }
 
   }
@@ -846,7 +870,20 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   generateEventWithSuggestData = function(eventName, trigger, row, suggestRows = []) {
 
-    let bsl = new bslHelper(editor.getModel(), editor.getPosition());		
+    let bsl = new bslHelper(editor.getModel(), editor.getPosition());
+    let row_id = row ? row.getAttribute('data-index') : "";
+    let insert_text = '';
+
+    if (row_id) {
+
+      let suggestWidget = getSuggestWidget();
+
+      if (suggestWidget && row_id < suggestWidget.widget.list.view.items.length) {
+        let suggest_item = suggestWidget.widget.list.view.items[row_id];
+        insert_text = suggest_item.element.completion.insertText;
+      }
+
+    }
 
     eventParams = {
       trigger: trigger,
@@ -857,7 +894,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       altKey: altPressed,
 			ctrlKey: ctrlPressed,
 			shiftKey: shiftPressed,
-      row_id: row ? row.getAttribute('data-index') : ""
+      row_id: row_id,
+      insert_text: insert_text
     }
 
     if (row) {
@@ -1290,6 +1328,18 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  revealDefinition = function() {
+
+    editor.trigger('', 'editor.action.revealDefinition');
+
+  }
+
+  peekDefinition = function() {
+
+    editor.trigger('', 'editor.action.peekDefinition');
+
+  }
+
   setOriginalText = function (originalText, setEmptyOriginalText = false) {
 
     editor.originalText = originalText;
@@ -1350,6 +1400,15 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     return getSuggestWidget().widget.suggestWidgetVisible.get();
   
   }
+
+  insertSnippet = function(snippet) {
+
+    let controller = editor.getContribution("snippetController2");
+    
+    if (controller)
+      controller.insert(snippet);
+
+  }
   // #endregion
 
   // #region init editor
@@ -1378,6 +1437,26 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  function registerCodeLensProviders() {
+
+    setTimeout(() => {
+  
+      for (const [key, lang] of Object.entries(window.languages)) {
+        
+        let language = lang.languageDef;
+  
+        monaco.languages.registerCodeLensProvider(language.id, {
+          onDidChange: lang.codeLenses.onDidChange, 
+          provideCodeLenses: lang.codeLenses.provider, 
+          resolveCodeLens: lang.codeLenses.resolver
+        });
+  
+      }
+  
+    }, 50);
+  
+  }
+
   // Register languages
   for (const [key, lang] of Object.entries(languages)) {
   
@@ -1394,11 +1473,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     monaco.languages.registerSignatureHelpProvider(language.id, lang.signatureProvider);
     monaco.languages.registerHoverProvider(language.id, lang.hoverProvider);    
     monaco.languages.registerDocumentFormattingEditProvider(language.id, lang.formatProvider);
-    monaco.languages.registerCodeLensProvider(language.id, {
-      provideCodeLenses: lang.codeLenses.provider, 
-      resolveCodeLens: lang.codeLenses.resolver
-    });
     monaco.languages.registerColorProvider(language.id, lang.colorProvider);
+    monaco.languages.registerDefinitionProvider(language.id, lang.definitionProvider);
 
     if (lang.autoIndentation && lang.indentationRules)
       monaco.languages.setLanguageConfiguration(language.id, {indentationRules: lang.indentationRules});
@@ -1413,6 +1489,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       }
 
       createEditor(language.id, getCode(), 'bsl-white');
+      registerCodeLensProviders();
     
       contextMenuEnabled = editor.getRawOptions().contextmenu;
 
@@ -2335,6 +2412,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
         editor.diffZoneId = changeAccessor.addZone({
           afterLineNumber: line_number,
+          afterColumn: 1,
           heightInLines: 10,
           domNode: domNode,
           onDomNodeTop: function (top) {

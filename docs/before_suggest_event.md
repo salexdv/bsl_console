@@ -21,6 +21,7 @@ enableBeforeShowSuggestEvent(false);
   "current_word": "",
   "last_word": "авансовыйотчет",
   "last_expression": "документы.авансовыйотчет.",  
+  "insert_text": "",  
   "rows": [
     "Выбрать",
     "НайтиПоНомеру",

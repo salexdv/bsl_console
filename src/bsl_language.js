@@ -400,9 +400,9 @@ define([], function () {
                 provideCompletionItems: function (model, position, context, token) {                    
                     resetSuggestWidgetDisplay();
                     let bsl = new bslHelper(model, position);
-                    let completition = bsl.getCompletition(context, token);
-                    bsl.onProvideCompletion(context, completition);
-                    return completition;
+                    let completion = bsl.getCompletion(context, token);
+                    bsl.onProvideCompletion(context, completion);
+                    return completion;
                 }
             },
             foldingProvider: {
@@ -445,7 +445,12 @@ define([], function () {
                 }
             },
             codeLenses: {
-                provider: () => {},                
+                onDidChange: function(e) {
+                    editor.updateCodeLens = e;
+                },
+                provider: function (model, token) {
+                    return bslHelper.provideCodeLenses(model, token);
+                },
                 resolver: () => {}
             },
             colorProvider: {
@@ -454,6 +459,12 @@ define([], function () {
                 },
                 provideDocumentColors: (model) => {
                     return bslHelper.getDocumentColors(model);
+                }
+            },
+            definitionProvider: {
+                provideDefinition: (model, position) => {
+                    let bsl = new bslHelper(model, position);
+                    return bsl.provideDefinition();
                 }
             },
             autoIndentation: true,
@@ -486,9 +497,9 @@ define([], function () {
                 provideCompletionItems: function (model, position, context, token) {
                     resetSuggestWidgetDisplay();
                     let bsl = new bslHelper(model, position);
-                    let completition = bsl.getQueryCompletition(query_language);
-                    bsl.onProvideCompletion(context, completition);
-                    return completition;
+                    let completion = bsl.getQueryCompletion(query_language);
+                    bsl.onProvideCompletion(context, completion);
+                    return completion;
                 }
             },
             foldingProvider: {
@@ -523,12 +534,23 @@ define([], function () {
                 provideDocumentFormattingEdits: () => {}
             },
             codeLenses: {
-                provider: () => {},                
+                onDidChange: function(e) {
+                    editor.updateCodeLens = e;
+                },
+                provider: function (model, token) {
+                    return bslHelper.provideCodeLenses(model, token);
+                },
                 resolver: () => {}
             },
             colorProvider: {
                 provideColorPresentations: () => {},
                 provideDocumentColors: () => {}
+            },
+            definitionProvider: {
+                provideDefinition: (model, position) => {
+                    let bsl = new bslHelper(model, position);
+                    return bsl.provideQueryDefinition();
+                }
             },
             autoIndentation: false,
             indentationRules: {
@@ -549,9 +571,9 @@ define([], function () {
                 provideCompletionItems: function (model, position, context, token) {
                     resetSuggestWidgetDisplay();
                     let bsl = new bslHelper(model, position);
-                    let completition = bsl.getDCSCompletition();
-                    bsl.onProvideCompletion(context, completition);
-                    return completition;
+                    let completion = bsl.getDCSCompletion();
+                    bsl.onProvideCompletion(context, completion);
+                    return completion;
                 }
             },
             foldingProvider: {
@@ -584,12 +606,20 @@ define([], function () {
                 provideDocumentFormattingEdits: () => {}
             },
             codeLenses: {
-                provider: () => {},                
+                onDidChange: function(e) {
+                    editor.updateCodeLens = e;
+                },
+                provider: function (model, token) {
+                    return bslHelper.provideCodeLenses(model, token);
+                },
                 resolver: () => {}
             },
             colorProvider: {
                 provideColorPresentations: () => {},
                 provideDocumentColors: () => {}
+            },
+            definitionProvider: {
+                provideDefinition: () => {}
             },
             autoIndentation: false,
             indentationRules: null,
