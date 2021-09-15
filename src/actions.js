@@ -295,6 +295,26 @@ define(['vs/editor/editor.main'], function () {
                 selectToBracket();
                 return null;
             }
+        },
+        revealDefinition: {
+            label: 'Перейти к определению',
+            key: monaco.KeyCode.F12,
+            cmd: monaco.KeyMod.chord(monaco.KeyCode.F12),
+            order: 0,
+            callback: function (ed) {
+                revealDefinition();
+                return null;
+            }
+        },
+        peekDefinition: {
+            label: 'Показать определение',
+            key: monaco.KeyMod.CtrlCmd | monaco.KeyCode.F12,
+            cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.F12),
+            order: 0,
+            callback: function (ed) {
+                peekDefinition();
+                return null;
+            }
         }
     }
 
