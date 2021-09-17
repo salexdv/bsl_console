@@ -26,8 +26,8 @@ class bslHelper {
 		this.lineNumber = position.lineNumber;
 		this.column = position.column;
 
-		let wordData = model.getWordAtPosition(position);
-		this.word = wordData ? wordData.word.toLowerCase() : '';
+		this.wordData = model.getWordAtPosition(position);
+		this.word = this.wordData ? this.wordData.word.toLowerCase() : '';
 
 		this.lastOperator = '';
 		this.hasWhitespace = false;
@@ -5961,6 +5961,98 @@ class bslHelper {
 			label: '',
 			textEdit: textEdit
 		}];
+	}
+
+	/**
+	 * Provide the definition of the symbol at the given position of code
+	 * 
+	 * @returns {array} Location[]
+	 */
+	 provideDefinition() {
+
+		let location = null;
+
+		if (this.word) {
+
+			let pattern = this.word + '\\s*=\\s*.*';
+
+			if (this.isItFunction())
+				pattern = '(процедура|procedure|функция|function)\\s*' + this.word + '\\(';
+
+			let position = new monaco.Position(this.lineNumber, 1);
+			let match = Finder.findPreviousMatch(this.model, pattern, position, false);
+
+			if (match && match.range.startLineNumber < this.lineNumber) {
+				location = [{
+					uri: this.model.uri,
+					range: match.range
+				}];
+			}
+
+		}
+
+		return location;
+
+	}
+
+	/**
+	 * Provide the definition of the symbol at the given position of query
+	 * 
+	 * @returns {array} Location[]
+	 */
+	provideQueryDefinition() {
+
+		let location = null;
+
+		if (this.word) {
+
+			if (this.wordHasCharsBefore('.')) {
+
+				let pattern = '(as|как)\\s*' + this.word;
+				let position = new monaco.Position(this.lineNumber, 1);
+				let match = Finder.findPreviousMatch(this.model, pattern, position, false);
+
+				if (match && match.range.startLineNumber < this.lineNumber) {
+					location = [{
+						uri: this.model.uri,
+						range: match.range
+					}];
+				}
+
+			}
+			else if (this.wordHasCharsAfter('.')) {
+
+				let pattern = '(as|как)\\s*' + this.word;
+				let position = new monaco.Position(this.lineNumber, this.model.getLineMaxColumn(this.lineNumber));
+				let match = Finder.findNextMatch(this.model, pattern, position, false);
+
+				if (match && match.range.startLineNumber > this.lineNumber) {
+					location = [{
+						uri: this.model.uri,
+						range: match.range
+					}];
+				}
+
+			}
+			else {
+
+				let pattern = '(поместить|into)[\\s\\n\\t]*' + this.word;
+				let position = new monaco.Position(this.lineNumber, 1);
+				let match = Finder.findPreviousMatch(this.model, pattern, position, false);
+
+				if (match && match.range.startLineNumber < this.lineNumber) {
+					location = [{
+						uri: this.model.uri,
+						range: match.range
+					}];
+				}
+
+			}
+
+		}
+
+		return location;
+
 	}
 
 }
