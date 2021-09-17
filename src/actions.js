@@ -295,6 +295,26 @@ let permanentActions = {
             window.selectToBracket();
             return null;
         }
+    },
+    revealDefinition: {
+        label: 'Перейти к определению',
+        key: monaco.KeyCode.F12,
+        cmd: monaco.KeyMod.chord(monaco.KeyCode.F12),
+        order: 0,
+        callback: function (ed) {
+            window.revealDefinition();
+            return null;
+        }
+    },
+    peekDefinition: {
+        label: 'Показать определение',
+        key: monaco.KeyMod.CtrlCmd | monaco.KeyCode.F12,
+        cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.F12),
+        order: 0,
+        callback: function (ed) {
+            window.peekDefinition();
+            return null;
+        }
     }
 }
 
