@@ -676,6 +676,57 @@ class bslHelper {
 	}
 
 	/**
+	 * Determines is the current word has certain char before or not
+	 * 
+	 * @returns {bool}
+	 */
+	wordHasCharsBefore(chars) {
+
+		let charExists = false;
+		let data = this.wordData;
+
+		if (this.wordData) {
+			let range = new monaco.Range(this.lineNumber, data.startColumn - chars.length, this.lineNumber, data.startColumn);
+			let previous_char = this.model.getValueInRange(range);
+			charExists = (previous_char.toLowerCase() == chars.toLowerCase());
+		}
+
+		return charExists;
+
+	}
+
+	/**
+	 * Determines is the current word has certain char after or not
+	 * 
+	 * @returns {bool}
+	 */
+	wordHasCharsAfter(chars) {
+
+		let charExists = false;
+		let data = this.wordData;
+
+		if (this.wordData) {
+			let range = new monaco.Range(this.lineNumber, data.endColumn, this.lineNumber, data.endColumn + chars.length);
+			let next_char = this.model.getValueInRange(range);
+			charExists = (next_char.toLowerCase() == chars.toLowerCase());
+		}
+
+		return charExists;
+
+	}
+
+	/**
+	 * Determines is it function in the current position on not
+	 * 
+	 * @returns {bool}
+	 */
+	isItFunction() {
+
+		return this.wordHasCharsAfter('(');
+
+	}
+
+	/**
 	 * Fills array of completion for language keywords, classes, global functions,
 	 * global variables and system enumarations
 	 * 
