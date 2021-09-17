@@ -1304,6 +1304,18 @@ window.selectToBracket = function () {
 
 }
 
+window.revealDefinition = function() {
+
+  window.editor.trigger('', 'editor.action.revealDefinition');
+
+}
+
+window.peekDefinition = function() {
+
+  window.editor.trigger('', 'editor.action.peekDefinition');
+
+}
+
 window.setOriginalText = function (originalText, setEmptyOriginalText = false) {
 
   window.editor.originalText = originalText;
@@ -1429,6 +1441,7 @@ for (const [key, lang] of Object.entries(window.languages)) {
   monaco.languages.registerHoverProvider(language.id, lang.hoverProvider);    
   monaco.languages.registerDocumentFormattingEditProvider(language.id, lang.formatProvider);
   monaco.languages.registerColorProvider(language.id, lang.colorProvider);
+  monaco.languages.registerDefinitionProvider(language.id, lang.definitionProvider);
 
   if (lang.autoIndentation && lang.indentationRules)
     monaco.languages.setLanguageConfiguration(language.id, {indentationRules: lang.indentationRules});
