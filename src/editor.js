@@ -1435,6 +1435,9 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       customOptions: true
     });
 
+    changeCommandKeybinding('editor.action.revealDefinition', monaco.KeyCode.F12);
+    changeCommandKeybinding('editor.action.peekDefinition', monaco.KeyMod.CtrlCmd | monaco.KeyCode.F12);
+
   }
 
   function registerCodeLensProviders() {
@@ -1645,6 +1648,13 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   // #endregion
     
   // #region non-public functions
+  function changeCommandKeybinding(command, keybinding) {
+  
+    editor._standaloneKeybindingService.addDynamicKeybinding('-' + command);
+    editor._standaloneKeybindingService.addDynamicKeybinding(command, keybinding);
+
+  }
+
   function getQueryDelimiterDecorations(decorations) {
 
     if (queryMode && editor.renderQueryDelimiters) {
