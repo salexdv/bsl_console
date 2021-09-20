@@ -275,16 +275,6 @@ define(['vs/editor/editor.main'], function () {
                 jumpToBracket();
                 return null;
             }
-        },
-        selectToBracket: {
-            label: 'Выделить скобки и текст между ними',
-            key: monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.KEY_B,
-            cmd: monaco.KeyMod.chord(monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.KEY_B),
-            order: 0,
-            callback: function (ed) {
-                selectToBracket();
-                return null;
-            }
         }
     }
 
