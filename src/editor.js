@@ -1658,6 +1658,13 @@ function initEditorEventListenersAndProperies() {
 // #endregion
   
 // #region non-public functions
+function changeCommandKeybinding(command, keybinding) {
+  
+  window.editor._standaloneKeybindingService.addDynamicKeybinding('-' + command);
+  window.editor._standaloneKeybindingService.addDynamicKeybinding(command, keybinding);
+
+}
+
 function getQueryDelimiterDecorations(decorations) {
 
   if (window.queryMode && window.editor.renderQueryDelimiters) {
