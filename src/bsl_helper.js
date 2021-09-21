@@ -1313,7 +1313,9 @@ class bslHelper {
 							label: ikey,
 							kind: kind,
 							insertText: insertText,
-							insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet							
+							insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+							detail: ivalue.detail,
+							documentation: ivalue.description
 						});
 					}
 					
@@ -1587,11 +1589,15 @@ class bslHelper {
 				let nestedSuggestions = [];
 								
 				let detail = pvalue;
+				let description = '';
 
-				if (pvalue.hasOwnProperty('description'))
-					detail = pvalue.description;				
+				if (pvalue.hasOwnProperty('detail'))
+					detail = pvalue.detail;
 				else if (pvalue.hasOwnProperty('name'))
 					detail = pvalue.name;
+
+				if (pvalue.hasOwnProperty('description'))
+					description = pvalue.description;
 
 				if (pvalue.hasOwnProperty('properties'))
 					this.fillSuggestionsForMetadataItem(nestedSuggestions, pvalue);
@@ -1610,6 +1616,7 @@ class bslHelper {
 					insertText: pkey + postfix,
 					insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
 					detail: detail,
+					documentation: description,
 					command: command
 				});
 			}
