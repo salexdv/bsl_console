@@ -256,16 +256,6 @@ let permanentActions = {
             return null;
         }
     },
-    delLine: {
-        label: 'Удалить текущую строку',
-        key: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_L,
-        cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_L),
-        order: 0,
-        callback: function (ed) {
-            window.editor.trigger('', 'editor.action.deleteLines', {})
-            return null;
-        }
-    },
     jumpToBracketOpen: {
         label: 'Перейти к скобке',
         key: monaco.KeyMod.CtrlCmd | monaco.KeyCode.US_OPEN_SQUARE_BRACKET,
@@ -283,36 +273,6 @@ let permanentActions = {
         order: 0,
         callback: function (ed) {
             window.jumpToBracket();
-            return null;
-        }
-    },
-    selectToBracket: {
-        label: 'Выделить скобки и текст между ними',
-        key: monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.KEY_B,
-        cmd: monaco.KeyMod.chord(monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.KEY_B),
-        order: 0,
-        callback: function (ed) {
-            window.selectToBracket();
-            return null;
-        }
-    },
-    revealDefinition: {
-        label: 'Перейти к определению',
-        key: monaco.KeyCode.F12,
-        cmd: monaco.KeyMod.chord(monaco.KeyCode.F12),
-        order: 0,
-        callback: function (ed) {
-            window.revealDefinition();
-            return null;
-        }
-    },
-    peekDefinition: {
-        label: 'Показать определение',
-        key: monaco.KeyMod.CtrlCmd | monaco.KeyCode.F12,
-        cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.F12),
-        order: 0,
-        callback: function (ed) {
-            window.peekDefinition();
             return null;
         }
     }
