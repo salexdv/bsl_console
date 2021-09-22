@@ -1026,27 +1026,32 @@ class bslHelper {
 					let subItemName = refArray[1];
 					let isObject = (refArray.length == 3 && refArray[2] == 'obj');
 
-					if (queryMode || DCSMode) {
-						if (this.objectHasProperties(bslMetadata, itemName, 'items', subItemName, 'properties'))
-							this.fillSuggestionsForMetadataItem(suggestions, bslMetadata[itemName].items[subItemName]);
-							let module_type = isObject ? 'object' : 'manager';
-							if (!this.objectHasProperties(bslMetadata, itemName, 'items', subItemName, module_type))
-								requestMetadata('module.' + module_type + '.' + itemName + '.' + subItemName);
-						else if (this.objectHasProperties(bslMetadata, itemName, 'items', subItemName))
-							requestMetadata(itemName + '.' + subItemName);
-						else if (this.objectHasProperties(bslMetadata, itemName, 'items'))
-							requestMetadata(itemName);						
+					if (itemName == 'classes' || itemName == 'types') {
+						if (this.objectHasProperties(bslGlobals, itemName, subItemName)) {
+							this.getClassSuggestions(suggestions, bslGlobals[itemName][subItemName]);
+						}
+					}
+					else if (itemName == 'systemEnum') {
+						if (this.objectHasProperties(bslGlobals, itemName, subItemName)) {
+							this.getSystemEnumSuggestions(suggestions, bslGlobals[itemName][subItemName]);
+						}
 					}
 					else {
-						if (itemName == 'classes' || itemName == 'types') {
-							if (this.objectHasProperties(bslGlobals, itemName, subItemName)) {
-								this.getClassSuggestions(suggestions, bslGlobals[itemName][subItemName]);
-							}
-						}
-						else if (itemName == 'systemEnum') {
-							if (this.objectHasProperties(bslGlobals, itemName, subItemName)) {
-								this.getSystemEnumSuggestions(suggestions, bslGlobals[itemName][subItemName]);
-							}
+
+						if (queryMode || DCSMode) {
+
+							if (this.objectHasProperties(bslMetadata, itemName, 'items', subItemName, 'properties'))
+								this.fillSuggestionsForMetadataItem(suggestions, bslMetadata[itemName].items[subItemName]);
+
+							let module_type = isObject ? 'object' : 'manager';
+
+							if (!this.objectHasProperties(bslMetadata, itemName, 'items', subItemName, module_type))
+								requestMetadata('module.' + module_type + '.' + itemName + '.' + subItemName);
+							else if (this.objectHasProperties(bslMetadata, itemName, 'items', subItemName))
+								requestMetadata(itemName + '.' + subItemName);
+							else if (this.objectHasProperties(bslMetadata, itemName, 'items'))
+								requestMetadata(itemName);
+
 						}
 						else {
 
@@ -1054,15 +1059,20 @@ class bslHelper {
 							let methodsName = isObject ? 'objMethods' : 'refMethods'
 
 							if (this.objectHasProperties(bslMetadata, itemName, 'items', subItemName, 'properties')) {
+								
 								let module_type = isObject ? 'object' : 'manager';
+								
 								if (!this.objectHasProperties(bslMetadata, itemName, 'items', subItemName, module_type))
 									requestMetadata('module.' + module_type + '.' + itemName + '.' + subItemName);
+
 								this.fillSuggestionsForMetadataItem(suggestions, bslMetadata[itemName].items[subItemName]);
 								this.getMetadataMethods(suggestions, bslMetadata[itemName], methodsName, itemName, subItemName);
+
 								if (isObject) {
 									this.getMetadataCommmonObjectProperties(suggestions, bslMetadata[itemName]);
 									this.getMetadataGeneralMethodCompletionByType(bslMetadata[itemName].items[subItemName], 'object', suggestions, 'Method');
 								}
+								
 							}
 							else if (this.objectHasProperties(bslMetadata, itemName, 'items', subItemName))
 								requestMetadata(itemName + '.' + subItemName);
@@ -1070,6 +1080,7 @@ class bslHelper {
 								requestMetadata(itemName);
 
 						}
+
 					}
 
 				}
