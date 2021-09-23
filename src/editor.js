@@ -1402,6 +1402,11 @@ function createEditor(language_id, text, theme) {
     customOptions: true
   });
 
+  changeCommandKeybinding('editor.action.revealDefinition', monaco.KeyCode.F12);
+  changeCommandKeybinding('editor.action.peekDefinition', monaco.KeyMod.CtrlCmd | monaco.KeyCode.F12);
+  changeCommandKeybinding('editor.action.deleteLines',  monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_L);
+  changeCommandKeybinding('editor.action.selectToBracket',  monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.KEY_B);
+
 }
 
 function registerCodeLensProviders() {
@@ -1653,6 +1658,13 @@ function initEditorEventListenersAndProperies() {
 // #endregion
   
 // #region non-public functions
+function changeCommandKeybinding(command, keybinding) {
+  
+  window.editor._standaloneKeybindingService.addDynamicKeybinding('-' + command);
+  window.editor._standaloneKeybindingService.addDynamicKeybinding(command, keybinding);
+
+}
+
 function getQueryDelimiterDecorations(decorations) {
 
   if (window.queryMode && window.editor.renderQueryDelimiters) {
