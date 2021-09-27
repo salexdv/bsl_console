@@ -182,7 +182,17 @@ define([], function () {
                 'SQRT', 'POW', 'TAN', 'ОКР', 'ROUND', 'ЦЕЛ', 'INT', 'ДЛИНАСТРОКИ', 'STRINGLENGTH',
                 'СТРОКА', 'STRING', 'СОКРЛП', 'TRIMALL', 'СОКРП', 'TRIMAR', 'СОКРЛ', 'TRIMAL',
                 'ЛЕВ', 'LEFT', 'ПРАВ', 'RIGHT', 'СТРНАЙТИ', 'STRFIND', 'ВРЕГ', 'UPPER', 'НРЕГ',
-                'LOWER', 'СТРЗАМЕНИТЬ', 'STRREPLACE', 'НСТР', 'NSTR'
+                'LOWER', 'СТРЗАМЕНИТЬ', 'STRREPLACE', 'НСТР', 'NSTR', 'МАССИВ', 'ARRAY', 'ТАБЛИЦАЗНАЧЕНИЙ',
+                'VALUETABLE', 'СВЕРНУТЬ', 'GROUPBY', 'ПОЛУЧИТЬЧАСТЬ', 'GETPART', 'УПОРЯДОЧИТЬ', 'ORDER',
+                'СОЕДИНИТЬСТРОКИ', 'JOINSTRINGS', 'ГРУППОВАЯОБРАБОТКА', 'GROUPPROCESSING', 'КАЖДЫЙ',
+                'EVERY', 'ЛЮБОЙ', 'ANY', 'СТАНДАРТНОЕОТКЛОНЕНИЕГЕНЕРАЛЬНОЙСОВОКУПНОСТИ',
+                'STDDEV_POP', 'СТАНДАРТНОЕОТКЛОНЕНИЕВЫБОРКИ', 'STDDEV_SAMP', 'ДИСПЕРСИЯВЫБОРКИ',
+                'VAR_SAMP', 'ДИСПЕРСИЯГЕНЕРАЛЬНОЙСОВОКУПНОСТИ', 'VAR_POP', 'КОВАРИАЦИЯГЕНЕРАЛЬНОЙСОВОКУПНОСТИ',
+                'COVAR_POP', 'КОВАРИАЦИЯВЫБОРКИ', 'COVAR_SAMP', 'КОРРЕЛЯЦИЯ', 'CORR', 'РЕГРЕССИЯНАКЛОН',
+                'REGR_SLOPE', 'РЕГРЕССИЯОТРЕЗОК', 'REGR_INTERCEPT', 'РЕГРЕССИЯКОЛИЧЕСТВО', 'REGR_COUNT',
+                'РЕГРЕССИЯR2', 'REGR_R2', 'РЕГРЕССИЯСРЕДНЕЕX', 'REGR_AVGX', 'РЕГРЕССИЯСРЕДНЕЕY',
+                'REGR_AVGY', 'РЕГРЕССИЯSXX', 'REGR_SXX', 'РЕГРЕССИЯSYY', 'REGR_SYY', 'РЕГРЕССИЯSXY',
+                'REGR_SXY', 'МЕСТОВПОРЯДКЕ', 'RANK', 'КЛАССИФИКАЦИЯABC', 'CLASSIFICATIONABC'
 
             ],
             queryOperators: /[=><+\-*\/%;,]+/,
