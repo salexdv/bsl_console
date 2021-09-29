@@ -1123,27 +1123,32 @@ class bslHelper {
 					let subItemName = refArray[1];
 					let isObject = (refArray.length == 3 && refArray[2] == 'obj');
 
-					if (window.queryMode || window.DCSMode) {
-						if (this.objectHasProperties(window.bslMetadata, itemName, 'items', subItemName, 'properties'))
-							this.fillSuggestionsForMetadataItem(suggestions, window.bslMetadata[itemName].items[subItemName]);
-							let module_type = isObject ? 'object' : 'manager';
-							if (!this.objectHasProperties(bslMetadata, itemName, 'items', subItemName, module_type))
-								requestMetadata('module.' + module_type + '.' + itemName + '.' + subItemName);
-						else if (this.objectHasProperties(window.bslMetadata, itemName, 'items', subItemName))
-							window.requestMetadata(itemName + '.' + subItemName);
-						else if (this.objectHasProperties(window.bslMetadata, itemName, 'items'))
-							window.requestMetadata(itemName);						
+					if (itemName == 'classes' || itemName == 'types') {
+						if (this.objectHasProperties(window.bslGlobals, itemName, subItemName)) {
+							this.getClassSuggestions(suggestions, window.bslGlobals[itemName][subItemName]);
+						}
+					}
+					else if (itemName == 'systemEnum') {
+						if (this.objectHasProperties(window.bslGlobals, itemName, subItemName)) {
+							this.getSystemEnumSuggestions(window.suggestions, bslGlobals[itemName][subItemName]);
+						}
 					}
 					else {
-						if (itemName == 'classes' || itemName == 'types') {
-							if (this.objectHasProperties(window.bslGlobals, itemName, subItemName)) {
-								this.getClassSuggestions(suggestions, window.bslGlobals[itemName][subItemName]);
-							}
-						}
-						else if (itemName == 'systemEnum') {
-							if (this.objectHasProperties(bslGlobals, itemName, subItemName)) {
-								this.getSystemEnumSuggestions(suggestions, bslGlobals[itemName][subItemName]);
-							}
+
+						if (queryMode || DCSMode) {
+
+							if (this.objectHasProperties(window.bslMetadata, itemName, 'items', subItemName, 'properties'))
+								this.fillSuggestionsForMetadataItem(suggestions, window.bslMetadata[itemName].items[subItemName]);
+
+							let module_type = isObject ? 'object' : 'manager';
+
+							if (!this.objectHasProperties(window.bslMetadata, itemName, 'items', subItemName, module_type))
+								requestMetadata('module.' + module_type + '.' + itemName + '.' + subItemName);
+							else if (this.objectHasProperties(window.bslMetadata, itemName, 'items', subItemName))
+								requestMetadata(itemName + '.' + subItemName);
+							else if (this.objectHasProperties(window.bslMetadata, itemName, 'items'))
+								requestMetadata(itemName);
+
 						}
 						else {
 
