@@ -4071,6 +4071,17 @@ class bslHelper {
 	}
 
 	/**
+	 * Return an index of the active parameter
+	 * 
+	 * @returns {int} index
+	 */
+	getSignatureActiveParameter() {
+
+		return this.textBeforePosition.split(',').length - 1;
+		
+	}
+
+	/**
 	 * Finds signatures provided for current class
 	 * 
 	 * @param {object} data objects from BSL-JSON dictionary
@@ -4109,7 +4120,7 @@ class bslHelper {
 
 					if (signatures.length) {
 						helper = {
-							activeParameter: this.textBeforePosition.split(',').length - 1,
+							activeParameter: this.getSignatureActiveParameter(),
 							activeSignature: 0,
 							signatures: signatures,
 						}
@@ -4185,7 +4196,7 @@ class bslHelper {
 														let signatures = this.getMethodsSignature(mvalue);
 														if (signatures.length) {
 															helper = {
-																activeParameter: this.textBeforePosition.split(',').length - 1,
+																activeParameter: this.getSignatureActiveParameter(),
 																activeSignature: 0,
 																signatures: signatures,
 															}
@@ -4241,7 +4252,7 @@ class bslHelper {
 					let signatures = this.getMethodsSignature(mvalue);
 					if (signatures.length) {
 						helper = {
-							activeParameter: this.textBeforePosition.split(',').length - 1,
+							activeParameter: this.getSignatureActiveParameter(),
 							activeSignature: 0,
 							signatures: signatures,
 						}
@@ -4332,7 +4343,7 @@ class bslHelper {
 
 					if (signatures.length) {
 						helper = {
-							activeParameter: this.textBeforePosition.split(',').length - 1,
+							activeParameter: this.getSignatureActiveParameter(),
 							activeSignature: 0,
 							signatures: signatures,
 						}
@@ -4402,7 +4413,7 @@ class bslHelper {
 					let activeSignature = context && context.activeSignatureHelp ? context.activeSignatureHelp.activeSignature : 0;
 					
 					helper = {
-						activeParameter: this.textBeforePosition.split(',').length - 1,
+						activeParameter: this.getSignatureActiveParameter(),
 						activeSignature: activeSignature,
 						signatures: value,
 					}						
@@ -4446,7 +4457,7 @@ class bslHelper {
 					if (wordContext && wordContext.sig) {
 												
 						helper = {
-							activeParameter: this.textBeforePosition.split(',').length - 1,
+							activeParameter: this.getSignatureActiveParameter(),
 							activeSignature: 0,
 							signatures: wordContext.sig,
 						}						
