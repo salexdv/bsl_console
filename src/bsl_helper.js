@@ -4077,7 +4077,20 @@ class bslHelper {
 	 */
 	getSignatureActiveParameter() {
 
-		return this.textBeforePosition.split(',').length - 1;
+		let unclosed_string = this.unclosedString(this.textBeforePosition).string;
+		let is_query = (queryMode || DCSMode);
+		
+		if (!is_query && this.isItStringLiteral()) {
+
+			while (unclosed_string && unclosed_string.slice(-1) != '"')
+				unclosed_string = unclosed_string.substr(0, unclosed_string.length - 1);
+
+		}
+
+		unclosed_string = unclosed_string.replace(/\(.*?\)/gi, '');
+		unclosed_string = unclosed_string.replace(/\".*?\"/gi, '');
+
+		return unclosed_string.split(',').length - 1;
 		
 	}
 
