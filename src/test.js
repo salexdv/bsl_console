@@ -763,47 +763,75 @@ describe("Проверка автокомлита и подсказок реда
         assert.equal(suggestions.some(suggest => suggest.label === "Себестоимость"), true);
       });
 
-      it("проверка подсказки определяемой по стеку", function () {              	                                
+      it("проверка подсказки определяемой по стеку для метаданных (первый потомок)", function () {
         
         let position = new monaco.Position(95, 17);
         let model = editor.getModel();
         editor.setPosition(position);
         bsl = new bslHelper(model, position);
         let suggestions = [];
-        bsl.getMetadataStackCompletion(suggestions);
+        bsl.getStackCompletion(suggestions);
         expect(suggestions).to.be.an('array').that.not.is.empty;
         assert.equal(suggestions.some(suggest => suggest.label === "ПодотчетноеЛицо"), true);
         assert.equal(suggestions.some(suggest => suggest.label === "Заблокировать"), true);
 
-        position = new monaco.Position(100, 19);
+      });
+
+      it("проверка подсказки определяемой по стеку для метаданных (второй потомок)", function () {
+        
+        let position = new monaco.Position(100, 19);
+        let model = editor.getModel();
         editor.setPosition(position);
-        bsl = new bslHelper(model, position);
-        suggestions = [];
-        bsl.getMetadataStackCompletion(suggestions);
+        let bsl = new bslHelper(model, position);
+        let suggestions = [];
+        bsl.getStackCompletion(suggestions);
         expect(suggestions).to.be.an('array').that.not.is.empty;
         assert.equal(suggestions.some(suggest => suggest.label === "СуммаДокумента"), true);
-        assert.equal(suggestions.some(suggest => suggest.label === "Заблокировать"), true);
+        assert.equal(suggestions.some(suggest => suggest.label === "Заблокировать"), true);        
 
-        map = new Map();
+      });
+
+      it("проверка подсказки определяемой по стеку для метаданных через ранее определенную ссылку", function () {
+        
+        let map = new Map();
         map.set('товарссылка', {list:[], ref: 'catalogs.Товары', sig: null});
         contextData.set(102, map);
 
-        position = new monaco.Position(104, 18);
+        let position = new monaco.Position(104, 18);
+        let model = editor.getModel();
         editor.setPosition(position);
-        bsl = new bslHelper(model, position);
-        suggestions = [];
-        bsl.getMetadataStackCompletion(suggestions);
+        let bsl = new bslHelper(model, position);
+        let suggestions = [];
+        bsl.getStackCompletion(suggestions);
         expect(suggestions).to.be.an('array').that.not.is.empty;
         assert.equal(suggestions.some(suggest => suggest.label === "Ставка"), true);
         assert.equal(suggestions.some(suggest => suggest.label === "Заблокировать"), true);
 
-        position = new monaco.Position(107, 24);
+      });
+
+      it("проверка подсказки определяемой по стеку для пользовательских объектов", function () {
+
+        let position = new monaco.Position(107, 24);
+        let model = editor.getModel();
+        editor.setPosition(position);
+        let bsl = new bslHelper(model, position);
+        let suggestions = [];
+        bsl.getStackCompletion(suggestions);
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "СтавкаНДС"), true);
+
+      });
+
+      it("проверка подсказки определяемой по стеку для классов", function () {
+
+        let position = new monaco.Position(114, 12);
+        let model = editor.getModel();
         editor.setPosition(position);
         bsl = new bslHelper(model, position);
-        suggestions = [];
-        bsl.getMetadataStackCompletion(suggestions);
+        let suggestions = [];
+        bsl.getStackCompletion(suggestions);
         expect(suggestions).to.be.an('array').that.not.is.empty;
-        assert.equal(suggestions.some(suggest => suggest.label === "СтавкаНДС"), true);        
+        assert.equal(suggestions.some(suggest => suggest.label === "Следующий"), true);
 
       });
 
