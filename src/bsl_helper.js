@@ -2143,13 +2143,13 @@ class bslHelper {
 	 * @param {array} stack call stack array
 	 * 	 
 	 */
-	getMetadataStackCompletionFromRefs(suggestions, stack) {
+	getStackCompletionFromRefs(suggestions, stack) {
 
 		let prev_ref = null;
 
-		for(let i = 0; i < stack.length; i++) {
-		
-			let stack_item = stack[i];				 
+		for (let i = 0; i < stack.length; i++) {
+
+			let stack_item = stack[i];
 			let metadata_suggestions = [];
 
 			if (stack_item.previous_ref && prev_ref != null) {
@@ -2166,12 +2166,14 @@ class bslHelper {
 					if (!prev_ref && i + 1 < stack.length && bslMetadata.customObjects.hasOwnProperty('items'))
 						this.setContextDataForCustomObjectFromStack(stack, stack_item, i);
 				}
-				else {					
+				else {
 					this.getRefCompletionFromPosition(metadata_suggestions, position, false);
+					if (!metadata_suggestions.length && i == 1)
+						this.getClassCompletionByName(metadata_suggestions, bslGlobals.classes, stack[i - 1].var);
 					prev_ref = this.setContextDataForStackItem(stack_item, metadata_suggestions);
 				}
 			}
-												
+
 			if (i + 1 == stack.length) {
 				this.getRefCompletion(suggestions);
 			}
@@ -2186,14 +2188,14 @@ class bslHelper {
 	 * 
 	 * @param {array} suggestions array of suggestions for provideCompletionItems	 
 	 */
-	getMetadataStackCompletion(suggestions) {
+	 getStackCompletion(suggestions) {
 
 		let exp = this.lastRawExpression;		
 		let stack = this.getMetadataStackForVar(exp, this.position);
 		let itemExists = this.getMetadataStackCompletionFromFullDefinition(suggestions, stack);		
 
 		if (!itemExists) {
-			this.getMetadataStackCompletionFromRefs(suggestions, stack);
+			this.getStackCompletionFromRefs(suggestions, stack);
 		}
 
 	}
@@ -2598,7 +2600,7 @@ class bslHelper {
 					}
 
 					if (!suggestions.length) {
-						this.getMetadataStackCompletion(suggestions)
+						this.getStackCompletion(suggestions)
 					}
 
 				}
