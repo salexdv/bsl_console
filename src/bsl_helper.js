@@ -4191,6 +4191,30 @@ class bslHelper {
 	}
 
 	/**
+	 * Return an index of the active parameter
+	 * 
+	 * @returns {int} index
+	 */
+	 getSignatureActiveParameter() {
+
+		let unclosed_string = this.unclosedString(this.textBeforePosition).string;
+		let is_query = (queryMode || DCSMode);
+		
+		if (!is_query && this.isItStringLiteral()) {
+
+			while (unclosed_string && unclosed_string.slice(-1) != '"')
+				unclosed_string = unclosed_string.substr(0, unclosed_string.length - 1);
+
+		}
+
+		unclosed_string = unclosed_string.replace(/\(.*?\)/gi, '');
+		unclosed_string = unclosed_string.replace(/\".*?\"/gi, '');
+
+		return unclosed_string.split(',').length - 1;
+		
+	}
+
+	/**
 	 * Finds signatures provided for current class
 	 * 
 	 * @param {object} data objects from BSL-JSON dictionary
@@ -4229,7 +4253,7 @@ class bslHelper {
 
 					if (signatures.length) {
 						helper = {
-							activeParameter: this.textBeforePosition.split(',').length - 1,
+							activeParameter: this.getSignatureActiveParameter(),
 							activeSignature: 0,
 							signatures: signatures,
 						}
@@ -4305,7 +4329,7 @@ class bslHelper {
 														let signatures = this.getMethodsSignature(mvalue);
 														if (signatures.length) {
 															helper = {
-																activeParameter: this.textBeforePosition.split(',').length - 1,
+																activeParameter: this.getSignatureActiveParameter(),
 																activeSignature: 0,
 																signatures: signatures,
 															}
@@ -4361,7 +4385,7 @@ class bslHelper {
 					let signatures = this.getMethodsSignature(mvalue);
 					if (signatures.length) {
 						helper = {
-							activeParameter: this.textBeforePosition.split(',').length - 1,
+							activeParameter: this.getSignatureActiveParameter(),
 							activeSignature: 0,
 							signatures: signatures,
 						}
@@ -4452,7 +4476,7 @@ class bslHelper {
 
 					if (signatures.length) {
 						helper = {
-							activeParameter: this.textBeforePosition.split(',').length - 1,
+							activeParameter: this.getSignatureActiveParameter(),
 							activeSignature: 0,
 							signatures: signatures,
 						}
@@ -4521,7 +4545,7 @@ class bslHelper {
 					let activeSignature = context && context.activeSignatureHelp ? context.activeSignatureHelp.activeSignature : 0;
 					
 					helper = {
-						activeParameter: this.textBeforePosition.split(',').length - 1,
+						activeParameter: this.getSignatureActiveParameter(),
 						activeSignature: activeSignature,
 						signatures: value,
 					}						
@@ -4565,7 +4589,7 @@ class bslHelper {
 					if (wordContext && wordContext.sig) {
 												
 						helper = {
-							activeParameter: this.textBeforePosition.split(',').length - 1,
+							activeParameter: this.getSignatureActiveParameter(),
 							activeSignature: 0,
 							signatures: wordContext.sig,
 						}						
