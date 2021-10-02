@@ -2218,7 +2218,7 @@ class bslHelper {
 	 * @param {array} stack call stack array
 	 * 	 
 	 */
-	getMetadataStackCompletionFromRefs(suggestions, stack) {
+	 getStackCompletionFromRefs(suggestions, stack) {
 
 		let prev_ref = null;
 
@@ -2243,6 +2243,8 @@ class bslHelper {
 				}
 				else {					
 					this.getRefCompletionFromPosition(metadata_suggestions, position, false);
+					if (!metadata_suggestions.length && i == 1)
+						this.getClassCompletionByName(metadata_suggestions, bslGlobals.classes, stack[i - 1].var);
 					prev_ref = this.setContextDataForStackItem(stack_item, metadata_suggestions);
 				}
 			}
@@ -2261,14 +2263,14 @@ class bslHelper {
 	 * 
 	 * @param {array} suggestions array of suggestions for provideCompletionItems	 
 	 */
-	getMetadataStackCompletion(suggestions) {
+	 getStackCompletion(suggestions) {
 
 		let exp = this.lastRawExpression;		
 		let stack = this.getMetadataStackForVar(exp, this.position);
 		let itemExists = this.getMetadataStackCompletionFromFullDefinition(suggestions, stack);		
 
 		if (!itemExists) {
-			this.getMetadataStackCompletionFromRefs(suggestions, stack);
+			this.getStackCompletionFromRefs(suggestions, stack);
 		}
 
 	}
@@ -2718,7 +2720,7 @@ class bslHelper {
 					}
 
 					if (!suggestions.length) {
-						this.getMetadataStackCompletion(suggestions)
+						this.getStackCompletion(suggestions)
 					}
 
 				}
