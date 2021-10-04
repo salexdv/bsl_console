@@ -343,7 +343,7 @@ define([], function () {
             expressions: query_expressions,
             operators: /[=><+\-*\/%;,]+/,
             expBeforeAs: [
-                'КОНЕЦ', 'END'
+                'КОНЕЦ', 'END', 'NULL'
             ],
             tokenizer: {
                 root: [                      
