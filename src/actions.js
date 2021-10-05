@@ -16,7 +16,19 @@ window.updateBookmarks = function (line) {
             window.editor.bookmarks.delete(line);
         }
         else {
-            bookmark = { range: new monaco.Range(line, 1, line), options: { isWholeLine: true, linesDecorationsClassName: 'bookmark' } };
+            let color = '#7e96a8';
+            bookmark = {
+                range: new monaco.Range(line, 1, line),
+                options: {
+                    isWholeLine: true,
+                    linesDecorationsClassName: 'bookmark',
+                    overviewRuler: {
+                        color: color,
+                        darkColor: color,
+                        position: 1
+                    }
+                }
+            };
             window.editor.bookmarks.set(line, bookmark);
         }
 
