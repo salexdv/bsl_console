@@ -333,7 +333,7 @@ let query_language = {
         expressions: query_expressions,
         operators: /[=><+\-*\/%;,]+/,
         expBeforeAs: [
-            'КОНЕЦ', 'END'
+            'КОНЕЦ', 'END', 'NULL', 'НЕОПРЕДЕЛЕНО', 'UNDEFINED'
         ],
         tokenizer: {
             root: [                      
