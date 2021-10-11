@@ -223,6 +223,9 @@ switchQueryMode();
 * [Infostart Toolkit](https://infostart.ru/journal/news/news/infostart-toolkit-1-3-teper-s-novym-redaktorom-koda-na-baze-monaco-editor_1303095/)
 * [Конвертация данных 3 расширение](https://infostart.ru/public/1289837/)
 * [Контекстная подсказка в 1С КД3](https://github.com/GenVP/TipsInCD3)
+* [Подсистема "Инструменты разработчика"](https://infostart.ru/public/15126/)
+* [PowerTools](https://infostart.ru/public/167865/)
+* [Бустер Конвертации данных 3 (Infostart Toolkit)](https://infostart.ru/public/1499859/)
 
 ## Проверенные платформы:
 * 8.3.15.1830
