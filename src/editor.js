@@ -592,7 +592,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
-  compare = function (text, sideBySide, highlight, xml = false, markLines = true) {
+  compare = function (text, sideBySide, highlight, markLines = true) {
     
     document.getElementById("container").innerHTML = ''
     let language_id = getLangId();
@@ -607,10 +607,13 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     }
 
     if (text) {      
-      if (xml) {
+      
+      let identifier = editor.getModel().getLanguageIdentifier();
+      if (identifier.language == 'xml') {
         language_id = 'xml';
         currentTheme = 'vs';
       }
+      
       let originalModel = originalText ? monaco.editor.createModel(originalText) : monaco.editor.createModel(editor.getModel().getValue());
       let modifiedModel = monaco.editor.createModel(text);
       originalText = originalModel.getValue();
