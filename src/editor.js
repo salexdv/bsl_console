@@ -608,7 +608,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
     if (text) {      
       
-      let identifier = editor.getModel().getLanguageIdentifier();
+      let identifier = getActiveEditor().getModel().getLanguageIdentifier();
       if (identifier.language == 'xml') {
         language_id = 'xml';
         currentTheme = 'vs';
