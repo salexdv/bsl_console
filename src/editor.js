@@ -595,7 +595,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   compare = function (text, sideBySide, highlight, markLines = true) {
     
     document.getElementById("container").innerHTML = ''
-    let language_id = getLangId();
+    let identifier = getActiveEditor().getModel().getLanguageIdentifier();
+    let language_id = identifier.language;
     let currentTheme = getCurrentThemeName();
   
     let status_bar = statusBarWidget ? true : false;
@@ -608,8 +609,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
     if (text) {      
       
-      let identifier = getActiveEditor().getModel().getLanguageIdentifier();
-      if (identifier.language == 'xml') {
+      if (language_id == 'xml') {
         language_id = 'xml';
         currentTheme = 'vs';
       }
