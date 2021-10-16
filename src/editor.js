@@ -601,9 +601,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   compare = function (text, sideBySide, highlight, markLines = true) {
     
-    document.getElementById("container").innerHTML = ''
-    let identifier = getActiveEditor().getModel().getLanguageIdentifier();
-    let language_id = identifier.language;
+    document.getElementById("container").innerHTML = '';
+    let language_id = getCurrentLanguageId();
     let currentTheme = getCurrentThemeName();
   
     let status_bar = statusBarWidget ? true : false;
@@ -2243,21 +2242,6 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
-  function getLangId() {
-
-		let lang_id = '';
-
-		if (queryMode)
-			lang_id = 'bsl_query';
-		else if (DCSMode)
-			lang_id = 'dcs_query';
-		else
-			lang_id = 'bsl';
-
-		return lang_id;
-
-	}
-
   function isDiffEditorHasChanges() {
     
     return diffEditor.getOriginalEditor().getValue() != diffEditor.getModifiedEditor().getValue();
@@ -2496,7 +2480,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
               setTimeout(() => {
 
-                let language_id = getLangId();              
+                let language_id = getCurrentLanguageId();              
 
                 inlineDiffEditor = monaco.editor.createDiffEditor(body, {
                   theme: currentTheme,
