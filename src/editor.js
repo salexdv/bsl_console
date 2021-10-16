@@ -322,6 +322,13 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  getCurrentLanguageId = function() {
+
+    let identifier = getActiveEditor().getModel().getLanguageIdentifier();
+    return identifier.language;
+
+  }
+
   switchQueryMode = function() {
     
     queryMode = !queryMode;
