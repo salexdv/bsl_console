@@ -604,6 +604,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     document.getElementById("container").innerHTML = '';
     let language_id = getCurrentLanguageId();
     let currentTheme = getCurrentThemeName();
+    let previous_options = getActiveEditor().getRawOptions();
   
     let status_bar = statusBarWidget ? true : false;
     let overlapScroll = true;
@@ -686,9 +687,20 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       originalText = '';
       editor.diffCount = 0;
     }
+    
     editor.updateOptions({ readOnly: readOnlyMode });
     if (status_bar)
-      showStatusBar(overlapScroll);    
+      showStatusBar(overlapScroll);
+
+    let current_options = getActiveEditor().getRawOptions();
+    for (const [key, value] of Object.entries(previous_options)) {
+      if (!current_options.hasOwnProperty(key)) {
+        let option = {};
+        option[key] = value;
+        editor.updateOptions(option);
+      }
+    }
+
   }
 
   triggerSuggestions = function() {
