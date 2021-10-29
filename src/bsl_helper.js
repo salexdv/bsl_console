@@ -2542,6 +2542,20 @@ class bslHelper {
 	}
 
 	/**
+	 * Determines accessibility of completition
+	 *
+	 * @returns {bool} the accessibility of completition at the moment
+	 */
+	completionIsAvailable() {
+
+		let available = (this.lastOperator != '"');
+		available = Math.min(available, this.token.search('comment') == -1);
+
+		return available;
+
+	}
+	
+	/**
 	 * Completion provider for code-mode
 	 * 
 	 * @param {CompletionContext} context
@@ -2563,7 +2577,7 @@ class bslHelper {
 
 			if (!this.requireType()) {
 
-				if (this.lastOperator != '"') {
+				if (this.completionIsAvailable()) {
 
 					this.getRefCompletion(suggestions);
 					this.getCompletionForCurrentObject(suggestions, context, token);
