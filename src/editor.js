@@ -327,7 +327,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
     let currentTheme = getCurrentThemeName();
     setTheme(currentTheme);
-    
+
     initContextMenuActions();
 
   }
@@ -350,6 +350,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     setTheme(currentTheme);
 
     initContextMenuActions();
+    console.warn('switchLanguageMode is deprecated and will be removed in a future version #241');
 
   }
 
@@ -364,6 +365,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     
     queryMode = !queryMode;
     switchLanguageMode('query');
+    console.warn('switchQueryMode is deprecated and will be removed in a future version #241');
 
   }
 
@@ -371,6 +373,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
     DCSMode = !DCSMode;
     switchLanguageMode('dcs');
+    console.warn('switchDCSMode is deprecated and will be removed in a future version #241');
 
   }
 
@@ -384,6 +387,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     }
 
     monaco.editor.setModelLanguage(editor.getModel(), language_id);
+    console.warn('switchXMLMode is deprecated and will be removed in a future version #241');
       
   }
 
