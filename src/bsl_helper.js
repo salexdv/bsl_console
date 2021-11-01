@@ -2549,7 +2549,12 @@ class bslHelper {
 	completionIsAvailable() {
 
 		let available = (this.lastOperator != '"');
-		available = Math.min(available, this.token.search('comment') == -1);
+		let isComment = (0 <= this.token.search('comment'));
+
+		if (available && isComment) {
+			let ctrlSpaceTrigger = (ctrlPressed && editor.lastKeyCode == 10);
+			available = ctrlSpaceTrigger;
+		}
 
 		return available;
 
