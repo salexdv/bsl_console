@@ -58,16 +58,7 @@ class bslHelper {
 	 */
 	getLangId() {
 
-		let lang_id = '';
-
-		if (queryMode)
-			lang_id = 'bsl_query';
-		else if (DCSMode)
-			lang_id = 'dcs_query';
-		else
-			lang_id = 'bsl';
-
-		return lang_id;
+		return getCurrentLanguageId();
 
 	}
 
