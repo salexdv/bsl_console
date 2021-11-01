@@ -13,8 +13,8 @@
 
 ## Пример вызова
 ```javascript
-setLanguageMode('query'); // Переключение в режим языка запросов
-setLanguageMode('dcs'); // Переключение в режим языка СКД
+setLanguageMode('bsl_query'); // Переключение в режим языка запросов
+setLanguageMode('dcs_query'); // Переключение в режим языка СКД
 setLanguageMode('xml'); // Переключение в режим XML
 setLanguageMode('bsl'); // Переключение в режим встроенного языка
 ```
