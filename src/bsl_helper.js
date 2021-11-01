@@ -1030,7 +1030,7 @@ class bslHelper {
 					}
 					else {
 
-						if (queryMode || DCSMode) {
+						if (isQueryMode() || isDCSMode()) {
 
 							if (this.objectHasProperties(bslMetadata, itemName, 'items', subItemName, 'properties'))
 								this.fillSuggestionsForMetadataItem(suggestions, bslMetadata[itemName].items[subItemName]);
@@ -3876,10 +3876,10 @@ class bslHelper {
 				
 				let snippents_collection = snippets;
 				
-				if (queryMode)
+				if (isQueryMode())
 					snippents_collection = querySnippets;
 
-				if (queryMode)
+				if (isDCSMode())
 					snippents_collection = DCSSnippets;
 
 				this.getSnippets(suggestions, snippents_collection, true);
@@ -4096,7 +4096,7 @@ class bslHelper {
 	getSignatureActiveParameter() {
 
 		let unclosed_string = this.unclosedString(this.textBeforePosition).string;
-		let is_query = (queryMode || DCSMode);
+		let is_query = (isQueryMode() || isDCSMode());
 		
 		if (!is_query && this.isItStringLiteral()) {
 

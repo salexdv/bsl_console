@@ -301,6 +301,18 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  isQueryMode = function() {
+
+    return getCurrentLanguageId() == 'bsl_query';
+
+  }
+
+  isDCSMode = function() {
+
+    return getCurrentLanguageId() == 'dcs_query';
+
+  }
+
   setLanguageMode = function(mode) {
 
     let isCompareMode = (editor.navi != undefined);
