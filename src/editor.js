@@ -303,6 +303,33 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   setLanguageMode = function(mode) {
 
+    let isCompareMode = (editor.navi != undefined);
+
+    if (isCompareMode) {
+      monaco.editor.setModelLanguage(editor.getModifiedEditor().getModel(), mode);
+      monaco.editor.setModelLanguage(editor.getOriginalEditor().getModel(), mode);
+    }
+    else {
+      monaco.editor.setModelLanguage(editor.getModel(), mode);
+    }
+
+    queryMode = false;
+    DCSMode = false;
+
+    switch (mode) {
+      case 'bsl_query':
+        queryMode = true;
+        break;
+      case 'dcs_query':
+        DCSMode = true;
+        break;      
+    }
+
+    let currentTheme = getCurrentThemeName();
+    setTheme(currentTheme);
+    
+    initContextMenuActions();
+
   }
 
   switchLanguageMode = function(mode) {
