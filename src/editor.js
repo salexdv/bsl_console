@@ -346,6 +346,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   switchLanguageMode = function(mode) {
     
+    // !!! depricated !!! //
     let currentTheme = getCurrentThemeName();
 
     if (queryMode && mode == 'query')
@@ -375,6 +376,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   switchQueryMode = function() {
     
+    // !!! depricated !!! //
     queryMode = !queryMode;
     switchLanguageMode('query');
     console.warn('switchQueryMode is deprecated and will be removed in a future version #241');
@@ -383,6 +385,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   switchDCSMode = function() {
 
+    // !!! depricated !!! //
     DCSMode = !DCSMode;
     switchLanguageMode('dcs');
     console.warn('switchDCSMode is deprecated and will be removed in a future version #241');
@@ -391,11 +394,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   switchXMLMode = function() {
     
+    // !!! depricated !!! //
     let identifier = editor.getModel().getLanguageIdentifier();
     let language_id = 'xml';
 
     if (identifier.language == 'xml') {
-      language_id = queryMode ? 'bsl_query' : 'bsl';
+      language_id = isQueryMode() ? 'bsl_query' : 'bsl';
     }
 
     monaco.editor.setModelLanguage(editor.getModel(), language_id);
@@ -2027,7 +2031,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   function checkNewStringLine() {
 
-    if (!queryMode && !DCSMode) {
+    if (getCurrentLanguageId() == 'bsl') {
 
       const model = editor.getModel();
       const position = editor.getPosition();
@@ -2291,10 +2295,11 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
     let queryPostfix = '-query';
     let currentTheme = editor._themeService.getTheme().themeName;
+    let is_query = (queryMode || DCSMode);
 
-    if ((queryMode || DCSMode) && currentTheme.indexOf(queryPostfix) == -1)
+    if (is_query && currentTheme.indexOf(queryPostfix) == -1)
       currentTheme += queryPostfix;
-    else if (!queryMode && !DCSMode && currentTheme.indexOf(queryPostfix) >= 0)
+    else if (!is_query && currentTheme.indexOf(queryPostfix) >= 0)
       currentTheme = currentTheme.replace(queryPostfix, '');
 
     return currentTheme;
