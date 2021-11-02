@@ -369,6 +369,11 @@ define([], function () {
                         {token: 'query'},
                         {token: 'query.operator'}
                     ]],
+                    [/(поместить|into)(\s+)([#a-zA-Z\u0410-\u044F_0-9]+)/, [
+                        {token: 'query.keyword'},
+                        {token: 'query'},
+                        {token: 'query'}
+                    ]],
                     [/(\.)([a-zA-Z\u0410-\u044F_0-9]+)/, [
                         {token: 'query'},
                         {token: 'query'}                        
