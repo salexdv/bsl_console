@@ -293,26 +293,26 @@ describe("Проверка автокомлита и подсказок реда
     });
 
     it("проверка подсказки для функций в режим СКД ", function () {
-      switchDCSMode();
+      setLanguageMode('dcs_query');
       bsl = helper("ВычислитьВыражениеСГрупп");                  
       result = bsl.getDCSCompletion();
       expect(result.suggestions).to.be.an('array').that.not.is.empty;
       assert.equal(result.suggestions.some(suggest => suggest.label === "ВычислитьВыражениеСГруппировкойМассив"), true);
-      switchDCSMode();
+      setLanguageMode('bsl_query');
     });
 
     it("проверка подсказки ключевых слов в режим СКД ", function () {
-      switchDCSMode();
+      setLanguageMode('dcs_query');
       bsl = helper("ТОГ");                  
       result = bsl.getDCSCompletion();
       expect(result.suggestions).to.be.an('array').that.not.is.empty;
       assert.equal(result.suggestions.some(suggest => suggest.label === "Тогда"), true);
-      switchDCSMode();
+      setLanguageMode('bsl_query');
     });
 
     it("проверка подсказки для функции ЗНАЧЕНИЕ в режиме СКД", function () {
       
-      switchDCSMode();
+      setLanguageMode('dcs_query');
       
       bsl = helper("ЗНАЧЕНИЕ(");
       let suggestions = [];
@@ -334,7 +334,7 @@ describe("Проверка автокомлита и подсказок реда
       assert.equal(suggestions.some(suggest => suggest.label === "ПустаяСсылка"), true);
       assert.equal(suggestions.some(suggest => suggest.label === "Услуга"), true);
       
-      switchDCSMode();
+      setLanguageMode('bsl_query');
 
     });
 
@@ -371,7 +371,7 @@ describe("Проверка автокомлита и подсказок реда
 
     });
 
-    switchQueryMode();
+    setLanguageMode('bsl_query');
         
     mocha.run();
 
