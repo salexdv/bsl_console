@@ -347,6 +347,7 @@ define([], function () {
             ],
             tokenizer: {
                 root: [                      
+                    [/(поместить|из|into|from)/, { token: 'query.keyword', next: '@intofrom' }],
                     [/([a-zA-Z\u0410-\u044F]+)(\s+)(как|as)(\s+)([a-zA-Z\u0410-\u044F0-9]+)/, [
                         { cases: {
                             '@expBeforeAs': 'query.exp',                            
@@ -369,11 +370,6 @@ define([], function () {
                         {token: 'query'},
                         {token: 'query.operator'}
                     ]],
-                    [/(поместить|into)(\s+)([#a-zA-Z\u0410-\u044F_0-9]+)/, [
-                        {token: 'query.keyword'},
-                        {token: 'query'},
-                        {token: 'query'}
-                    ]],
                     [/(\.)([a-zA-Z\u0410-\u044F_0-9]+)/, [
                         {token: 'query'},
                         {token: 'query'}                        
@@ -393,7 +389,17 @@ define([], function () {
                     [/[0-9_]*\.[0-9_]+([eE][\-+]?\d+)?[fFdD]?/, 'query.float'],
                     [/[0-9_]+/, 'query.int'],
                     [/\|/, 'query']                    
-                ]
+                ],
+                intofrom: [
+                    [/\s/, 'query'],
+                    [/[0-9]+/, 'query.int', '@pop'],
+                    [/[#a-zA-Z\u0410-\u044F_][#a-zA-Z\u0410-\u044F_0-9]*/, {
+                        cases: {
+                            '@keywords': { token: 'query.keyword', next: '@pop' },
+                            '@default': { token: 'query', next: '@pop' }
+                        }
+                    }],
+                ],
             },
         },        
         themes: bsl_language.themes        
