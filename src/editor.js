@@ -325,17 +325,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       monaco.editor.setModelLanguage(editor.getModel(), mode);
     }
 
-    queryMode = false;
-    DCSMode = false;
-
-    switch (mode) {
-      case 'bsl_query':
-        queryMode = true;
-        break;
-      case 'dcs_query':
-        DCSMode = true;
-        break;      
-    }
+    queryMode = (mode == 'bsl_query');
+    DCSMode = (mode == 'dcs_query');
 
     let currentTheme = getCurrentThemeName();
     setTheme(currentTheme);
