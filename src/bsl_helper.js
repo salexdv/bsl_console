@@ -2667,6 +2667,25 @@ class bslHelper {
 	}
 
 	/**
+ 	 * Determines accessibility of completition
+ 	 *
+ 	 * @returns {bool} the accessibility of completition at the moment
+ 	 */
+	completionIsAvailable() {
+
+		let available = (this.lastOperator != '"');
+		let isComment = (0 <= this.token.search('comment'));
+
+		if (available && isComment) {
+			let ctrlSpaceTrigger = (window.ctrlPressed && window.editor.lastKeyCode == 10);
+			available = ctrlSpaceTrigger;
+		}
+
+		return available;
+
+	}
+
+	/**
 	 * Completion provider for code-mode
 	 * 
 	 * @param {CompletionContext} context
@@ -2688,7 +2707,7 @@ class bslHelper {
 
 			if (!this.requireType()) {
 
-				if (this.lastOperator != '"') {
+				if (this.completionIsAvailable()) {
 
 					this.getRefCompletion(suggestions);
 					this.getCompletionForCurrentObject(suggestions, context, token);
