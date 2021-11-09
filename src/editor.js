@@ -1420,6 +1420,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  getOriginalText = function () {
+
+    return editor.originalText;    
+
+  }
+
   revealLineInCenter = function (lineNumber) {
 
     let line = Math.min(lineNumber, getLineCount())
@@ -1560,6 +1566,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       registerCodeLensProviders();
     
       contextMenuEnabled = editor.getRawOptions().contextmenu;
+      editor.originalText = '';
 
     }
 
