@@ -639,6 +639,7 @@ window.compare = function (text, sideBySide, highlight, markLines = true) {
   document.getElementById("container").innerHTML = ''
   let language_id = window.getCurrentLanguageId();
   let currentTheme = getCurrentThemeName();
+  let previous_options = getActiveEditor().getRawOptions();
 
   let status_bar = window.statusBarWidget ? true : false;
   let overlapScroll = true
@@ -721,9 +722,21 @@ window.compare = function (text, sideBySide, highlight, markLines = true) {
     window.originalText = '';
     window.editor.diffCount = 0;
   }
+  
   window.editor.updateOptions({ readOnly: window.readOnlyMode });
+  
   if (status_bar)
     window.showStatusBar(overlapScroll);
+
+  let current_options = getActiveEditor().getRawOptions();
+  for (const [key, value] of Object.entries(previous_options)) {
+    if (!current_options.hasOwnProperty(key)) {
+      let option = {};
+      option[key] = value;
+      window.editor.updateOptions(option);
+    }
+  }
+
 }
 
 window.triggerSuggestions = function() {
