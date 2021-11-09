@@ -357,6 +357,13 @@ window.switchLanguageMode = function(mode) {
 
 }
 
+window.getCurrentLanguageId = function() {
+
+  let identifier = getActiveEditor().getModel().getLanguageIdentifier();
+  return identifier.language;
+
+}
+
 window.switchQueryMode = function() {
   
   window.queryMode = !window.queryMode;
@@ -627,10 +634,10 @@ window.getPositionOffset = function() {
 
 }
 
-window.compare = function (text, sideBySide, highlight, xml = false, markLines = true) {
+window.compare = function (text, sideBySide, highlight, markLines = true) {
   
   document.getElementById("container").innerHTML = ''
-  let language_id = getLangId();
+  let language_id = window.getCurrentLanguageId();
   let currentTheme = getCurrentThemeName();
 
   let status_bar = window.statusBarWidget ? true : false;
@@ -642,10 +649,12 @@ window.compare = function (text, sideBySide, highlight, xml = false, markLines =
   }
 
   if (text) {      
-    if (xml) {
+    
+    if (language_id == 'xml') {
       language_id = 'xml';
       currentTheme = 'vs';
     }
+
     let originalModel = window.originalText ? monaco.editor.createModel(window.originalText) : monaco.editor.createModel(window.editor.getModel().getValue());
     let modifiedModel = monaco.editor.createModel(text);
     window.originalText = originalModel.getValue();
