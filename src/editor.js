@@ -2317,21 +2317,6 @@ function getCurrentThemeName() {
 
 }
 
-function getLangId() {
-
-	let lang_id = '';
-
-	if (window.queryMode)
-		lang_id = 'bsl_query';
-	else if (window.DCSMode)
-		lang_id = 'dcs_query';
-	else
-		lang_id = 'bsl';
-
-	return lang_id;
-
-}
-
 function isDiffEditorHasChanges() {
     
   return window.diffEditor.getOriginalEditor().getValue() != diffEditor.getModifiedEditor().getValue();
@@ -2571,7 +2556,7 @@ function createDiffWidget(e) {
 
             setTimeout(() => {
 
-              let language_id = getLangId();              
+              let language_id = window.getCurrentLanguageId();
 
               window.inlineDiffEditor = monaco.editor.createDiffEditor(body, {
                 theme: currentTheme,
