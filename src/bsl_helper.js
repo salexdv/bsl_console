@@ -1112,6 +1112,7 @@ class bslHelper {
 		if (wordContext && wordContext.ref) {
 			
 			let arrRefs = wordContext.ref.split(',');
+			let required_metadata = [];
 						
 			for (let i = 0; i < arrRefs.length; i++) {
 			
@@ -1143,11 +1144,11 @@ class bslHelper {
 							let module_type = isObject ? 'object' : 'manager';
 
 							if (!this.objectHasProperties(window.bslMetadata, itemName, 'items', subItemName, module_type))
-								requestMetadata('module.' + module_type + '.' + itemName + '.' + subItemName);
+								required_metadata.push('module.' + module_type + '.' + itemName + '.' + subItemName);
 							else if (this.objectHasProperties(window.bslMetadata, itemName, 'items', subItemName))
-								requestMetadata(itemName + '.' + subItemName);
+								required_metadata.push(itemName + '.' + subItemName);
 							else if (this.objectHasProperties(window.bslMetadata, itemName, 'items'))
-								requestMetadata(itemName);
+								required_metadata.push(itemName);
 
 						}
 						else {
@@ -1156,26 +1157,36 @@ class bslHelper {
 							let methodsName = isObject ? 'objMethods' : 'refMethods'
 
 							if (this.objectHasProperties(window.bslMetadata, itemName, 'items', subItemName, 'properties')) {
+								
 								let module_type = isObject ? 'object' : 'manager';
+								
 								if (!this.objectHasProperties(bslMetadata, itemName, 'items', subItemName, module_type))
-									requestMetadata('module.' + module_type + '.' + itemName + '.' + subItemName);
+								required_metadata.push('module.' + module_type + '.' + itemName + '.' + subItemName);
+
 								this.fillSuggestionsForMetadataItem(suggestions, window.bslMetadata[itemName].items[subItemName]);
 								this.getMetadataMethods(suggestions, window.bslMetadata[itemName], methodsName, itemName, subItemName);
+								
 								if (isObject) {
 									this.getMetadataCommmonObjectProperties(suggestions, bslMetadata[itemName]);
 									this.getMetadataGeneralMethodCompletionByType(bslMetadata[itemName].items[subItemName], 'object', suggestions, 'Method');
 								}
+								
 							}
 							else if (this.objectHasProperties(window.bslMetadata, itemName, 'items', subItemName))
-								window.requestMetadata(itemName + '.' + subItemName);
+								required_metadata.push(itemName + '.' + subItemName);
 							else if (this.objectHasProperties(window.bslMetadata, itemName, 'items'))
-								window.requestMetadata(itemName);
+								required_metadata.push(itemName);
 
 						}
 					}
 
 				}
 
+			}
+
+			if (required_metadata.length) {
+				required_metadata = required_metadata.filter((v, i, s) => s.indexOf(v) === i);
+				window.requestMetadata(required_metadata.toString());
 			}
 
 			if (1 < arrRefs.length)
