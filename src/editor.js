@@ -336,6 +336,28 @@ window.addContextMenuItem = function(label, eventName) {
 
 }
 
+window.setLanguageMode = function(mode) {
+
+  let isCompareMode = (window.editor.navi != undefined);
+
+  if (isCompareMode) {
+    monaco.editor.setModelLanguage(window.editor.getModifiedEditor().getModel(), mode);
+    monaco.editor.setModelLanguage(window.editor.getOriginalEditor().getModel(), mode);
+  }
+  else {
+    monaco.editor.setModelLanguage(window.editor.getModel(), mode);
+  }
+
+  window.queryMode = (mode == 'bsl_query');
+  window.DCSMode = (mode == 'dcs_query');
+
+  let currentTheme = getCurrentThemeName();
+  window.setTheme(currentTheme);
+
+  initContextMenuActions();
+
+}
+
 window.switchLanguageMode = function(mode) {
   
   let currentTheme = getCurrentThemeName();
