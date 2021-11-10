@@ -117,15 +117,16 @@ let getActions = function(version1C) {
             };
         }
 
-        if (!window.DCSMode && !window.editor.disableContextQueryConstructor) {
+        if (!window.isDCSMode() && !window.editor.disableContextQueryConstructor) {
 
+            let query_text = window.isQueryMode() ? window.getText() : window.getQuery();
             actions.query_bsl = {
                 label: 'Конструктор запроса...',
                 key: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_D,
                 cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_D),
                 order: 1.3,
                 callback: function (ed) {
-                    window.sendEvent('EVENT_QUERY_CONSTRUCT', window.queryMode ? window.getText() : window.getQuery());
+                    window.sendEvent('EVENT_QUERY_CONSTRUCT', query_text);
                     return null;
                 }
             };
@@ -154,7 +155,7 @@ let getActions = function(version1C) {
             }
         };
 
-        if (!window.queryMode && !window.DCSMode) {
+        if (window.getCurrentLanguageId() == 'bsl') {
 
             actions.formatstr_bsl = {
                 label: 'Конструктор форматной строки...',
@@ -198,7 +199,7 @@ let getActions = function(version1C) {
 
         }
 
-        if (!window.DCSMode) {
+        if (!window.isDCSMode()) {
 
             actions.add_bookmark_bsl = {
                 label: 'Установить/удалить закладку',

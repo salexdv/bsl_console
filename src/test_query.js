@@ -294,26 +294,26 @@ setTimeout(() => {
     });
 
     it("проверка подсказки для функций в режим СКД ", function () {
-      window.switchDCSMode();
+      window.setLanguageMode('dcs_query');
       bsl = helper("ВычислитьВыражениеСГрупп");                  
       let result = bsl.getDCSCompletion();
       expect(result.suggestions).to.be.an('array').that.not.is.empty;
       assert.equal(result.suggestions.some(suggest => suggest.label === "ВычислитьВыражениеСГруппировкойМассив"), true);
-      window.switchDCSMode();
+      window.setLanguageMode('bsl_query');
     });
 
     it("проверка подсказки ключевых слов в режим СКД ", function () {
-      window.switchDCSMode();
+      window.setLanguageMode('dcs_query');
       bsl = helper("ТОГ");                  
       let result = bsl.getDCSCompletion();
       expect(result.suggestions).to.be.an('array').that.not.is.empty;
       assert.equal(result.suggestions.some(suggest => suggest.label === "Тогда"), true);
-      window.switchDCSMode();
+      window.setLanguageMode('bsl_query');
     });
 
     it("проверка подсказки для функции ЗНАЧЕНИЕ в режиме СКД", function () {
       
-      window.switchDCSMode();
+      window.setLanguageMode('dcs_query');
       
       bsl = helper("ЗНАЧЕНИЕ(");
       let suggestions = [];
@@ -335,7 +335,7 @@ setTimeout(() => {
       assert.equal(suggestions.some(suggest => suggest.label === "ПустаяСсылка"), true);
       assert.equal(suggestions.some(suggest => suggest.label === "Услуга"), true);
       
-      window.switchDCSMode();
+      window.setLanguageMode('bsl_query');
 
     });
 
@@ -372,7 +372,7 @@ setTimeout(() => {
 
     });
 
-    window.switchQueryMode();
+    window.setLanguageMode('bsl_query');
         
     mocha.run();
 

@@ -336,6 +336,18 @@ window.addContextMenuItem = function(label, eventName) {
 
 }
 
+window.isQueryMode = function() {
+
+  return window.getCurrentLanguageId() == 'bsl_query';
+
+}
+
+window.isDCSMode = function() {
+
+  return window.getCurrentLanguageId() == 'dcs_query';
+
+}
+
 window.setLanguageMode = function(mode) {
 
   let isCompareMode = (window.editor.navi != undefined);
@@ -413,7 +425,7 @@ window.switchXMLMode = function() {
   let language_id = 'xml';
 
   if (identifier.language == 'xml') {
-    language_id = window.queryMode ? 'bsl_query' : 'bsl';
+    language_id = window.isQueryMode() ? 'bsl_query' : 'bsl';
   }
 
   monaco.editor.setModelLanguage(window.editor.getModel(), language_id);
@@ -2086,7 +2098,7 @@ function  initContextMenuActions() {
 
 function checkNewStringLine() {
 
-  if (!window.queryMode && !window.DCSMode) {
+  if (window.getCurrentLanguageId() == 'bsl') {
 
     const model = window.editor.getModel();
     const position = window.editor.getPosition();
@@ -2350,10 +2362,11 @@ function getCurrentThemeName() {
 
   let queryPostfix = '-query';
   let currentTheme = window.editor._themeService.getTheme().themeName;
+  let is_query = (queryMode || DCSMode);
 
-  if ((window.queryMode || window.DCSMode) && currentTheme.indexOf(queryPostfix) == -1)
+  if (is_query && currentTheme.indexOf(queryPostfix) == -1)
     currentTheme += queryPostfix;
-  else if (!window.queryMode && !window.DCSMode && currentTheme.indexOf(queryPostfix) >= 0)
+  else if (!is_query && currentTheme.indexOf(queryPostfix) >= 0)
     currentTheme = currentTheme.replace(queryPostfix, '');
 
   return currentTheme;

@@ -59,16 +59,7 @@ class bslHelper {
 	 */
 	getLangId() {
 
-		let lang_id = '';
-
-		if (window.queryMode)
-			lang_id = 'bsl_query';
-		else if (window.DCSMode)
-			lang_id = 'dcs_query';
-		else
-			lang_id = 'bsl';
-
-		return lang_id;
+		return window.getCurrentLanguageId();
 
 	}
 
@@ -1136,7 +1127,7 @@ class bslHelper {
 					}
 					else {
 
-						if (queryMode || DCSMode) {
+						if (window.isQueryMode() || window.isDCSMode()) {
 
 							if (this.objectHasProperties(window.bslMetadata, itemName, 'items', subItemName, 'properties'))
 								this.fillSuggestionsForMetadataItem(suggestions, window.bslMetadata[itemName].items[subItemName]);
@@ -4010,10 +4001,10 @@ class bslHelper {
 			
 				let snippents_collection = window.snippets;
 				
-				if (queryMode)
+				if (window.isQueryMode())
 					snippents_collection = window.querySnippets;
 
-				if (queryMode)
+				if (window.isDCSMode())
 					snippents_collection = window.DCSSnippets;
 
 				this.getSnippets(suggestions, snippents_collection, true);
@@ -4230,7 +4221,7 @@ class bslHelper {
 	 getSignatureActiveParameter() {
 
 		let unclosed_string = this.unclosedString(this.textBeforePosition).string;
-		let is_query = (queryMode || DCSMode);
+		let is_query = (window.isQueryMode() || window.isDCSMode());
 		
 		if (!is_query && this.isItStringLiteral()) {
 
