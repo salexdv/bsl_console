@@ -360,6 +360,7 @@ window.setLanguageMode = function(mode) {
 
 window.switchLanguageMode = function(mode) {
   
+  // !!! depricated !!! //
   let currentTheme = getCurrentThemeName();
 
   if (window.queryMode && mode == 'query')
@@ -376,6 +377,7 @@ window.switchLanguageMode = function(mode) {
   window.setTheme(currentTheme);
 
   initContextMenuActions();
+  console.warn('switchLanguageMode is deprecated and will be removed in a future version #241');
 
 }
 
@@ -388,20 +390,25 @@ window.getCurrentLanguageId = function() {
 
 window.switchQueryMode = function() {
   
+  // !!! depricated !!! //
   window.queryMode = !window.queryMode;
   window.switchLanguageMode('query');
+  console.warn('switchQueryMode is deprecated and will be removed in a future version #241');
 
 }
 
 window.switchDCSMode = function() {
 
+  // !!! depricated !!! //
   window.DCSMode = !window.DCSMode;
   window.switchLanguageMode('dcs');
+  console.warn('switchDCSMode is deprecated and will be removed in a future version #241');
 
 }
 
 window.switchXMLMode = function() {
   
+  // !!! depricated !!! //
   let identifier = window.editor.getModel().getLanguageIdentifier();
   let language_id = 'xml';
 
@@ -410,6 +417,7 @@ window.switchXMLMode = function() {
   }
 
   monaco.editor.setModelLanguage(window.editor.getModel(), language_id);
+  console.warn('switchXMLMode is deprecated and will be removed in a future version #241'); 
     
 }
 
