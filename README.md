@@ -142,6 +142,7 @@ npm run build  -- --customOptions "automaticLayout: true, someOption: false"
 | `saveViewState`		 	 	 | Возвращает JSON-строку с текущими настройками (положение курсора и прокрутки, а также свернутые блоки) |
 | `restoreViewState`		  	 | Восстанавливает настройки. В качестве аргумента принимает JSON-строку, полученну ранее через `saveViewState` |
 | [`setOriginalText`](docs/set_original_text.md) | Устанавливает или сбрасывает оригинальный текст, на основании которого строится подсветка изменений |
+| `getOriginalText`              | Возвращает текст, установленный ранее функцией `setOriginalText`                              |
 | `getCurrentLanguageId`         | Возвращает идентификатор текущего языка (`bsl`, `bsl_query`, `dcs_query`, `xml`)              |
 | `isQueryMode`                  | Возвращает `true`, если редактор находится в режиме редактирования запроса и `false` в любом другом режиме |
 | `isDCSMode`                    | Возвращает `true`, если редактор находится в режиме СКД и `false` в любом другом случае       |

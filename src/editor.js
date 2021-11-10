@@ -1397,6 +1397,12 @@ window.setOriginalText = function (originalText, setEmptyOriginalText = false) {
 
 }
 
+window.getOriginalText = function () {
+
+  return window.editor.originalText;
+
+}
+
 window.revealLineInCenter = function (lineNumber) {
 
   let line = Math.min(lineNumber, window.getLineCount())
