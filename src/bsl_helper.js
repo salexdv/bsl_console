@@ -5920,6 +5920,23 @@ class bslHelper {
 				}];
 			}
 
+			if (editor.generateDefinitionEvent) {
+
+				let expression = this.lastExpression;
+				let exp_arr = this.lastExpression.split('.');			
+				if (1 < exp_arr.length) {
+					exp_arr[exp_arr.length - 1] = this.word;
+					expression = exp_arr.join('.');
+				}
+							
+				let event_params = {
+					word: this.word,
+					expression: expression
+				}
+				sendEvent('EVENT_GET_DEFINITION', event_params);
+
+			}
+
 		}
 
 		return location;
