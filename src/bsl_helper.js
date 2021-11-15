@@ -5926,7 +5926,9 @@ class bslHelper {
 			let event_params = {
 				word: this.word,
 				expression: expression,
-				module: module_name
+				module: module_name,
+				line: this.lineNumber,
+				column: this.column
 			}
 
 			sendEvent('EVENT_GET_DEFINITION', event_params);
