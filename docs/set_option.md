@@ -18,6 +18,7 @@ setOption("skipInsertSuggestionAcceptor", true);
 * `disableContextQueryConstructor` - *boolean*, отключает формирование кнопки контекстного меню "Конструктор запросов". Установка значения опции имеет смысл только до вызова `init()`
 * `autoResizeEditorLayout` - *boolean*, включает перерисовку редактора при изменении размеров окна
 * `renderQueryDelimiters` - *boolean*, включает выделение цветом разделителей запросов
+* `generateDefinitionEvent` - *boolean*, включает генерацию [события](get_definition_event.md) при переходе к определению
 
 	##### Управление подсказками
 	Позволяет оставить только пользовательские подсказки
