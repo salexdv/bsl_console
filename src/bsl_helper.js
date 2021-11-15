@@ -5895,6 +5895,47 @@ class bslHelper {
 	}
 
 	/**
+	 * Definition event generator
+	 * 
+	 */
+	generateDefinitionEvent() {
+
+		if (editor.generateDefinitionEvent) {
+
+			let expression = this.lastExpression;
+			let exp_arr = this.lastExpression.split('.');
+			let module_name = '';
+
+			if (1 < exp_arr.length) {
+
+				exp_arr[exp_arr.length - 1] = this.word;
+				expression = exp_arr.join('.');
+				let first_exp = exp_arr[0].toLocaleLowerCase();
+
+				for (const [key, value] of Object.entries(bslMetadata.commonModules.items)) {
+
+					if (key.toLowerCase().startsWith(first_exp)) {
+						module_name = key;
+						break;
+					}
+
+				}
+
+			}
+
+			let event_params = {
+				word: this.word,
+				expression: expression,
+				module: module_name
+			}
+
+			sendEvent('EVENT_GET_DEFINITION', event_params);
+
+		}
+
+	}
+
+	/**
 	 * Provide the definition of the symbol at the given position of code
 	 * 
 	 * @returns {array} Location[]
@@ -5920,22 +5961,7 @@ class bslHelper {
 				}];
 			}
 
-			if (editor.generateDefinitionEvent) {
-
-				let expression = this.lastExpression;
-				let exp_arr = this.lastExpression.split('.');			
-				if (1 < exp_arr.length) {
-					exp_arr[exp_arr.length - 1] = this.word;
-					expression = exp_arr.join('.');
-				}
-							
-				let event_params = {
-					word: this.word,
-					expression: expression
-				}
-				sendEvent('EVENT_GET_DEFINITION', event_params);
-
-			}
+			this.generateDefinitionEvent();
 
 		}
 
