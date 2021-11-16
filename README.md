@@ -208,6 +208,7 @@ switchQueryMode();
 * [Подсистема "Инструменты разработчика"](https://infostart.ru/public/15126/)
 * [PowerTools](https://infostart.ru/public/167865/)
 * [Бустер Конвертации данных 3 (Infostart Toolkit)](https://infostart.ru/public/1499859/)
+* [Редактор кода для КД 2](https://infostart.ru/public/1539336/)
 
 ## Проверенные платформы:
 * 8.3.15.1830
