@@ -6,7 +6,6 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   selectionText = '';
   engLang = false;
   contextData = new Map();
-  generateModificationEvent = false;
   readOnlyMode = false;
   queryMode = false;
   DCSMode = false;
@@ -22,7 +21,6 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   err_tid = 0;
   suggestObserver = null;
   signatureObserver = null;
-  generateBeforeShowSuggestEvent = false;
   generateSelectSuggestEvent = false;
   generateBeforeHoverEvent = false;
   generateBeforeSignatureEvent = false;
@@ -80,7 +78,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   updateText = function(txt, clearUndoHistory = true) {
 
     readOnly = readOnlyMode;
-    modEvent = generateModificationEvent;
+    modEvent = getOption('generateModificationEvent');
     editor.checkBookmarks = false;   
 
     reserMark();  
@@ -89,7 +87,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       setReadOnly(false);
 
     if (modEvent)    
-      enableModificationEvent(false);
+      setOption('generateModificationEvent', false);
 
     eraseTextBeforeUpdate();
     
@@ -104,7 +102,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       removeAllBookmarks();
 
     if (modEvent)    
-      enableModificationEvent(true);
+      setOption('generateModificationEvent', true);
 
     if (readOnly)
       setReadOnly(true);
@@ -116,18 +114,18 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   setContent = function(text) {
 
     readOnly = readOnlyMode;
-    modEvent = generateModificationEvent;
+    modEvent = getOption('generateModificationEvent');
     
     if (readOnly)
       setReadOnly(false);
 
     if (modEvent)    
-      enableModificationEvent(false);
+      setOption('generateModificationEvent', false);
 
     editor.setValue(text)
 
     if (modEvent)    
-      enableModificationEvent(true);
+      setOption('generateModificationEvent', true);
 
     if (readOnly)
       setReadOnly(true);
@@ -282,8 +280,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
     // !!! depricated !!! //
     console.warn('enableModificationEvent is deprecated and will be removed in a future version #247');
-
-    generateModificationEvent = enabled;
+    setOption('generateModificationEvent', enabled);
 
   }
 
@@ -1039,8 +1036,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     
     // !!! depricated !!! //
     console.warn('enableBeforeShowSuggestEvent is deprecated and will be removed in a future version #247');
-
-    generateBeforeShowSuggestEvent = enabled;    
+    setOption('generateBeforeShowSuggestEvent', enabled);
 
   }
 
@@ -1653,7 +1649,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       
       calculateDiff();
 
-      if (generateModificationEvent)
+      if (getOption('generateModificationEvent'))
         sendEvent('EVENT_CONTENT_CHANGED', '');
 
       checkBookmarksAfterRemoveLine(e);

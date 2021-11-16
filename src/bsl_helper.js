@@ -5732,7 +5732,7 @@ class bslHelper {
 	 */
 	onProvideCompletion(context, completion) {
 
-		if (generateBeforeShowSuggestEvent) {                			
+		if (getOption('generateBeforeShowSuggestEvent')) {
 			
 			let rows = [];
 			if (Object.keys(completion).length) {
