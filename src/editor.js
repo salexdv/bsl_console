@@ -280,6 +280,9 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   enableModificationEvent = function (enabled) {
 
+    // !!! depricated !!! //
+    console.warn('enableModificationEvent is deprecated and will be removed in a future version #247');
+
     generateModificationEvent = enabled;
 
   }
@@ -979,6 +982,9 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   enableSuggestActivationEvent = function(enabled, alwaysDisplayDetails = false) {
 
+    // !!! depricated !!! //
+    console.warn('enableSuggestActivationEvent is deprecated and will be removed in a future version #247');
+    
     editor.alwaysDisplaySuggestDetails = alwaysDisplayDetails;
 
     if (suggestObserver != null) {
@@ -1031,12 +1037,18 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   enableBeforeShowSuggestEvent = function(enabled) {
     
-    generateBeforeShowSuggestEvent = enabled;
+    // !!! depricated !!! //
+    console.warn('enableBeforeShowSuggestEvent is deprecated and will be removed in a future version #247');
+
+    generateBeforeShowSuggestEvent = enabled;    
 
   }
 
   enableSelectSuggestEvent = function(enabled) {
     
+    // !!! depricated !!! //
+    console.warn('enableSelectSuggestEvent is deprecated and will be removed in a future version #247');
+
     generateSelectSuggestEvent = enabled;
 
     let widget = getSuggestWidget().widget;
@@ -1072,12 +1084,18 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   enableBeforeHoverEvent = function(enabled) {
     
+    // !!! depricated !!! //
+    console.warn('enableBeforeHoverEvent is deprecated and will be removed in a future version #247');
+
     generateBeforeHoverEvent = enabled;
 
   }
 
   enableBeforeSignatureEvent = function(enabled) {
     
+    // !!! depricated !!! //
+    console.warn('enableBeforeSignatureEvent is deprecated and will be removed in a future version #247');
+
     generateBeforeSignatureEvent = enabled;
 
     if (signatureObserver != null) {
