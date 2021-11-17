@@ -21,7 +21,6 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   err_tid = 0;
   suggestObserver = null;
   signatureObserver = null;
-  generateSelectSuggestEvent = false;
   statusBarWidget = null;
   ctrlPressed = false;
   altPressed = false;
@@ -1038,41 +1037,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
-  enableSelectSuggestEvent = function(enabled) {
-    
+  enableSelectSuggestEvent = function (enabled) {
+
     // !!! depricated !!! //
     console.warn('enableSelectSuggestEvent is deprecated and will be removed in a future version #247');
-
-    generateSelectSuggestEvent = enabled;
-
-    let widget = getSuggestWidget().widget;
-
-    if (widget) {
-
-      if (enabled) {
-        
-        if (!widget.onListMouseDownOrTapOrig)
-          widget.onListMouseDownOrTapOrig = widget.onListMouseDownOrTap;
-        
-        widget.onListMouseDownOrTap = function(e) {          
-          let element = getParentWithClass(e.browserEvent.target, 'monaco-list-row');
-        
-          if (element) {
-            generateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', 'selection', element);
-          }          
-
-          widget.onListMouseDownOrTapOrig(e);
-
-        }
-
-      }
-      else if (widget.onListMouseDownOrTapOrig) {
-        
-        widget.onListMouseDownOrTap = widget.onListMouseDownOrTapOrig;
-        
-      }
-
-    }    
+    setOption('generateSelectSuggestEvent', enabled);
+    startStopSuggestSelectionObserver();
 
   }
 
@@ -1326,6 +1296,9 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
     if (optionName == 'generateBeforeSignatureEvent')
       startStopSignatureObserver();
+
+    if (optionName == 'generateSelectSuggestEvent')
+      startStopSuggestSelectionObserver();
 
   }
 
@@ -1700,6 +1673,41 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   // #endregion
     
   // #region non-public functions
+  function startStopSuggestSelectionObserver() {
+
+    let widget = getSuggestWidget().widget;
+
+    if (widget) {
+
+      let fire_event = getOption('generateSelectSuggestEvent');
+
+      if (fire_event) {
+
+        if (!widget.onListMouseDownOrTapOrig)
+          widget.onListMouseDownOrTapOrig = widget.onListMouseDownOrTap;
+
+        widget.onListMouseDownOrTap = function (e) {
+          let element = getParentWithClass(e.browserEvent.target, 'monaco-list-row');
+
+          if (element) {
+            generateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', 'selection', element);
+          }
+
+          widget.onListMouseDownOrTapOrig(e);
+
+        }
+
+      }
+      else if (widget.onListMouseDownOrTapOrig) {
+
+        widget.onListMouseDownOrTap = widget.onListMouseDownOrTapOrig;
+
+      }
+
+    }
+
+  }
+
   function startStopSignatureObserver() {
 
     if (signatureObserver != null) {
@@ -1943,7 +1951,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     if (e.keyCode == 16 && editor.getPosition().lineNumber == 1)
       // ArrowUp
       scrollToTop();
-    else if (e.keyCode == 3 && generateSelectSuggestEvent) {
+    else if (e.keyCode == 3 && getOption('generateSelectSuggestEvent')) {
       // Enter
       let element = document.querySelector('.monaco-list-row.focused');
       if (element) {
@@ -1980,7 +1988,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     }
     else if (e.keyCode == 2) {
       // Tab
-      if (generateSelectSuggestEvent) {
+      let fire_event = getOption('generateSelectSuggestEvent');
+      if (fire_event) {
         let element = document.querySelector('.monaco-list-row.focused');
         if (element) {
           e.preventDefault();
@@ -2718,7 +2727,9 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
       if (element) {
 
-        if (generateSelectSuggestEvent) {
+        let fire_event = getOption('generateSelectSuggestEvent');
+
+        if (fire_event) {
           generateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', 'force-selection-' + char, element);
         }
 
