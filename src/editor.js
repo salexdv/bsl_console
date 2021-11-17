@@ -22,7 +22,6 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   suggestObserver = null;
   signatureObserver = null;
   generateSelectSuggestEvent = false;
-  generateBeforeHoverEvent = false;
   generateBeforeSignatureEvent = false;
   statusBarWidget = null;
   ctrlPressed = false;
@@ -77,16 +76,16 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   
   updateText = function(txt, clearUndoHistory = true) {
 
-    readOnly = readOnlyMode;
-    modEvent = getOption('generateModificationEvent');
+    let read_only = readOnlyMode;
+    let mod_event = getOption('generateModificationEvent');
     editor.checkBookmarks = false;   
 
     reserMark();  
 
-    if (readOnly)
+    if (read_only)
       setReadOnly(false);
 
-    if (modEvent)    
+    if (mod_event)    
       setOption('generateModificationEvent', false);
 
     eraseTextBeforeUpdate();
@@ -101,10 +100,10 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     else
       removeAllBookmarks();
 
-    if (modEvent)    
+    if (mod_event)    
       setOption('generateModificationEvent', true);
 
-    if (readOnly)
+    if (read_only)
       setReadOnly(true);
 
     editor.checkBookmarks = true;
@@ -113,21 +112,21 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   setContent = function(text) {
 
-    readOnly = readOnlyMode;
-    modEvent = getOption('generateModificationEvent');
+    let read_only = readOnlyMode;
+    let mod_event = getOption('generateModificationEvent');
     
-    if (readOnly)
+    if (read_only)
       setReadOnly(false);
 
-    if (modEvent)    
+    if (mod_event)    
       setOption('generateModificationEvent', false);
 
     editor.setValue(text)
 
-    if (modEvent)    
+    if (mod_event)    
       setOption('generateModificationEvent', true);
 
-    if (readOnly)
+    if (read_only)
       setReadOnly(true);
 
   }
@@ -1082,8 +1081,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     
     // !!! depricated !!! //
     console.warn('enableBeforeHoverEvent is deprecated and will be removed in a future version #247');
-
-    generateBeforeHoverEvent = enabled;
+    setOption('generateBeforeHoverEvent', enabled);
 
   }
 

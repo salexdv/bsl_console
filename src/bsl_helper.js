@@ -5708,7 +5708,9 @@ class bslHelper {
 	 */
 	onProvideHover() {
 
-		if (generateBeforeHoverEvent) {
+		let fire_event = getOption('generateBeforeHoverEvent');
+
+		if (fire_event) {
 			let token = this.getLastToken();
 			let params = {
 				word: this.model.getWordAtPosition(this.position),
@@ -5732,7 +5734,9 @@ class bslHelper {
 	 */
 	onProvideCompletion(context, completion) {
 
-		if (getOption('generateBeforeShowSuggestEvent')) {
+		let fire_event = getOption('generateBeforeShowSuggestEvent');
+
+		if (fire_event) {
 			
 			let rows = [];
 			if (Object.keys(completion).length) {
