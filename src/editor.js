@@ -974,58 +974,13 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
-  enableSuggestActivationEvent = function(enabled, alwaysDisplayDetails = false) {
+  enableSuggestActivationEvent = function (enabled, alwaysDisplayDetails = false) {
 
     // !!! depricated !!! //
     console.warn('enableSuggestActivationEvent is deprecated and will be removed in a future version #247');
-    
-    editor.alwaysDisplaySuggestDetails = alwaysDisplayDetails;
-
-    if (suggestObserver != null) {
-      suggestObserver.disconnect();
-      suggestObserver = null;
-    }
-
-    onSuggestListMouseOver(enabled);
-
-    if (enabled) {
-
-      suggestObserver = new MutationObserver(function (mutations) {
-
-        mutations.forEach(function (mutation) {
-
-          if (mutation.target.classList.contains('monaco-list-rows') && mutation.addedNodes.length) {
-            let element = mutation.addedNodes[0];
-            if (element.classList.contains('monaco-list-row') && element.classList.contains('focused')) {
-              removeSuggestListInactiveDetails();
-              generateEventWithSuggestData('EVENT_ON_ACTIVATE_SUGGEST_ROW', 'focus', element);
-              if (editor.alwaysDisplaySuggestDetails) {
-                document.querySelectorAll('.monaco-list-rows .details-label').forEach(function (node) {
-                  node.classList.add('inactive-detail');
-                });
-                document.querySelector('.monaco-list-rows .focused .details-label').classList.remove('inactive-detail');
-              }
-            }
-          }
-          else if (mutation.target.classList.contains('type')|| mutation.target.classList.contains('docs')) {
-            let element = document.querySelector('.monaco-list-rows .focused');
-            if (element) {
-              if (hasParentWithClass(mutation.target, 'details') && hasParentWithClass(mutation.target, 'suggest-widget')) {
-                generateEventWithSuggestData('EVENT_ON_DETAIL_SUGGEST_ROW', 'focus', element);
-              }
-            }
-          }
-
-        })
-
-      });
-
-      suggestObserver.observe(document, {
-        childList: true,
-        subtree: true,
-      });
-
-    }
+    setOption('generateSuggestActivationEvent', enabled);
+    setOption('alwaysDisplaySuggestDetails', alwaysDisplayDetails);
+    startStopSuggestActivationObserver();
 
   }
 
@@ -1673,6 +1628,59 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   // #endregion
     
   // #region non-public functions
+  function startStopSuggestActivationObserver() {
+
+    if (suggestObserver != null) {
+      suggestObserver.disconnect();
+      suggestObserver = null;
+    }
+
+    let fire_event = getOption('generateSuggestActivationEvent');
+
+    onSuggestListMouseOver(fire_event);
+
+    if (fire_event) {
+
+      suggestObserver = new MutationObserver(function (mutations) {
+
+        mutations.forEach(function (mutation) {
+
+          if (mutation.target.classList.contains('monaco-list-rows') && mutation.addedNodes.length) {
+            let element = mutation.addedNodes[0];
+            if (element.classList.contains('monaco-list-row') && element.classList.contains('focused')) {
+              removeSuggestListInactiveDetails();
+              generateEventWithSuggestData('EVENT_ON_ACTIVATE_SUGGEST_ROW', 'focus', element);
+              let alwaysDisplaySuggestDetails = getOption('alwaysDisplaySuggestDetails');
+              if (alwaysDisplaySuggestDetails) {
+                document.querySelectorAll('.monaco-list-rows .details-label').forEach(function (node) {
+                  node.classList.add('inactive-detail');
+                });
+                document.querySelector('.monaco-list-rows .focused .details-label').classList.remove('inactive-detail');
+              }
+            }
+          }
+          else if (mutation.target.classList.contains('type') || mutation.target.classList.contains('docs')) {
+            let element = document.querySelector('.monaco-list-rows .focused');
+            if (element) {
+              if (hasParentWithClass(mutation.target, 'details') && hasParentWithClass(mutation.target, 'suggest-widget')) {
+                generateEventWithSuggestData('EVENT_ON_DETAIL_SUGGEST_ROW', 'focus', element);
+              }
+            }
+          }
+
+        })
+
+      });
+
+      suggestObserver.observe(document, {
+        childList: true,
+        subtree: true,
+      });
+
+    }
+
+  }
+
   function startStopSuggestSelectionObserver() {
 
     let widget = getSuggestWidget().widget;
@@ -2642,7 +2650,9 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
     if (activationEventEnabled) {
       
-      if (!editor.alwaysDisplaySuggestDetails) {
+      let alwaysDisplaySuggestDetails = getOption('alwaysDisplaySuggestDetails');
+
+      if (!alwaysDisplaySuggestDetails) {
 
         widget.listElement.onmouseoverOrig = widget.listElement.onmouseover;
         widget.listElement.onmouseover = function(e) {        
