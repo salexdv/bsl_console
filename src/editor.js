@@ -22,7 +22,6 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   suggestObserver = null;
   signatureObserver = null;
   generateSelectSuggestEvent = false;
-  generateBeforeSignatureEvent = false;
   statusBarWidget = null;
   ctrlPressed = false;
   altPressed = false;
@@ -1085,46 +1084,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
-  enableBeforeSignatureEvent = function(enabled) {
-    
+  enableBeforeSignatureEvent = function (enabled) {
+
     // !!! depricated !!! //
     console.warn('enableBeforeSignatureEvent is deprecated and will be removed in a future version #247');
-
-    generateBeforeSignatureEvent = enabled;
-
-    if (signatureObserver != null) {
-      signatureObserver.disconnect();
-      signatureObserver = null;
-    }
-
-    if (enabled) {
-
-      signatureObserver = new MutationObserver(function (mutations) {
-
-        mutations.forEach(function (mutation) {
-
-          if (mutation.target.classList.contains('overflowingContentWidgets') && mutation.addedNodes.length) {
-
-            let element = mutation.addedNodes[0];
-
-            if (element.classList.contains('parameter-hints-widget') && !signatureVisible) {
-              element.style.display = 'none';
-              signatureObserver.disconnect();
-              signatureObserver = null;
-            }
-
-          }
-
-        })
-
-      });
-
-      signatureObserver.observe(document, {
-        childList: true,
-        subtree: true
-      });
-
-    }
+    setOption('generateBeforeSignatureEvent', enabled);
+    startStopSignatureObserver();
 
   }
 
@@ -1358,6 +1323,9 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   setOption = function (optionName, optionValue) {
 
     editor[optionName] = optionValue;
+
+    if (optionName == 'generateBeforeSignatureEvent')
+      startStopSignatureObserver();
 
   }
 
@@ -1732,6 +1700,46 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   // #endregion
     
   // #region non-public functions
+  function startStopSignatureObserver() {
+
+    if (signatureObserver != null) {
+      signatureObserver.disconnect();
+      signatureObserver = null;
+    }
+
+    let fire_event = getOption('generateBeforeSignatureEvent');
+
+    if (fire_event) {
+
+      signatureObserver = new MutationObserver(function (mutations) {
+
+        mutations.forEach(function (mutation) {
+
+          if (mutation.target.classList.contains('overflowingContentWidgets') && mutation.addedNodes.length) {
+
+            let element = mutation.addedNodes[0];
+
+            if (element.classList.contains('parameter-hints-widget') && !signatureVisible) {
+              element.style.display = 'none';
+              signatureObserver.disconnect();
+              signatureObserver = null;
+            }
+
+          }
+
+        })
+
+      });
+
+      signatureObserver.observe(document, {
+        childList: true,
+        subtree: true
+      });
+
+    }
+
+  }
+
   function changeCommandKeybinding(command, keybinding) {
   
     editor._standaloneKeybindingService.addDynamicKeybinding('-' + command);
