@@ -1,15 +1,18 @@
-# Функция *enableModificationEvent*
-## Назначение функции
-Функция включает/выключает генерацию события *EVENT_CONTENT_CHANGED*, которое возникает при любом изменении содержимого редактора
+# Событие *EVENT_CONTENT_CHANGED*
+## Назначение события
+Событие генерируется при любом изменении содержимого редактора
 
-## Параметры функции
-* **enabled** - *boolean*, активность события
+## Управление событием
+За генерацию события отвечает опция [`generateModificationEvent`](set_option.md)
 
 ## Пример вызова
 ```javascript
 // Включение генерации события
-enableModificationEvent(true);
+setOption('generateModificationEvent', true);
 
 // Отключение генерации события
-enableModificationEvent(false);
+setOption('generateModificationEvent', false);
 ```
+
+## Пример параметров генерируемого события
+Параметры у события отсутствуют

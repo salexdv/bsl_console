@@ -1,18 +1,17 @@
-# Функция *enableSuggestActivationEvent*
-## Назначение функции
-Функция включает/выключает генерацию события *EVENT_ON_ACTIVATE_SUGGEST_ROW*, которое возникает при активации пункта в текущем списке подсказок.
-При выводе подробного описания (CTRL+Space) пункта подсказки генерируется событие *EVENT_ON_DETAIL_SUGGEST_ROW* с аналогичными параметрами.
+# Событие *EVENT_ON_ACTIVATE_SUGGEST_ROW*
+## Назначение события
+Событие возникает при активации пункта в текущем списке подсказок
 
-## Параметры функции
-* **enabled** - *boolean*, активность события
+## Управление событием
+За генерацию события отвечает опция [`generateSuggestActivationEvent`](set_option.md)
 
 ## Пример вызова
 ```javascript
 // Включение генерации события
-enableSuggestActivationEvent(true);
+setOption('generateSuggestActivationEvent', true);
 
 // Отключение генерации события
-enableSuggestActivationEvent(false);
+setOption('generateSuggestActivationEvent', false);
 ```
 
 ## Пример параметров генерируемого события

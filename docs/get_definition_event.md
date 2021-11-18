@@ -5,6 +5,15 @@
 ## Управление событием
 За генерацию события отвечает опция [`generateDefinitionEvent`](set_option.md)
 
+## Пример вызова
+```javascript
+// Включение генерации события
+setOption('generateDefinitionEvent', true);
+
+// Отключение генерации события
+setOption('generateDefinitionEvent', false);
+```
+
 ## Параметры события
 В параметрах события передается контекст, в котором возникло событие
 Например:

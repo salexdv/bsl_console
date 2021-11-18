@@ -1,17 +1,17 @@
-# Функция *enableBeforeHoverEvent*
-## Назначение функции
-Функция включает/выключает генерацию события *EVENT_BEFORE_HOVER*, которое возникает перед появлением всплывающей подсказки для слова при наведении мыши
+# Событие *EVENT_BEFORE_HOVER*
+## Назначение события
+Событие возникает перед появлением всплывающей подсказки для слова при наведении мыши
 
-## Параметры функции
-* **enabled** - *boolean*, активность события
+## Управление событием
+За генерацию события отвечает опция [`generateBeforeHoverEvent`](set_option.md)
 
 ## Пример вызова
 ```javascript
 // Включение генерации события
-enableBeforeHoverEvent(true);
+setOption('generateBeforeHoverEvent', true);
 
 // Отключение генерации события
-enableBeforeHoverEvent(false);
+setOption('generateBeforeHoverEvent', false);
 ```
 
 ## Пример параметров генерируемого события
