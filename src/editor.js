@@ -1687,7 +1687,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         editor.revealLineInCenter(value.startLineNumber);
         editor.setPosition(new monaco.Position(value.startLineNumber, value.startColumn));
 
-        let decor_class = 'marker';
+        let decor_class = 'code-marker';
 
         switch (value.severity) {
           case 8: decor_class += ' marker-error'; break;
