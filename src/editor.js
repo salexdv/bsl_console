@@ -1402,6 +1402,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  getMarkers = function( ) {
+
+    return getSortedMarkers();
+
+  }
+
   goNextMarker = function () {
 
     let sorted_markers = getSortedMarkers();
