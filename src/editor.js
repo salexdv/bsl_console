@@ -1642,6 +1642,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   // #endregion
     
   // #region non-public functions
+  function getSortedMarks() {
+
+    return monaco.editor.getModelMarkers().sort((a, b) => a.startLineNumber - b.startLineNumber)
+
+  }
+
   function setModelMarkers(model, markers_array) {
     
     let markers_data = [];
