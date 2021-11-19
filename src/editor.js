@@ -1672,14 +1672,40 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
     let idx = 0;
     let count = getLineCount();
+    let decorations = [];
 
     sorted_marks.forEach(function (value) {
+
       if (idx == currentMarker && value.startLineNumber <= count) {
+
         editor.revealLineInCenter(value.startLineNumber);
         editor.setPosition(new monaco.Position(value.startLineNumber, value.startColumn));
+
+        let decor_class = 'marker';
+
+        switch (value.severity) {
+          case 8: decor_class += ' marker-error'; break;
+          case 1: decor_class += ' marker-hint'; break;
+          case 2: decor_class += ' marker-info'; break;
+          case 4: decor_class += ' marker-warning'; break;
+          default: decor_class += ' marker-error';
+        }
+
+        decorations.push({
+          range: new monaco.Range(value.startLineNumber, 1, value.startLineNumber),
+          options: {
+            isWholeLine: true,
+            linesDecorationsClassName: decor_class
+          }
+        });
+
       }
+
       idx++;
+
     });
+
+    editor.updateDecorations(decorations);
 
   }
 
@@ -1692,6 +1718,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   function setModelMarkers(model, markers_array) {
     
     let markers_data = [];
+    currentMarker = -1;
     
     markers_array.forEach(marker => {
       
