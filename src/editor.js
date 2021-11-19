@@ -27,6 +27,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   shiftPressed = false;  
   signatureVisible = true;
   currentBookmark = -1;
+  currentMarker = -1;
   activeSuggestionAcceptors = [];
   diffEditor = null;  
   inlineDiffEditor = null;
@@ -1400,6 +1401,31 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     }
 
   }
+
+  goNextMarker = function () {
+
+    let sorted_markers = getSortedMarkers();
+
+    if (sorted_markers.length - 1 <= currentMarker)
+      currentMarker = -1;
+
+    currentMarker++;
+    goToCurrentMarker(sorted_markers);
+
+  }
+
+  goPreviousMarker = function () {
+
+    let sorted_markers = getSortedMarkers();
+
+    currentMarker--;
+
+    if (currentMarker < 0)
+    currentMarker = sorted_markers.length - 1;
+
+    goToCurrentMarker(sorted_markers);
+
+  }
   // #endregion
 
   // #region init editor
@@ -1642,12 +1668,27 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   // #endregion
     
   // #region non-public functions
-  function getSortedMarks() {
+  function goToCurrentMarker(sorted_marks) {
+
+    let idx = 0;
+    let count = getLineCount();
+
+    sorted_marks.forEach(function (value) {
+      if (idx == currentMarker && value.startLineNumber <= count) {
+        editor.revealLineInCenter(value.startLineNumber);
+        editor.setPosition(new monaco.Position(value.startLineNumber, value.startColumn));
+      }
+      idx++;
+    });
+
+  }
+
+  function getSortedMarkers() {
 
     return monaco.editor.getModelMarkers().sort((a, b) => a.startLineNumber - b.startLineNumber)
 
   }
-
+  
   function setModelMarkers(model, markers_array) {
     
     let markers_data = [];
