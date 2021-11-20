@@ -1432,6 +1432,24 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     goToCurrentMarker(sorted_markers);
 
   }
+
+  goToFuncDefinition = function (funcName) {
+
+    if (funcName) {
+
+      let pattern = '(процедура|procedure|функция|function)\\s*' + funcName + '\\(';
+      let match = getActiveEditor().getModel().findPreviousMatch(pattern, editor.getPosition(), true);
+
+      if (match) {
+        editor.revealLineInCenter(match.range.startLineNumber);
+        editor.setPosition(new monaco.Position(match.range.startLineNumber, match.range.startColumn));
+        return true;
+      }
+    }
+
+    return false;
+
+  }
   // #endregion
 
   // #region init editor
