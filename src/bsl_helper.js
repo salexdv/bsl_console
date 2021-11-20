@@ -5949,22 +5949,28 @@ class bslHelper {
 	provideDefinition() {
 
 		let location = null;
-
+		
 		if (this.word) {
 
-			let pattern = this.word + '\\s*=\\s*.*';
+			let exp_arr = this.lastExpression.split('.');
 
-			if (this.isItFunction())
-				pattern = '(процедура|procedure|функция|function)\\s*' + this.word + '\\(';
+			if (exp_arr.length == 1) {
 
-			let position = new monaco.Position(this.lineNumber, 1);
-			let match = this.model.findPreviousMatch(pattern, position, true);
+				let pattern = this.word + '\\s*=\\s*.*';
 
-			if (match && match.range.startLineNumber < this.lineNumber) {
-				location = [{
-					uri: this.model.uri,
-					range: match.range
-				}];
+				if (this.isItFunction())
+					pattern = '(процедура|procedure|функция|function)\\s*' + this.word + '\\(';
+
+				let position = new monaco.Position(this.lineNumber, 1);
+				let match = this.model.findPreviousMatch(pattern, position, true);
+
+				if (match && match.range.startLineNumber < this.lineNumber) {
+					location = [{
+						uri: this.model.uri,
+						range: match.range
+					}];
+				}
+
 			}
 
 			this.generateDefinitionEvent();
