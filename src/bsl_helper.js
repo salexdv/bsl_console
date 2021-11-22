@@ -5662,6 +5662,11 @@ class bslHelper {
 			if (0 <= comment)
 				str = str.substr(0, comment);			
 
+			str = str.replace(/"([\s\S]+)?"/u, '');
+			str = str.replace(/"([\s\S]+)?$/u, '');
+			str = str.replace(/\|([\s\S]+)?"/u, '');
+			str = str.replace(/\|([\s\S]+)?$/u, '');
+
 			let semi = str.indexOf(';');
 
 			if (0 <= semi)
