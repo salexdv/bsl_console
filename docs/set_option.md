@@ -36,3 +36,4 @@ setOption("skipInsertSuggestionAcceptor", true);
 * `disableContextQueryConstructor` - *boolean*, отключает формирование кнопки контекстного меню "Конструктор запросов". Установка значения опции имеет смысл только до вызова `init()`
 * `autoResizeEditorLayout` - *boolean*, включает перерисовку редактора при изменении размеров окна
 * `renderQueryDelimiters` - *boolean*, включает выделение цветом разделителей запросов
+* `disableDefinitionMessage` - *boolean*, отключает показ сообщения `Определение для ххх не найдено` при переходе к определению по F12 или CTRL+F12

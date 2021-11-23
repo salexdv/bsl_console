@@ -21,6 +21,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   err_tid = 0;
   suggestObserver = null;
   signatureObserver = null;
+  definitionObserver = null;
   statusBarWidget = null;
   ctrlPressed = false;
   altPressed = false;
@@ -1256,6 +1257,9 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     if (optionName == 'generateSelectSuggestEvent')
       startStopSuggestSelectionObserver();
 
+    if (optionName == 'disableDefinitionMessage')
+      startStopDefinitionMessegeObserver();
+
   }
 
   getOption = function (optionName) {
@@ -1780,6 +1784,44 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     });
 
     monaco.editor.setModelMarkers(model, "markers", markers_data);
+
+  }
+
+  function startStopDefinitionMessegeObserver() {
+
+    if (definitionObserver != null) {
+      definitionObserver.disconnect();
+      definitionObserver = null;
+    }
+
+    let disable_message = getOption('disableDefinitionMessage');
+
+    if (disable_message) {
+
+      definitionObserver = new MutationObserver(function (mutations) {
+
+        mutations.forEach(function (mutation) {
+
+          if (mutation.target.classList.contains('overflowingContentWidgets') && mutation.addedNodes.length) {
+            
+            let element = mutation.addedNodes[0];
+
+            if (element.classList.contains('monaco-editor-overlaymessage') && element.classList.contains('fadeIn')) {
+              element.style.display = 'none';
+            }
+
+          }
+
+        })
+
+      });
+
+      definitionObserver.observe(document, {
+        childList: true,
+        subtree: true
+      });
+
+    }
 
   }
 
