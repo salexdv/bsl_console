@@ -1443,6 +1443,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       if (match) {
         editor.revealLineInCenter(match.range.startLineNumber);
         editor.setPosition(new monaco.Position(match.range.startLineNumber, match.range.startColumn));
+        editor.focus();
         return true;
       }
     }
