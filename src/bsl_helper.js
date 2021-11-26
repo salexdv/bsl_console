@@ -5962,14 +5962,15 @@ class bslHelper {
 			if (exp_arr.length == 1) {
 
 				let pattern = this.word + '\\s*=\\s*.*';
+				let is_function = this.isItFunction()
 
-				if (this.isItFunction())
+				if (is_function)
 					pattern = '(процедура|procedure|функция|function)\\s*' + this.word + '\\(';
 
 				let position = new monaco.Position(this.lineNumber, 1);
 				let match = this.model.findPreviousMatch(pattern, position, true);
 
-				if (match && match.range.startLineNumber < this.lineNumber) {
+				if (match && (is_function || match.range.startLineNumber < this.lineNumber)) {
 					location = [{
 						uri: this.model.uri,
 						range: match.range
