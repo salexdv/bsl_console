@@ -5923,7 +5923,7 @@ class bslHelper {
 
 				for (const [key, value] of Object.entries(bslMetadata.commonModules.items)) {
 
-					if (key.toLowerCase().startsWith(first_exp)) {
+					if (key.toLowerCase() == first_exp) {
 						module_name = key;
 						break;
 					}
