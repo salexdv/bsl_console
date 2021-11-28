@@ -1,17 +1,17 @@
-# Функция *enableSelectSuggestEvent*
-## Назначение функции
-Функция включает/выключает генерацию события *EVENT_ON_SELECT_SUGGEST_ROW*, которое возникает при выборе пункта из списка подсказок
+# Событие *EVENT_ON_SELECT_SUGGEST_ROW*
+## Назначение события
+Событие возникает при выборе пункта из списка подсказок
 
-## Параметры функции
-* **enabled** - *boolean*, активность события
+## Управление событием
+За генерацию события отвечает опция [`generateSelectSuggestEvent`](set_option.md)
 
 ## Пример вызова
 ```javascript
 // Включение генерации события
-enableSelectSuggestEvent(true);
+setOption('generateSelectSuggestEvent', true);
 
 // Отключение генерации события
-enableSelectSuggestEvent(false);
+setOption('generateSelectSuggestEvent', false);
 ```
 
 ## Пример параметров генерируемого события
@@ -22,6 +22,7 @@ enableSelectSuggestEvent(false);
   "last_word": "авансовыйотчет",
   "last_expression": "документы.авансовыйотчет.",
   "selected": "Выбрать",
+  "insert_text": "Выбрать",
   "rows": [
     "Выбрать",
     "НайтиПоНомеру",

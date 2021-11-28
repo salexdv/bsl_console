@@ -1,17 +1,17 @@
-# Функция *enableBeforeShowSuggestEvent*
-## Назначение функции
-Функция включает/выключает генерацию события *EVENT_BEFORE_SHOW_SUGGEST*, которое возникает перед появлением списка подсказок
+# Событие *EVENT_BEFORE_SHOW_SUGGEST*
+## Назначение события
+Событие возникает перед появлением списка подсказок
 
-## Параметры функции
-* **enabled** - *boolean*, активность события
+## Управление событием
+За генерацию события отвечает опция [`generateBeforeShowSuggestEvent`](set_option.md)
 
 ## Пример вызова
 ```javascript
 // Включение генерации события
-enableBeforeShowSuggestEvent(true);
+setOption('generateBeforeShowSuggestEvent', true);
 
 // Отключение генерации события
-enableBeforeShowSuggestEvent(false);
+setOption('generateBeforeShowSuggestEvent', false);
 ```
 
 ## Пример параметров генерируемого события
@@ -21,6 +21,7 @@ enableBeforeShowSuggestEvent(false);
   "current_word": "",
   "last_word": "авансовыйотчет",
   "last_expression": "документы.авансовыйотчет.",  
+  "insert_text": "",  
   "rows": [
     "Выбрать",
     "НайтиПоНомеру",

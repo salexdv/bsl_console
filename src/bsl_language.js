@@ -182,7 +182,17 @@ define([], function () {
                 'SQRT', 'POW', 'TAN', 'ОКР', 'ROUND', 'ЦЕЛ', 'INT', 'ДЛИНАСТРОКИ', 'STRINGLENGTH',
                 'СТРОКА', 'STRING', 'СОКРЛП', 'TRIMALL', 'СОКРП', 'TRIMAR', 'СОКРЛ', 'TRIMAL',
                 'ЛЕВ', 'LEFT', 'ПРАВ', 'RIGHT', 'СТРНАЙТИ', 'STRFIND', 'ВРЕГ', 'UPPER', 'НРЕГ',
-                'LOWER', 'СТРЗАМЕНИТЬ', 'STRREPLACE', 'НСТР', 'NSTR'
+                'LOWER', 'СТРЗАМЕНИТЬ', 'STRREPLACE', 'НСТР', 'NSTR', 'МАССИВ', 'ARRAY', 'ТАБЛИЦАЗНАЧЕНИЙ',
+                'VALUETABLE', 'СВЕРНУТЬ', 'GROUPBY', 'ПОЛУЧИТЬЧАСТЬ', 'GETPART', 'УПОРЯДОЧИТЬ', 'ORDER',
+                'СОЕДИНИТЬСТРОКИ', 'JOINSTRINGS', 'ГРУППОВАЯОБРАБОТКА', 'GROUPPROCESSING', 'КАЖДЫЙ',
+                'EVERY', 'ЛЮБОЙ', 'ANY', 'СТАНДАРТНОЕОТКЛОНЕНИЕГЕНЕРАЛЬНОЙСОВОКУПНОСТИ',
+                'STDDEV_POP', 'СТАНДАРТНОЕОТКЛОНЕНИЕВЫБОРКИ', 'STDDEV_SAMP', 'ДИСПЕРСИЯВЫБОРКИ',
+                'VAR_SAMP', 'ДИСПЕРСИЯГЕНЕРАЛЬНОЙСОВОКУПНОСТИ', 'VAR_POP', 'КОВАРИАЦИЯГЕНЕРАЛЬНОЙСОВОКУПНОСТИ',
+                'COVAR_POP', 'КОВАРИАЦИЯВЫБОРКИ', 'COVAR_SAMP', 'КОРРЕЛЯЦИЯ', 'CORR', 'РЕГРЕССИЯНАКЛОН',
+                'REGR_SLOPE', 'РЕГРЕССИЯОТРЕЗОК', 'REGR_INTERCEPT', 'РЕГРЕССИЯКОЛИЧЕСТВО', 'REGR_COUNT',
+                'РЕГРЕССИЯR2', 'REGR_R2', 'РЕГРЕССИЯСРЕДНЕЕX', 'REGR_AVGX', 'РЕГРЕССИЯСРЕДНЕЕY',
+                'REGR_AVGY', 'РЕГРЕССИЯSXX', 'REGR_SXX', 'РЕГРЕССИЯSYY', 'REGR_SYY', 'РЕГРЕССИЯSXY',
+                'REGR_SXY', 'МЕСТОВПОРЯДКЕ', 'RANK', 'КЛАССИФИКАЦИЯABC', 'CLASSIFICATIONABC'
 
             ],
             queryOperators: /[=><+\-*\/%;,]+/,
@@ -333,10 +343,11 @@ define([], function () {
             expressions: query_expressions,
             operators: /[=><+\-*\/%;,]+/,
             expBeforeAs: [
-                'КОНЕЦ', 'END'
+                'КОНЕЦ', 'END', 'NULL', 'НЕОПРЕДЕЛЕНО', 'UNDEFINED'
             ],
             tokenizer: {
                 root: [                      
+                    [/(поместить|из|into|from)/, { token: 'query.keyword', next: '@intofrom' }],
                     [/([a-zA-Z\u0410-\u044F]+)(\s+)(как|as)(\s+)([a-zA-Z\u0410-\u044F0-9]+)/, [
                         { cases: {
                             '@expBeforeAs': 'query.exp',                            
@@ -378,7 +389,17 @@ define([], function () {
                     [/[0-9_]*\.[0-9_]+([eE][\-+]?\d+)?[fFdD]?/, 'query.float'],
                     [/[0-9_]+/, 'query.int'],
                     [/\|/, 'query']                    
-                ]
+                ],
+                intofrom: [
+                    [/\s/, 'query'],
+                    [/[0-9]+/, 'query.int', '@pop'],
+                    [/[#a-zA-Z\u0410-\u044F_][#a-zA-Z\u0410-\u044F_0-9]*/, {
+                        cases: {
+                            '@keywords': { token: 'query.keyword', next: '@pop' },
+                            '@default': { token: 'query', next: '@pop' }
+                        }
+                    }],
+                ],
             },
         },        
         themes: bsl_language.themes        
@@ -400,9 +421,9 @@ define([], function () {
                 provideCompletionItems: function (model, position, context, token) {                    
                     resetSuggestWidgetDisplay();
                     let bsl = new bslHelper(model, position);
-                    let completition = bsl.getCompletition(context, token);
-                    bsl.onProvideCompletion(context, completition);
-                    return completition;
+                    let completion = bsl.getCompletion(context, token);
+                    bsl.onProvideCompletion(context, completion);
+                    return completion;
                 }
             },
             foldingProvider: {
@@ -445,7 +466,12 @@ define([], function () {
                 }
             },
             codeLenses: {
-                provider: () => {},                
+                onDidChange: function(e) {
+                    editor.updateCodeLens = e;
+                },
+                provider: function (model, token) {
+                    return bslHelper.provideCodeLenses(model, token);
+                },
                 resolver: () => {}
             },
             colorProvider: {
@@ -454,6 +480,12 @@ define([], function () {
                 },
                 provideDocumentColors: (model) => {
                     return bslHelper.getDocumentColors(model);
+                }
+            },
+            definitionProvider: {
+                provideDefinition: (model, position) => {
+                    let bsl = new bslHelper(model, position);
+                    return bsl.provideDefinition();
                 }
             },
             autoIndentation: true,
@@ -486,9 +518,9 @@ define([], function () {
                 provideCompletionItems: function (model, position, context, token) {
                     resetSuggestWidgetDisplay();
                     let bsl = new bslHelper(model, position);
-                    let completition = bsl.getQueryCompletition(query_language);
-                    bsl.onProvideCompletion(context, completition);
-                    return completition;
+                    let completion = bsl.getQueryCompletion(query_language);
+                    bsl.onProvideCompletion(context, completion);
+                    return completion;
                 }
             },
             foldingProvider: {
@@ -523,12 +555,23 @@ define([], function () {
                 provideDocumentFormattingEdits: () => {}
             },
             codeLenses: {
-                provider: () => {},                
+                onDidChange: function(e) {
+                    editor.updateCodeLens = e;
+                },
+                provider: function (model, token) {
+                    return bslHelper.provideCodeLenses(model, token);
+                },
                 resolver: () => {}
             },
             colorProvider: {
                 provideColorPresentations: () => {},
                 provideDocumentColors: () => {}
+            },
+            definitionProvider: {
+                provideDefinition: (model, position) => {
+                    let bsl = new bslHelper(model, position);
+                    return bsl.provideQueryDefinition();
+                }
             },
             autoIndentation: false,
             indentationRules: {
@@ -549,9 +592,9 @@ define([], function () {
                 provideCompletionItems: function (model, position, context, token) {
                     resetSuggestWidgetDisplay();
                     let bsl = new bslHelper(model, position);
-                    let completition = bsl.getDCSCompletition();
-                    bsl.onProvideCompletion(context, completition);
-                    return completition;
+                    let completion = bsl.getDCSCompletion();
+                    bsl.onProvideCompletion(context, completion);
+                    return completion;
                 }
             },
             foldingProvider: {
@@ -584,12 +627,20 @@ define([], function () {
                 provideDocumentFormattingEdits: () => {}
             },
             codeLenses: {
-                provider: () => {},                
+                onDidChange: function(e) {
+                    editor.updateCodeLens = e;
+                },
+                provider: function (model, token) {
+                    return bslHelper.provideCodeLenses(model, token);
+                },
                 resolver: () => {}
             },
             colorProvider: {
                 provideColorPresentations: () => {},
                 provideDocumentColors: () => {}
+            },
+            definitionProvider: {
+                provideDefinition: () => {}
             },
             autoIndentation: false,
             indentationRules: null,
@@ -605,7 +656,10 @@ define([], function () {
 });
 
 function onProvideSignature(bsl, context, position) {
-    if (generateBeforeSignatureEvent) {
+
+    let fire_event = getOption('generateBeforeSignatureEvent');
+
+    if (fire_event) {
         let activeSignature = context.activeSignatureHelp ? context.activeSignatureHelp.activeSignature : 0;
         let params = {
             word: bsl.getWordUntilOpenBracket(),
@@ -617,6 +671,7 @@ function onProvideSignature(bsl, context, position) {
         };
         sendEvent('EVENT_BEFORE_SIGNATURE', params);
     }
+
 }
 
 function resetSuggestWidgetDisplay() {
