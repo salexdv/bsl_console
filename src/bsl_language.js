@@ -459,10 +459,7 @@ define([], function () {
             },
             formatProvider: {
                 provideDocumentFormattingEdits: function (model, options, token) {
-                    return [{
-                        text: bslHelper.formatCode(model),
-                        range: model.getFullModelRange()
-                    }];
+                    return bslHelper.formatCode(model);
                 }
             },
             codeLenses: {
