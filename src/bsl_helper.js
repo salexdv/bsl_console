@@ -6023,30 +6023,82 @@ class bslHelper {
 	}
 
 	/**
+ 	 * Definition event generator
+ 	 * 
+ 	 */
+	generateDefinitionEvent() {
+
+		if (editor.generateDefinitionEvent) {
+
+			let expression = this.lastExpression;
+			let exp_arr = this.lastExpression.split('.');
+			let module_name = '';
+
+			if (1 < exp_arr.length) {
+
+				exp_arr[exp_arr.length - 1] = this.word;
+				expression = exp_arr.join('.');
+				let first_exp = exp_arr[0].toLocaleLowerCase();
+
+				for (const [key, value] of Object.entries(bslMetadata.commonModules.items)) {
+
+					if (key.toLowerCase() == first_exp) {
+						module_name = key;
+						break;
+					}
+
+				}
+
+			}
+
+			let event_params = {
+				word: this.word,
+				expression: expression,
+				module: module_name,
+				line: this.lineNumber,
+				column: this.column
+			}
+
+			sendEvent('EVENT_GET_DEFINITION', event_params);
+
+		}
+
+	}
+
+	/**
 	 * Provide the definition of the symbol at the given position of code
 	 * 
 	 * @returns {array} Location[]
 	 */
-	 provideDefinition() {
+	provideDefinition() {
 
 		let location = null;
 
 		if (this.word) {
 
-			let pattern = this.word + '\\s*=\\s*.*';
+			let exp_arr = this.lastExpression.split('.');
 
-			if (this.isItFunction())
-				pattern = '(процедура|procedure|функция|function)\\s*' + this.word + '\\(';
+			if (exp_arr.length == 1) {
 
-			let position = new monaco.Position(this.lineNumber, 1);
-			let match = Finder.findPreviousMatch(this.model, pattern, position, false);
+				let pattern = this.word + '\\s*=\\s*.*';
+				let is_function = this.isItFunction()
 
-			if (match && match.range.startLineNumber < this.lineNumber) {
-				location = [{
-					uri: this.model.uri,
-					range: match.range
-				}];
+				if (is_function)
+					pattern = '(процедура|procedure|функция|function)\\s*' + this.word + '\\(';
+
+				let position = new monaco.Position(this.lineNumber, 1);
+				let match = Finder.findPreviousMatch(this.model, pattern, position, false);
+
+				if (match && (is_function || match.range.startLineNumber < this.lineNumber)) {
+					location = [{
+						uri: this.model.uri,
+						range: match.range
+					}];
+				}
+
 			}
+
+			this.generateDefinitionEvent();
 
 		}
 
