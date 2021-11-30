@@ -645,7 +645,10 @@ let languages = {
 
 
 function onProvideSignature(bsl, context, position) {
-    if (window.generateBeforeSignatureEvent) {
+    
+    let fire_event = window.getOption('generateBeforeSignatureEvent');
+
+    if (fire_event) {
         let activeSignature = context.activeSignatureHelp ? context.activeSignatureHelp.activeSignature : 0;
         let params = {
             word: bsl.getWordUntilOpenBracket(),
@@ -657,6 +660,7 @@ function onProvideSignature(bsl, context, position) {
         };
         window.sendEvent('EVENT_BEFORE_SIGNATURE', params);
     }
+    
 }
 
 function resetSuggestWidgetDisplay() {

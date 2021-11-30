@@ -24,7 +24,6 @@ window.languages = languages;
 window.selectionText = '';
 window.engLang = false;
 window.contextData = new Map();
-window.generateModificationEvent = false;
 window.readOnlyMode = false;
 window.queryMode = false;
 window.DCSMode = false;
@@ -40,10 +39,6 @@ window.contextMenuEnabled = false;
 window.err_tid = 0;
 window.suggestObserver = null;
 window.signatureObserver = null;
-window.generateBeforeShowSuggestEvent = false;
-window.generateSelectSuggestEvent = false;
-window.generateBeforeHoverEvent = false;
-window.generateBeforeSignatureEvent = false;
 window.statusBarWidget = null;
 window.ctrlPressed = false;
 window.altPressed = false;
@@ -103,17 +98,17 @@ window.setText = function(txt, range, usePadding) {
 
 window.updateText = function(txt, clearUndoHistory = true) {
 
-  const readOnly = window.readOnlyMode;
-  const modEvent = window.generateModificationEvent;
+  const read_only = window.readOnlyMode;
+  const mod_event = window.getOption('generateModificationEvent');
   window.editor.checkBookmarks = false;   
 
   window.reserMark();  
 
-  if (readOnly)
+  if (read_only)
     window.setReadOnly(false);
 
-  if (modEvent)    
-    window.enableModificationEvent(false);
+  if (mod_event)    
+    window.setOption('generateModificationEvent', false);
 
   eraseTextBeforeUpdate();
   
@@ -127,10 +122,10 @@ window.updateText = function(txt, clearUndoHistory = true) {
   else
     window.removeAllBookmarks();
 
-  if (modEvent)    
-    window.enableModificationEvent(true);
+  if (mod_event)    
+    window.setOption('generateModificationEvent', true);
 
-  if (readOnly)
+  if (read_only)
     window.setReadOnly(true);
 
   window.editor.checkBookmarks = true;
@@ -139,21 +134,21 @@ window.updateText = function(txt, clearUndoHistory = true) {
 
 window.setContent = function(text) {
 
-  const readOnly = window.readOnlyMode;
-  const modEvent = window.generateModificationEvent;
+  const read_only = window.readOnlyMode;
+  const mod_event = window.getOption('generateModificationEvent');
   
-  if (readOnly)
+  if (read_only)
     window.setReadOnly(false);
 
-  if (modEvent)    
-    window.enableModificationEvent(false);
+  if (mod_event)    
+    window.setOption('generateModificationEvent', false);
 
   window.editor.setValue(text)
 
-  if (modEvent)    
-    window.enableModificationEvent(true);
+  if (mod_event)    
+    window.setOption('generateModificationEvent', true);
 
-  if (readOnly)
+  if (read_only)
     window.setReadOnly(true);
 
 }
@@ -315,7 +310,9 @@ window.minimap = function (enabled) {
 
 window.enableModificationEvent = function (enabled) {
 
-  window.generateModificationEvent = enabled;
+  // !!! depricated !!! //
+  console.warn('enableModificationEvent is deprecated and will be removed in a future version #247');
+  window.setOption('generateModificationEvent', enabled);
 
 }
 
@@ -943,153 +940,47 @@ window.getLastToken = function() {
 
 }
 
-window.enableSuggestActivationEvent = function(enabled, alwaysDisplayDetails = false) {
+window.enableSuggestActivationEvent = function (enabled, alwaysDisplayDetails = false) {
 
-  window.editor.alwaysDisplaySuggestDetails = alwaysDisplayDetails;
-
-  if (window.suggestObserver != null) {
-    window.suggestObserver.disconnect();
-    window.suggestObserver = null;
-  }
-
-  onSuggestListMouseOver(enabled);
-
-  if (enabled) {
-
-    window.suggestObserver = new MutationObserver(function (mutations) {
-
-      mutations.forEach(function (mutation) {
-
-        if (mutation.target.classList.contains('monaco-list-rows') && mutation.addedNodes.length) {
-
-          let element = mutation.addedNodes[0];
-
-          if (element.classList.contains('monaco-list-row') && element.classList.contains('focused')) {
-
-            removeSuggestListInactiveDetails();
-            window.generateEventWithSuggestData('EVENT_ON_ACTIVATE_SUGGEST_ROW', 'focus', element);
-
-            if (window.editor.alwaysDisplaySuggestDetails) {
-              document.querySelectorAll('.monaco-list-rows .details-label').forEach(function (node) {
-                node.classList.add('inactive-detail');
-              });
-              document.querySelector('.monaco-list-rows .focused .details-label').classList.remove('inactive-detail');
-            }
-
-          }
-
-        }
-        else if (mutation.target.classList.contains('type') || mutation.target.classList.contains('docs')) {
-
-          let element = document.querySelector('.monaco-list-rows .focused');
-
-          if (element) {
-
-            if (hasParentWithClass(mutation.target, 'details') && hasParentWithClass(mutation.target, 'suggest-widget')) {
-              window.generateEventWithSuggestData('EVENT_ON_DETAIL_SUGGEST_ROW', 'focus', element);
-            }
-
-          }
-
-        }
-
-      })
-
-    });
-
-    window.suggestObserver.observe(document, {
-      childList: true,
-      subtree: true,
-    });
-
-  }
+  // !!! depricated !!! //
+  console.warn('enableSuggestActivationEvent is deprecated and will be removed in a future version #247');
+  window.setOption('generateSuggestActivationEvent', enabled);
+  window.setOption('alwaysDisplaySuggestDetails', alwaysDisplayDetails);
+  startStopSuggestActivationObserver();
 
 }
 
 window.enableBeforeShowSuggestEvent = function(enabled) {
   
-  window.generateBeforeShowSuggestEvent = enabled;
+  // !!! depricated !!! //
+  console.warn('enableBeforeShowSuggestEvent is deprecated and will be removed in a future version #247');
+  window.setOption('generateBeforeShowSuggestEvent', enabled);
 
 }
 
-window.enableSelectSuggestEvent = function(enabled) {
-  
-  window.generateSelectSuggestEvent = enabled;
+window.enableSelectSuggestEvent = function (enabled) {
 
-  let widget = getSuggestWidget().widget;
-
-  if (widget) {
-
-    if (enabled) {
-      
-      if (!widget.onListMouseDownOrTapOrig)
-        widget.onListMouseDownOrTapOrig = widget.onListMouseDownOrTap;
-      
-      widget.onListMouseDownOrTap = function(e) {          
-        let element = getParentWithClass(e.browserEvent.target, 'monaco-list-row');
-      
-        if (element) {
-          window.generateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', 'selection', element);
-        }          
-
-        widget.onListMouseDownOrTapOrig(e);
-
-      }
-
-    }
-    else if (widget.onListMouseDownOrTapOrig) {
-      
-      widget.onListMouseDownOrTap = widget.onListMouseDownOrTapOrig;
-      
-    }
-
-  }    
+  // !!! depricated !!! //
+  console.warn('enableSelectSuggestEvent is deprecated and will be removed in a future version #247');
+  window.setOption('generateSelectSuggestEvent', enabled);
+  startStopSuggestSelectionObserver();
 
 }
 
 window.enableBeforeHoverEvent = function(enabled) {
   
-  window.generateBeforeHoverEvent = enabled;
+  // !!! depricated !!! //
+  console.warn('enableBeforeHoverEvent is deprecated and will be removed in a future version #247');
+  window.setOption('generateBeforeHoverEvent', enabled);
 
 }
 
-window.enableBeforeSignatureEvent = function(enabled) {
-  
-  window.generateBeforeSignatureEvent = enabled;
+window.enableBeforeSignatureEvent = function (enabled) {
 
-  if (window.signatureObserver != null) {
-    window.signatureObserver.disconnect();
-    window.signatureObserver = null;
-  }
-
-  if (enabled) {
-
-    window.signatureObserver = new MutationObserver(function (mutations) {
-
-      mutations.forEach(function (mutation) {
-
-        if (mutation.target.classList.contains('overflowingContentWidgets') && mutation.addedNodes.length) {
-
-          let element = mutation.addedNodes[0];
-
-          if (element.classList.contains('parameter-hints-widget') && !window.signatureVisible) {
-            element.style.display = 'none';
-            window.signatureObserver.disconnect();
-            window.signatureObserver = null;
-          }
-
-        }
-
-      })
-
-    });
-
-    window.signatureObserver.observe(document, {
-      childList: true,
-      subtree: true
-    });
-
-  }
+  // !!! depricated !!! //
+  console.warn('enableBeforeSignatureEvent is deprecated and will be removed in a future version #247');
+  window.setOption('generateBeforeSignatureEvent', enabled);
+  startStopSignatureObserver();
 
 }
 
@@ -1323,6 +1214,15 @@ window.previousMatch = function () {
 window.setOption = function (optionName, optionValue) {
 
   window.editor[optionName] = optionValue;
+
+  if (optionName == 'generateBeforeSignatureEvent')
+      startStopSignatureObserver();
+
+  if (optionName == 'generateSelectSuggestEvent')
+    startStopSuggestSelectionObserver();
+
+  if (optionName == 'disableDefinitionMessage')
+    startStopDefinitionMessegeObserver();
 
 }
 
@@ -1643,7 +1543,7 @@ function initEditorEventListenersAndProperies() {
     
     calculateDiff();
 
-    if (window.generateModificationEvent)
+    if (window.getOption('generateModificationEvent'))
       window.sendEvent('EVENT_CONTENT_CHANGED', '');
 
     checkBookmarksAfterRemoveLine(e);
@@ -1728,6 +1628,172 @@ function initEditorEventListenersAndProperies() {
 // #endregion
   
 // #region non-public functions
+function startStopDefinitionMessegeObserver() {
+
+  if (window.definitionObserver != null) {
+    window.definitionObserver.disconnect();
+    window.definitionObserver = null;
+  }
+
+  let disable_message = window.getOption('disableDefinitionMessage');
+
+  if (disable_message) {
+
+    window.definitionObserver = new MutationObserver(function (mutations) {
+
+      mutations.forEach(function (mutation) {
+
+        if (mutation.target.classList.contains('overflowingContentWidgets') && mutation.addedNodes.length) {
+          
+          let element = mutation.addedNodes[0];
+
+          if (element.classList.contains('monaco-editor-overlaymessage') && element.classList.contains('fadeIn')) {
+            element.style.display = 'none';
+          }
+
+        }
+
+      })
+
+    });
+
+    window.definitionObserver.observe(document, {
+      childList: true,
+      subtree: true
+    });
+
+  }
+
+}
+
+function startStopSuggestActivationObserver() {
+
+  if (window.suggestObserver != null) {
+    window.suggestObserver.disconnect();
+    window.suggestObserver = null;
+  }
+
+  let fire_event = window.getOption('generateSuggestActivationEvent');
+
+  onSuggestListMouseOver(fire_event);
+
+  if (fire_event) {
+
+    window.suggestObserver = new MutationObserver(function (mutations) {
+
+      mutations.forEach(function (mutation) {
+
+        if (mutation.target.classList.contains('monaco-list-rows') && mutation.addedNodes.length) {
+          let element = mutation.addedNodes[0];
+          if (element.classList.contains('monaco-list-row') && element.classList.contains('focused')) {
+            removeSuggestListInactiveDetails();
+            window.generateEventWithSuggestData('EVENT_ON_ACTIVATE_SUGGEST_ROW', 'focus', element);
+            let alwaysDisplaySuggestDetails = window.getOption('alwaysDisplaySuggestDetails');
+            if (alwaysDisplaySuggestDetails) {
+              document.querySelectorAll('.monaco-list-rows .details-label').forEach(function (node) {
+                node.classList.add('inactive-detail');
+              });
+              document.querySelector('.monaco-list-rows .focused .details-label').classList.remove('inactive-detail');
+            }
+          }
+        }
+        else if (mutation.target.classList.contains('type') || mutation.target.classList.contains('docs')) {
+          let element = document.querySelector('.monaco-list-rows .focused');
+          if (element) {
+            if (hasParentWithClass(mutation.target, 'details') && hasParentWithClass(mutation.target, 'suggest-widget')) {
+              window.generateEventWithSuggestData('EVENT_ON_DETAIL_SUGGEST_ROW', 'focus', element);
+            }
+          }
+        }
+
+      })
+
+    });
+
+    window.suggestObserver.observe(document, {
+      childList: true,
+      subtree: true,
+    });
+
+  }
+
+}
+
+function startStopSuggestSelectionObserver() {
+
+  let widget = getSuggestWidget().widget;
+
+  if (widget) {
+
+    let fire_event = window.getOption('generateSelectSuggestEvent');
+
+    if (fire_event) {
+
+      if (!widget.onListMouseDownOrTapOrig)
+        widget.onListMouseDownOrTapOrig = widget.onListMouseDownOrTap;
+
+      widget.onListMouseDownOrTap = function (e) {
+        let element = getParentWithClass(e.browserEvent.target, 'monaco-list-row');
+
+        if (element) {
+          window.generateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', 'selection', element);
+        }
+
+        widget.onListMouseDownOrTapOrig(e);
+
+      }
+
+    }
+    else if (widget.onListMouseDownOrTapOrig) {
+
+      widget.onListMouseDownOrTap = widget.onListMouseDownOrTapOrig;
+
+    }
+
+  }
+
+}
+
+function startStopSignatureObserver() {
+
+  if (window.signatureObserver != null) {
+    window.signatureObserver.disconnect();
+    window.signatureObserver = null;
+  }
+
+  let fire_event = window.getOption('generateBeforeSignatureEvent');
+
+  if (fire_event) {
+
+    window.signatureObserver = new MutationObserver(function (mutations) {
+
+      mutations.forEach(function (mutation) {
+
+        if (mutation.target.classList.contains('overflowingContentWidgets') && mutation.addedNodes.length) {
+
+          let element = mutation.addedNodes[0];
+
+          if (element.classList.contains('parameter-hints-widget') && !window.signatureVisible) {
+            element.style.display = 'none';
+            window.signatureObserver.disconnect();
+            window.signatureObserver = null;
+          }
+
+        }
+
+      })
+
+    });
+
+    window.signatureObserver.observe(document, {
+      childList: true,
+      subtree: true
+    });
+
+  }
+
+}
+
 function changeCommandKeybinding(command, keybinding) {
   
   window.editor._standaloneKeybindingService.addDynamicKeybinding('-' + command);
@@ -2011,7 +2077,7 @@ function editorOnKeyDown(e) {
   if (e.keyCode == 16 && window.editor.getPosition().lineNumber == 1)
     // ArrowUp
     window.scrollToTop();
-  else if (e.keyCode == 3 && window.generateSelectSuggestEvent) {
+  else if (e.keyCode == 3 && window.getOption('generateSelectSuggestEvent')) {
     // Enter
     let element = document.querySelector('.monaco-list-row.focused');
     if (element) {
@@ -2048,7 +2114,8 @@ function editorOnKeyDown(e) {
   }
   else if (e.keyCode == 2) {
     // Tab
-    if (window.generateSelectSuggestEvent) {
+    let fire_event = window.getOption('generateSelectSuggestEvent');
+    if (fire_event) {
       let element = document.querySelector('.monaco-list-row.focused');
       if (element) {
         window.generateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', 'selection', element);
@@ -2689,7 +2756,9 @@ function onSuggestListMouseOver(activationEventEnabled) {
 
   if (activationEventEnabled) {
     
-    if (!window.editor.alwaysDisplaySuggestDetails) {
+    let alwaysDisplaySuggestDetails = window.getOption('alwaysDisplaySuggestDetails');
+
+    if (!alwaysDisplaySuggestDetails) {
 
       widget.listElement.onmouseoverOrig = widget.listElement.onmouseover;
       widget.listElement.onmouseover = function(e) {        
@@ -2774,7 +2843,9 @@ document.onkeypress = function (e) {
 
     if (element) {
 
-      if (window.generateSelectSuggestEvent) {
+      let fire_event = window.getOption('generateSelectSuggestEvent');
+
+      if (fire_event) {
         window.generateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', 'force-selection-' + char, element);
       }
 
