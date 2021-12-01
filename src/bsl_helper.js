@@ -5679,8 +5679,8 @@ class bslHelper {
 		];
 
 		const complexWords = [
-			'исключение', 'иначе', 'иначеесли',
-			'except', 'else', 'elseif'
+			'исключение', 'иначе', 'иначеесли', '#иначе', '#иначеесли',
+			'except', 'else', 'elseif', '#else', '#elseif'
 		];
 
 		let format_range = model.getFullModelRange();
