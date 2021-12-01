@@ -5669,13 +5669,13 @@ class bslHelper {
 		let result = '';
 
 		const startWords = [
-			'если', 'для', 'пока', 'функция', 'процедура', 'попытка',
-			'if', 'for', 'while', 'function', 'procedure', 'try'
+			'если', '#если', 'для', 'пока', 'функция', 'процедура', 'попытка',
+			'if', '#if', 'for', 'while', 'function', 'procedure', 'try'
 		];
 
 		const stopWords = [
-			'конецесли', 'конеццикла', 'конецфункции', 'конецпроцедуры', 'конецпопытки',
-			'endif', 'enddo', 'endfunction', 'endprocedure', 'endtry'
+			'конецесли', '#конецесли', 'конеццикла', 'конецфункции', 'конецпроцедуры', 'конецпопытки',
+			'endif', '#endif', 'enddo', 'endfunction', 'endprocedure', 'endtry'
 		];
 
 		const complexWords = [
