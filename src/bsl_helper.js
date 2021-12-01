@@ -4983,14 +4983,18 @@ class bslHelper {
 	 * 
 	 * @returns {array} - array of folding ranges
 	 */
-	static getRangesForConstruction(model, startString, endString) {
+	static getRangesForConstruction(model, startString, endString, semicolon) {
 		
 		let ranges = [];
 		
 		const startMatches = model.findMatches("(?:^|\\b)?(" + startString + ") ", false, true)	
 		let startMatch = null;
 
-		const endMatches =  model.findMatches("(?:^|\\b)?(" + endString + ") ?;", false, true)	
+		let template = '(?:^|\\b)?(' + endString + ') ?';
+		if (semicolon)
+			template += ';';
+
+		const endMatches = model.findMatches(template, false, true);
 		let endMatch = null;
 		
 		let structFound = false;
@@ -5071,14 +5075,15 @@ class bslHelper {
 	 * @returns {array} - array of folding ranges 
 	 */
 	static getFoldingRanges(model) {
-		
+
 		let ranges = this.getRangesForRegexp(model, "\"(?:\\n|\\r|\\|)*(?:выбрать|select)(?:(?:.|\\n|\\r)*?)?\"");
 		ranges = ranges.concat(this.getRangesForRegexp(model, "(?:^|\\b)(?:функция|процедура).*\\((?:.|\\n|\\r)*?(?:конецпроцедуры|конецфункции)"));
-		ranges = ranges.concat(this.getRangesForRegexp(model, "(?:^|\\b)#.+(?:.|\\n|\\r)*?#.+$"));
-		ranges = ranges.concat(this.getRangesForConstruction(model, "пока|while", "конеццикла|enddo"));
-		ranges = ranges.concat(this.getRangesForConstruction(model, "для .*(?:по|из) .*|for .* (?:to|each) .*", "конеццикла|enddo"));
-		ranges = ranges.concat(this.getRangesForConstruction(model, "если|if", "конецесли|endif"));
-		
+		ranges = ranges.concat(this.getRangesForConstruction(model, "пока|while", "конеццикла|enddo", true));
+		ranges = ranges.concat(this.getRangesForConstruction(model, "для .*(?:по|из) .*|for .* (?:to|each) .*", "конеццикла|enddo", true));
+		ranges = ranges.concat(this.getRangesForConstruction(model, "если|if", "конецесли|endif", true));
+		ranges = ranges.concat(this.getRangesForConstruction(model, "#область|#region", "#конецобласти|#endregion", false));
+		ranges = ranges.concat(this.getRangesForConstruction(model, "#если|#if", "#конецесли|#endif", false));
+
 		return ranges;
 
 	}
