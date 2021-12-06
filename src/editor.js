@@ -34,6 +34,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   inlineDiffEditor = null;
   inlineDiffWidget = null;
   events_queue = [];
+  editor_options = [];
   // #endregion
 
   // #region public API
@@ -742,6 +743,10 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       }
     }
 
+    for (const [key, value] of Object.entries(editor_options)) {
+      setOption(key, value);
+    }
+
   }
 
   triggerSuggestions = function() {
@@ -1250,6 +1255,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   setOption = function (optionName, optionValue) {
 
     editor[optionName] = optionValue;
+    editor_options[optionName] = optionValue;
 
     if (optionName == 'generateBeforeSignatureEvent')
       startStopSignatureObserver();
