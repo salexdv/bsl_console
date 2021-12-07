@@ -6009,6 +6009,11 @@ class bslHelper {
 						break;
 					}
 
+					if (key.toLowerCase() == class_name) {
+						module_name = class_name;
+						break;
+					}
+
 				}
 
 			}
