@@ -6000,6 +6000,18 @@ class bslHelper {
 				}
 
 			}
+			else {
+
+				for (const [key, value] of Object.entries(bslMetadata.commonModules.items)) {
+
+					if (key.toLowerCase() == this.word) {
+						module_name = this.word;
+						break;
+					}
+
+				}
+
+			}
 
 			if (module_name.toLowerCase() == class_name.toLowerCase())
 				class_name = '';
