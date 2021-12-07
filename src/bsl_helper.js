@@ -5973,14 +5973,22 @@ class bslHelper {
 		if (editor.generateDefinitionEvent) {
 
 			let expression = this.lastExpression;
-			let exp_arr = this.lastExpression.split('.');
+			let last_exp_arr = expression.split('.');
+			let full_exp_array = this.getRawExpressioArray();
+
 			let module_name = '';
+			let class_name = '';			
 
-			if (1 < exp_arr.length) {
+			if (2 < full_exp_array.length && full_exp_array[full_exp_array.length - 2] == '.')
+				class_name = full_exp_array[full_exp_array.length - 3];
 
-				exp_arr[exp_arr.length - 1] = this.word;
-				expression = exp_arr.join('.');
-				let first_exp = exp_arr[0].toLocaleLowerCase();
+			full_exp_array[full_exp_array.length - 1] = this.word;
+
+			if (1 < last_exp_arr.length) {
+				
+				last_exp_arr[last_exp_arr.length - 1] = this.word;
+				expression = last_exp_arr.join('.');
+				let first_exp = last_exp_arr[0].toLocaleLowerCase();
 
 				for (const [key, value] of Object.entries(bslMetadata.commonModules.items)) {
 
@@ -5993,12 +6001,17 @@ class bslHelper {
 
 			}
 
+			if (module_name.toLowerCase() == class_name.toLowerCase())
+				class_name = '';
+
 			let event_params = {
 				word: this.word,
 				expression: expression,
 				module: module_name,
+				class: class_name,
 				line: this.lineNumber,
-				column: this.column
+				column: this.column,
+				expression_array: full_exp_array,
 			}
 
 			sendEvent('EVENT_GET_DEFINITION', event_params);
