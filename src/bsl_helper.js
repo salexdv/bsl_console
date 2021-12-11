@@ -829,7 +829,12 @@ class bslHelper {
 
 				if (ref && ref.indexOf(':') != -1) {
 					if (metadataKey && medatadaName) {
-						ref = metadataKey + '.' + medatadaName + '.' +((ref.indexOf(':obj') != -1) ? 'obj' : 'ref');
+						if (ref.indexOf(':metadata') != -1)
+							ref = metadataKey + '.metadata';
+						else if (ref.indexOf(':obj') != -1)
+							ref = metadataKey + '.' + medatadaName + '.obj';
+						else
+							ref = metadataKey + '.' + medatadaName + '.ref';
 					}
 				}
 
