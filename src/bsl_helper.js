@@ -794,6 +794,60 @@ class bslHelper {
 	};
 
 	/**
+	 * Fill suggestion list for metadata description
+	 *
+	 * @param {array} suggestions the list of suggestions
+	 *
+	 * @returns {boolean} true - is metadata description, fasle - otherwise
+	 */
+	getMetadataDescription(suggestions) {
+
+		if (this.lastRawExpression == 'метаданные' || this.lastRawExpression == 'metadata') {
+
+			let exp_arr = this.getRawExpressioArray();
+
+			if (exp_arr.length <= 3 || exp_arr[exp_arr.length - 4] != '.') {
+				
+				for (const [key, value] of Object.entries(bslMetadata)) {
+
+					if (this.objectHasProperties(value, 'metadata')) {
+
+						let command = {
+							id: 'vs.editor.ICodeEditor:1:saveref',
+							arguments: [
+								{
+									"name": value[this.nameField],
+									"data": {
+										"ref": key + '.metadata',
+										"sig": null
+									}									
+								}
+							]
+						}
+						
+						suggestions.push({
+							label: value[this.nameField],
+							kind: monaco.languages.CompletionItemKind.Function,
+							insertText: value[this.nameField],
+							insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,							
+							command: command
+						});
+
+					}
+		
+				}
+
+				return true;
+
+			}
+
+		}
+
+		return false;
+
+	}
+
+	/**
 	 * Gets the list of methods owned by object
 	 * and fills the suggestions by it
 	 * 
@@ -2623,9 +2677,11 @@ class bslHelper {
 						}
 					}
 
-					if (!suggestions.length) {
-						this.getStackCompletion(suggestions)
-					}
+					if (!suggestions.length)
+						this.getStackCompletion(suggestions);
+
+					if (!suggestions.length)
+						this.getMetadataDescription(suggestions);
 
 				}
 
