@@ -1777,8 +1777,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       }
 
       markers_data.push({
-        startLineNumber: marker.lineNumber,
-        endLineNumber: marker.lineNumber,
+        startLineNumber: marker.startLineNumber ? marker.startLineNumber : marker.lineNumber,
+        endLineNumber: marker.endLineNumber ? marker.endLineNumber : marker.lineNumber,
         startColumn: marker.startColumn ? marker.startColumn : model.getLineFirstNonWhitespaceColumn(marker.lineNumber),
         endColumn: marker.endColumn ? marker.endColumn : model.getLineFirstNonWhitespaceColumn(marker.lineNumber),
         severity: severity,
