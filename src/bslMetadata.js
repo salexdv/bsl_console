@@ -587,8 +587,8 @@ define([], function () {
             }
          },
          "metadata":{
-            "name":"Документы",
-            "name_en":"Documents",
+            "name":"Метаданные",
+            "name_en":"Metadata",
             "properties":{
                "Имя":{
                   "name":"Имя",
