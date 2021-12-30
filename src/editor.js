@@ -2024,6 +2024,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   
   }
 
+  function getFindWidget() {
+  
+    return getActiveEditor()._overlayWidgets['editor.contrib.findWidget'];
+
+  }
+
   function getNativeLinkHref(element, isForwardDirection) {
 
     let href = '';
@@ -2360,7 +2366,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   setFindWidgetDisplay = function(value) {
 
-    let find_widget = getActiveEditor()._overlayWidgets['editor.contrib.findWidget'];
+    let find_widget = getFindWidget();
     
     if (find_widget)
       find_widget.widget._domNode.style.display = value;
@@ -2369,7 +2375,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   function setFindWidgetDisplay(value) {
 
-    let find_widget = getActiveEditor()._overlayWidgets['editor.contrib.findWidget'];
+    let find_widget = getFindWidget();
     
     if (find_widget)
       find_widget.widget._domNode.style.display = value;
@@ -2378,7 +2384,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   function focusFindWidgetInput() {
 
-    let find_widget = getActiveEditor()._overlayWidgets['editor.contrib.findWidget'];
+    let find_widget = getFindWidget();
 
     if (find_widget)
       find_widget.widget.focusFindInput();
