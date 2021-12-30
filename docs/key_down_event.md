@@ -6,7 +6,7 @@
 
 ## Управление событием
 
-За генерацию события отвечает опция [`generateOnKeyDownEvent`](set_option.md). Через установку опции `onKeyDownFilter` можно дополнительно фильтровать события по коду клавиши. Все коды можно посмотреть [тут](https://microsoft.github.io/monaco-editor/api/enums/monaco.keycode)
+За генерацию события отвечает опция [`generateOnKeyDownEvent`](set_option.md). Через установку опции `onKeyDownFilter` можно дополнительно фильтровать события по коду клавиши. Все коды можно посмотреть [тут](https://microsoft.github.io/monaco-editor/api/enums/monaco.KeyCode)
 
 ## Пример вызова
 
