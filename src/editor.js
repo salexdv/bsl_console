@@ -1383,10 +1383,18 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   
   }
 
-  isSuggestWidgetVisible = function() {
-  
-    return getSuggestWidget().widget.suggestWidgetVisible.get();
-  
+  isSuggestWidgetVisible = function () {
+
+    let content_widget = getSuggestWidget();
+    return content_widget ? content_widget.widget.suggestWidgetVisible.get() : false;
+
+  }
+
+  isParameterHintsWidgetVisible = function () {
+
+    let content_widget = getParameterHintsWidget();
+    return content_widget ? content_widget.widget.visible : false;
+
   }
 
   insertSnippet = function(snippet) {
@@ -2007,6 +2015,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   function getSuggestWidget() {
 
     return editor._contentWidgets['editor.widget.suggestWidget'];
+  
+  }
+
+  function getParameterHintsWidget() {
+
+    return editor._contentWidgets['editor.widget.parameterHintsWidget'];
   
   }
 
