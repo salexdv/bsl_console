@@ -2175,7 +2175,32 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  function generateOnKeyDownEvent(e) {
+
+    if (getOption('generateOnKeyDownEvent')) {
+
+      let find_widget = getFindWidget();
+
+      let event_params = {
+        keyCode: e.keyCode,
+        suggestWidgetVisible: isSuggestWidgetVisible(),
+        ParameterHintsWidgetVisible: isParameterHintsWidgetVisible(),
+        findWidgetVisible: (find_widget && find_widget.position) ? true : false,
+        ctrlPressed: e.ctrlKey,
+        altPressed: e.altKey,
+        shiftPressed: e.shiftKey,
+        position: editor.getPosition()
+      }
+
+      sendEvent('EVENT_ON_KEY_DOWN', event_params);
+
+    }
+
+  }
+
   function editorOnKeyDown(e) {
+
+    generateOnKeyDownEvent(e);
 
     editor.lastKeyCode = e.keyCode;
 
