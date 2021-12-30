@@ -21,6 +21,8 @@ setOption("skipInsertSuggestionAcceptor", true);
 * `generateBeforeHoverEvent` - *boolean*, включает/отключает генерацию [события](before_hover_event.md) перед появлением всплывающей подсказки для слова при наведении мыши
 * `generateBeforeSignatureEvent` - *boolean*, включает/отключает генерацию [события](before_signature_event.md) перед появлением всплывающей подсказки по вызову процедуры/метода
 * `generateDefinitionEvent` - *boolean*, включает генерацию [события](get_definition_event.md) при переходе к определению
+* `generateOnKeyDownEvent` - *boolean*, включает генерацию [события](key_down_event.md) при нажатии на клавиатуру
+	* `onKeyDownFilter` - *string*, дополнительный фильтр по кодам клавиш
 
 ##### Управление подсказками
 Позволяет оставить только пользовательские подсказки
