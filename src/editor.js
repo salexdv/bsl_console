@@ -2177,7 +2177,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   function generateOnKeyDownEvent(e) {
 
-    if (getOption('generateOnKeyDownEvent')) {
+    let fire_event = getOption('generateOnKeyDownEvent');
+    let filter = getOption('onKeyDownFilter');
+    let filter_list = filter ? filter.split(',') : [];
+    fire_event = fire_event && (!filter || 0 <= filter_list.indexOf(e.keyCode.toString()));
+
+    if (fire_event) {
 
       let find_widget = getFindWidget();
 
