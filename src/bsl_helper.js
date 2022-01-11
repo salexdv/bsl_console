@@ -1094,13 +1094,15 @@ class bslHelper {
 
 						if (isQueryMode() || isDCSMode()) {
 
-							if (this.objectHasProperties(bslMetadata, itemName, 'items', subItemName, 'properties'))
+							if (this.objectHasProperties(bslMetadata, itemName, 'items', subItemName, 'properties')) {
+								
 								this.fillSuggestionsForMetadataItem(suggestions, bslMetadata[itemName].items[subItemName]);
+								let module_type = isObject ? 'object' : 'manager';
+								
+								if (!this.objectHasProperties(bslMetadata, itemName, 'items', subItemName, module_type))
+									required_metadata.push('module.' + module_type + '.' + itemName + '.' + subItemName);
 
-							let module_type = isObject ? 'object' : 'manager';
-
-							if (!this.objectHasProperties(bslMetadata, itemName, 'items', subItemName, module_type))
-								required_metadata.push('module.' + module_type + '.' + itemName + '.' + subItemName);
+							}							
 							else if (this.objectHasProperties(bslMetadata, itemName, 'items', subItemName))
 								required_metadata.push(itemName + '.' + subItemName);
 							else if (this.objectHasProperties(bslMetadata, itemName, 'items'))
