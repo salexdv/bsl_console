@@ -345,6 +345,12 @@ define([], function () {
             expBeforeAs: [
                 'КОНЕЦ', 'END', 'NULL', 'НЕОПРЕДЕЛЕНО', 'UNDEFINED'
             ],
+            characteristics: [
+                'ХАРАКТЕРИСТИКИ', 'CHARACTERISTICS', 'СПИСОК', 'LIST', 'ТИП', 'TYPE',
+                'ИДЕНТИФИКАТОР', 'ID', 'ИМЯ', 'NAME', 'ТИПЗНАЧЕНИЯ', 'VALUETYPE',
+                'ХАРАКТЕРИСТИКА', 'CHARACTERISTIC', 'ОБЪЕКТ', 'OBJECT', 'ЗНАЧЕНИЯ',
+                'VALUES', 'ЗНАЧЕНИЕ', 'VALUE'
+            ],
             tokenizer: {
                 root: [                      
                     [/(поместить|из|into|from)/, { token: 'query.keyword', next: '@intofrom' }],
@@ -412,6 +418,12 @@ define([], function () {
     
     let dcs_expressions = query_expressions.concat(bsl_language.rules.DCSFunctions);
     dcs_language.rules.expressions = dcs_expressions; 
+    dcs_language.rules.tokenizer.root.unshift(
+        [/[a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]*/, { cases: {
+            '@characteristics': 'query.keyword',
+            '@default': 'query'
+        }}]
+    );
 
     languages = {
         bsl: {
