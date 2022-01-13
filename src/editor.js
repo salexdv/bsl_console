@@ -400,7 +400,11 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   getSelectedText = function() {
 
-    return editor.getModel().getValueInRange(editor.getSelection());
+    const active_editor = getActiveEditor();
+    const model = active_editor.getModel();
+    const selection = active_editor.getSelection();
+    
+    return model.getValueInRange(selection);
 
   }
 
