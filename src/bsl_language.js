@@ -124,7 +124,7 @@ define([], function () {
                 'editorCursor.foreground': '#d4d4d4',
                 'editorSuggestWidget.background': '#252526',
                 'editorSuggestWidget.foreground': '#d4d4d4',
-                'editorSuggestWidget.selectedBackground': '#062f4a',
+                'editorSuggestWidget.selectedBackground': '#094771',
                 'editorSuggestWidget.highlightForeground': '#18a3ff',
                 'editorWidget.background': '#252526',
                 'editorWidget.foreground': '#d4d4d4',
