@@ -128,7 +128,8 @@ define([], function () {
                 'editorWidget.background': '#252526',
                 'editorWidget.foreground': '#d4d4d4',
                 'editorWidget.border': '#d4d4d4',
-                'list.hoverBackground': '#2a2d2e'
+                'list.hoverBackground': '#2a2d2e',
+                'editor.lineHighlightBorder': '#282828'
             },
             white: {
                 'editor.selectionBackground': '#ffe877',
