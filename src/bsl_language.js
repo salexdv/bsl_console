@@ -85,7 +85,7 @@ define([], function () {
                 { token: 'string.invalidbsl', foreground: 'c3602c' },
                 { token: 'numberbsl', foreground: 'b5cea8' },
                 { token: 'number.floatbsl', foreground: 'b5cea8' },
-                { token: 'preprocbsl', foreground: '963200' }                
+                { token: 'preprocbsl', foreground: '963200' }
             ],
             darkQueryOff: [
                 { token: 'querybsl', foreground: 'c3602c' },                    
@@ -127,7 +127,8 @@ define([], function () {
                 'editorSuggestWidget.selectedBackground': '#062f4a',
                 'editorWidget.background': '#252526',
                 'editorWidget.foreground': '#d4d4d4',
-                'editorWidget.border': '#d4d4d4'                
+                'editorWidget.border': '#d4d4d4',
+                'list.hoverBackground': '#2a2d2e'
             },
             white: {
                 'editor.selectionBackground': '#ffe877',
