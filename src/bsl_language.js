@@ -125,6 +125,7 @@ define([], function () {
                 'editorSuggestWidget.background': '#252526',
                 'editorSuggestWidget.foreground': '#d4d4d4',
                 'editorSuggestWidget.selectedBackground': '#062f4a',
+                'editorSuggestWidget.highlightForeground': '#18a3ff',
                 'editorWidget.background': '#252526',
                 'editorWidget.foreground': '#d4d4d4',
                 'editorWidget.border': '#d4d4d4',
