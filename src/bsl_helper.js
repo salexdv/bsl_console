@@ -1077,7 +1077,7 @@ class bslHelper {
 					let subItemName = refArray[1];
 					let isObject = (refArray.length == 3 && refArray[2] == 'obj');
 
-					if (itemName == 'classes' || itemName == 'types') {
+					if (itemName == 'classes' || itemName == 'types' || itemName == 'universalObjects') {
 						if (this.objectHasProperties(bslGlobals, itemName, subItemName)) {
 							this.getClassSuggestions(suggestions, bslGlobals[itemName][subItemName]);
 						}
