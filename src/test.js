@@ -949,13 +949,28 @@ describe("Проверка автокомлита и подсказок реда
 
       });
 
-      it("проверка автокомплита табличных частей для справочника 'Товары.' ", function () {
+      it("проверка подсказки табличных частей для справочника 'Товары.' ", function () {
+        
         bsl = helper('Товар = Справочники.Товары.НайтиПоКоду(1);\nТовар.');
         let suggestions = [];
         bsl.getMetadataCompletion(suggestions, bslMetadata)
         expect(suggestions).to.be.an('array').that.not.is.empty;
         assert.equal(suggestions.some(suggest => suggest.label === "ДополнительныеРеквизиты"), true);
-      });      
+
+      });
+      
+      it("проверка подсказки методов табличных частей для справочника 'Товары.' по ссылке", function () {
+        
+        bsl = helper('Спр = Справочники.Товары.НайтиПоКоду(1);\nСпр.ДополнительныеРеквизиты.');        
+        let suggestions = [];
+        contextData = new Map([
+          [2, new Map([["дополнительныереквизиты", { "ref": "universalObjects.ТабличнаяЧасть", "sig": null }]])],
+        ]);
+        bsl.getRefCompletion(suggestions);
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "ВыгрузитьКолонки"), true);      
+
+      });
       
     }
 
