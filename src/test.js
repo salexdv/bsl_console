@@ -948,6 +948,14 @@ describe("Проверка автокомлита и подсказок реда
         assert.equal(suggestions.some(suggest => suggest.label === "Справочники"), true);
 
       });
+
+      it("проверка автокомплита табличных частей для справочника 'Товары.' ", function () {
+        bsl = helper('Товар = Справочники.Товары.НайтиПоКоду(1);\nТовар.');
+        let suggestions = [];
+        bsl.getMetadataCompletion(suggestions, bslMetadata)
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "ДополнительныеРеквизиты"), true);
+      });      
       
     }
 
