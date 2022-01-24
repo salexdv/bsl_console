@@ -1065,6 +1065,7 @@ class bslHelper {
 		if (wordContext && wordContext.ref) {
 			
 			let arrRefs = wordContext.ref.split(',');
+			let parentRef = wordContext.parent_ref;
 			let required_metadata = [];
 						
 			for (let i = 0; i < arrRefs.length; i++) {
@@ -1077,7 +1078,7 @@ class bslHelper {
 					let subItemName = refArray[1];
 					let isObject = (refArray.length == 3 && refArray[2] == 'obj');
 
-					if (itemName == 'classes' || itemName == 'types' || itemName == 'universalObjects') {
+					if (itemName == 'classes' || itemName == 'types') {
 						if (this.objectHasProperties(bslGlobals, itemName, subItemName)) {
 							this.getClassSuggestions(suggestions, bslGlobals[itemName][subItemName]);
 						}
@@ -1090,13 +1091,16 @@ class bslHelper {
 					else if (subItemName == 'metadata' && this.objectHasProperties(bslMetadata, itemName, 'metadata')) {
 						this.getClassSuggestions(suggestions, bslMetadata[itemName]['metadata']);
 					}
+					else if (itemName == 'universalObjects' && this.objectHasProperties(bslGlobals, itemName, subItemName)) {
+						this.getUniversalObjectSuggestions(suggestions, bslGlobals[itemName][subItemName], parentRef);
+					}
 					else {
 
 						if (isQueryMode() || isDCSMode()) {
 
 							if (this.objectHasProperties(bslMetadata, itemName, 'items', subItemName, 'properties')) {
 								
-								this.fillSuggestionsForMetadataItem(suggestions, bslMetadata[itemName].items[subItemName]);
+								this.fillSuggestionsForMetadataItem(suggestions, bslMetadata[itemName].items[subItemName], itemName, subItemName);
 								let module_type = isObject ? 'object' : 'manager';
 								
 								if (!this.objectHasProperties(bslMetadata, itemName, 'items', subItemName, module_type))
@@ -1111,22 +1115,39 @@ class bslHelper {
 						}
 						else {
 
-							let isObject = (refArray.length == 3 && refArray[2] == 'obj');
+							let tabIndex = refArray.indexOf('tabulars');
+							let tabName = (0 < tabIndex) ? refArray[3] : '';
+							let isObject = (0 < refArray.indexOf('obj'));
 							let methodsName = isObject ? 'objMethods' : 'refMethods'
 
 							if (this.objectHasProperties(bslMetadata, itemName, 'items', subItemName, 'properties')) {
 								
 								let module_type = isObject ? 'object' : 'manager';
 								
-								if (!this.objectHasProperties(bslMetadata, itemName, 'items', subItemName, module_type))
-									required_metadata.push('module.' + module_type + '.' + itemName + '.' + subItemName);
+								if (tabName) {
 
-								this.fillSuggestionsForMetadataItem(suggestions, bslMetadata[itemName].items[subItemName]);
-								this.getMetadataMethods(suggestions, bslMetadata[itemName], methodsName, itemName, subItemName);
+									if (this.objectHasProperties(bslMetadata, itemName, 'items', subItemName, 'tabulars', tabName)) {
+										let tabObject = bslMetadata[itemName].items[subItemName].tabulars[tabName];
+										this.fillSuggestionsForMetadataItem(suggestions, tabObject, itemName, subItemName);
+									}
+									else {
+										required_metadata.push(itemName + '.' + subItemName + '.tabulars.' + tabName);
+									}
 
-								if (isObject) {
-									this.getMetadataCommmonObjectProperties(suggestions, bslMetadata[itemName]);
-									this.getMetadataGeneralMethodCompletionByType(bslMetadata[itemName].items[subItemName], 'object', suggestions, 'Method');
+								}
+								else {
+
+									if (!this.objectHasProperties(bslMetadata, itemName, 'items', subItemName, module_type))
+										required_metadata.push('module.' + module_type + '.' + itemName + '.' + subItemName);
+
+									this.fillSuggestionsForMetadataItem(suggestions, bslMetadata[itemName].items[subItemName], itemName, subItemName);
+									this.getMetadataMethods(suggestions, bslMetadata[itemName], methodsName, itemName, subItemName);
+
+									if (isObject) {
+										this.getMetadataCommmonObjectProperties(suggestions, bslMetadata[itemName]);
+										this.getMetadataGeneralMethodCompletionByType(bslMetadata[itemName].items[subItemName], 'object', suggestions, 'Method');
+									}
+
 								}
 								
 							}
@@ -1268,7 +1289,7 @@ class bslHelper {
 					
 					if (ikey.toLowerCase() == objName) {
 						
-						this.fillSuggestionsForMetadataItem(suggestions, ivalue);
+						this.fillSuggestionsForMetadataItem(suggestions, ivalue, key, ikey);
 						this.getMetadataMethods(suggestions, ivalue, 'methods', null, null);
 
 						if (ivalue.hasOwnProperty('ref'))
@@ -1309,6 +1330,94 @@ class bslHelper {
 			}
 
 		}		
+
+	}
+
+	/**
+	 * Fills the suggestions for universal objects
+	 * like Tabulas Sections
+	 * 
+	 * @param {array} suggestions the list of suggestions
+	 * @param {object} obj universal object
+	 * @param {string}  parentRef ref to parent like catalogs.Товары.tabulars.ДополнительныеРеквизиты
+	 */
+	 getUniversalObjectSuggestions(suggestions, obj, parentRef) {
+
+		if (obj.hasOwnProperty('methods')) {
+
+			for (const [mkey, mvalue] of Object.entries(obj.methods)) {
+
+				let description = mvalue.hasOwnProperty('returns') ? mvalue.returns : '';
+				let signatures = this.getMethodsSignature(mvalue);
+				let command = null;
+				let postfix = '';				
+				let post_action = null;
+
+				if (signatures.length) {
+					postfix = '(';
+					post_action = 'editor.action.triggerParameterHints';
+				}
+
+				if (signatures.length == 0 || (signatures.length == 1 && signatures[0].parameters.length == 0))
+					postfix = '()';
+				
+				let ref = null;
+				if (mvalue.hasOwnProperty('ref'))
+					ref = mvalue.ref.replace('parent', parentRef);
+
+				if (ref || signatures.length) {					
+					// If the attribute contains a ref, we need to run the command to save the position of ref
+					command = {
+						id: 'vs.editor.ICodeEditor:1:saveref',
+						arguments: [
+							{
+								"name": mvalue[this.nameField],
+								"data": {
+									"ref": ref,
+									"sig": signatures
+								},
+								"post_action": post_action
+							}
+						]
+					};
+				}
+
+				suggestions.push({
+					label:  mvalue[this.nameField],
+					kind: monaco.languages.CompletionItemKind.Method,
+					insertText: mvalue[this.nameField] + postfix,
+					insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+					detail: mvalue.description,
+					documentation: description,
+					command: command
+				});
+	
+			}
+
+		}
+
+		if (obj.hasOwnProperty('properties')) {
+
+			for (const [pkey, pvalue] of Object.entries(obj.properties)) {
+				
+				let command = null;
+								
+				if (pvalue.hasOwnProperty('ref'))
+					command = { id: 'vs.editor.ICodeEditor:1:saveref', arguments: [{ "name": pvalue[this.nameField], "data": { "ref": pvalue.ref, "sig": null } }] };
+
+				suggestions.push({
+					label: pvalue[this.nameField],
+					kind: monaco.languages.CompletionItemKind.Field,
+					insertText: pvalue[this.nameField],
+					insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+					detail: pvalue.description,
+					documentation: '',
+					command: command
+				});
+
+			}
+
+		}
 
 	}
 
@@ -1548,11 +1657,21 @@ class bslHelper {
 	 * @param {array} suggestions the list of suggestions
 	 * @param {object} tabulars object with tabulars description
 	 */
-	fillSuggestionsForItemTabulars(suggestions, tabulars) {
+	fillSuggestionsForItemTabulars(suggestions, tabulars, metadataName, metadataItem) {
 
 		for (const [key, value] of Object.entries(tabulars)) {
 
-			let command = { id: 'vs.editor.ICodeEditor:1:saveref', arguments: [{'name': key, "data": { "ref": 'universalObjects.ТабличнаяЧасть', "sig": null } }]};
+			let command = {
+				id: 'vs.editor.ICodeEditor:1:saveref',
+				arguments: [{
+					'name': key,
+					"data": {
+						"ref": 'universalObjects.ТабличнаяЧасть',
+						"parent_ref": metadataName + '.' + metadataItem + '.tabulars.' + key,
+						"sig": null
+					}
+				}]
+			};
 
 			suggestions.push({
 				label: key,
@@ -1573,7 +1692,7 @@ class bslHelper {
 	 * @param {array} suggestions the list of suggestions
 	 * @param {object} obj object from BSL-JSON dictionary
 	 */
-	fillSuggestionsForMetadataItem(suggestions, obj) {
+	fillSuggestionsForMetadataItem(suggestions, obj, metadataName, metadataItem) {
 
 		let objects = [];
 		
@@ -1584,7 +1703,7 @@ class bslHelper {
 			objects.push(obj.resources);
 		
 		if (obj.hasOwnProperty('tabulars')) {
-			this.fillSuggestionsForItemTabulars(suggestions, obj.tabulars)
+			this.fillSuggestionsForItemTabulars(suggestions, obj.tabulars, metadataName, metadataItem)
 		}
 
 		for (let idx = 0; idx < objects.length; idx++) {
@@ -1616,7 +1735,7 @@ class bslHelper {
 				
 
 				if (pvalue.hasOwnProperty('properties'))
-					this.fillSuggestionsForMetadataItem(nestedSuggestions, pvalue);
+					this.fillSuggestionsForMetadataItem(nestedSuggestions, pvalue, metadataName, metadataItem);
 
 				if (pvalue.hasOwnProperty('methods'))
 					this.getMetadataMethods(nestedSuggestions, pvalue, 'methods', null, null);
@@ -1733,7 +1852,7 @@ class bslHelper {
 										requestMetadata('module.' + module_type + '.' + metadataName.toLowerCase() + '.' + metadataItem.toLowerCase());
 
 									itemExists = true;
-									this.fillSuggestionsForMetadataItem(suggestions, ivalue);
+									this.fillSuggestionsForMetadataItem(suggestions, ivalue, key, ikey);
 									this.getMetadataMethods(suggestions, value, methodsName, key, ikey);
 
 									if (isObject)
@@ -1958,7 +2077,7 @@ class bslHelper {
 							}
 							
 							if (key == 'enums') {
-								this.fillSuggestionsForMetadataItem(suggestions, itemNode)
+								this.fillSuggestionsForMetadataItem(suggestions, itemNode, metadataName, metadataItem)
 							}
 
 						} else {
