@@ -2190,6 +2190,26 @@ class bslHelper {
 			}			
 
 		}
+		else {
+
+			let offset = position.column - varName.length - 2;
+			let range = new monaco.Range(position.lineNumber, offset, position.lineNumber, offset + 1);
+			let char = this.model.getValueInRange(range);
+			let prev_var = this.model.getWordUntilPosition(new monaco.Position(position.lineNumber, offset));
+
+			if (char == '.' && prev_var) {
+				stack.push({
+					var: varName,
+					line: position.lineNumber,
+					previous_ref: false,
+					column: position.column - 1
+				});
+				let prev_position = new monaco.Position(position.lineNumber, offset + 1);
+				let prev_stack = this.getMetadataStackForVar(prev_var.word.toLowerCase(), prev_position);
+				stack = prev_stack.concat(stack);
+			}
+
+		}
 
 		return stack;
 
@@ -2201,10 +2221,11 @@ class bslHelper {
 	 * @param {string} expression name of variable
 	 * @param {string} ref type of ref
 	 * @param {int} line number line
+	 * @param {string}  parentRef ref to parent like catalogs.Товары.tabulars.ДополнительныеРеквизиты
 	 * 
 	 * @returns {object} object containing the ref
 	 */
-	setContextDataForRefExpression(expression, ref, line) {
+	setContextDataForRefExpression(expression, ref, line, parentRef) {
 												
 		let lineContextData = contextData.get(line);
 		
@@ -2213,7 +2234,11 @@ class bslHelper {
 		}
 
 		lineContextData = contextData.get(line);
-		let data = { "ref": ref, "sig": null };
+		let data = {
+			"ref": ref,
+			"parent_ref": parentRef,
+			"sig": null
+		};
 		lineContextData.set(expression, data);
 
 		return data;
@@ -2243,7 +2268,7 @@ class bslHelper {
 
 				if (command && command.id =='vs.editor.ICodeEditor:1:saveref') {
 																	
-					return this.setContextDataForRefExpression(exp_name, command.arguments[0].data.ref, item.line);
+					return this.setContextDataForRefExpression(exp_name, command.arguments[0].data.ref, item.line, command.arguments[0].data.parent_ref);
 
 				}
 				
@@ -2399,7 +2424,7 @@ class bslHelper {
 	 getStackCompletion(suggestions) {
 
 		let exp = this.lastRawExpression;		
-		let stack = this.getMetadataStackForVar(exp, this.position);
+		let stack = this.getMetadataStackForVar(exp, this.position, false);
 		let itemExists = this.getMetadataStackCompletionFromFullDefinition(suggestions, stack);		
 
 		if (!itemExists) {
