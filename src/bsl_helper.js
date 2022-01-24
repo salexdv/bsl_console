@@ -2149,7 +2149,7 @@ class bslHelper {
 
 		let stack = [];
 		let pattern_match_count = 4;
-		let match = this.model.findPreviousMatch('(' + varName + '\\s*=\\s*(.*?))\\.(.*)', position, true, false, null, true);
+		let match = Finder.findPreviousMatch(this.model, '(' + varName + '\\s*=\\s*(.*?))\\.(.*)', position, false);
 
 		if (match && match.matches.length == pattern_match_count) {
 
