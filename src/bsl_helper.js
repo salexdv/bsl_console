@@ -3284,7 +3284,7 @@ class bslHelper {
 
 		if (this.lastRawExpression.startsWith('&')) {
 		
-			const matches = this.model.findMatches('&([a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]*)[\\s\\n,\)]', true, true, false, null, true)
+			const matches = Finder.findMatches(this.model, '&([a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]*)[\\s\\n,\)]')
 
 			for (let idx = 0; idx < matches.length; idx++) {
 
@@ -3594,7 +3594,7 @@ class bslHelper {
 	 */
 	getQueryFieldsChainCompletion(suggestions) {
 
-		let match = this.model.findMatches('[a-zA-Z0-9\u0410-\u044F]+', new monaco.Range(this.lineNumber, 1, this.lineNumber, this.column), true, false, null, true);
+		let match = Finder.findMatches(this.model, '[a-zA-Z0-9\u0410-\u044F]+', new monaco.Range(this.lineNumber, 1, this.lineNumber, this.column));
 		
 		if (match.length) {
 
