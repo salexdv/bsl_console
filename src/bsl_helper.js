@@ -6155,7 +6155,7 @@ class bslHelper {
 		let document_colors = [];
 
 		let pattern = 'WebЦвета\.([a-zA-Z\u0410-\u044F]+)|WebColors\.([a-zA-Z\u0410-\u044F]+)|Новый Цвет\\s*\\((.*?)\\)|New Color\\s*\\((.*?)\\)';
-		let matches = model.findMatches(pattern, false, true, false, null, true);
+		let matches = Finder.findMatches(model, pattern);
 
 		for (let idx = 0; idx < matches.length; idx++) {
 
@@ -6217,7 +6217,7 @@ class bslHelper {
 		let pattern = 'WebЦвета\.([a-zA-Z\u0410-\u044F]+)|WebColors\.([a-zA-Z\u0410-\u044F]+)|Новый Цвет\\s*\\((.*?)\\)|New Color\\s*\\((.*?)\\)';
 		let range = colorInfo.range;
 
-		let match = model.findNextMatch(pattern, new monaco.Position(range.startLineNumber, range.startColumn), true, false, null, true);
+		let match = Finder.findNextMatch(model, pattern, new monaco.Position(range.startLineNumber, range.startColumn));
 
 		let color = colorInfo.color;
 		let red = Math.round(color.red * 255);
@@ -6331,7 +6331,7 @@ class bslHelper {
 					pattern = '(процедура|procedure|функция|function)\\s*' + this.word + '\\(';
 
 				let position = new monaco.Position(this.lineNumber, 1);
-				let match = this.model.findPreviousMatch(pattern, position, true);
+				let match = Finder.findPreviousMatch(this.model, pattern, position, false);
 
 				if (match && (is_function || match.range.startLineNumber < this.lineNumber)) {
 					location = [{
@@ -6365,7 +6365,7 @@ class bslHelper {
 
 				let pattern = '(as|как)\\s*' + this.word;
 				let position = new monaco.Position(this.lineNumber, 1);
-				let match = this.model.findPreviousMatch(pattern, position, true);
+				let match = Finder.findPreviousMatch(this.model, pattern, position, false);
 
 				if (match && match.range.startLineNumber < this.lineNumber) {
 					location = [{
@@ -6379,7 +6379,7 @@ class bslHelper {
 
 				let pattern = '(as|как)\\s*' + this.word;
 				let position = new monaco.Position(this.lineNumber, this.model.getLineMaxColumn(this.lineNumber));
-				let match = this.model.findNextMatch(pattern, position, true);
+				let match = Finder.findNextMatch(this.model, pattern, position, false);
 
 				if (match && match.range.startLineNumber > this.lineNumber) {
 					location = [{
@@ -6393,7 +6393,7 @@ class bslHelper {
 
 				let pattern = '(поместить|into)[\\s\\n\\t]*' + this.word;
 				let position = new monaco.Position(this.lineNumber, 1);
-				let match = this.model.findNextMatch(pattern, position, true);
+				let match = Finder.findPreviousMatch(this.model, pattern, position, false);
 
 				if (match && match.range.startLineNumber < this.lineNumber) {
 					location = [{
