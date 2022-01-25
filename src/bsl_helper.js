@@ -1599,9 +1599,7 @@ class bslHelper {
 
 		if (exp) {
 
-			// 1C does not support positive/negative lookbehind yet
-			// const match = this.model.findPreviousMatch('(?<!\\/\\/.*)' + exp + '\\s*=\\s*(?:new|новый)\\s+(.*?)(?:\\(|;)', this.position, true, false, null, true);		
-			const match = this.model.findPreviousMatch(exp + '\\s*=\\s*(?:new|новый)\\s+([a-zA-Z\u0410-\u044F_]*)+[(;]', this.position, true, false, null, true);
+			const match = Finder.findPreviousMatch(this.model, exp + '\\s*=\\s*(?:new|новый)\\s+([a-zA-Z\u0410-\u044F_]*)+[(;]', this.position);
 
 			if (match) {										
 				className = match.matches[match.matches.length - 1];
@@ -2488,35 +2486,35 @@ class bslHelper {
 	}
 
 	/**
-	 * Fills and returns array of variables names
+	 * Looks for variables with assigned a value
 	 * 
 	 * @param {int} currentLine the last line below which we don't search variables
 	 * 
 	 * @returns {array} array with variables names
 	 */
-	getVarsNames(currentLine) {
+	getAssignedVarsNames(currentLine) {
 
 		let names = [];
 		let comments = new Map();
 
-		const commentMatches = this.model.findMatches('\\/\\/', true, true, false, null, true);
+		const commentMatches = Finder.findMatches(this.model, '\\/\\/');
 
 		for (let idx = 0; idx < commentMatches.length; idx++) {
 			comments.set(commentMatches[idx].range.startLineNumber, commentMatches[idx].range.startColumn);
 		}
 
-		let matches = this.model.findMatches('([a-zA-Z0-9\u0410-\u044F_]+)\\s*=\\s*.*(?:;|\\()\\s*$', true, true, false, null, true);
+		let matches = Finder.findMatches(this.model, '([a-zA-Z0-9\u0410-\u044F_]+)\\s*=\\s*.*(?:;|\\()\\s*$');
 
 		for (let idx = 0; idx < matches.length; idx++) {
 
 			let match = matches[idx];
-			
+
 			if (match.range.startLineNumber < currentLine || currentLine == 0) {
 
 				let comment = comments.get(match.range.startLineNumber);
 
 				if (!comment || match.range.startColumn < comment) {
-					
+
 					let varName = match.matches[match.matches.length - 1]
 
 					if (!names.some(name => name === varName))
@@ -2527,47 +2525,73 @@ class bslHelper {
 			}
 
 		}
-		
-		matches = [];
-		let funcDef = [];
-		let funcLine = 0;
 
-		if (currentLine == 0)
-			matches = editor.getModel().findMatches('(?:процедура|функция)\\s+[a-zA-Z0-9\u0410-\u044F_]+\\(([a-zA-Z0-9\u0410-\u044F_,\\s=]+)\\)', true, true, false, null, true);					
-		else {
-			funcDef = editor.getModel().findPreviousMatch('(?:процедура|функция)\\s+[a-zA-Z0-9\u0410-\u044F_]+\\(([a-zA-Z0-9\u0410-\u044F_,\\s=]+)\\)', true, true, false, null, true);
-			if (funcDef) {
-				funcLine = funcDef.range.startLineNumber;
-				matches.push(funcDef);
-			}			
-		}
+		return names;
 
-		for (let idx = 0; idx < matches.length; idx++) {
-		
-			let match = matches[idx];
-			let params = match.matches[1].split(',');
-			
-			params.forEach(function(param) {
-				let paramName = param.split('=')[0].trim();
-				if (!names.some(name => name === paramName))
-					names.push(paramName);
-			});
+	}
 
-		}
-				
-		matches = editor.getModel().findMatches('(?:перем|var)\\s+([a-zA-Z0-9\u0410-\u044F_,\\s]+);', true, true, false, null, true);
+	/**
+	 * Looks for variables into function definition
+	 * 	 
+	 * @param {int} currentLine the last line below which we don't search variables
+	 * @param {int} a line number where function is defined
+	 * 
+	 * @returns {array} array with variables names
+	 */
+	getFunctionsVarsNames(currentLine, funcLine) {
+
+		let names = [];
+		let matches = Finder.findMatches(this.model, '(?:процедура|функция|procedure|function)\\s+[a-zA-Z0-9\u0410-\u044F_]+\\(([a-zA-Z0-9\u0410-\u044F_,\\s=]+)\\)');
 
 		for (let idx = 0; idx < matches.length; idx++) {
 
 			let match = matches[idx];
-			
-			if (currentLine == 0 || funcLine < match.range.startLineNumber) {
+
+			if (match.range.startLineNumber < currentLine || currentLine == 0) {
+
+				let params = match.matches[1].split(',');
+
+				params.forEach(function (param) {
+					let paramName = param.split('=')[0].trim();
+					if (!names.some(name => name === paramName))
+						names.push(paramName);
+				});
+
+				if (0 < currentLine)
+					funcLine = match.range.startLineNumber;
+
+			}
+
+		}
+
+		return names;
+
+	}
+
+	/**
+	 * Looks for variables with default definition
+	 * 
+	 * @param {int} currentLine the last line below which we don't search variables
+	 * @param {int} a line number where function is defined
+	 * 
+	 * @returns {array} array with variables names
+	 */
+	getDefaultVarsNames(currentLine, funcLine) {
+
+		let names = [];
+		let matches = Finder.findMatches(this.model, '(?:перем|var)\\s+([a-zA-Z0-9\u0410-\u044F_,\\s]+);');
+
+		for (let idx = 0; idx < matches.length; idx++) {
+
+			let match = matches[idx];
+
+			if (currentLine == 0 || (funcLine < match.range.startLineNumber && match.range.startLineNumber < currentLine)) {
 
 				let varDef = match.matches[match.matches.length - 1];
 
 				const params = varDef.split(',');
-			
-				params.forEach(function(param) {
+
+				params.forEach(function (param) {
 					let paramName = param.split('=')[0].trim();
 					if (!names.some(name => name === paramName))
 						names.push(paramName);
@@ -2576,7 +2600,26 @@ class bslHelper {
 			}
 
 		}
-				
+
+		return names;
+
+	}
+
+	/**
+	 * Fills and returns array of variables names
+	 * 
+	 * @param {int} currentLine the last line below which we don't search variables
+	 * 
+	 * @returns {array} array with variables names
+	 */
+	getVarsNames(currentLine) {
+
+		let names = this.getAssignedVarsNames(currentLine);
+
+		let funcLine = 0;
+		names = names.concat(this.getFunctionsVarsNames(currentLine, funcLine));
+		names = names.concat(this.getDefaultVarsNames(currentLine, funcLine));
+
 		return names;
 
 	}
