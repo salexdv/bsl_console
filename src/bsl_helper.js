@@ -3923,7 +3923,7 @@ class bslHelper {
 
 		if (startMatch) {
 
-			let matches = editor.getModel().findMatches('(?:поместить|into)\\s+([a-zA-Z0-9\u0410-\u044F_]+)', null, true, false, null, true);
+			let matches = Finder.findMatches(this.model, '(?:поместить|into)\\s+([a-zA-Z0-9\u0410-\u044F_]+)');
 
 			if (matches) {
 				
