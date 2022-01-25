@@ -5261,14 +5261,14 @@ class bslHelper {
 		
 		let ranges = [];
 		
-		const startMatches = model.findMatches("(?:^|\\b)?(" + startString + ") ", false, true)	
+		const startMatches = Finder.findMatches(model, '(?:^|\\b)?(' + startString + ') ');
 		let startMatch = null;
 
 		let template = '(?:^|\\b)?(' + endString + ') ?';
 		if (semicolon)
 			template += ';';
 
-		const endMatches = model.findMatches(template, false, true);
+			const endMatches =  Finder.findMatches(model, '(?:^|\\b)?(' + endString + ') ?;');
 		let endMatch = null;
 		
 		let structFound = false;
@@ -5321,7 +5321,7 @@ class bslHelper {
 
 		let ranges = [];
 		let match = null;
-		const matches = model.findMatches(regexp, false, true, false, null, true)
+		const matches = Finder.findMatches(model, regexp);
     	
     	if (matches) {
 			
@@ -5373,7 +5373,7 @@ class bslHelper {
 
 		let ranges = [];		
 		let match = null;
-		const matches = model.findMatches('(?:выбрать|select)[\\w\\s\u0410-\u044F&<>=*+-./,()]+', false, true, false, null, true);
+		const matches = Finder.findMatches(model, '(?:выбрать|select)[\\w\\s\u0410-\u044F&<>=*+-./,()]+');
 				
     	if (matches) {
 			
@@ -5416,7 +5416,7 @@ class bslHelper {
 
 		let ranges = [];		
 		let match = null;
-		const matches = model.findMatches(regexp, false, true, false, null, true);		
+		const matches = Finder.findMatches(model, regexp);
 				
     	if (matches) {
 			
@@ -5474,21 +5474,19 @@ class bslHelper {
 		let match = null;
 		let matches = [];
 
-		let pat_idx = 0;
-
 		if (scopes) {
 
 			let scope_idx = 0;
 
 			while (scope_idx < scopes.length) {
 				let scope = scopes[scope_idx];
-				matches = matches.concat(model.findMatches(regexp, new monaco.Range(scope.start, 1, scope.end + 1, 1), true, false, null, true));
+				matches = matches.concat(Finder.findMatches(model, regexp, new monaco.Range(scope.start, 1, scope.end + 1, 1)));
 				scope_idx++;
 			}
 
 		}
 		else {
-			matches = model.findMatches(regexp, false, true, false, null, true);
+			matches = Finder.findMatches(model, regexp);
 		}
 
 		if (matches) {
