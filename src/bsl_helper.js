@@ -1187,7 +1187,7 @@ class bslHelper {
 	 getRefCompletionFromPosition(suggestions, currentPosition, allowLookBehind) {
 		
 		let wordContext = null;
-		let match = this.model.findPreviousMatch('.', currentPosition, false);
+		let match = Finder.findPreviousMatch(this.model, '\\.', currentPosition);
 		
 		if (match) {
 
@@ -1213,27 +1213,17 @@ class bslHelper {
 
 				if (!suggestions.length && allowLookBehind) {
 					
-					// 1C does not support positive/negative lookbehind yet
-					//match = this.model.findPreviousMatch('(?<!\\/\\/.*)' + this.lastRawExpression + '\\s*=\\s*.*\\.([^.]*?)\\s?(?:;|\\()', this.position, true, false, null, true);
-					
-					// This also does not work inside 1C
-					/*
-					match = this.model.findPreviousMatch(this.lastRawExpression + '\\s*=\\s*.*\\.([^.]*?)\\s?(?:;|\\()', this.position, true, false, null, true);
-					if (!match)
-						match = this.model.findPreviousMatch(this.lastRawExpression + '\\s*=\\s*([a-zA-Z0-9\u0410-\u044F_]+)\\(', this.position, true, false, null, true);
-					*/
-					
 					// So we have to use 2 rexep to detect last function`s (field`s) reference
-					match = this.model.findPreviousMatch(this.lastRawExpression + '\\s*=\\s*.*', currentPosition, true, false, null, true);
+					match = Finder.findPreviousMatch(this.model, this.lastRawExpression + '\\s*=\\s*.*', currentPosition);
 			
 					if (match) {
 
 						position = new monaco.Position(match.range.endLineNumber, match.range.endColumn);
 
-						match = this.model.findPreviousMatch('\\.([^.]*?)\\s?(?:;|\\()', position, true, false, null, true);					
+						match = Finder.findPreviousMatch(this.model, '\\.([^.]*?)\\s?(?:;|\\()', position);
 
 						if (!match)
-							match = this.model.findPreviousMatch('([a-zA-Z0-9\u0410-\u044F_]+)\\(', position, true, false, null, true);
+							match = Finder.findPreviousMatch(this.model, '([a-zA-Z0-9\u0410-\u044F_]+)\\(', position);
 
 						if (match) {
 
