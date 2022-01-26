@@ -132,6 +132,7 @@
 | [`updateMetadata`](docs/update_metadata.md) | Обновляет через JSON структуру метаданных (Справочники/Документы/пр.)            |
 | `clearMetadata`                | Очищает структуру метаданных                                                                  |
 | `updateSnippets`               | Обновляет пользовательские сниппеты                                                           |
+| [`parseSnippets`](docs/parse_snippets.md) |  Загружает шаблоны кода (сниппеты) в формате 1С:Предприятия                        |
 | `updateCustomFunctions`        | Обновляет пользовательские функции                                                            |
 | [`parseCommonModule`](docs/parse_module.md) |  Загружает структуру общего модуля                                               |
 | [`parseMetadataModule`](docs/parse_metadata_module.md) |  Загружает структуру модуля менеджера или модуля объекта              |
