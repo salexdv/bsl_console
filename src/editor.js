@@ -1410,6 +1410,22 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  parseSnippets = function(stData) {
+
+    let parser = new SnippetsParser();
+    parser.setStream(stData);
+    parser.parse();
+    let loaded_snippets = parser.getSnippets();
+
+    if (loaded_snippets) {
+      snippets = loaded_snippets;
+      return true;
+    }
+    else
+      return false;
+    
+  }
+
   setMarkers = function (markersJSON) {
 
     try {
