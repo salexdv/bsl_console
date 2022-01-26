@@ -6,7 +6,6 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   selectionText = '';
   engLang = false;
   contextData = new Map();
-  generateModificationEvent = false;
   readOnlyMode = false;
   queryMode = false;
   DCSMode = false;
@@ -22,21 +21,20 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   err_tid = 0;
   suggestObserver = null;
   signatureObserver = null;
-  generateBeforeShowSuggestEvent = false;
-  generateSelectSuggestEvent = false;
-  generateBeforeHoverEvent = false;
-  generateBeforeSignatureEvent = false;
+  definitionObserver = null;
   statusBarWidget = null;
   ctrlPressed = false;
   altPressed = false;
   shiftPressed = false;  
   signatureVisible = true;
   currentBookmark = -1;
+  currentMarker = -1;
   activeSuggestionAcceptors = [];
   diffEditor = null;  
   inlineDiffEditor = null;
   inlineDiffWidget = null;
   events_queue = [];
+  editor_options = [];
   // #endregion
 
   // #region public API
@@ -79,17 +77,17 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   
   updateText = function(txt, clearUndoHistory = true) {
 
-    readOnly = readOnlyMode;
-    modEvent = generateModificationEvent;
+    let read_only = readOnlyMode;
+    let mod_event = getOption('generateModificationEvent');
     editor.checkBookmarks = false;   
 
     reserMark();  
 
-    if (readOnly)
+    if (read_only)
       setReadOnly(false);
 
-    if (modEvent)    
-      enableModificationEvent(false);
+    if (mod_event)    
+      setOption('generateModificationEvent', false);
 
     eraseTextBeforeUpdate();
     
@@ -103,10 +101,10 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     else
       removeAllBookmarks();
 
-    if (modEvent)    
-      enableModificationEvent(true);
+    if (mod_event)    
+      setOption('generateModificationEvent', true);
 
-    if (readOnly)
+    if (read_only)
       setReadOnly(true);
 
     editor.checkBookmarks = true;
@@ -115,21 +113,21 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   setContent = function(text) {
 
-    readOnly = readOnlyMode;
-    modEvent = generateModificationEvent;
+    let read_only = readOnlyMode;
+    let mod_event = getOption('generateModificationEvent');
     
-    if (readOnly)
+    if (read_only)
       setReadOnly(false);
 
-    if (modEvent)    
-      enableModificationEvent(false);
+    if (mod_event)    
+      setOption('generateModificationEvent', false);
 
     editor.setValue(text)
 
-    if (modEvent)    
-      enableModificationEvent(true);
+    if (mod_event)    
+      setOption('generateModificationEvent', true);
 
-    if (readOnly)
+    if (read_only)
       setReadOnly(true);
 
   }
@@ -142,7 +140,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   getText = function(txt) {
 
-    return editor.getValue();
+    return getActiveEditor().getValue();
 
   }
 
@@ -280,7 +278,9 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   enableModificationEvent = function (enabled) {
 
-    generateModificationEvent = enabled;
+    // !!! depricated !!! //
+    console.warn('enableModificationEvent is deprecated and will be removed in a future version #247');
+    setOption('generateModificationEvent', enabled);
 
   }
 
@@ -301,8 +301,43 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  isQueryMode = function() {
+
+    return getCurrentLanguageId() == 'bsl_query';
+
+  }
+
+  isDCSMode = function() {
+
+    return getCurrentLanguageId() == 'dcs_query';
+
+  }
+
+  setLanguageMode = function(mode) {
+
+    let isCompareMode = (editor.navi != undefined);
+
+    if (isCompareMode) {
+      monaco.editor.setModelLanguage(editor.getModifiedEditor().getModel(), mode);
+      monaco.editor.setModelLanguage(editor.getOriginalEditor().getModel(), mode);
+    }
+    else {
+      monaco.editor.setModelLanguage(editor.getModel(), mode);
+    }
+
+    queryMode = (mode == 'bsl_query');
+    DCSMode = (mode == 'dcs_query');
+
+    let currentTheme = getCurrentThemeName();
+    setTheme(currentTheme);
+
+    initContextMenuActions();
+
+  }
+
   switchLanguageMode = function(mode) {
     
+    // !!! depricated !!! //
     let currentTheme = getCurrentThemeName();
 
     if (queryMode && mode == 'query')
@@ -319,39 +354,57 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     setTheme(currentTheme);
 
     initContextMenuActions();
+    console.warn('switchLanguageMode is deprecated and will be removed in a future version #241');
+
+  }
+
+  getCurrentLanguageId = function() {
+
+    let identifier = getActiveEditor().getModel().getLanguageIdentifier();
+    return identifier.language;
 
   }
 
   switchQueryMode = function() {
     
+    // !!! depricated !!! //
     queryMode = !queryMode;
     switchLanguageMode('query');
+    console.warn('switchQueryMode is deprecated and will be removed in a future version #241');
 
   }
 
   switchDCSMode = function() {
 
+    // !!! depricated !!! //
     DCSMode = !DCSMode;
     switchLanguageMode('dcs');
+    console.warn('switchDCSMode is deprecated and will be removed in a future version #241');
 
   }
 
   switchXMLMode = function() {
     
+    // !!! depricated !!! //
     let identifier = editor.getModel().getLanguageIdentifier();
     let language_id = 'xml';
 
     if (identifier.language == 'xml') {
-      language_id = queryMode ? 'bsl_query' : 'bsl';
+      language_id = isQueryMode() ? 'bsl_query' : 'bsl';
     }
 
     monaco.editor.setModelLanguage(editor.getModel(), language_id);
+    console.warn('switchXMLMode is deprecated and will be removed in a future version #241');
       
   }
 
   getSelectedText = function() {
 
-    return editor.getModel().getValueInRange(editor.getSelection());
+    const active_editor = getActiveEditor();
+    const model = active_editor.getModel();
+    const selection = active_editor.getSelection();
+    
+    return model.getValueInRange(selection);
 
   }
 
@@ -592,11 +645,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
-  compare = function (text, sideBySide, highlight, xml = false, markLines = true) {
+  compare = function (text, sideBySide, highlight, markLines = true) {
     
-    document.getElementById("container").innerHTML = ''
-    let language_id = getLangId();
+    document.getElementById("container").innerHTML = '';
+    let language_id = getCurrentLanguageId();
     let currentTheme = getCurrentThemeName();
+    let previous_options = getActiveEditor().getRawOptions();
   
     let status_bar = statusBarWidget ? true : false;
     let overlapScroll = true;
@@ -607,10 +661,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     }
 
     if (text) {      
-      if (xml) {
+      
+      if (language_id == 'xml') {
         language_id = 'xml';
         currentTheme = 'vs';
       }
+      
       let originalModel = originalText ? monaco.editor.createModel(originalText) : monaco.editor.createModel(editor.getModel().getValue());
       let modifiedModel = monaco.editor.createModel(text);
       originalText = originalModel.getValue();
@@ -677,9 +733,24 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       originalText = '';
       editor.diffCount = 0;
     }
+    
     editor.updateOptions({ readOnly: readOnlyMode });
     if (status_bar)
-      showStatusBar(overlapScroll);    
+      showStatusBar(overlapScroll);
+
+    let current_options = getActiveEditor().getRawOptions();
+    for (const [key, value] of Object.entries(previous_options)) {
+      if (!current_options.hasOwnProperty(key)) {
+        let option = {};
+        option[key] = value;
+        editor.updateOptions(option);
+      }
+    }
+
+    for (const [key, value] of Object.entries(editor_options)) {
+      setOption(key, value);
+    }
+
   }
 
   triggerSuggestions = function() {
@@ -914,142 +985,47 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
-  enableSuggestActivationEvent = function(enabled, alwaysDisplayDetails = false) {
+  enableSuggestActivationEvent = function (enabled, alwaysDisplayDetails = false) {
 
-    editor.alwaysDisplaySuggestDetails = alwaysDisplayDetails;
-
-    if (suggestObserver != null) {
-      suggestObserver.disconnect();
-      suggestObserver = null;
-    }
-
-    onSuggestListMouseOver(enabled);
-
-    if (enabled) {
-
-      suggestObserver = new MutationObserver(function (mutations) {
-
-        mutations.forEach(function (mutation) {
-
-          if (mutation.target.classList.contains('monaco-list-rows') && mutation.addedNodes.length) {
-            let element = mutation.addedNodes[0];
-            if (element.classList.contains('monaco-list-row') && element.classList.contains('focused')) {
-              removeSuggestListInactiveDetails();
-              generateEventWithSuggestData('EVENT_ON_ACTIVATE_SUGGEST_ROW', 'focus', element);
-              if (editor.alwaysDisplaySuggestDetails) {
-                document.querySelectorAll('.monaco-list-rows .details-label').forEach(function (node) {
-                  node.classList.add('inactive-detail');
-                });
-                document.querySelector('.monaco-list-rows .focused .details-label').classList.remove('inactive-detail');
-              }
-            }
-          }
-          else if (mutation.target.classList.contains('type')|| mutation.target.classList.contains('docs')) {
-            let element = document.querySelector('.monaco-list-rows .focused');
-            if (element) {
-              if (hasParentWithClass(mutation.target, 'details') && hasParentWithClass(mutation.target, 'suggest-widget')) {
-                generateEventWithSuggestData('EVENT_ON_DETAIL_SUGGEST_ROW', 'focus', element);
-              }
-            }
-          }
-
-        })
-
-      });
-
-      suggestObserver.observe(document, {
-        childList: true,
-        subtree: true,
-      });
-
-    }
+    // !!! depricated !!! //
+    console.warn('enableSuggestActivationEvent is deprecated and will be removed in a future version #247');
+    setOption('generateSuggestActivationEvent', enabled);
+    setOption('alwaysDisplaySuggestDetails', alwaysDisplayDetails);
+    startStopSuggestActivationObserver();
 
   }
 
   enableBeforeShowSuggestEvent = function(enabled) {
     
-    generateBeforeShowSuggestEvent = enabled;
+    // !!! depricated !!! //
+    console.warn('enableBeforeShowSuggestEvent is deprecated and will be removed in a future version #247');
+    setOption('generateBeforeShowSuggestEvent', enabled);
 
   }
 
-  enableSelectSuggestEvent = function(enabled) {
-    
-    generateSelectSuggestEvent = enabled;
+  enableSelectSuggestEvent = function (enabled) {
 
-    let widget = getSuggestWidget().widget;
-
-    if (widget) {
-
-      if (enabled) {
-        
-        if (!widget.onListMouseDownOrTapOrig)
-          widget.onListMouseDownOrTapOrig = widget.onListMouseDownOrTap;
-        
-        widget.onListMouseDownOrTap = function(e) {          
-          let element = getParentWithClass(e.browserEvent.target, 'monaco-list-row');
-        
-          if (element) {
-            generateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', 'selection', element);
-          }          
-
-          widget.onListMouseDownOrTapOrig(e);
-
-        }
-
-      }
-      else if (widget.onListMouseDownOrTapOrig) {
-        
-        widget.onListMouseDownOrTap = widget.onListMouseDownOrTapOrig;
-        
-      }
-
-    }    
+    // !!! depricated !!! //
+    console.warn('enableSelectSuggestEvent is deprecated and will be removed in a future version #247');
+    setOption('generateSelectSuggestEvent', enabled);
+    startStopSuggestSelectionObserver();
 
   }
 
   enableBeforeHoverEvent = function(enabled) {
     
-    generateBeforeHoverEvent = enabled;
+    // !!! depricated !!! //
+    console.warn('enableBeforeHoverEvent is deprecated and will be removed in a future version #247');
+    setOption('generateBeforeHoverEvent', enabled);
 
   }
 
-  enableBeforeSignatureEvent = function(enabled) {
-    
-    generateBeforeSignatureEvent = enabled;
+  enableBeforeSignatureEvent = function (enabled) {
 
-    if (signatureObserver != null) {
-      signatureObserver.disconnect();
-      signatureObserver = null;
-    }
-
-    if (enabled) {
-
-      signatureObserver = new MutationObserver(function (mutations) {
-
-        mutations.forEach(function (mutation) {
-
-          if (mutation.target.classList.contains('overflowingContentWidgets') && mutation.addedNodes.length) {
-
-            let element = mutation.addedNodes[0];
-
-            if (element.classList.contains('parameter-hints-widget') && !signatureVisible) {
-              element.style.display = 'none';
-              signatureObserver.disconnect();
-              signatureObserver = null;
-            }
-
-          }
-
-        })
-
-      });
-
-      signatureObserver.observe(document, {
-        childList: true,
-        subtree: true
-      });
-
-    }
+    // !!! depricated !!! //
+    console.warn('enableBeforeSignatureEvent is deprecated and will be removed in a future version #247');
+    setOption('generateBeforeSignatureEvent', enabled);
+    startStopSignatureObserver();
 
   }
 
@@ -1283,6 +1259,16 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   setOption = function (optionName, optionValue) {
 
     editor[optionName] = optionValue;
+    editor_options[optionName] = optionValue;
+
+    if (optionName == 'generateBeforeSignatureEvent')
+      startStopSignatureObserver();
+
+    if (optionName == 'generateSelectSuggestEvent')
+      startStopSuggestSelectionObserver();
+
+    if (optionName == 'disableDefinitionMessage')
+      startStopDefinitionMessegeObserver();
 
   }
 
@@ -1357,6 +1343,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  getOriginalText = function () {
+
+    return editor.originalText;    
+
+  }
+
   revealLineInCenter = function (lineNumber) {
 
     let line = Math.min(lineNumber, getLineCount())
@@ -1395,10 +1387,18 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   
   }
 
-  isSuggestWidgetVisible = function() {
-  
-    return getSuggestWidget().widget.suggestWidgetVisible.get();
-  
+  isSuggestWidgetVisible = function () {
+
+    let content_widget = getSuggestWidget();
+    return content_widget ? content_widget.widget.suggestWidgetVisible.get() : false;
+
+  }
+
+  isParameterHintsWidgetVisible = function () {
+
+    let content_widget = getParameterHintsWidget();
+    return content_widget ? content_widget.widget.visible : false;
+
   }
 
   insertSnippet = function(snippet) {
@@ -1407,6 +1407,86 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     
     if (controller)
       controller.insert(snippet);
+
+  }
+
+  parseSnippets = function(stData) {
+
+    let parser = new SnippetsParser();
+    parser.setStream(stData);
+    parser.parse();
+    let loaded_snippets = parser.getSnippets();
+
+    if (loaded_snippets) {
+      snippets = loaded_snippets;
+      return true;
+    }
+    else
+      return false;
+    
+  }
+
+  setMarkers = function (markersJSON) {
+
+    try {
+      const markers_array = JSON.parse(markersJSON);
+      const model = editor.navi ? editor.getModifiedEditor().getModel() : editor.getModel();
+      setModelMarkers(model, markers_array)
+      return true;
+    }
+    catch (e) {
+      return { errorDescription: e.message };
+    }
+
+  }
+
+  getMarkers = function( ) {
+
+    return getSortedMarkers();
+
+  }
+
+  goNextMarker = function () {
+
+    let sorted_markers = getSortedMarkers();
+
+    if (sorted_markers.length - 1 <= currentMarker)
+      currentMarker = -1;
+
+    currentMarker++;
+    goToCurrentMarker(sorted_markers);
+
+  }
+
+  goPreviousMarker = function () {
+
+    let sorted_markers = getSortedMarkers();
+
+    currentMarker--;
+
+    if (currentMarker < 0)
+    currentMarker = sorted_markers.length - 1;
+
+    goToCurrentMarker(sorted_markers);
+
+  }
+
+  goToFuncDefinition = function (funcName) {
+
+    if (funcName) {
+
+      let pattern = '(процедура|procedure|функция|function)\\s*' + funcName + '\\(';
+      let match = getActiveEditor().getModel().findPreviousMatch(pattern, editor.getPosition(), true);
+
+      if (match) {
+        editor.revealLineInCenter(match.range.startLineNumber);
+        editor.setPosition(new monaco.Position(match.range.startLineNumber, match.range.startColumn));
+        editor.focus();
+        return true;
+      }
+    }
+
+    return false;
 
   }
   // #endregion
@@ -1434,6 +1514,11 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       },
       customOptions: true
     });
+
+    changeCommandKeybinding('editor.action.revealDefinition', monaco.KeyCode.F12);
+    changeCommandKeybinding('editor.action.peekDefinition', monaco.KeyMod.CtrlCmd | monaco.KeyCode.F12);
+    changeCommandKeybinding('editor.action.deleteLines',  monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_L);
+    changeCommandKeybinding('editor.action.selectToBracket',  monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.KEY_B);
 
   }
 
@@ -1492,6 +1577,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       registerCodeLensProviders();
     
       contextMenuEnabled = editor.getRawOptions().contextmenu;
+      editor.originalText = '';
 
     }
 
@@ -1560,7 +1646,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       
       calculateDiff();
 
-      if (generateModificationEvent)
+      if (getOption('generateModificationEvent'))
         sendEvent('EVENT_CONTENT_CHANGED', '');
 
       checkBookmarksAfterRemoveLine(e);
@@ -1645,6 +1731,269 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   // #endregion
     
   // #region non-public functions
+  function goToCurrentMarker(sorted_marks) {
+
+    let idx = 0;
+    let count = getLineCount();
+    let decorations = [];
+
+    sorted_marks.forEach(function (value) {
+
+      if (idx == currentMarker && value.startLineNumber <= count) {
+
+        editor.revealLineInCenter(value.startLineNumber);
+        editor.setPosition(new monaco.Position(value.startLineNumber, value.startColumn));
+
+        let decor_class = 'code-marker';
+
+        switch (value.severity) {
+          case 8: decor_class += ' marker-error'; break;
+          case 1: decor_class += ' marker-hint'; break;
+          case 2: decor_class += ' marker-info'; break;
+          case 4: decor_class += ' marker-warning'; break;
+          default: decor_class += ' marker-error';
+        }
+
+        decorations.push({
+          range: new monaco.Range(value.startLineNumber, 1, value.startLineNumber),
+          options: {
+            isWholeLine: true,
+            linesDecorationsClassName: decor_class
+          }
+        });
+
+      }
+
+      idx++;
+
+    });
+
+    editor.updateDecorations(decorations);
+
+  }
+
+  function getSortedMarkers() {
+
+    return monaco.editor.getModelMarkers().sort((a, b) => a.startLineNumber - b.startLineNumber)
+
+  }
+  
+  function setModelMarkers(model, markers_array) {
+    
+    let markers_data = [];
+    currentMarker = -1;
+    
+    markers_array.forEach(marker => {
+      
+      let severity;
+
+      switch (marker.severity) {
+        case "Error":
+          severity = monaco.MarkerSeverity.Error;
+          break;
+        case "Hint":
+          severity = monaco.MarkerSeverity.Hint;
+          break;
+        case "Info":
+          severity = monaco.MarkerSeverity.Info;
+          break;
+        case "Warning":
+          severity = monaco.MarkerSeverity.Warning;
+          break;
+        default:
+          severity = monaco.MarkerSeverity.Error;
+      }
+
+      markers_data.push({
+        startLineNumber: marker.startLineNumber ? marker.startLineNumber : marker.lineNumber,
+        endLineNumber: marker.endLineNumber ? marker.endLineNumber : marker.lineNumber,
+        startColumn: marker.startColumn ? marker.startColumn : model.getLineFirstNonWhitespaceColumn(marker.lineNumber),
+        endColumn: marker.endColumn ? marker.endColumn : model.getLineFirstNonWhitespaceColumn(marker.lineNumber),
+        severity: severity,
+        message: marker.message,
+        code: marker.code ? marker.code : '',
+        source: marker.source ? marker.source : ''
+      });
+
+    });
+
+    monaco.editor.setModelMarkers(model, "markers", markers_data);
+
+  }
+
+  function startStopDefinitionMessegeObserver() {
+
+    if (definitionObserver != null) {
+      definitionObserver.disconnect();
+      definitionObserver = null;
+    }
+
+    let disable_message = getOption('disableDefinitionMessage');
+
+    if (disable_message) {
+
+      definitionObserver = new MutationObserver(function (mutations) {
+
+        mutations.forEach(function (mutation) {
+
+          if (mutation.target.classList.contains('overflowingContentWidgets') && mutation.addedNodes.length) {
+            
+            let element = mutation.addedNodes[0];
+
+            if (element.classList.contains('monaco-editor-overlaymessage') && element.classList.contains('fadeIn')) {
+              element.style.display = 'none';
+            }
+
+          }
+
+        })
+
+      });
+
+      definitionObserver.observe(document, {
+        childList: true,
+        subtree: true
+      });
+
+    }
+
+  }
+
+  function startStopSuggestActivationObserver() {
+
+    if (suggestObserver != null) {
+      suggestObserver.disconnect();
+      suggestObserver = null;
+    }
+
+    let fire_event = getOption('generateSuggestActivationEvent');
+
+    onSuggestListMouseOver(fire_event);
+
+    if (fire_event) {
+
+      suggestObserver = new MutationObserver(function (mutations) {
+
+        mutations.forEach(function (mutation) {
+
+          if (mutation.target.classList.contains('monaco-list-rows') && mutation.addedNodes.length) {
+            let element = mutation.addedNodes[0];
+            if (element.classList.contains('monaco-list-row') && element.classList.contains('focused')) {
+              removeSuggestListInactiveDetails();
+              generateEventWithSuggestData('EVENT_ON_ACTIVATE_SUGGEST_ROW', 'focus', element);
+              let alwaysDisplaySuggestDetails = getOption('alwaysDisplaySuggestDetails');
+              if (alwaysDisplaySuggestDetails) {
+                document.querySelectorAll('.monaco-list-rows .details-label').forEach(function (node) {
+                  node.classList.add('inactive-detail');
+                });
+                document.querySelector('.monaco-list-rows .focused .details-label').classList.remove('inactive-detail');
+              }
+            }
+          }
+          else if (mutation.target.classList.contains('type') || mutation.target.classList.contains('docs')) {
+            let element = document.querySelector('.monaco-list-rows .focused');
+            if (element) {
+              if (hasParentWithClass(mutation.target, 'details') && hasParentWithClass(mutation.target, 'suggest-widget')) {
+                generateEventWithSuggestData('EVENT_ON_DETAIL_SUGGEST_ROW', 'focus', element);
+              }
+            }
+          }
+
+        })
+
+      });
+
+      suggestObserver.observe(document, {
+        childList: true,
+        subtree: true,
+      });
+
+    }
+
+  }
+
+  function startStopSuggestSelectionObserver() {
+
+    let widget = getSuggestWidget().widget;
+
+    if (widget) {
+
+      let fire_event = getOption('generateSelectSuggestEvent');
+
+      if (fire_event) {
+
+        if (!widget.onListMouseDownOrTapOrig)
+          widget.onListMouseDownOrTapOrig = widget.onListMouseDownOrTap;
+
+        widget.onListMouseDownOrTap = function (e) {
+          let element = getParentWithClass(e.browserEvent.target, 'monaco-list-row');
+
+          if (element) {
+            generateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', 'selection', element);
+          }
+
+          widget.onListMouseDownOrTapOrig(e);
+
+        }
+
+      }
+      else if (widget.onListMouseDownOrTapOrig) {
+
+        widget.onListMouseDownOrTap = widget.onListMouseDownOrTapOrig;
+
+      }
+
+    }
+
+  }
+
+  function startStopSignatureObserver() {
+
+    if (signatureObserver != null) {
+      signatureObserver.disconnect();
+      signatureObserver = null;
+    }
+
+    let fire_event = getOption('generateBeforeSignatureEvent');
+
+    if (fire_event) {
+
+      signatureObserver = new MutationObserver(function (mutations) {
+
+        mutations.forEach(function (mutation) {
+
+          if (mutation.target.classList.contains('overflowingContentWidgets') && mutation.addedNodes.length) {
+
+            let element = mutation.addedNodes[0];
+
+            if (element.classList.contains('parameter-hints-widget') && !signatureVisible) {
+              element.style.display = 'none';
+              signatureObserver.disconnect();
+              signatureObserver = null;
+            }
+
+          }
+
+        })
+
+      });
+
+      signatureObserver.observe(document, {
+        childList: true,
+        subtree: true
+      });
+
+    }
+
+  }
+
+  function changeCommandKeybinding(command, keybinding) {
+  
+    editor._standaloneKeybindingService.addDynamicKeybinding('-' + command);
+    editor._standaloneKeybindingService.addDynamicKeybinding(command, keybinding);
+
+  }
+
   function getQueryDelimiterDecorations(decorations) {
 
     if (queryMode && editor.renderQueryDelimiters) {
@@ -1687,6 +2036,18 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
     return editor._contentWidgets['editor.widget.suggestWidget'];
   
+  }
+
+  function getParameterHintsWidget() {
+
+    return editor._contentWidgets['editor.widget.parameterHintsWidget'];
+  
+  }
+
+  function getFindWidget() {
+  
+    return getActiveEditor()._overlayWidgets['editor.contrib.findWidget'];
+
   }
 
   function getNativeLinkHref(element, isForwardDirection) {
@@ -1834,14 +2195,44 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  function generateOnKeyDownEvent(e) {
+
+    let fire_event = getOption('generateOnKeyDownEvent');
+    let filter = getOption('onKeyDownFilter');
+    let filter_list = filter ? filter.split(',') : [];
+    fire_event = fire_event && (!filter || 0 <= filter_list.indexOf(e.keyCode.toString()));
+
+    if (fire_event) {
+
+      let find_widget = getFindWidget();
+
+      let event_params = {
+        keyCode: e.keyCode,
+        suggestWidgetVisible: isSuggestWidgetVisible(),
+        parameterHintsWidgetVisible: isParameterHintsWidgetVisible(),
+        findWidgetVisible: (find_widget && find_widget.position) ? true : false,
+        ctrlPressed: e.ctrlKey,
+        altPressed: e.altKey,
+        shiftPressed: e.shiftKey,
+        position: editor.getPosition()
+      }
+
+      sendEvent('EVENT_ON_KEY_DOWN', event_params);
+
+    }
+
+  }
+
   function editorOnKeyDown(e) {
+
+    generateOnKeyDownEvent(e);
 
     editor.lastKeyCode = e.keyCode;
 
     if (e.keyCode == 16 && editor.getPosition().lineNumber == 1)
       // ArrowUp
       scrollToTop();
-    else if (e.keyCode == 3 && generateSelectSuggestEvent) {
+    else if (e.keyCode == 3 && getOption('generateSelectSuggestEvent')) {
       // Enter
       let element = document.querySelector('.monaco-list-row.focused');
       if (element) {
@@ -1878,7 +2269,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     }
     else if (e.keyCode == 2) {
       // Tab
-      if (generateSelectSuggestEvent) {
+      let fire_event = getOption('generateSelectSuggestEvent');
+      if (fire_event) {
         let element = document.querySelector('.monaco-list-row.focused');
         if (element) {
           e.preventDefault();
@@ -1947,7 +2339,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   function checkNewStringLine() {
 
-    if (!queryMode && !DCSMode) {
+    if (getCurrentLanguageId() == 'bsl') {
 
       const model = editor.getModel();
       const position = editor.getPosition();
@@ -2024,7 +2416,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   setFindWidgetDisplay = function(value) {
 
-    let find_widget = getActiveEditor()._overlayWidgets['editor.contrib.findWidget'];
+    let find_widget = getFindWidget();
     
     if (find_widget)
       find_widget.widget._domNode.style.display = value;
@@ -2033,7 +2425,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   function setFindWidgetDisplay(value) {
 
-    let find_widget = getActiveEditor()._overlayWidgets['editor.contrib.findWidget'];
+    let find_widget = getFindWidget();
     
     if (find_widget)
       find_widget.widget._domNode.style.display = value;
@@ -2042,7 +2434,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   function focusFindWidgetInput() {
 
-    let find_widget = getActiveEditor()._overlayWidgets['editor.contrib.findWidget'];
+    let find_widget = getFindWidget();
 
     if (find_widget)
       find_widget.widget.focusFindInput();
@@ -2211,30 +2603,16 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
     let queryPostfix = '-query';
     let currentTheme = editor._themeService.getTheme().themeName;
+    let is_query = (queryMode || DCSMode);
 
-    if ((queryMode || DCSMode) && currentTheme.indexOf(queryPostfix) == -1)
+    if (is_query && currentTheme.indexOf(queryPostfix) == -1)
       currentTheme += queryPostfix;
-    else if (!queryMode && !DCSMode && currentTheme.indexOf(queryPostfix) >= 0)
+    else if (!is_query && currentTheme.indexOf(queryPostfix) >= 0)
       currentTheme = currentTheme.replace(queryPostfix, '');
 
     return currentTheme;
 
   }
-
-  function getLangId() {
-
-		let lang_id = '';
-
-		if (queryMode)
-			lang_id = 'bsl_query';
-		else if (DCSMode)
-			lang_id = 'dcs_query';
-		else
-			lang_id = 'bsl';
-
-		return lang_id;
-
-	}
 
   function isDiffEditorHasChanges() {
     
@@ -2474,7 +2852,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
               setTimeout(() => {
 
-                let language_id = getLangId();              
+                let language_id = getCurrentLanguageId();              
 
                 inlineDiffEditor = monaco.editor.createDiffEditor(body, {
                   theme: currentTheme,
@@ -2545,7 +2923,9 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
     if (activationEventEnabled) {
       
-      if (!editor.alwaysDisplaySuggestDetails) {
+      let alwaysDisplaySuggestDetails = getOption('alwaysDisplaySuggestDetails');
+
+      if (!alwaysDisplaySuggestDetails) {
 
         widget.listElement.onmouseoverOrig = widget.listElement.onmouseover;
         widget.listElement.onmouseover = function(e) {        
@@ -2630,7 +3010,9 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
       if (element) {
 
-        if (generateSelectSuggestEvent) {
+        let fire_event = getOption('generateSelectSuggestEvent');
+
+        if (fire_event) {
           generateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', 'force-selection-' + char, element);
         }
 

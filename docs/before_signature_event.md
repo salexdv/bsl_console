@@ -1,17 +1,17 @@
-# Функция *enableBeforeSignatureEvent*
-## Назначение функции
-Функция включает/выключает генерацию события *EVENT_BEFORE_SIGNATURE*, которое возникает перед появлением всплывающей подсказки по вызову процедуры/метода
+# Событие *EVENT_BEFORE_SIGNATURE*
+## Назначение события
+Событие возникает перед появлением всплывающей подсказки по вызову процедуры/метода
 
-## Параметры функции
-* **enabled** - *boolean*, активность события
+## Управление событием
+За генерацию события отвечает опция [`generateBeforeSignatureEvent`](set_option.md)
 
 ## Пример вызова
 ```javascript
 // Включение генерации события
-enableBeforeSignatureEvent(true);
+setOption('generateBeforeSignatureEvent', true);
 
 // Отключение генерации события
-enableBeforeSignatureEvent(false);
+setOption('generateBeforeSignatureEvent', false);
 ```
 
 ## Пример параметров генерируемого события

@@ -16,7 +16,19 @@ define(['vs/editor/editor.main'], function () {
                 editor.bookmarks.delete(line);
             }
             else {
-                bookmark = { range: new monaco.Range(line, 1, line), options: { isWholeLine: true, linesDecorationsClassName: 'bookmark' } };
+                let color = '#7e96a8';
+                bookmark = {
+                    range: new monaco.Range(line, 1, line),
+                    options: {
+                        isWholeLine: true,
+                        linesDecorationsClassName: 'bookmark',
+                        overviewRuler: {
+                            color: color,
+                            darkColor: color,
+                            position: 1
+                        }
+                    }
+                };
                 editor.bookmarks.set(line, bookmark);
             }
 
@@ -105,15 +117,16 @@ define(['vs/editor/editor.main'], function () {
                 };
             }
 
-            if (!DCSMode && !editor.disableContextQueryConstructor) {
+            if (!isDCSMode() && !editor.disableContextQueryConstructor) {
 
+                let query_text = isQueryMode() ? getText() : getQuery();
                 actions.query_bsl = {
                     label: 'Конструктор запроса...',
                     key: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_D,
                     cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_D),
                     order: 1.3,
                     callback: function (ed) {
-                        sendEvent('EVENT_QUERY_CONSTRUCT', queryMode ? getText() : getQuery());
+                        sendEvent('EVENT_QUERY_CONSTRUCT', query_text);
                         return null;
                     }
                 };
@@ -142,7 +155,7 @@ define(['vs/editor/editor.main'], function () {
                 }
             };
 
-            if (!queryMode && !DCSMode) {
+            if (getCurrentLanguageId() == 'bsl') {
 
                 actions.formatstr_bsl = {
                     label: 'Конструктор форматной строки...',
@@ -186,7 +199,7 @@ define(['vs/editor/editor.main'], function () {
 
             }
 
-            if (!DCSMode) {
+            if (!isDCSMode()) {
 
                 actions.add_bookmark_bsl = {
                     label: 'Установить/удалить закладку',
@@ -256,16 +269,6 @@ define(['vs/editor/editor.main'], function () {
                 return null;
             }
         },
-        delLine: {
-            label: 'Удалить текущую строку',
-            key: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_L,
-            cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_L),
-            order: 0,
-            callback: function (ed) {
-                editor.trigger('', 'editor.action.deleteLines', {})
-                return null;
-            }
-        },
         jumpToBracketOpen: {
             label: 'Перейти к скобке',
             key: monaco.KeyMod.CtrlCmd | monaco.KeyCode.US_OPEN_SQUARE_BRACKET,
@@ -283,36 +286,6 @@ define(['vs/editor/editor.main'], function () {
             order: 0,
             callback: function (ed) {
                 jumpToBracket();
-                return null;
-            }
-        },
-        selectToBracket: {
-            label: 'Выделить скобки и текст между ними',
-            key: monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.KEY_B,
-            cmd: monaco.KeyMod.chord(monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.KEY_B),
-            order: 0,
-            callback: function (ed) {
-                selectToBracket();
-                return null;
-            }
-        },
-        revealDefinition: {
-            label: 'Перейти к определению',
-            key: monaco.KeyCode.F12,
-            cmd: monaco.KeyMod.chord(monaco.KeyCode.F12),
-            order: 0,
-            callback: function (ed) {
-                revealDefinition();
-                return null;
-            }
-        },
-        peekDefinition: {
-            label: 'Показать определение',
-            key: monaco.KeyMod.CtrlCmd | monaco.KeyCode.F12,
-            cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.F12),
-            order: 0,
-            callback: function (ed) {
-                peekDefinition();
                 return null;
             }
         }

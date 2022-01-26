@@ -190,3 +190,28 @@
 .query-delimiter-dark {
 	background-color: #404040;
 }
+
+.code-marker {
+	width: 0 !important;
+	height: 0 !important;
+    margin-left: -35px;
+    top: 5px !important;
+	border-top: 5px solid transparent;
+	border-bottom: 5px solid transparent;
+}
+
+.code-marker.marker-error {
+	border-left: 10px solid #e72e1d;
+}
+
+.code-marker.marker-hint {
+	border-left: 10px solid #878787;
+}
+
+.code-marker.marker-info {
+	border-left: 10px solid #7cc0ff;
+}
+
+.code-marker.marker-warning {
+	border-left: 10px solid #eaac0e;
+}
