@@ -4320,7 +4320,7 @@ define([], function () {
       "tasks": {
          "name":"Задачи",
          "name_en":"Tasks",
-         "query_name":"Задач",
+         "query_name":"Задача",
          "query_name_en":"Task",
          "items":{
             "СогласованиеДоговора":{
