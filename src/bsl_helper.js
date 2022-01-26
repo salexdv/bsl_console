@@ -4679,7 +4679,7 @@ class bslHelper {
 
 			for (const [key, value] of Object.entries(data)) {
 
-				if (key.toLowerCase().startsWith(this.word) || customSuggestions) {
+				if (key.toLowerCase().startsWith(this.word) || value.prefix.toLowerCase().startsWith(this.word) || customSuggestions) {
 
 					suggestions.push({
 						label: value.prefix,
