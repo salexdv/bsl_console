@@ -475,7 +475,39 @@ class bslHelper {
 
 		return word
 
-	}	
+	}
+
+	/**
+	 * Convert code to markdown
+	 * with syntax highlighting
+	 * 
+	 * @param {string} code snippet
+	 * 
+	 * @returns {string} markdown string
+	 */
+	prepareCodeDocumentation(snippet) {
+
+		return "```bsl\n" + snippet + "\n```";
+
+	}
+
+	/**
+	 * Convert snippet documentation to markdown
+	 * with syntax highlighting
+	 * 
+	 * @param {string} snippet code of snippet 
+	 * 
+	 * @returns {string} markdown string
+	 */
+	prepareSnippetDocumentation(snippet) {
+
+		// Replace placeholders like ${1:Value}, ${Value}, $0
+		let doc = snippet.replace(/\${\d{0,}:?(.*?)}/gmi, '$1');
+		doc = doc.replace(/\$\d{1,}/gmi, '');
+
+		return this.prepareCodeDocumentation(doc);
+
+	}
 
 	/**
 	 * Determines if string contain class constructor (New|Новый)	 	 
@@ -4687,7 +4719,7 @@ class bslHelper {
 						insertText: value.body,
 						insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
 						detail: key,
-						documentation: value.body
+						documentation: { "value": this.prepareSnippetDocumentation(value.body) }
 					});
 
 				}
