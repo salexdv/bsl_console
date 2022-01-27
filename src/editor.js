@@ -35,6 +35,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   inlineDiffWidget = null;
   events_queue = [];
   editor_options = [];
+  snippets = {};
   // #endregion
 
   // #region public API
@@ -1426,6 +1427,18 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     
   }
 
+  setDefaultSnippets = function() {
+
+    snippets = bslSnippets;
+
+  }
+
+  clearSnippets = function() {
+
+    snippets = {};
+
+  }
+
   setMarkers = function (markersJSON) {
 
     try {
@@ -1575,6 +1588,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
       createEditor(language.id, getCode(), 'bsl-white');
       registerCodeLensProviders();
+      setDefaultSnippets();
     
       contextMenuEnabled = editor.getRawOptions().contextmenu;
       editor.originalText = '';
