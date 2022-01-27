@@ -133,6 +133,8 @@
 | `clearMetadata`                | Очищает структуру метаданных                                                                  |
 | `updateSnippets`               | Обновляет пользовательские сниппеты                                                           |
 | [`parseSnippets`](docs/parse_snippets.md) |  Загружает шаблоны кода (сниппеты) в формате 1С:Предприятия                        |
+| `setDefaultSnippets`           | Возвращает стандартные шаблоны кода (сниппеты)                                                |
+| `clearSnippets`                | Очищает шаблоны кода (сниппеты)                                                               |
 | `updateCustomFunctions`        | Обновляет пользовательские функции                                                            |
 | [`parseCommonModule`](docs/parse_module.md) |  Загружает структуру общего модуля                                               |
 | [`parseMetadataModule`](docs/parse_metadata_module.md) |  Загружает структуру модуля менеджера или модуля объекта              |
