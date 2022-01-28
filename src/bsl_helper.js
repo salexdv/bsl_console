@@ -510,6 +510,19 @@ class bslHelper {
 	}
 
 	/**
+	 * Replace standart choice elements with metadata objects
+	 * 
+	 * @param {string} snippet code of snippet 
+	 * 
+	 * @returns {string} formated code of snippet
+	 */
+	 prepareSnippetCode(snippet) {
+
+		return snippet;
+
+	}
+
+	/**
 	 * Determines if string contain class constructor (New|Новый)	 	 
 	 * 
 	 * @returns {bool}
@@ -4716,7 +4729,7 @@ class bslHelper {
 					suggestions.push({
 						label: value.prefix,
 						kind: monaco.languages.CompletionItemKind.Snippet,
-						insertText: value.body,
+						insertText: this.prepareSnippetCode(value.body),
 						insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
 						detail: key,
 						documentation: { "value": this.prepareSnippetDocumentation(value.body) }
