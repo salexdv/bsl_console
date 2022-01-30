@@ -133,6 +133,7 @@
 | `clearMetadata`                | Очищает структуру метаданных                                                                  |
 | `updateSnippets`               | Обновляет пользовательские сниппеты                                                           |
 | [`parseSnippets`](docs/parse_snippets.md) |  Загружает шаблоны кода (сниппеты) в формате 1С:Предприятия                        |
+| [`updateSnippetByGUID`](docs/update_snippet_guid.md) |  Обновление текущего сниппета                                           |
 | `setDefaultSnippets`           | Возвращает стандартные шаблоны кода (сниппеты)                                                |
 | `clearSnippets`                | Очищает шаблоны кода (сниппеты)                                                               |
 | `updateCustomFunctions`        | Обновляет пользовательские функции                                                            |
