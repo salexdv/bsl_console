@@ -53,53 +53,6 @@ class SnippetsParser {
 
     }
 
-    _getMetadataItemsString(metadataItem) {
-
-        let items = [];
-
-        if (bslMetadata.hasOwnProperty(metadataItem)) {
-            for (const [key, value] of Object.entries(bslMetadata[metadataItem].items)) {
-                items.push(key);
-            }
-        }
-
-        return items;
-
-    }
-
-    _getMetadataItemsByAction(action) {
-
-        let items = [];
-
-        let relations = [];
-        relations['Справочник'] = 'catalogs';
-        relations['Документ'] = 'documents';
-        relations['РегистрСведений'] = 'infoRegs';
-        relations['РегистрНакопления'] = 'accumRegs';
-        relations['РегистрБухгалтерии'] = 'accountRegs';
-        relations['РегистрРасчета'] = 'calcRegs';
-        relations['Обработка'] = 'dataProc';
-        relations['Отчет'] = 'reports';
-        relations['Перечисление'] = 'enums';
-        relations['ПланСчетов'] = 'сhartsOfAccounts';
-        relations['БизнесПроцесс'] = 'businessProcesses';
-        relations['Задача'] = 'tasks';
-        relations['ПланОбмена'] = 'exchangePlans';
-        relations['ПланВидовХарактеристик'] = 'chartsOfCharacteristicTypes';
-        relations['ПланВидовРасчета'] = 'chartsOfCalculationTypes';
-        relations['Константа'] = 'constants';
-        relations['РегистрРасчета'] = 'calcRegs';
-        relations['РегистрРасчета'] = 'calcRegs';
-
-        let relation = relations[action];
-
-        if (relation)
-            items = this._getMetadataItemsString(relation);
-
-        return items;
-
-    }
-
     _convertPlaceholder(placeholder) {
 
         // Преобразование шаблона выполняется только тогда, когда в шаблоне больше одного параметра.
@@ -136,15 +89,7 @@ class SnippetsParser {
                 fix_placeholder = true;
             }
             else {
-                // При необходимости получаем имена справочников, документов и т.п.
-                let items = this._getMetadataItemsByAction(action);
-                if (items.length) {
-                    placeholder = '|' + items.join() + '|';
-                    separator = '';
-                }
-                else {
-                    placeholder = action;
-                }
+                placeholder = action;
             }
 
         }
