@@ -1452,6 +1452,26 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  updateSnippetByGUID = function (snippetGUID) {
+
+    suggestWidget = getSuggestWidget();
+
+    if (suggestWidget) {
+
+      suggestWidget.widget.list.view.items.forEach((completionItem) => {
+
+        if (completionItem.element.completion.guid == snippetGUID)
+          completionItem.element.provider.resolveCompletionItem(editor.getModel(),
+            editor.getPosition(),
+            completionItem.element.completion
+          );
+
+      });
+
+    }
+
+  }
+
   setMarkers = function (markersJSON) {
 
     try {
