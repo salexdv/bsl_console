@@ -772,14 +772,27 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
-  requestMetadata = function(metadata) {
+  requestMetadata = function (metadata, trigger, data) {
+
+    if (!trigger)
+      trigger = 'suggestion';
 
     let metadata_name = metadata.toLowerCase();
     let request = metadataRequests.get(metadata_name);
 
     if (!request) {
+
       metadataRequests.set(metadata_name, true);
-      sendEvent("EVENT_GET_METADATA", metadata_name);
+
+      let event_params = {
+        metadata: metadata_name,
+        trigger: trigger
+      }
+
+      if (data)
+        event_params = Object.assign(event_params, data);
+
+      sendEvent("EVENT_GET_METADATA", event_params);
     }
 
   }
