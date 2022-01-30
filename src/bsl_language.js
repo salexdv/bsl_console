@@ -477,12 +477,17 @@ define([], function () {
             languageDef: bsl_language,
             completionProvider: {
                 triggerCharacters: ['.', '"', ' '],
-                provideCompletionItems: function (model, position, context, token) {                    
+                provideCompletionItems: function (model, position, context, token) {
                     resetSuggestWidgetDisplay();
                     let bsl = new bslHelper(model, position);
                     let completion = bsl.getCompletion(context, token);
                     bsl.onProvideCompletion(context, completion);
                     return completion;
+                },
+                resolveCompletionItem: function (model, position, item) {
+                    let bsl = new bslHelper(model, position);
+                    item = bsl.resolveCompletionItem(item);
+                    return model;
                 }
             },
             foldingProvider: {
