@@ -277,14 +277,6 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     
   }
 
-  enableModificationEvent = function (enabled) {
-
-    // !!! depricated !!! //
-    console.warn('enableModificationEvent is deprecated and will be removed in a future version #247');
-    setOption('generateModificationEvent', enabled);
-
-  }
-
   addContextMenuItem = function(label, eventName) {
 
     let time = new Date().getTime();
@@ -336,67 +328,11 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
-  switchLanguageMode = function(mode) {
-    
-    // !!! depricated !!! //
-    let currentTheme = getCurrentThemeName();
-
-    if (queryMode && mode == 'query')
-      monaco.editor.setModelLanguage(editor.getModel(), "bsl_query");
-    else if (DCSMode && mode == 'dcs')
-      monaco.editor.setModelLanguage(editor.getModel(), "dcs_query");
-    else if (queryMode)
-      monaco.editor.setModelLanguage(editor.getModel(), "bsl_query");
-    else if (DCSMode)
-      monaco.editor.setModelLanguage(editor.getModel(), "dcs_query");
-    else
-      monaco.editor.setModelLanguage(editor.getModel(), "bsl");
-    
-    setTheme(currentTheme);
-
-    initContextMenuActions();
-    console.warn('switchLanguageMode is deprecated and will be removed in a future version #241');
-
-  }
-
   getCurrentLanguageId = function() {
 
     let identifier = getActiveEditor().getModel().getLanguageIdentifier();
     return identifier.language;
 
-  }
-
-  switchQueryMode = function() {
-    
-    // !!! depricated !!! //
-    queryMode = !queryMode;
-    switchLanguageMode('query');
-    console.warn('switchQueryMode is deprecated and will be removed in a future version #241');
-
-  }
-
-  switchDCSMode = function() {
-
-    // !!! depricated !!! //
-    DCSMode = !DCSMode;
-    switchLanguageMode('dcs');
-    console.warn('switchDCSMode is deprecated and will be removed in a future version #241');
-
-  }
-
-  switchXMLMode = function() {
-    
-    // !!! depricated !!! //
-    let identifier = editor.getModel().getLanguageIdentifier();
-    let language_id = 'xml';
-
-    if (identifier.language == 'xml') {
-      language_id = isQueryMode() ? 'bsl_query' : 'bsl';
-    }
-
-    monaco.editor.setModelLanguage(editor.getModel(), language_id);
-    console.warn('switchXMLMode is deprecated and will be removed in a future version #241');
-      
   }
 
   getSelectedText = function() {
@@ -996,50 +932,6 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     }
     
     sendEvent(eventName, eventParams);
-
-  }
-
-  enableSuggestActivationEvent = function (enabled, alwaysDisplayDetails = false) {
-
-    // !!! depricated !!! //
-    console.warn('enableSuggestActivationEvent is deprecated and will be removed in a future version #247');
-    setOption('generateSuggestActivationEvent', enabled);
-    setOption('alwaysDisplaySuggestDetails', alwaysDisplayDetails);
-    startStopSuggestActivationObserver();
-
-  }
-
-  enableBeforeShowSuggestEvent = function(enabled) {
-    
-    // !!! depricated !!! //
-    console.warn('enableBeforeShowSuggestEvent is deprecated and will be removed in a future version #247');
-    setOption('generateBeforeShowSuggestEvent', enabled);
-
-  }
-
-  enableSelectSuggestEvent = function (enabled) {
-
-    // !!! depricated !!! //
-    console.warn('enableSelectSuggestEvent is deprecated and will be removed in a future version #247');
-    setOption('generateSelectSuggestEvent', enabled);
-    startStopSuggestSelectionObserver();
-
-  }
-
-  enableBeforeHoverEvent = function(enabled) {
-    
-    // !!! depricated !!! //
-    console.warn('enableBeforeHoverEvent is deprecated and will be removed in a future version #247');
-    setOption('generateBeforeHoverEvent', enabled);
-
-  }
-
-  enableBeforeSignatureEvent = function (enabled) {
-
-    // !!! depricated !!! //
-    console.warn('enableBeforeSignatureEvent is deprecated and will be removed in a future version #247');
-    setOption('generateBeforeSignatureEvent', enabled);
-    startStopSignatureObserver();
 
   }
 
