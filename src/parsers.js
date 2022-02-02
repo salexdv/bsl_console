@@ -65,6 +65,7 @@ class SnippetsParser {
         if (1 < template_arr.length) {
 
             let action = template_arr[1].trim();
+
             if (action == 'ВыборВарианта') {
 
                 template_arr = template_arr.slice(2);
@@ -87,6 +88,26 @@ class SnippetsParser {
             else if (action == 'ДатаВремя') {
                 placeholder = '${CURRENT_DATE}.${CURRENT_MONTH}.${CURRENT_YEAR} ${CURRENT_HOUR}:${CURRENT_MINUTE}:${CURRENT_SECOND}';
                 fix_placeholder = true;
+            }
+            else if (action == 'ОбъектМетаданных') {
+
+                template_arr = template_arr.slice(2);
+                let options = [];
+
+                template_arr.forEach((value) => {
+                    let option = value.replace(/"/g, '').trim();
+                    if (option.indexOf('.') == -1 && options.indexOf(option) == -1)
+                        options.push(option);
+                });
+
+                if (options.length)
+                    if (options.length == 1)
+                        placeholder = options[0];
+                    else
+                        placeholder = 'ОбъектМетаданных:' + options.join();
+                else
+                    placeholder = action;
+
             }
             else {
                 placeholder = action;

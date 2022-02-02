@@ -561,14 +561,14 @@ class bslHelper {
 	}
 
 	/**
-	 * Get array of metadata object names by snippet action
+	 * Get array of metadata object by metadata name
 	 * 
-	 * @param {string} action type of action from snippet 
+	 * @param {string} metadataName name of metadata object
 	 * @param {completionItem} completionItem current item of suggestion list
 	 * 
 	 * @returns {array} array of metadata object names
 	 */
-	getSnippetMetadataItemsByAction(action, completionItem) {
+	getSnippetMetadataItemsByName(metadataName, completionItem) {
 
 		let items = [];
 
@@ -607,10 +607,37 @@ class bslHelper {
 		relations['ВыберитеКонстанту'] = 'constants';
 		relations['РегистрРасчета'] = 'calcRegs';
 
-		let relation = relations[action];
+		let relation = relations[metadataName];
 
 		if (relation)
 			items = this.getSnippetMetadataItems(relation, completionItem);
+
+		return items;
+
+	}
+
+	/**
+	 * Get array of metadata object names by snippet action
+	 * 
+	 * @param {string} action type of action from snippet 
+	 * @param {completionItem} completionItem current item of suggestion list
+	 * 
+	 * @returns {array} array of metadata object names
+	 */
+	getSnippetMetadataItemsByAction(action, completionItem) {
+
+		let items = [];
+
+		if (0 <= action.indexOf('ОбъектМетаданных:')) {
+			action = action.replace('ОбъектМетаданных:', '');
+			let metadata_array = action.split(',');
+			metadata_array.forEach((name) => {
+				let metadata_items = this.getSnippetMetadataItemsByName(name, completionItem);
+				items = items.concat(metadata_items);
+			});
+		}
+		else
+			items = this.getSnippetMetadataItemsByName(action, completionItem);
 
 		return items;
 
