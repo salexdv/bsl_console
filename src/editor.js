@@ -212,8 +212,13 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
-  switchLang = function () {
-    engLang = !engLang;
+  switchLang = function (language) {
+    
+    if (language == undefined)
+      engLang = !engLang;
+    else
+      engLang = (language == 'en');
+    
   }
 
   addComment = function () {
