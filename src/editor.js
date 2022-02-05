@@ -218,6 +218,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       engLang = !engLang;
     else
       engLang = (language == 'en');
+
+    return engLang ? 'en' : 'ru';
     
   }
 
