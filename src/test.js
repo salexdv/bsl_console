@@ -1017,6 +1017,17 @@ describe("Проверка автокомлита и подсказок реда
 
       });
 
+      it("проверка подсказки реквизитов строки табличной части при получении через метод в строке", function () {
+
+        bsl = helper('Спр = Справочники.Товары.НайтиПоКоду(1);\nСтрокаТЧ = Спр.ДополнительныеРеквизиты.Получить(0).');
+        contextData.clear();
+        let suggestions = [];
+        bsl.getStackCompletion(suggestions);
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "ЗначениеРеквизита"), true);
+        assert.equal(suggestions.some(suggest => suggest.label === "НомерСтроки"), true);
+
+      });
       
     }
 
