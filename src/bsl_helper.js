@@ -1394,7 +1394,7 @@ class bslHelper {
 	 getRefCompletionFromPosition(suggestions, currentPosition, allowLookBehind) {
 		
 		let wordContext = null;
-		let match = Finder.findPreviousMatch(this.model, '\\.', currentPosition);
+		let match = Finder.findPreviousMatch(this.model, '(?:\\.|\\[\\d+\\])', currentPosition);
 		
 		if (match) {
 
@@ -1406,16 +1406,17 @@ class bslHelper {
 
 				if (lineContextData) {
 
-					let wordUntil = this.model.getWordUntilPosition(position);
-					if (wordUntil.word) {
-						wordContext = lineContextData.get(wordUntil.word.toLowerCase());
-						this.getRefSuggestions(suggestions, wordContext)
+					let word = this.model.getWordUntilPosition(position).word;
+
+					if (word) {
+						wordContext = lineContextData.get(word.toLowerCase());
+						this.getRefSuggestions(suggestions, wordContext);
 					}
 					else if (this.lastOperator == ')') {
 						wordContext = lineContextData.get(this.lastRawExpression);
-						this.getRefSuggestions(suggestions, wordContext)
+						this.getRefSuggestions(suggestions, wordContext);
 					}
-					
+
 				}
 
 				if (!suggestions.length && allowLookBehind) {
@@ -1437,8 +1438,16 @@ class bslHelper {
 							lineContextData = contextData.get(match.range.startLineNumber);
 
 							if (lineContextData) {
-								wordContext = lineContextData.get(match.matches[match.matches.length - 1].toLowerCase());
+
+								let expression = match.matches[match.matches.length - 1].toLowerCase();
+								let index_read = /(.+?)(\[\d+\])/.exec(expression);
+
+								if (index_read)
+									expression = engLang ? 'get' : 'получить';
+
+								wordContext = lineContextData.get(expression);
 								this.getRefSuggestions(suggestions, wordContext);
+
 							}
 								
 						}
@@ -2373,12 +2382,32 @@ class bslHelper {
 					expression = expression.replace(/[;]/g, '');
 					column += expression.length + 1;
 
-					stack.push({
-						var: expression.toLowerCase(),						
-						line: match.range.startLineNumber,
-						previous_ref: false,
-						column: column
-					});
+					let index_read = /(.+?)(\[\d+\])/.exec(expression);
+
+					if (index_read) {
+						stack.push(
+							{
+								var: index_read[1].toLowerCase(),
+								line: match.range.startLineNumber,
+								previous_ref: false,
+								column: column - index_read[2].length
+							},
+							{
+								var: engLang ? 'get' : 'получить',
+								line: match.range.startLineNumber,
+								previous_ref: false,
+								column: column
+							}
+						);
+					}
+					else {
+						stack.push({
+							var: expression.toLowerCase(),
+							line: match.range.startLineNumber,
+							previous_ref: false,
+							column: column
+						});
+					}
 
 				}				
 				
