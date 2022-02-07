@@ -1416,6 +1416,14 @@ class bslHelper {
 						wordContext = lineContextData.get(this.lastRawExpression);
 						this.getRefSuggestions(suggestions, wordContext);
 					}
+					else {
+						let var_match = Finder.findPreviousMatch(this.model, this.lastRawExpression + '\\[\\d+\\]', position, false);
+						if (var_match && var_match.range.startLineNumber == position.lineNumber) {
+							let get_name = engLang ? 'get' : 'получить';
+							wordContext = lineContextData.get(get_name);
+							this.getRefSuggestions(suggestions, wordContext);
+						}
+					}
 
 				}
 
@@ -2419,21 +2427,34 @@ class bslHelper {
 		}
 		else {
 
-			let offset = position.column - varName.length - 2;
-			let range = new monaco.Range(position.lineNumber, offset, position.lineNumber, offset + 1);
-			let char = this.model.getValueInRange(range);
-			let prev_var = this.model.getWordUntilPosition(new monaco.Position(position.lineNumber, offset));
+			let var_match = Finder.findPreviousMatch(this.model, varName + '((?:\(.*\)|\[\d+\])?)*\.', position, false);
+			
+			if (var_match) {
 
-			if (char == '.' && prev_var) {
-				stack.push({
-					var: varName,
-					line: position.lineNumber,
-					previous_ref: false,
-					column: position.column - 1
-				});
-				let prev_position = new monaco.Position(position.lineNumber, offset + 1);
-				let prev_stack = this.getMetadataStackForVar(prev_var.word.toLowerCase(), prev_position);
-				stack = prev_stack.concat(stack);
+				let offset = var_match.range.startColumn - 1;
+				let range = new monaco.Range(position.lineNumber, offset, position.lineNumber, offset + 1);
+				let char = this.model.getValueInRange(range);
+				let prev_var = this.model.getWordUntilPosition(new monaco.Position(position.lineNumber, offset));
+
+				if (char == '.' && prev_var) {
+					stack.push({
+						var: varName,
+						line: position.lineNumber,
+						previous_ref: false,
+						column: var_match.range.startColumn + varName.length
+					});
+					if (var_match.matches[1].indexOf('[') == 0)
+						stack.push({
+							var: engLang ? 'get' : 'получить',
+							line: position.lineNumber,
+							previous_ref: false,
+							column: position.column - 1
+						});
+					let prev_position = new monaco.Position(position.lineNumber, offset + 1);
+					let prev_stack = this.getMetadataStackForVar(prev_var.word.toLowerCase(), prev_position);
+					stack = prev_stack.concat(stack);
+				}
+
 			}
 
 		}
@@ -2566,8 +2587,21 @@ class bslHelper {
 				for(let i = 3; i < stack.length; i++) {
 				
 					let stack_item = stack[i];
-					if (i == 3) 
-						prev_ref = this.setContextDataForRefExpression(stack_item.var, result.refType, stack_item.line);
+					if (i == 3) {
+						metadata_suggestions.forEach((suggest) => {
+							if (suggest.label.toLowerCase() == stack_item.var) {
+								let command_data = suggest.command.arguments[0].data;
+								prev_ref = this.setContextDataForRefExpression(
+									stack_item.var,
+									command_data.ref,
+									stack_item.line,
+									command_data.parent_ref
+								);
+							}
+						})
+						if (!prev_ref)
+							prev_ref = this.setContextDataForRefExpression(stack_item.var, result.refType, stack_item.line);
+					}
 					else {
 						metadata_suggestions = [];
 						if (stack_item.previous_ref && prev_ref != null) {
