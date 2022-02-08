@@ -1391,6 +1391,52 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     return false;
 
   }
+
+  function generateEventWithSuggestData(eventName, trigger, row, suggestRows = []) {
+
+    let bsl = new bslHelper(editor.getModel(), editor.getPosition());
+    let row_id = row ? row.getAttribute('data-index') : "";
+    let insert_text = '';
+
+    if (row_id) {
+
+      let suggestWidget = getSuggestWidget();
+
+      if (suggestWidget && row_id < suggestWidget.widget.list.view.items.length) {
+        let suggest_item = suggestWidget.widget.list.view.items[row_id];
+        insert_text = suggest_item.element.completion.insertText;
+      }
+
+    }
+
+    eventParams = {
+      trigger: trigger,
+      current_word: bsl.word,
+      last_word: bsl.lastRawExpression,
+      last_expression: bsl.lastExpression,
+      rows: suggestRows.length ? suggestRows : getSuggestWidgetRows(row),
+      altKey: altPressed,
+      ctrlKey: ctrlPressed,
+      shiftKey: shiftPressed,
+      row_id: row_id,
+      insert_text: insert_text
+    }
+
+    if (row) {
+
+      eventParams['kind'] = getChildWithClass(row, 'suggest-icon').className;
+      eventParams['sideDetailIsOpened'] = (null != document.querySelector('.suggest-widget.docs-side .details .header'));
+
+      if (eventName == 'EVENT_ON_ACTIVATE_SUGGEST_ROW' || eventName == 'EVENT_ON_DETAIL_SUGGEST_ROW')
+        eventParams['focused'] = row.getAttribute('aria-label');
+      else if (eventName == 'EVENT_ON_SELECT_SUGGEST_ROW')
+        eventParams['selected'] = row.getAttribute('aria-label');
+
+    }
+
+    sendEvent(eventName, eventParams);
+
+  }
   // #endregion
 
   // #region init editor
@@ -1634,51 +1680,6 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   // #endregion
     
   // #region non-public functions
-  function generateEventWithSuggestData(eventName, trigger, row, suggestRows = []) {
-
-    let bsl = new bslHelper(editor.getModel(), editor.getPosition());
-    let row_id = row ? row.getAttribute('data-index') : "";
-    let insert_text = '';
-
-    if (row_id) {
-
-      let suggestWidget = getSuggestWidget();
-
-      if (suggestWidget && row_id < suggestWidget.widget.list.view.items.length) {
-        let suggest_item = suggestWidget.widget.list.view.items[row_id];
-        insert_text = suggest_item.element.completion.insertText;
-      }
-
-    }
-
-    eventParams = {
-      trigger: trigger,
-      current_word: bsl.word,
-      last_word: bsl.lastRawExpression,
-      last_expression: bsl.lastExpression,                    
-      rows: suggestRows.length ? suggestRows : getSuggestWidgetRows(row),
-      altKey: altPressed,
-			ctrlKey: ctrlPressed,
-			shiftKey: shiftPressed,
-      row_id: row_id,
-      insert_text: insert_text
-    }
-
-    if (row) {
-      
-      eventParams['kind'] = getChildWithClass(row, 'suggest-icon').className;
-      eventParams['sideDetailIsOpened'] = (null != document.querySelector('.suggest-widget.docs-side .details .header'));
-
-      if (eventName == 'EVENT_ON_ACTIVATE_SUGGEST_ROW' || eventName == 'EVENT_ON_DETAIL_SUGGEST_ROW')
-        eventParams['focused'] = row.getAttribute('aria-label');
-      else if (eventName == 'EVENT_ON_SELECT_SUGGEST_ROW')
-        eventParams['selected'] = row.getAttribute('aria-label');
-
-    }
-    
-    sendEvent(eventName, eventParams);
-
-  }
 
   function goToCurrentMarker(sorted_marks) {
 
