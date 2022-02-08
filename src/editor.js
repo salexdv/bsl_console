@@ -875,27 +875,6 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
-  function getSuggestWidgetRows(element) {
-
-    let rows = [];
-
-    if (element) {
-
-      for (let i = 0; i < element.parentElement.childNodes.length; i++) {              
-        
-        let row = element.parentElement.childNodes[i];
-        
-        if (row.classList.contains('monaco-list-row'))
-          rows.push(row.getAttribute('aria-label'));
-
-      }
-
-    }
-
-    return rows;
-
-  }
-
   hideSuggestionsList = function() {
 
     editor.trigger("editor", "hideSuggestWidget"); // https://github.com/salexdv/bsl_console/issues/209
@@ -1392,7 +1371,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
-  function generateEventWithSuggestData(eventName, trigger, row, suggestRows = []) {
+  generateEventWithSuggestData = function(eventName, trigger, row, suggestRows = []) {
 
     let bsl = new bslHelper(editor.getModel(), editor.getPosition());
     let row_id = row ? row.getAttribute('data-index') : "";
@@ -1680,7 +1659,27 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   // #endregion
     
   // #region non-public functions
+  function getSuggestWidgetRows(element) {
 
+    let rows = [];
+
+    if (element) {
+
+      for (let i = 0; i < element.parentElement.childNodes.length; i++) {              
+        
+        let row = element.parentElement.childNodes[i];
+        
+        if (row.classList.contains('monaco-list-row'))
+          rows.push(row.getAttribute('aria-label'));
+
+      }
+
+    }
+
+    return rows;
+
+  }
+  
   function goToCurrentMarker(sorted_marks) {
 
     let idx = 0;
