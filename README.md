@@ -176,6 +176,10 @@ npm run build  -- --customOptions "automaticLayout: true, someOption: false"
 | `goPreviousBookmark` 		 	 | Переход к предыдущей закладке										 	 					 |
 | `getBookmarks` 		 	 	 | Возвращает массив с номерами строк, в которых установлены закладки	 	 					 |
 | `removeAllBookmarks`	 	 	 | Удаляет все закладки	 	 																	 |
+| [`setMarkers`](docs/set_markers.md) | Задает маркеры выделения																 |
+| `getMarkers`                   | Возвращает список установленных маркеров														 |
+| `goNextMarker`                 | Переход к следующему маркеру         														 |
+| `goPreviousMarker`             | Переход к предыдущему маркеру         														 |
 | `setActiveSuggestLabel` 		 | Устанавливает заголовок активного пункта списка подсказок			 	 					 |
 | `setActiveSuggestDetail` 		 | Устанавливает подробное описание активного пункта списка подсказок	 	 					 |
 | `revealLineInCenter` 			 | Переход к строке по её номеру и позиционирование по центру экрана	 	 					 |
