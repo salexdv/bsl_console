@@ -53,6 +53,7 @@ window.inlineDiffEditor = null;
 window.inlineDiffWidget = null;
 window.events_queue = [];
 window.colors = {};
+wineow.editor_options = [];
 // #endregion
 
 // #region public API
@@ -778,6 +779,10 @@ window.compare = function (text, sideBySide, highlight, markLines = true) {
     }
   }
 
+  for (const [key, value] of Object.entries(editor_options)) {
+    window.setOption(key, value);
+  }
+
 }
 
 window.triggerSuggestions = function() {
@@ -1216,6 +1221,7 @@ window.previousMatch = function () {
 window.setOption = function (optionName, optionValue) {
 
   window.editor[optionName] = optionValue;
+  window.editor_options[optionName] = optionValue;
 
   if (optionName == 'generateBeforeSignatureEvent')
       startStopSignatureObserver();
