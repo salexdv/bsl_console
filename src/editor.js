@@ -1672,14 +1672,40 @@ function goToCurrentMarker(sorted_marks) {
 
   let idx = 0;
   let count = window.getLineCount();
+  let decorations = [];
 
   sorted_marks.forEach(function (value) {
+
     if (idx == currentMarker && value.startLineNumber <= count) {
+
       window.editor.revealLineInCenter(value.startLineNumber);
       window.editor.setPosition(new monaco.Position(value.startLineNumber, value.startColumn));
+
+      let decor_class = 'marker';
+
+      switch (value.severity) {
+        case 8: decor_class += ' marker-error'; break;
+        case 1: decor_class += ' marker-hint'; break;
+        case 2: decor_class += ' marker-info'; break;
+        case 4: decor_class += ' marker-warning'; break;
+        default: decor_class += ' marker-error';
+      }
+
+      decorations.push({
+        range: new monaco.Range(value.startLineNumber, 1, value.startLineNumber),
+        options: {
+          isWholeLine: true,
+          linesDecorationsClassName: decor_class
+        }
+      });
+
     }
+
     idx++;
+
   });
+
+  window.editor.updateDecorations(decorations);
 
 }
 
@@ -1692,6 +1718,7 @@ function getSortedMarks() {
 function setModelMarkers(model, markers_array) {
     
   let markers_data = [];
+  currentMarker = -1;
   
   markers_array.forEach(marker => {
     
