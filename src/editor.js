@@ -45,6 +45,7 @@ window.altPressed = false;
 window.shiftPressed = false;  
 window.signatureVisible = true;
 window.currentBookmark = -1;
+window.currentMarker = -1;
 window.activeSuggestionAcceptors = [];
 window.diffEditor = null;  
 window.inlineDiffEditor = null;
@@ -1360,6 +1361,31 @@ window.setMarkers = function (markersJSON) {
   }
 
 }
+
+window.goNextMarker = function () {
+
+  let sorted_markers = getSortedMarkers();
+
+  if (sorted_markers.length - 1 <= currentMarker)
+    currentMarker = -1;
+
+  currentMarker++;
+  goToCurrentMarker(sorted_markers);
+
+}
+
+window.goPreviousMarker = function () {
+
+  let sorted_markers = getSortedMarkers();
+
+  currentMarker--;
+
+  if (currentMarker < 0)
+  currentMarker = sorted_markers.length - 1;
+
+  goToCurrentMarker(sorted_markers);
+
+}
 // #endregion
 
 // #region init editor
@@ -1642,6 +1668,21 @@ function initEditorEventListenersAndProperies() {
 // #endregion
   
 // #region non-public functions
+function goToCurrentMarker(sorted_marks) {
+
+  let idx = 0;
+  let count = window.getLineCount();
+
+  sorted_marks.forEach(function (value) {
+    if (idx == currentMarker && value.startLineNumber <= count) {
+      window.editor.revealLineInCenter(value.startLineNumber);
+      window.editor.setPosition(new monaco.Position(value.startLineNumber, value.startColumn));
+    }
+    idx++;
+  });
+
+}
+
 function getSortedMarks() {
 
   return monaco.editor.getModelMarkers().sort((a, b) => a.startLineNumber - b.startLineNumber)
