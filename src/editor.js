@@ -1346,6 +1346,20 @@ window.isSuggestWidgetVisible = function() {
   return getSuggestWidget().widget.suggestWidgetVisible.get();
 
 }
+
+window.setMarkers = function (markersJSON) {
+
+  try {
+    const markers_array = JSON.parse(markersJSON);
+    const model = window.editor.navi ? window.editor.getModifiedEditor().getModel() : window.editor.getModel();
+    setModelMarkers(model, markers_array)
+    return true;
+  }
+  catch (e) {
+    return { errorDescription: e.message };
+  }
+
+}
 // #endregion
 
 // #region init editor
@@ -1628,6 +1642,48 @@ function initEditorEventListenersAndProperies() {
 // #endregion
   
 // #region non-public functions
+function setModelMarkers(model, markers_array) {
+    
+  let markers_data = [];
+  
+  markers_array.forEach(marker => {
+    
+    let severity;
+
+    switch (marker.severity) {
+      case "Error":
+        severity = monaco.MarkerSeverity.Error;
+        break;
+      case "Hint":
+        severity = monaco.MarkerSeverity.Hint;
+        break;
+      case "Info":
+        severity = monaco.MarkerSeverity.Info;
+        break;
+      case "Warning":
+        severity = monaco.MarkerSeverity.Warning;
+        break;
+      default:
+        severity = monaco.MarkerSeverity.Error;
+    }
+
+    markers_data.push({
+      startLineNumber: marker.lineNumber,
+      endLineNumber: marker.lineNumber,
+      startColumn: marker.startColumn ? marker.startColumn : model.getLineFirstNonWhitespaceColumn(marker.lineNumber),
+      endColumn: marker.endColumn ? marker.endColumn : model.getLineFirstNonWhitespaceColumn(marker.lineNumber),
+      severity: severity,
+      message: marker.message,
+      code: marker.code ? marker.code : '',
+      source: marker.source ? marker.source : ''
+    });
+
+  });
+
+  monaco.editor.setModelMarkers(model, "markers", markers_data);
+
+}
+
 function startStopDefinitionMessegeObserver() {
 
   if (window.definitionObserver != null) {
