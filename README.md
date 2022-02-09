@@ -183,6 +183,7 @@ npm run build  -- --customOptions "automaticLayout: true, someOption: false"
 | `setActiveSuggestLabel` 		 | Устанавливает заголовок активного пункта списка подсказок			 	 					 |
 | `setActiveSuggestDetail` 		 | Устанавливает подробное описание активного пункта списка подсказок	 	 					 |
 | `revealLineInCenter` 			 | Переход к строке по её номеру и позиционирование по центру экрана	 	 					 |
+| [`goToFuncDefinition`](docs/go_func_definition.md) | Переход к определению процедуры/функции по имени	                         |
 
 ## События, генерируемые редактором для 1С:Предприятия
 | Событие                        | Описание                                                                                      |
