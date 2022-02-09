@@ -39,6 +39,7 @@ window.contextMenuEnabled = false;
 window.err_tid = 0;
 window.suggestObserver = null;
 window.signatureObserver = null;
+window.definitionObserver = null;
 window.statusBarWidget = null;
 window.ctrlPressed = false;
 window.altPressed = false;
