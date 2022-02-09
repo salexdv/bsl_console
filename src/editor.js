@@ -1362,6 +1362,12 @@ window.setMarkers = function (markersJSON) {
 
 }
 
+window.getMarkers = function( ) {
+
+  return getSortedMarkers();
+
+}
+
 window.goNextMarker = function () {
 
   let sorted_markers = getSortedMarkers();
