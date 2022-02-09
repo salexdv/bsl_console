@@ -1403,6 +1403,7 @@ window.goToFuncDefinition = function (funcName) {
     if (match) {
       window.editor.revealLineInCenter(match.range.startLineNumber);
       window.editor.setPosition(new monaco.Position(match.range.startLineNumber, match.range.startColumn));
+      window.editor.focus();
       return true;
     }
   }
