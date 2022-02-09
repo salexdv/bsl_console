@@ -5753,59 +5753,117 @@ class bslHelper {
 	}
 
 	/**
+	 * Returns array of words from string
+	 *  
+	 * @param {string} str string 
+	 * 
+	 * @returns {array} words 
+	 */
+	static getWordsFromFormatString(str) {
+
+		const comment = str.indexOf('//');
+
+		if (0 <= comment)
+			str = str.substr(0, comment);
+
+		str = str.replace(/"([\s\S]+)?"/u, '');
+		str = str.replace(/"([\s\S]+)?$/u, '');
+		str = str.replace(/\|([\s\S]+)?"/u, '');
+		str = str.replace(/\|([\s\S]+)?$/u, '');
+
+		const semi = str.indexOf(';');
+
+		if (0 <= semi)
+			str = str.substr(0, semi);
+
+		return str.trim().split(' ');
+
+	}
+
+	/**
 	 * Code formatter
 	 * 
 	 * @param {ITextModel} model current model of editor
 	 * 
 	 * @returns {string} formated text
 	 */
-	static formatCode(model) {
+	 static formatCode(model) {
 
 		let result = '';
 
 		const startWords = [
-			'если', 'для', 'пока', 'функция', 'процедура', 'попытка',
-			'if', 'for', 'while', 'function', 'procedure', 'try'			
+			'если', '#если', 'для', 'пока', 'функция', 'процедура', 'попытка',
+			'if', '#if', 'for', 'while', 'function', 'procedure', 'try'
 		];
 
 		const stopWords = [
-			'конецесли', 'конеццикла', 'конецфункции', 'конецпроцедуры', 'конецпопытки',
-			'endif', 'enddo', 'endfunction', 'endprocedure', 'endtry'
+			'конецесли', '#конецесли', 'конеццикла', 'конецфункции', 'конецпроцедуры', 'конецпопытки',
+			'endif', '#endif', 'enddo', 'endfunction', 'endprocedure', 'endtry'
 		];
 
 		const complexWords = [
-			'исключение', 'иначе', 'иначеесли',
-			'except', 'else', 'elseif'
+			'исключение', 'иначе', 'иначеесли', '#иначе', '#иначеесли',
+			'except', 'else', 'elseif', '#else', '#elseif'
 		];
 
-		const strings = model.getValue().split('\n');
-
+		let format_range = model.getFullModelRange();
+		const selection = window.editor.getSelection();
+		const selected_text = model.getValueInRange(selection).trim();
 		let offset = 0;
+
+		let strings = '';
+
+		if (selected_text) {
+
+			format_range = new monaco.Range(
+				selection.startLineNumber,
+				1,
+				selection.endLineNumber,
+				model.getLineMaxColumn(selection.endLineNumber)
+			);
+			strings = model.getValueInRange(format_range).split('\n');
+
+			let line_number = selection.startLineNumber - 1;
+
+			while (0 < line_number && offset == 0) {
+
+				let str = model.getLineContent(line_number)
+				let words = bslHelper.getWordsFromFormatString(str);
+				let word_i = 0;
+
+				while (word_i < words.length && offset == 0) {
+					let word = words[word_i].toLowerCase();
+					if (startWords.includes(word)) {
+						str = model.normalizeIndentation(str);
+						offset = str.match(/^(\t*)/)[0].split('\t').length;
+					}
+					word_i++;
+				}
+
+				line_number--;
+
+			}
+
+
+		}
+		else {
+			strings = model.getValue().split('\n');
+		}
 
 		strings.forEach(function (str, index) {
 
 			let original = str;
-			let comment = str.indexOf('//');
-
-			if (0 <= comment)
-				str = str.substr(0, comment);			
-
-			let semi = str.indexOf(';');
-
-			if (0 <= semi)
-				str = str.substr(0, semi);			
-
-			let words = str.trim().split(' ');
+			const words = bslHelper.getWordsFromFormatString(str);
 			let word_i = 0;
 			let delta = offset;
 
 			while (word_i < words.length) {
-				
+
 				let word = words[word_i].toLowerCase();
-				
+
 				if (startWords.includes(word))
 					offset++;
-				
+
 				if (stopWords.includes(word))
 					offset = Math.max(0, offset - 1);
 
@@ -5816,9 +5874,9 @@ class bslHelper {
 			}
 
 			delta = offset - delta;
-			let strOffset = 0 < delta ? offset - 1 : offset;			
+			let strOffset = 0 < delta ? offset - 1 : offset;
 			result = result + '\t'.repeat(strOffset) + original.trim();
-			
+
 			if (index < strings.length - 1)
 				result += '\n';
 
@@ -5827,7 +5885,10 @@ class bslHelper {
 
 		});
 
-		return result;
+		return [{
+			text: result,
+			range: format_range
+		}];
 	}
 
 	/**
