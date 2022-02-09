@@ -1349,6 +1349,13 @@ window.formatDocument = function() {
 
 }
 
+window.isParameterHintsWidgetVisible = function () {
+
+  let content_widget = getParameterHintsWidget();
+  return content_widget ? content_widget.widget.visible : false;
+
+}
+
 window.isSuggestWidgetVisible = function() {
   
   return getSuggestWidget().widget.suggestWidgetVisible.get();
@@ -2007,6 +2014,18 @@ function getSuggestWidget() {
 
 }
 
+function getParameterHintsWidget() {
+
+  return editor._contentWidgets['editor.widget.parameterHintsWidget'];
+
+}
+
+function getFindWidget() {
+  
+  return getActiveEditor()._overlayWidgets['editor.contrib.findWidget'];
+
+}
+
 function getSuggestWidgetRows(element) {
 
   let rows = [];
@@ -2232,7 +2251,37 @@ function stopEventIfSuggestListIsClosed(e) {
 
 }
 
+function generateOnKeyDownEvent(e) {
+
+  let fire_event = window.getOption('generateOnKeyDownEvent');
+  let filter = window.getOption('onKeyDownFilter');
+  let filter_list = filter ? filter.split(',') : [];
+  fire_event = fire_event && (!filter || 0 <= filter_list.indexOf(e.keyCode.toString()));
+
+  if (fire_event) {
+
+    let find_widget = getFindWidget();
+
+    let event_params = {
+      keyCode: e.keyCode,
+      suggestWidgetVisible: window.isSuggestWidgetVisible(),
+      parameterHintsWidgetVisible: window.isParameterHintsWidgetVisible(),
+      findWidgetVisible: (find_widget && find_widget.position) ? true : false,
+      ctrlPressed: e.ctrlKey,
+      altPressed: e.altKey,
+      shiftPressed: e.shiftKey,
+      position: window.editor.getPosition()
+    }
+
+    window.sendEvent('EVENT_ON_KEY_DOWN', event_params);
+
+  }
+
+}
+
 function editorOnKeyDown(e) {
+
+  generateOnKeyDownEvent(e);
 
   window.editor.lastKeyCode = e.keyCode;
 
