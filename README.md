@@ -146,7 +146,8 @@ npm run build  -- --customOptions "automaticLayout: true, someOption: false"
 | `getCurrentLanguageId`         | Возвращает идентификатор текущего языка (`bsl`, `bsl_query`, `dcs_query`, `xml`)              |
 | `isQueryMode`                  | Возвращает `true`, если редактор находится в режиме редактирования запроса и `false` в любом другом режиме |
 | `isDCSMode`                    | Возвращает `true`, если редактор находится в режиме СКД и `false` в любом другом случае       |
-
+| `isSuggestWidgetVisible`       | Возвращает видимость стандартного списка подсказок                                            |
+| `isParameterHintsWidgetVisible`| Возвращает видимость списка подсказок для параметров функции/метода                           |
 
 ### Взаимодействие
 | Функция                        | Описание                                                                                      |
