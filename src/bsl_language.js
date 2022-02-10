@@ -124,10 +124,14 @@ let themes = {
             'editorCursor.foreground': '#d4d4d4',
             'editorSuggestWidget.background': '#252526',
             'editorSuggestWidget.foreground': '#d4d4d4',
-            'editorSuggestWidget.selectedBackground': '#062f4a',
+            'editorSuggestWidget.selectedBackground': '#094771',
+            'editorSuggestWidget.highlightForeground': '#18a3ff',
             'editorWidget.background': '#252526',
             'editorWidget.foreground': '#d4d4d4',
-            'editorWidget.border': '#d4d4d4'                
+            'editorWidget.border': '#d4d4d4',
+            'list.hoverBackground': '#2a2d2e',
+            'editor.lineHighlightBorder': '#282828',
+            'editorWidget.border': '#454545'
         },
         white: {
             'editor.selectionBackground': '#ffe877',
