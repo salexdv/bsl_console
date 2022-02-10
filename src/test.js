@@ -951,6 +951,16 @@ setTimeout(() => {
 
       });
 
+      it("проверка подсказки табличных частей для справочника 'Товары.' ", function () {
+
+        bsl = helper('Товар = Справочники.Товары.НайтиПоКоду(1);\nТовар.');
+        let suggestions = [];
+        bsl.getMetadataCompletion(suggestions, bslMetadata)
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "ДополнительныеРеквизиты"), true);
+
+      });
+
     }
 
     mocha.run();
