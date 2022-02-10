@@ -1130,6 +1130,9 @@ class bslHelper {
 							this.getSystemEnumSuggestions(window.suggestions, bslGlobals[itemName][subItemName]);
 						}
 					}
+					else if (subItemName == 'metadata' && this.objectHasProperties(window.bslMetadata, itemName, 'metadata')) {
+						this.getObjectMetadata(suggestions, window.bslMetadata[itemName]['metadata']);
+					}
 					else {
 
 						if (window.isQueryMode() || window.isDCSMode()) {
@@ -1336,6 +1339,63 @@ class bslHelper {
 			}
 
 		}		
+
+	}
+
+	/**
+	 * Fills the suggestions for object metadata
+	 * 
+	 * @param {array} suggestions the list of suggestions
+	 * @param {object} obj object from BSL-JSON dictionary
+	 */
+	getObjectMetadata(suggestions, obj) {
+
+		if (obj.hasOwnProperty('methods')) {
+
+			for (const [mkey, mvalue] of Object.entries(obj.methods)) {
+
+				let description = mvalue.hasOwnProperty('returns') ? mvalue.returns : '';
+				let signatures = this.getMethodsSignature(mvalue);
+				let postfix = '';
+				let post_action = null;
+
+				if (signatures.length) {
+					postfix = '(';
+					post_action = 'editor.action.triggerParameterHints';
+				}
+
+				if (signatures.length == 0 || (signatures.length == 1 && signatures[0].parameters.length == 0))
+					postfix = '()';
+
+				suggestions.push({
+					label: mvalue[this.nameField],
+					kind: monaco.languages.CompletionItemKind.Method,
+					insertText: mvalue[this.nameField] + postfix,
+					insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+					detail: mvalue.description,
+					documentation: description,
+				});
+
+			}
+
+		}
+
+		if (obj.hasOwnProperty('properties')) {
+
+			for (const [pkey, pvalue] of Object.entries(obj.properties)) {
+
+				suggestions.push({
+					label: pvalue[this.nameField],
+					kind: monaco.languages.CompletionItemKind.Field,
+					insertText: pvalue[this.nameField],
+					insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+					detail: pvalue.description,
+					documentation: ''
+				});
+
+			}
+
+		}
 
 	}
 
