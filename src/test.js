@@ -961,6 +961,19 @@ setTimeout(() => {
 
       });
 
+      it("проверка подсказки методов табличных частей для справочника 'Товары.' по ссылке", function () {
+        
+        bsl = helper('Спр = Справочники.Товары.НайтиПоКоду(1);\nСпр.ДополнительныеРеквизиты.');        
+        let suggestions = [];
+        window.contextData = new Map([
+          [2, new Map([["дополнительныереквизиты", { "ref": "universalObjects.ТабличнаяЧасть", "sig": null }]])],
+        ]);
+        bsl.getRefCompletion(suggestions);
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "ВыгрузитьКолонки"), true);      
+
+      });
+
     }
 
     mocha.run();
