@@ -1,5 +1,48 @@
 import bslHelper from './bsl_helper';
 
+function deepCopyArray(sourceArray, destinationArray) {
+
+    sourceArray.forEach(value => {
+        if (typeof value != "object") {
+            destinationArray.push(value);
+        }
+        else if (value instanceof RegExp) {
+            destinationArray.push(value);
+        }
+        else if (value instanceof Array) {
+            let new_array = [];
+            deepCopyArray(value, new_array)
+            destinationArray.push(new_array);
+        }
+        else {
+            let new_object = {};
+            deepCopyObject(value, new_object);
+            destinationArray.push(new_object);
+        }
+    })
+
+}
+
+function deepCopyObject(sourceObject, destinationObject) {
+
+    for (key in sourceObject) {
+        if (typeof sourceObject[key] != "object") {
+            destinationObject[key] = sourceObject[key];
+        }
+        else if (sourceObject[key] instanceof RegExp) {
+            destinationObject[key] = sourceObject[key];
+        }
+        else if (sourceObject[key] instanceof Array) {
+            destinationObject[key] = []
+            deepCopyArray(sourceObject[key], destinationObject[key]);
+        }
+        else {
+            destinationObject[key] = {};
+            deepCopyObject(sourceObject[key], destinationObject[key]);
+        }
+    }
+}
+
 let themes = {
     rules: {
         white: [
@@ -335,6 +378,7 @@ let query_language = {
         expBeforeAs: [
             'КОНЕЦ', 'END', 'NULL', 'НЕОПРЕДЕЛЕНО', 'UNDEFINED'
         ],
+        characteristics: [],
         tokenizer: {
             root: [                      
                 [/(поместить|из|into|from)/, { token: 'query.keyword', next: '@intofrom' }],
@@ -366,6 +410,7 @@ let query_language = {
                 ]],
                 [/([a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]+)(\.)([a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]+)/, 'query'],
                 [/[a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]*/, { cases: {
+                    '@characteristics': 'query.keyword',
                     '@keywords': 'query.keyword',
                     '@expressions': 'query.exp',
                     '@default': 'query'
@@ -395,13 +440,23 @@ let query_language = {
     themes: bsl_language.themes        
 }
 
+let dcs_rules = {};
+deepCopyObject(query_language.rules, dcs_rules);
+
+dcs_rules.characteristics = [
+    'ХАРАКТЕРИСТИКИ', 'CHARACTERISTICS', 'СПИСОК', 'LIST', 'ТИП', 'TYPE',
+    'ИДЕНТИФИКАТОР', 'ID', 'ИМЯ', 'NAME', 'ТИПЗНАЧЕНИЯ', 'VALUETYPE',
+    'ХАРАКТЕРИСТИКА', 'CHARACTERISTIC', 'ОБЪЕКТ', 'OBJECT', 'ЗНАЧЕНИЯ',
+    'VALUES', 'ЗНАЧЕНИЕ', 'VALUE'
+];
+
 let dcs_language = {
     id: 'dcs_query',
-    rules: Object.assign({}, query_language.rules)
+    rules: dcs_rules
 }
 
 let dcs_expressions = query_expressions.concat(bsl_language.rules.DCSFunctions);
-dcs_language.rules.expressions = dcs_expressions; 
+dcs_language.rules.expressions = dcs_expressions;
 
 let languages = {
     bsl: {
