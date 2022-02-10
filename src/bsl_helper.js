@@ -4157,6 +4157,7 @@ class bslHelper {
 					this.getCustomObjectsCompletion(suggestions, window.bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
 					this.getRefCompletion(suggestions);
 					this.getSnippets(suggestions, window.DCSSnippets);
+					this.getCommonModulesCompletion(suggestions);
 				}
 
 			}
