@@ -925,13 +925,14 @@ setTimeout(() => {
 
       it("проверка подсказки описания метаданных", function () {
 
-        let position = new monaco.Position(150, 21);
-        let model = window.editor.getModel();
-        window.editor.setPosition(position);
+        let position = new monaco.Position(151, 13);
+        let model = editor.getModel();
+        editor.setPosition(position);
         bsl = new bslHelper(model, position);
         let suggestions = bsl.getCodeCompletion({ triggerCharacter: '' });
         expect(suggestions).to.be.an('array').that.not.is.empty;
         assert.equal(suggestions.some(suggest => suggest.label === "Автонумерация"), true);
+        assert.equal(suggestions.some(suggest => suggest.label === "ПолучитьИменаПредопределенных"), true);
 
       });
 
