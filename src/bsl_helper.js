@@ -1187,6 +1187,9 @@ class bslHelper {
 					else if (subItemName == 'metadata' && this.objectHasProperties(window.bslMetadata, itemName, 'metadata')) {
 						this.getClassSuggestions(suggestions, window.bslMetadata[itemName]['metadata']);
 					}
+					else if (itemName == 'universalObjects' && this.objectHasProperties(window.bslGlobals, itemName, subItemName)) {
+						this.getUniversalObjectSuggestions(suggestions, window.bslGlobals[itemName][subItemName], parentRef);
+					}
 					else {
 
 						if (window.isQueryMode() || window.isDCSMode()) {
