@@ -164,7 +164,7 @@ window.eraseText = function () {
 
 window.getText = function(txt) {
 
-  return window.editor.getValue();
+  return getActiveEditor().getValue();
 
 }
 
