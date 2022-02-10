@@ -151,7 +151,7 @@ module.exports = (env, args) => {
         languages: ['xml'],
       }),
       args.mode == 'production' ? new webpack.optimize.LimitChunkCountPlugin({
-        maxChunks: 10
+        maxChunks: 1
       }) : false,
       new CleanWebpackPlugin(),
       new HtmlWebpackPlugin({
