@@ -1625,6 +1625,40 @@ class bslHelper {
 
 	}
 
+	/**
+	 * Gets the list of tabulars owned by object
+	 * (Catalog, Document, etc) and fills the suggestions by it
+	 * 
+	 * @param {array} suggestions the list of suggestions
+	 * @param {object} tabulars object with tabulars description
+	 */
+	fillSuggestionsForItemTabulars(suggestions, tabulars, metadataName, metadataItem) {
+
+		for (const [key, value] of Object.entries(tabulars)) {
+
+			let command = {
+				id: 'vs.editor.ICodeEditor:1:saveref',
+				arguments: [{
+					'name': key,
+					"data": {
+						"ref": 'universalObjects.ТабличнаяЧасть',
+						"parent_ref": metadataName + '.' + metadataItem + '.tabulars.' + key,
+						"sig": null
+					}
+				}]
+			};
+
+			suggestions.push({
+				label: key,
+				kind: monaco.languages.CompletionItemKind.Unit,
+				insertText: key,
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				command: command
+			});
+
+		}
+
+	}
 
 	/**
 	 * Gets the list of properties (attributes) owned by object
@@ -1642,6 +1676,9 @@ class bslHelper {
 
 		if (obj.hasOwnProperty('resources'))
 			objects.push(obj.resources);
+
+		if (obj.hasOwnProperty('tabulars'))
+			this.fillSuggestionsForItemTabulars(suggestions, obj.tabulars, metadataName, metadataItem);
 
 		for (let idx = 0; idx < objects.length; idx++) {
 
