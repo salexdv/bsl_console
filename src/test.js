@@ -974,6 +974,20 @@ setTimeout(() => {
 
       });
 
+      it("проверка подсказки реквизитов строки табличной частей для справочника 'Товары.' по ссылке", function () {
+
+        bsl = helper('Спр = Справочники.Товары.НайтиПоКоду(1);\nСтрокаТЧ = Спр.ДополнительныеРеквизиты.Добавить();\nСтрокаТЧ.');
+        let suggestions = [];
+        window.contextData = new Map([
+          [2, new Map([["добавить", { "ref": "catalogs.Товары.tabulars.ДополнительныеРеквизиты,universalObjects.СтрокаТабличнойЧасти", "sig": null }]])],
+        ]);
+        bsl.getRefCompletion(suggestions);
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "ЗначениеРеквизита"), true);
+        assert.equal(suggestions.some(suggest => suggest.label === "НомерСтроки"), true);
+
+      });
+
     }
 
     mocha.run();
