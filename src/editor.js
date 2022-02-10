@@ -2459,7 +2459,7 @@ function getChildWithClass(element, className) {
 
 setFindWidgetDisplay = function(value) {
 
-  let find_widget = getActiveEditor()._overlayWidgets['editor.contrib.findWidget'];
+  let find_widget = getFindWidget();
   
   if (find_widget)
     find_widget.widget._domNode.style.display = value;
@@ -2468,7 +2468,7 @@ setFindWidgetDisplay = function(value) {
 
 function setFindWidgetDisplay(value) {
 
-  let find_widget = getActiveEditor()._overlayWidgets['editor.contrib.findWidget'];
+  let find_widget = getFindWidget();
   
   if (find_widget)
     find_widget.widget._domNode.style.display = value;
@@ -2477,7 +2477,7 @@ function setFindWidgetDisplay(value) {
 
 function focusFindWidgetInput() {
 
-  let find_widget = getActiveEditor()._overlayWidgets['editor.contrib.findWidget'];
+  let find_widget = getFindWidget();
 
   if (find_widget)
     find_widget.widget.focusFindInput();
