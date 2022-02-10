@@ -433,9 +433,13 @@ window.switchXMLMode = function() {
     
 }
 
-window.getSelectedText = function() {
+window.getSelectedText = function () {
 
-  return window.editor.getModel().getValueInRange(window.editor.getSelection());
+  const active_editor = getActiveEditor();
+  const model = active_editor.getModel();
+  const selection = active_editor.getSelection();
+
+  return model.getValueInRange(selection);
 
 }
 
