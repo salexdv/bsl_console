@@ -936,6 +936,21 @@ setTimeout(() => {
 
       });
 
+      it("проверка подсказки по глобальной структуре метаданных", function () {
+
+        bsl = helper('Структура.Метаданные.');
+        let suggestions = [];
+        bsl.getMetadataDescription(suggestions);
+        expect(suggestions).to.be.an('array').that.is.empty;
+
+        bsl = helper('(Метаданные.');
+        suggestions = [];
+        bsl.getMetadataDescription(suggestions);
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "Справочники"), true);
+
+      });
+
     }
 
     mocha.run();
