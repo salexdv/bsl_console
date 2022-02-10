@@ -4152,6 +4152,7 @@ class bslHelper {
 
 				if (this.lastOperator != '"') {
 					this.getFillSuggestionsFromArray(suggestions, languages.bsl.languageDef.rules.DCSExp, monaco.languages.CompletionItemKind.Module, false);
+					this.getFillSuggestionsFromArray(suggestions, languages.dcs.languageDef.rules.characteristics, monaco.languages.CompletionItemKind.Module, false);
 					let functions = this.getQueryFunctions(window.bslDCS);
 					this.getCommonCompletion(suggestions, functions, monaco.languages.CompletionItemKind.Function, true);
 					this.getCustomObjectsCompletion(suggestions, window.bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
