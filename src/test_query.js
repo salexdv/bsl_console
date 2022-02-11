@@ -293,7 +293,7 @@ setTimeout(() => {
       bsl = helper(`ВЫБРАТЬ
       Товары.СтавкаНДС.
       ИЗ      
-      Справочник.Товары КАК Товары`, 2, 22);
+      Справочник.Товары КАК Товары`, 2, 24);
       let suggestions = [];
       bsl.getQueryFieldsCompletion(suggestions);
       expect(suggestions).to.be.an('array').that.not.is.empty;
