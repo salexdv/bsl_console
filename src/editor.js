@@ -314,14 +314,6 @@ window.minimap = function (enabled) {
   
 }
 
-window.enableModificationEvent = function (enabled) {
-
-  // !!! depricated !!! //
-  console.warn('enableModificationEvent is deprecated and will be removed in a future version #247');
-  window.setOption('generateModificationEvent', enabled);
-
-}
-
 window.addContextMenuItem = function(label, eventName) {
 
   let time = new Date().getTime();
@@ -373,67 +365,11 @@ window.setLanguageMode = function(mode) {
 
 }
 
-window.switchLanguageMode = function(mode) {
-  
-  // !!! depricated !!! //
-  let currentTheme = getCurrentThemeName();
-
-  if (window.queryMode && mode == 'query')
-    monaco.editor.setModelLanguage(window.editor.getModel(), "bsl_query");
-  else if (window.DCSMode && mode == 'dcs')
-    monaco.editor.setModelLanguage(window.editor.getModel(), "dcs_query");
-  else if (window.queryMode)
-    monaco.editor.setModelLanguage(window.editor.getModel(), "bsl_query");
-  else if (window.DCSMode)
-    monaco.editor.setModelLanguage(window.editor.getModel(), "dcs_query");
-  else
-    monaco.editor.setModelLanguage(window.editor.getModel(), "bsl");
-  
-  window.setTheme(currentTheme);
-
-  initContextMenuActions();
-  console.warn('switchLanguageMode is deprecated and will be removed in a future version #241');
-
-}
-
 window.getCurrentLanguageId = function() {
 
   let identifier = getActiveEditor().getModel().getLanguageIdentifier();
   return identifier.language;
 
-}
-
-window.switchQueryMode = function() {
-  
-  // !!! depricated !!! //
-  window.queryMode = !window.queryMode;
-  window.switchLanguageMode('query');
-  console.warn('switchQueryMode is deprecated and will be removed in a future version #241');
-
-}
-
-window.switchDCSMode = function() {
-
-  // !!! depricated !!! //
-  window.DCSMode = !window.DCSMode;
-  window.switchLanguageMode('dcs');
-  console.warn('switchDCSMode is deprecated and will be removed in a future version #241');
-
-}
-
-window.switchXMLMode = function() {
-  
-  // !!! depricated !!! //
-  let identifier = window.editor.getModel().getLanguageIdentifier();
-  let language_id = 'xml';
-
-  if (identifier.language == 'xml') {
-    language_id = window.isQueryMode() ? 'bsl_query' : 'bsl';
-  }
-
-  monaco.editor.setModelLanguage(window.editor.getModel(), language_id);
-  console.warn('switchXMLMode is deprecated and will be removed in a future version #241'); 
-    
 }
 
 window.getSelectedText = function () {
@@ -964,50 +900,6 @@ window.getTokenFromPosition = function(position) {
 window.getLastToken = function() {
 
   return window.getTokenFromPosition(window.editor.getPosition());
-
-}
-
-window.enableSuggestActivationEvent = function (enabled, alwaysDisplayDetails = false) {
-
-  // !!! depricated !!! //
-  console.warn('enableSuggestActivationEvent is deprecated and will be removed in a future version #247');
-  window.setOption('generateSuggestActivationEvent', enabled);
-  window.setOption('alwaysDisplaySuggestDetails', alwaysDisplayDetails);
-  startStopSuggestActivationObserver();
-
-}
-
-window.enableBeforeShowSuggestEvent = function(enabled) {
-  
-  // !!! depricated !!! //
-  console.warn('enableBeforeShowSuggestEvent is deprecated and will be removed in a future version #247');
-  window.setOption('generateBeforeShowSuggestEvent', enabled);
-
-}
-
-window.enableSelectSuggestEvent = function (enabled) {
-
-  // !!! depricated !!! //
-  console.warn('enableSelectSuggestEvent is deprecated and will be removed in a future version #247');
-  window.setOption('generateSelectSuggestEvent', enabled);
-  startStopSuggestSelectionObserver();
-
-}
-
-window.enableBeforeHoverEvent = function(enabled) {
-  
-  // !!! depricated !!! //
-  console.warn('enableBeforeHoverEvent is deprecated and will be removed in a future version #247');
-  window.setOption('generateBeforeHoverEvent', enabled);
-
-}
-
-window.enableBeforeSignatureEvent = function (enabled) {
-
-  // !!! depricated !!! //
-  console.warn('enableBeforeSignatureEvent is deprecated and will be removed in a future version #247');
-  window.setOption('generateBeforeSignatureEvent', enabled);
-  startStopSignatureObserver();
 
 }
 
