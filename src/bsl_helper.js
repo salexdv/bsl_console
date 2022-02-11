@@ -2983,7 +2983,7 @@ class bslHelper {
 										this.getCustomObjectsCompletion(suggestions, window.bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
 									}
 
-									this.getSnippets(suggestions, window.snippets);
+									this.getSnippets(suggestions, window.snippets, false);
 
 								}
 
@@ -4299,7 +4299,7 @@ class bslHelper {
 						this.getQueryCommonCompletion(suggestions, monaco.languages.CompletionItemKind.Module);
 						this.getQueryParamsCompletion(suggestions, monaco.languages.CompletionItemKind.Enum);				
 						this.getQueryFieldsCompletion(suggestions);
-						this.getSnippets(suggestions, window.querySnippets);
+						this.getSnippets(suggestions, window.querySnippets, false);
 
 					}
 
@@ -4345,7 +4345,7 @@ class bslHelper {
 					this.getCommonCompletion(suggestions, functions, monaco.languages.CompletionItemKind.Function, true);
 					this.getCustomObjectsCompletion(suggestions, window.bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
 					this.getRefCompletion(suggestions);
-					this.getSnippets(suggestions, window.DCSSnippets);
+					this.getSnippets(suggestions, window.DCSSnippets, false);
 					this.getCommonModulesCompletion(suggestions);
 				}
 
@@ -4776,14 +4776,15 @@ class bslHelper {
 	 * 
 	 * @param {array} suggestions array of suggestions for provideCompletionItems
 	 * @param {object} data objects from BSL-JSON dictionary
+	 * @param {bool} customSuggestions is it called from custom suggestions or not
 	 */
-	getSnippets(suggestions, data) {
+	getSnippets(suggestions, data, customSuggestions) {
 
 		if (this.word) {
 
 			for (const [key, value] of Object.entries(data)) {
 
-				if (key.toLowerCase().startsWith(this.word)) {
+				if (key.toLowerCase().startsWith(this.word) || value.prefix.toLowerCase().startsWith(this.word) || customSuggestions) {
 
 					suggestions.push({
 						label: value.prefix,
