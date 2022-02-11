@@ -7,7 +7,7 @@ import './decorations.css'
 import { setLocaleData } from 'monaco-editor-nls';
 import ruLocale from 'monaco-editor-nls/locale/ru';
 import Finder from "./finder";
-import SnippetsParser from "./parser";
+import SnippetsParser from "./parsers";
 
 const monaco = require('monaco-editor/esm/vs/editor/editor.api');
 
