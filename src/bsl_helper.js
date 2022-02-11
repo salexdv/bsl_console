@@ -1,4 +1,5 @@
 import Finder from "./finder";
+import SnippetsParser from "./parser";
 
 /**
  * Class for provideSignatureHelp
