@@ -476,7 +476,214 @@ class bslHelper {
 
 		return word
 
-	}	
+	}
+
+	/**
+	 * GUID genarator
+	 * 
+	 * @returns {string} GUID
+	 */
+	guid() {
+
+		return ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, c =>
+			(c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+		);
+
+	}
+
+	/**
+	 * Convert code to markdown
+	 * with syntax highlighting
+	 * 
+	 * @param {string} code snippet
+	 * 
+	 * @returns {string} markdown string
+	 */
+	prepareCodeDocumentation(snippet) {
+
+		return "```bsl\n" + snippet + "\n```";
+
+	}
+
+	/**
+	 * Convert snippet documentation to markdown
+	 * with syntax highlighting
+	 * 
+	 * @param {string} snippet code of snippet 
+	 * 
+	 * @returns {string} markdown string
+	 */
+	prepareSnippetDocumentation(snippet) {
+
+		// Replace placeholders like ${1:Value}, ${Value}, $0
+		let doc = snippet.replace(/\${\d{0,}:?(.*?)}/gmi, '$1');
+		doc = doc.replace(/\$\d{1,}/gmi, '');
+
+		return this.prepareCodeDocumentation(doc);
+
+	}
+
+	/**
+	 * Get array of metadata object names
+	 * 
+	 * @param {string} metadataItem name of metadata object
+	 * @param {completionItem} completionItem current item of suggestion list
+	 * 
+	 * @returns {array} array of metadata object names
+	 */
+	getSnippetMetadataItems(metadataItem, completionItem) {
+
+		let items = [];
+
+		if (bslMetadata.hasOwnProperty(metadataItem)) {
+
+			if (Object.keys(bslMetadata[metadataItem].items).length) {
+
+				for (const [key, value] of Object.entries(bslMetadata[metadataItem].items)) {
+					items.push(key);
+				}
+
+			}
+			else {
+
+				if (completionItem)
+					setTimeout(() => {
+						requestMetadata(bslMetadata[metadataItem].name.toLowerCase(), 'snippet', {
+							snippet_guid: completionItem.guid
+						});
+					}, 10);
+
+			}
+
+		}
+
+		return items;
+
+	}
+
+	/**
+	 * Get array of metadata object by metadata name
+	 * 
+	 * @param {string} metadataName name of metadata object
+	 * @param {completionItem} completionItem current item of suggestion list
+	 * 
+	 * @returns {array} array of metadata object names
+	 */
+	getSnippetMetadataItemsByName(metadataName, completionItem) {
+
+		let items = [];
+
+		let relations = [];
+		relations['Справочник'] = 'catalogs';
+		relations['ВыберитеСправочник'] = 'catalogs';
+		relations['Документ'] = 'documents';
+		relations['ВыберитеДокумент'] = 'documents';
+		relations['РегистрСведений'] = 'infoRegs';
+		relations['ВыберитеРегистрСведений'] = 'infoRegs';
+		relations['РегистрНакопления'] = 'accumRegs';
+		relations['ВыберитеРегистрНакопления'] = 'accumRegs';
+		relations['РегистрБухгалтерии'] = 'accountRegs';
+		relations['ВыберитеРегистрБухгалтерии'] = 'accountRegs';
+		relations['РегистрРасчета'] = 'calcRegs';
+		relations['ВыберитеРегистрРасчета'] = 'calcRegs';
+		relations['Обработка'] = 'dataProc';
+		relations['ВыберитеОбработку'] = 'dataProc';
+		relations['Отчет'] = 'reports';
+		relations['ВыберитеОтчет'] = 'reports';
+		relations['Перечисление'] = 'enums';
+		relations['ВыберитеПеречисление'] = 'enums';
+		relations['ПланСчетов'] = 'сhartsOfAccounts';
+		relations['ВыберитеПланСчетов'] = 'сhartsOfAccounts';
+		relations['БизнесПроцесс'] = 'businessProcesses';
+		relations['ВыберитеБизнесПроцесс'] = 'businessProcesses';
+		relations['Задача'] = 'tasks';
+		relations['ВыберитеЗадачу'] = 'tasks';
+		relations['ПланОбмена'] = 'exchangePlans';
+		relations['ВыберитеПланОбмена'] = 'exchangePlans';
+		relations['ПланВидовХарактеристик'] = 'chartsOfCharacteristicTypes';
+		relations['ВыберитеПланВидовХарактеристик'] = 'chartsOfCharacteristicTypes';
+		relations['ПланВидовРасчета'] = 'chartsOfCalculationTypes';
+		relations['ВыберитеПланВидовРасчета'] = 'chartsOfCalculationTypes';
+		relations['Константа'] = 'constants';
+		relations['ВыберитеКонстанту'] = 'constants';
+		relations['РегистрРасчета'] = 'calcRegs';
+
+		let relation = relations[metadataName];
+
+		if (relation)
+			items = this.getSnippetMetadataItems(relation, completionItem);
+
+		return items;
+
+	}
+
+	/**
+	 * Get array of metadata object names by snippet action
+	 * 
+	 * @param {string} action type of action from snippet 
+	 * @param {completionItem} completionItem current item of suggestion list
+	 * 
+	 * @returns {array} array of metadata object names
+	 */
+	getSnippetMetadataItemsByAction(action, completionItem) {
+
+		let items = [];
+
+		if (0 <= action.indexOf('ОбъектМетаданных:')) {
+			action = action.replace('ОбъектМетаданных:', '');
+			let metadata_array = action.split(',');
+			metadata_array.forEach((name) => {
+				let metadata_items = this.getSnippetMetadataItemsByName(name, completionItem);
+				items = items.concat(metadata_items);
+			});
+		}
+		else
+			items = this.getSnippetMetadataItemsByName(action, completionItem);
+
+		return items;
+
+	}
+
+	/**
+	 * Replace standart choice elements with metadata objects
+	 * or other additional transformations
+	 * 
+	 * @param {string} snippet code of snippet
+	 * @param {string} completionItem item of suggestion list
+	 * 
+	 * @returns {string} formated code of snippet
+	 */
+	prepareSnippetCode(snippet, completionItem) {
+
+		let regexp = RegExp('\\${(\\d{1,}):(.*?)}', 'gmi');
+		let match = null;
+
+		while ((match = regexp.exec(snippet)) !== null) {
+
+			let action = match[2];
+			let items = this.getSnippetMetadataItemsByAction(action, completionItem);
+
+			if (items.length) {
+
+				let text = match[0];
+				text = text.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+				let replace_reg = RegExp(text, 'gmi');
+				let prev_snippet = snippet;
+
+				if (1 < items.length)
+					snippet = snippet.replace(replace_reg, '${' + match[1] + '|' + items.join() + '|' + '}');
+				else
+					snippet = snippet.replace(replace_reg, items[0]);
+
+				if (snippet == prev_snippet)
+					break;
+			}
+
+		}
+
+		return snippet;
+
+	}
 
 	/**
 	 * Determines if string contain class constructor (New|Новый)	 	 
@@ -4791,7 +4998,7 @@ class bslHelper {
 						insertText: value.body,
 						insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
 						detail: key,
-						documentation: value.body
+						documentation: { "value": this.prepareSnippetDocumentation(value.body) }
 					});
 
 				}
