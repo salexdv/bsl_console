@@ -2001,7 +2001,7 @@ class bslHelper {
 	 * @param {array} suggestions the list of suggestions
 	 * @param {object} obj object from BSL-JSON dictionary
 	 */
-	fillSuggestionsForMetadataItem(suggestions, obj) {
+	 fillSuggestionsForMetadataItem(suggestions, obj, metadataName, metadataItem) {
 
 		let objects = [];
 		
