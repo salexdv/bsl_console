@@ -131,6 +131,17 @@ module.exports = (env, args) => {
           }
         },
         {
+          test: /\.(png|jpg|gif)$/i,
+          use: [
+            {
+              loader: 'url-loader',
+              options: {
+                limit: 8192,
+              },
+            },
+          ],
+        },
+        {
           test: /\.css$/,
           use: [
             'style-loader',
@@ -151,7 +162,7 @@ module.exports = (env, args) => {
         languages: ['xml'],
       }),
       args.mode == 'production' ? new webpack.optimize.LimitChunkCountPlugin({
-        maxChunks: 1
+        maxChunks: 10
       }) : false,
       new CleanWebpackPlugin(),
       new HtmlWebpackPlugin({
