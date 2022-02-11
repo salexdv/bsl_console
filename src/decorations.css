@@ -1,3 +1,9 @@
+#container {
+	background-image: url(loading.gif);
+	background-repeat: no-repeat;
+	background-position: center
+}
+
 #event-button {
 	display: none;
 }
