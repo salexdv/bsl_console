@@ -54,7 +54,9 @@ window.inlineDiffEditor = null;
 window.inlineDiffWidget = null;
 window.events_queue = [];
 window.colors = {};
-wineow.editor_options = [];
+window.editor_options = [];
+window.snippets = {};
+window.bslSnippets = {};
 // #endregion
 
 // #region public API
@@ -1392,6 +1394,18 @@ window.parseSnippets = function(stData) {
   
 }
 
+window.setDefaultSnippets = function() {
+
+  window.snippets = window.bslSnippets;
+
+}
+
+window.clearSnippets = function() {
+
+  window.snippets = {};
+
+}
+
 window.setMarkers = function (markersJSON) {
 
   try {
@@ -1553,7 +1567,8 @@ for (const [key, lang] of Object.entries(window.languages)) {
       }).catch((error) => 'An error occurred while loading the bslDCS');
       
       import('./snippets').then(({ default: snippets }) => {
-        window.snippets = snippets;        
+        window.bslSnippets = snippets;
+        window.setDefaultSnippets();
       }).catch((error) => 'An error occurred while loading the snippets');
       
       import('./querySnippets').then(({ default: querySnippets }) => {        
