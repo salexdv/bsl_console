@@ -25,7 +25,7 @@ function deepCopyArray(sourceArray, destinationArray) {
 
 function deepCopyObject(sourceObject, destinationObject) {
 
-    for (key in sourceObject) {
+    for (let key in sourceObject) {
         if (typeof sourceObject[key] != "object") {
             destinationObject[key] = sourceObject[key];
         }
