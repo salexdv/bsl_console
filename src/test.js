@@ -4,6 +4,12 @@ setTimeout(() => {
 
   describe("Проверка автокомлита и подсказок редактора кода", function () {
 
+    let urlParams = new URLSearchParams(window.location.search);
+    let slow = urlParams.get('slow');
+
+    if (slow)
+      mocha.slow(parseInt(slow));
+
     window.init('8.3.18.1');
 
     var assert = chai.assert;
