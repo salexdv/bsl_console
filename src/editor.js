@@ -244,6 +244,8 @@ switchLang = function (language) {
     engLang = !engLang;
   else
     engLang = (language == 'en');
+
+  return engLang ? 'en' : 'ru';
   
 }
 
