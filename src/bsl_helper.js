@@ -1512,6 +1512,15 @@ class bslHelper {
 						wordContext = lineContextData.get(this.lastRawExpression);
 						this.getRefSuggestions(suggestions, wordContext);
 					}
+					else {
+						let var_match = Finder.findPreviousMatch(this.model, this.lastRawExpression + '\\[\\d+\\]', position, false);
+						if (var_match && var_match.range.startLineNumber == position.lineNumber) {
+							let get_name = engLang ? 'get' : 'получить';
+							wordContext = lineContextData.get(get_name);
+							this.getRefSuggestions(suggestions, wordContext);
+						}
+					}
+
 					
 				}
 
@@ -2670,8 +2679,21 @@ class bslHelper {
 				for(let i = 3; i < stack.length; i++) {
 				
 					let stack_item = stack[i];
-					if (i == 3) 
-						prev_ref = this.setContextDataForRefExpression(stack_item.var, result.refType, stack_item.line);
+					if (i == 3) {
+						metadata_suggestions.forEach((suggest) => {
+							if (suggest.label.toLowerCase() == stack_item.var) {
+								let command_data = suggest.command.arguments[0].data;
+								prev_ref = this.setContextDataForRefExpression(
+									stack_item.var,
+									command_data.ref,
+									stack_item.line,
+									command_data.parent_ref
+								);
+							}
+						})
+						if (!prev_ref)
+							prev_ref = this.setContextDataForRefExpression(stack_item.var, result.refType, stack_item.line);
+					}
 					else {
 						metadata_suggestions = [];
 						if (stack_item.previous_ref && prev_ref != null) {
