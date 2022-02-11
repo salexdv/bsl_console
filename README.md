@@ -102,7 +102,7 @@ npm run build  -- --customOptions "automaticLayout: true, someOption: false"
 | `setTheme`                     | Установка темы редактора `bsl-white`, `bsl-white-query`, `bsl-dark`, `bsl-dark-query`         |
 | `setReadOnly`                  | Устанавливает/снимает режим *Только просмотр*                                                 |
 | `getReadOnly`                  | Возвращает значение режима *Только просмотр*                                                  |
-| `switchLang`                   | Переключает язык подсказок с английского на русский и обратно                                 |
+| [`switchLang`](docs/switch_lang.md)| Переключает язык подсказок с английского на русский и обратно                             |
 | `enableQuickSuggestions`       | Включает/выключает режим быстрых подсказок                                                    |
 | `minimap`  				     | Включает/выключает отображение карты кода                                                     |
 | [`compare`](docs/compare.md) 	 | Включает/выключает режим сравнения текстов 						                             |
