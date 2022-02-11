@@ -1827,6 +1827,9 @@ class bslHelper {
 					command = { id: 'vs.editor.ICodeEditor:1:saveref', arguments: [{'name': pkey, "data": { "ref": ref, "sig": null, "list" : nestedSuggestions } }]}
 				}
 
+				if (typeof(detail) == 'object')
+					detail = '';
+
 				suggestions.push({
 					label: pkey,
 					kind: monaco.languages.CompletionItemKind.Field,
