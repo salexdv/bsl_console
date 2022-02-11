@@ -238,7 +238,7 @@ window.getReadOnly = function () {
 
 }
 
-switchLang = function (language) {
+window.switchLang = function (language) {
     
   if (language == undefined)
     engLang = !engLang;
