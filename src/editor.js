@@ -7,6 +7,7 @@ import './decorations.css'
 import { setLocaleData } from 'monaco-editor-nls';
 import ruLocale from 'monaco-editor-nls/locale/ru';
 import Finder from "./finder";
+import SnippetsParser from "./parser";
 
 const monaco = require('monaco-editor/esm/vs/editor/editor.api');
 
@@ -1364,6 +1365,31 @@ window.isSuggestWidgetVisible = function() {
   
   return getSuggestWidget().widget.suggestWidgetVisible.get();
 
+}
+
+window.insertSnippet = function(snippet) {
+
+  let controller = editor.getContribution("snippetController2");
+  
+  if (controller)
+    controller.insert(snippet);
+
+}
+
+window.parseSnippets = function(stData) {
+
+  let parser = new SnippetsParser();
+  parser.setStream(stData);
+  parser.parse();
+  let loaded_snippets = parser.getSnippets();
+
+  if (loaded_snippets) {
+    snippets = loaded_snippets;
+    return true;
+  }
+  else
+    return false;
+  
 }
 
 window.setMarkers = function (markersJSON) {
