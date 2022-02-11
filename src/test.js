@@ -995,6 +995,18 @@ setTimeout(() => {
 
       });
 
+      it("проверка подсказки реквизитов строки табличной части определяемой по стеку", function () {
+
+        bsl = helper('Спр = Справочники.Товары.НайтиПоКоду(1);\nСтрокаТЧ = Спр.ДополнительныеРеквизиты.Добавить();\nСтрокаТЧ.');
+        window.contextData.clear();
+        let suggestions = [];
+        bsl.getStackCompletion(suggestions);
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "ЗначениеРеквизита"), true);
+        assert.equal(suggestions.some(suggest => suggest.label === "НомерСтроки"), true);
+
+      });
+
     }
 
     mocha.run();
