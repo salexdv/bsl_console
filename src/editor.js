@@ -1419,6 +1419,26 @@ window.clearSnippets = function() {
 
 }
 
+window.updateSnippetByGUID = function (snippetGUID) {
+
+  suggestWidget = getSuggestWidget();
+
+  if (suggestWidget) {
+
+    suggestWidget.widget.list.view.items.forEach((completionItem) => {
+
+      if (completionItem.element.completion.guid == snippetGUID)
+        completionItem.element.provider.resolveCompletionItem(window.editor.getModel(),
+          window.editor.getPosition(),
+          completionItem.element.completion
+        );
+
+    });
+
+  }
+
+}
+
 window.setMarkers = function (markersJSON) {
 
   try {
