@@ -3246,6 +3246,25 @@ class bslHelper {
 	}
 
 	/**
+	 * Computing completion item oа its first activation
+	 * at the suggestion list
+	 * 
+	 * @param {completionItem} completionItem current item of suggestion list 
+	 * 
+	 * @returns {completionItem} computed completion item
+	 */
+	resolveCompletionItem(completionItem) {
+
+		if (completionItem.kind == monaco.languages.CompletionItemKind.Snippet) {
+			completionItem.guid = this.guid();
+			completionItem.insertText = this.prepareSnippetCode(completionItem.insertText, completionItem);
+		}
+
+		return completionItem
+
+	}
+
+	/**
 	 * Fills array of completion for query values	 
 	 * 
 	 * @param {array} suggestions array of suggestions for provideCompletionItems
