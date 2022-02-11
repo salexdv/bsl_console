@@ -238,10 +238,13 @@ window.getReadOnly = function () {
 
 }
 
-window.switchLang = function () {
+switchLang = function (language) {
+    
+  if (language == undefined)
+    engLang = !engLang;
+  else
+    engLang = (language == 'en');
   
-  window.engLang = !window.engLang;
-
 }
 
 window.addComment = function () {
