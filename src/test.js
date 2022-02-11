@@ -1007,6 +1007,42 @@ setTimeout(() => {
 
       });
 
+      it("проверка подсказки реквизитов строки табличной части при получении по индексу (отдельная переменная для ТЧ)", function () {
+
+        bsl = helper('Спр = Справочники.Товары.НайтиПоКоду(1);\nСтрокаТЧ = Спр.ДополнительныеРеквизиты[0];\nСтрокаТЧ.');
+        window.contextData.clear();
+        let suggestions = [];
+        bsl.getStackCompletion(suggestions);
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "ЗначениеРеквизита"), true);
+        assert.equal(suggestions.some(suggest => suggest.label === "НомерСтроки"), true);
+
+      });
+
+      it("проверка подсказки реквизитов строки табличной части при получении через метод в строке", function () {
+
+        bsl = helper('Спр = Справочники.Товары.НайтиПоКоду(1);\nСтрокаТЧ = Спр.ДополнительныеРеквизиты.Получить(0).');
+        window.contextData.clear();
+        let suggestions = [];
+        bsl.getStackCompletion(suggestions);
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "ЗначениеРеквизита"), true);
+        assert.equal(suggestions.some(suggest => suggest.label === "НомерСтроки"), true);
+
+      });
+
+      it("проверка подсказки реквизитов строки табличной части при получении через индекс в строке", function () {
+
+        bsl = helper('Спр = Справочники.Товары.НайтиПоКоду(1);\nСтрокаТЧ = Спр.ДополнительныеРеквизиты[0].');
+        window.contextData.clear();
+        let suggestions = [];
+        bsl.getStackCompletion(suggestions);
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "ЗначениеРеквизита"), true);
+        assert.equal(suggestions.some(suggest => suggest.label === "НомерСтроки"), true);
+
+      });
+
     }
 
     mocha.run();
