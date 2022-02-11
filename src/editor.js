@@ -810,14 +810,27 @@ window.triggerSigHelp = function() {
 
 }
 
-window.requestMetadata = function(metadata) {
+window.requestMetadata = function (metadata, trigger, data) {
+
+  if (!trigger)
+    trigger = 'suggestion';
 
   let metadata_name = metadata.toLowerCase();
   let request = window.metadataRequests.get(metadata_name);
 
   if (!request) {
+
     window.metadataRequests.set(metadata_name, true);
-    window.sendEvent("EVENT_GET_METADATA", metadata_name);
+
+    let event_params = {
+      metadata: metadata_name,
+      trigger: trigger
+    }
+
+    if (data)
+      event_params = Object.assign(event_params, data);
+
+    window.sendEvent("EVENT_GET_METADATA", event_params);
   }
 
 }
