@@ -1412,9 +1412,9 @@ class bslHelper {
 
 							}
 							else if (this.objectHasProperties(window.bslMetadata, itemName, 'items', subItemName))
-								required_metadata.push(itemName + '.' + subItemName);
+								required_metadata.push(window.bslMetadata[itemName].name + '.' + subItemName);
 							else if (this.objectHasProperties(window.bslMetadata, itemName, 'items'))
-								required_metadata.push(itemName);
+								required_metadata.push(window.bslMetadata[itemName].name);
 
 						}
 						else {
@@ -1435,7 +1435,7 @@ class bslHelper {
 										this.fillSuggestionsForMetadataItem(suggestions, tabObject, itemName, subItemName);
 									}
 									else {
-										required_metadata.push(itemName + '.' + subItemName + '.tabulars.' + tabName);
+										required_metadata.push(window.bslMetadata[itemName].name + '.' + subItemName + '.tabulars.' + tabName);
 									}
 
 								}
@@ -1456,9 +1456,9 @@ class bslHelper {
 								
 							}
 							else if (this.objectHasProperties(window.bslMetadata, itemName, 'items', subItemName))
-								required_metadata.push(itemName + '.' + subItemName);
+								required_metadata.push(window.bslMetadata[itemName].name + '.' + subItemName);
 							else if (this.objectHasProperties(window.bslMetadata, itemName, 'items'))
-								required_metadata.push(itemName);
+								required_metadata.push(window.bslMetadata[itemName].name);
 
 						}
 					}
