@@ -2459,7 +2459,7 @@ class bslHelper {
 		let match = Finder.findPreviousMatch(this.model, '(' + varName + '\\s*=\\s*(.*?))\\.(.*)', position);
 
 		if (match && match.matches.length == pattern_match_count) {
-
+			
 			if (match.range.startLineNumber < position.lineNumber) {
 				
 				let source_var = match.matches[2];
@@ -2535,7 +2535,7 @@ class bslHelper {
 						previous_ref: false,
 						column: var_match.range.startColumn + varName.length
 					});
-					if (var_match.matches[1].indexOf('[') == 0)
+					if (var_match.matches[1] && var_match.matches[1].indexOf('[') == 0)
 						stack.push({
 							var: engLang ? 'get' : 'получить',
 							line: position.lineNumber,
