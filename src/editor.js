@@ -875,73 +875,6 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
-  function getSuggestWidgetRows(element) {
-
-    let rows = [];
-
-    if (element) {
-
-      for (let i = 0; i < element.parentElement.childNodes.length; i++) {              
-        
-        let row = element.parentElement.childNodes[i];
-        
-        if (row.classList.contains('monaco-list-row'))
-          rows.push(row.getAttribute('aria-label'));
-
-      }
-
-    }
-
-    return rows;
-
-  }
-
-  generateEventWithSuggestData = function(eventName, trigger, row, suggestRows = []) {
-
-    let bsl = new bslHelper(editor.getModel(), editor.getPosition());
-    let row_id = row ? row.getAttribute('data-index') : "";
-    let insert_text = '';
-
-    if (row_id) {
-
-      let suggestWidget = getSuggestWidget();
-
-      if (suggestWidget && row_id < suggestWidget.widget.list.view.items.length) {
-        let suggest_item = suggestWidget.widget.list.view.items[row_id];
-        insert_text = suggest_item.element.completion.insertText;
-      }
-
-    }
-
-    eventParams = {
-      trigger: trigger,
-      current_word: bsl.word,
-      last_word: bsl.lastRawExpression,
-      last_expression: bsl.lastExpression,                    
-      rows: suggestRows.length ? suggestRows : getSuggestWidgetRows(row),
-      altKey: altPressed,
-			ctrlKey: ctrlPressed,
-			shiftKey: shiftPressed,
-      row_id: row_id,
-      insert_text: insert_text
-    }
-
-    if (row) {
-      
-      eventParams['kind'] = getChildWithClass(row, 'suggest-icon').className;
-      eventParams['sideDetailIsOpened'] = (null != document.querySelector('.suggest-widget.docs-side .details .header'));
-
-      if (eventName == 'EVENT_ON_ACTIVATE_SUGGEST_ROW' || eventName == 'EVENT_ON_DETAIL_SUGGEST_ROW')
-        eventParams['focused'] = row.getAttribute('aria-label');
-      else if (eventName == 'EVENT_ON_SELECT_SUGGEST_ROW')
-        eventParams['selected'] = row.getAttribute('aria-label');
-
-    }
-    
-    sendEvent(eventName, eventParams);
-
-  }
-
   hideSuggestionsList = function() {
 
     editor.trigger("editor", "hideSuggestWidget"); // https://github.com/salexdv/bsl_console/issues/209
@@ -1182,6 +1115,9 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
     if (optionName == 'disableDefinitionMessage')
       startStopDefinitionMessegeObserver();
+
+    if (optionName == 'generateSuggestActivationEvent')
+      startStopSuggestActivationObserver();
 
   }
 
@@ -1434,6 +1370,52 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     return false;
 
   }
+
+  generateEventWithSuggestData = function(eventName, trigger, row, suggestRows = []) {
+
+    let bsl = new bslHelper(editor.getModel(), editor.getPosition());
+    let row_id = row ? row.getAttribute('data-index') : "";
+    let insert_text = '';
+
+    if (row_id) {
+
+      let suggestWidget = getSuggestWidget();
+
+      if (suggestWidget && row_id < suggestWidget.widget.list.view.items.length) {
+        let suggest_item = suggestWidget.widget.list.view.items[row_id];
+        insert_text = suggest_item.element.completion.insertText;
+      }
+
+    }
+
+    eventParams = {
+      trigger: trigger,
+      current_word: bsl.word,
+      last_word: bsl.lastRawExpression,
+      last_expression: bsl.lastExpression,
+      rows: suggestRows.length ? suggestRows : getSuggestWidgetRows(row),
+      altKey: altPressed,
+      ctrlKey: ctrlPressed,
+      shiftKey: shiftPressed,
+      row_id: row_id,
+      insert_text: insert_text
+    }
+
+    if (row) {
+
+      eventParams['kind'] = getChildWithClass(row, 'suggest-icon').className;
+      eventParams['sideDetailIsOpened'] = (null != document.querySelector('.suggest-widget.docs-side .details .header'));
+
+      if (eventName == 'EVENT_ON_ACTIVATE_SUGGEST_ROW' || eventName == 'EVENT_ON_DETAIL_SUGGEST_ROW')
+        eventParams['focused'] = row.getAttribute('aria-label');
+      else if (eventName == 'EVENT_ON_SELECT_SUGGEST_ROW')
+        eventParams['selected'] = row.getAttribute('aria-label');
+
+    }
+
+    sendEvent(eventName, eventParams);
+
+  }
   // #endregion
 
   // #region init editor
@@ -1677,6 +1659,27 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   // #endregion
     
   // #region non-public functions
+  function getSuggestWidgetRows(element) {
+
+    let rows = [];
+
+    if (element) {
+
+      for (let i = 0; i < element.parentElement.childNodes.length; i++) {              
+        
+        let row = element.parentElement.childNodes[i];
+        
+        if (row.classList.contains('monaco-list-row'))
+          rows.push(row.getAttribute('aria-label'));
+
+      }
+
+    }
+
+    return rows;
+
+  }
+  
   function goToCurrentMarker(sorted_marks) {
 
     let idx = 0;
