@@ -1408,7 +1408,7 @@ class bslHelper {
 								let module_type = isObject ? 'object' : 'manager';
 
 								if (!this.objectHasProperties(window.bslMetadata, itemName, 'items', subItemName, module_type))
-									required_metadata.push('module.' + module_type + '.' + itemName + '.' + subItemName);
+									required_metadata.push('module.' + module_type + '.' + window.bslMetadata[itemName].name + '.' + subItemName);
 
 							}
 							else if (this.objectHasProperties(window.bslMetadata, itemName, 'items', subItemName))
@@ -1442,7 +1442,7 @@ class bslHelper {
 								else {
 
 									if (!this.objectHasProperties(window.bslMetadata, itemName, 'items', subItemName, module_type))
-										required_metadata.push('module.' + module_type + '.' + itemName + '.' + subItemName);
+										required_metadata.push('module.' + module_type + '.' + window.bslMetadata[itemName].name + '.' + subItemName);
 
 									this.fillSuggestionsForMetadataItem(suggestions, window.bslMetadata[itemName].items[subItemName], itemName, subItemName);
 									this.getMetadataMethods(suggestions, window.bslMetadata[itemName], methodsName, itemName, subItemName);
