@@ -1311,13 +1311,13 @@ class bslHelper {
 								let module_type = isObject ? 'object' : 'manager';
 								
 								if (!this.objectHasProperties(bslMetadata, itemName, 'items', subItemName, module_type))
-									required_metadata.push('module.' + module_type + '.' + itemName + '.' + subItemName);
+									required_metadata.push('module.' + module_type + '.' + window.bslMetadata[itemName].name + '.' + subItemName);
 
 							}							
 							else if (this.objectHasProperties(bslMetadata, itemName, 'items', subItemName))
-								required_metadata.push(itemName + '.' + subItemName);
+								required_metadata.push(window.bslMetadata[itemName].name + '.' + subItemName);
 							else if (this.objectHasProperties(bslMetadata, itemName, 'items'))
-								required_metadata.push(itemName);
+								required_metadata.push(window.bslMetadata[itemName].name);
 
 						}
 						else {
@@ -1338,14 +1338,14 @@ class bslHelper {
 										this.fillSuggestionsForMetadataItem(suggestions, tabObject, itemName, subItemName);
 									}
 									else {
-										required_metadata.push(itemName + '.' + subItemName + '.tabulars.' + tabName);
+										required_metadata.push(window.bslMetadata[itemName].name + '.' + subItemName + '.tabulars.' + tabName);
 									}
 
 								}
 								else {
 
 									if (!this.objectHasProperties(bslMetadata, itemName, 'items', subItemName, module_type))
-										required_metadata.push('module.' + module_type + '.' + itemName + '.' + subItemName);
+										required_metadata.push('module.' + module_type + '.' + window.bslMetadata[itemName].name + '.' + subItemName);
 
 									this.fillSuggestionsForMetadataItem(suggestions, bslMetadata[itemName].items[subItemName], itemName, subItemName);
 									this.getMetadataMethods(suggestions, bslMetadata[itemName], methodsName, itemName, subItemName);
@@ -1359,9 +1359,9 @@ class bslHelper {
 								
 							}
 							else if (this.objectHasProperties(bslMetadata, itemName, 'items', subItemName))
-								required_metadata.push(itemName + '.' + subItemName);
+								required_metadata.push(window.bslMetadata[itemName].name + '.' + subItemName);
 							else if (this.objectHasProperties(bslMetadata, itemName, 'items'))
-								required_metadata.push(itemName);
+								required_metadata.push(window.bslMetadata[itemName].name);
 
 						}
 
