@@ -2749,7 +2749,7 @@ function createStatusBarWidget(overlapScroll) {
 
         let pos = document.createElement('div');
         pos.style.margin = 'auto 10px';
-        this.domNode.append(pos);
+        this.domNode.appendChild(pos);
 
       }
 
