@@ -2679,7 +2679,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
           let pos = document.createElement('div');
           pos.style.margin = 'auto 10px';
-          this.domNode.append(pos);
+          this.domNode.appendChild(pos);
 
         }
 
