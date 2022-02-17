@@ -1259,7 +1259,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
-  parseSnippets = function(stData) {
+  parseSnippets = function(stData, unionSnippets = false) {
 
     let parser = new SnippetsParser();
     parser.setStream(stData);
@@ -1267,11 +1267,19 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     let loaded_snippets = parser.getSnippets();
 
     if (loaded_snippets) {
-      snippets = loaded_snippets;
+
+      let snip_obj = loaded_snippets;
+
+      if (unionSnippets)
+        snippets = Object.assign(snippets, snip_obj);
+      else
+        snippets = snip_obj;
+
       return true;
+
     }
-    else
-      return false;
+    
+    return false;
     
   }
 
