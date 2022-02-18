@@ -1652,9 +1652,10 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     });
 
     editor.onDidChangeCursorSelection(e => {
-      
+
       updateStatusBar();
-      
+      onChangeSnippetSelection(e);
+
     });
 
     editor.onDidLayoutChange(e => {
@@ -1667,6 +1668,36 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   // #endregion
     
   // #region non-public functions
+  function onChangeSnippetSelection(e) {
+
+    if (e.source == 'snippet') {
+
+      let text = editor.getModel().getValueInRange(e.selection);
+
+      if (text == 'ТекстЗапроса' || text == 'ФорматнаяСтрока') {
+
+        let event = 'EVENT_QUERY_CONSTRUCT';
+
+        if (text == 'ФорматнаяСтрока')
+          event = 'EVENT_FORMAT_CONSTRUCT';
+
+        let mod_event = getOption('generateModificationEvent');
+
+        if (mod_event)
+          setOption('generateModificationEvent', false);
+
+        setText('', e.selection, false);
+        sendEvent(event);
+
+        if (mod_event)
+          setOption('generateModificationEvent', true);
+
+      }
+
+    }
+
+  }
+
   function getSuggestWidgetRows(element) {
 
     let rows = [];
