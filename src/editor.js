@@ -1669,7 +1669,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     
   // #region non-public functions
   function onChangeSnippetSelection(e) {
-console.log(e);
+
     if (e.source == 'snippet' || e.source == 'api') {
 
       let text = editor.getModel().getValueInRange(e.selection);
