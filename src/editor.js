@@ -1669,17 +1669,20 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     
   // #region non-public functions
   function onChangeSnippetSelection(e) {
-
-    if (e.source == 'snippet') {
+console.log(e);
+    if (e.source == 'snippet' || e.source == 'api') {
 
       let text = editor.getModel().getValueInRange(e.selection);
+      
+      let events = new Map();
+      events.set('ТекстЗапроса', 'EVENT_QUERY_CONSTRUCT');
+      events.set('ФорматнаяСтрока', 'EVENT_FORMAT_CONSTRUCT');
+      events.set('ВыборТипа', 'EVENT_TYPE_CONSTRUCT');
+      events.set('КонструкторОписанияТипов', 'EVENT_TYPEDESCRIPTION_CONSTRUCT');
 
-      if (text == 'ТекстЗапроса' || text == 'ФорматнаяСтрока') {
+      let event = events.get(text);
 
-        let event = 'EVENT_QUERY_CONSTRUCT';
-
-        if (text == 'ФорматнаяСтрока')
-          event = 'EVENT_FORMAT_CONSTRUCT';
+      if (event) {
 
         let mod_event = getOption('generateModificationEvent');
 
