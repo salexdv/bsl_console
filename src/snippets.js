@@ -1,6 +1,6 @@
 define([], function () {
   
-  snippets = {
+  bslSnippets = {
     "Если": {
       "prefix": "Если",
       "body": "Если ${1:Условие} Тогда\n\t$0\nКонецЕсли;",

@@ -1,5 +1,48 @@
 define([], function () {
 
+    function deepCopyArray(sourceArray, destinationArray) {
+
+        sourceArray.forEach(value => {
+            if (typeof value != "object") {
+                destinationArray.push(value);
+            }
+            else if (value instanceof RegExp) {
+                destinationArray.push(value);
+            }
+            else if (value instanceof Array) {
+                let new_array = [];
+                deepCopyArray(value, new_array)
+                destinationArray.push(new_array);
+            }
+            else {
+                let new_object = {};
+                deepCopyObject(value, new_object);
+                destinationArray.push(new_object);
+            }
+        })
+
+    }
+
+    function deepCopyObject(sourceObject, destinationObject) {
+
+        for (key in sourceObject) {
+            if (typeof sourceObject[key] != "object") {
+                destinationObject[key] = sourceObject[key];
+            }
+            else if (sourceObject[key] instanceof RegExp) {
+                destinationObject[key] = sourceObject[key];
+            }
+            else if (sourceObject[key] instanceof Array) {
+                destinationObject[key] = []
+                deepCopyArray(sourceObject[key], destinationObject[key]);
+            }
+            else {
+                destinationObject[key] = {};
+                deepCopyObject(sourceObject[key], destinationObject[key]);
+            }
+        }
+    }
+
     let themes = {
         rules: {
             white: [
@@ -42,7 +85,7 @@ define([], function () {
                 { token: 'string.invalidbsl', foreground: 'c3602c' },
                 { token: 'numberbsl', foreground: 'b5cea8' },
                 { token: 'number.floatbsl', foreground: 'b5cea8' },
-                { token: 'preprocbsl', foreground: '963200' }                
+                { token: 'preprocbsl', foreground: '963200' }
             ],
             darkQueryOff: [
                 { token: 'querybsl', foreground: 'c3602c' },                    
@@ -81,10 +124,14 @@ define([], function () {
                 'editorCursor.foreground': '#d4d4d4',
                 'editorSuggestWidget.background': '#252526',
                 'editorSuggestWidget.foreground': '#d4d4d4',
-                'editorSuggestWidget.selectedBackground': '#062f4a',
+                'editorSuggestWidget.selectedBackground': '#094771',
+                'editorSuggestWidget.highlightForeground': '#18a3ff',
                 'editorWidget.background': '#252526',
                 'editorWidget.foreground': '#d4d4d4',
-                'editorWidget.border': '#d4d4d4'                
+                'editorWidget.border': '#d4d4d4',
+                'list.hoverBackground': '#2a2d2e',
+                'editor.lineHighlightBorder': '#282828',
+                'editorWidget.border': '#454545'
             },
             white: {
                 'editor.selectionBackground': '#ffe877',
@@ -345,6 +392,7 @@ define([], function () {
             expBeforeAs: [
                 'КОНЕЦ', 'END', 'NULL', 'НЕОПРЕДЕЛЕНО', 'UNDEFINED'
             ],
+            characteristics: [],
             tokenizer: {
                 root: [                      
                     [/(поместить|из|into|from)/, { token: 'query.keyword', next: '@intofrom' }],
@@ -376,6 +424,7 @@ define([], function () {
                     ]],
                     [/([a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]+)(\.)([a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]+)/, 'query'],
                     [/[a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]*/, { cases: {
+                        '@characteristics': 'query.keyword',
                         '@keywords': 'query.keyword',
                         '@expressions': 'query.exp',
                         '@default': 'query'
@@ -405,25 +454,40 @@ define([], function () {
         themes: bsl_language.themes        
     }
 
+    let dcs_rules = {};
+    deepCopyObject(query_language.rules, dcs_rules);
+
+    dcs_rules.characteristics = [
+        'ХАРАКТЕРИСТИКИ', 'CHARACTERISTICS', 'СПИСОК', 'LIST', 'ТИП', 'TYPE',
+        'ИДЕНТИФИКАТОР', 'ID', 'ИМЯ', 'NAME', 'ТИПЗНАЧЕНИЯ', 'VALUETYPE',
+        'ХАРАКТЕРИСТИКА', 'CHARACTERISTIC', 'ОБЪЕКТ', 'OBJECT', 'ЗНАЧЕНИЯ',
+        'VALUES', 'ЗНАЧЕНИЕ', 'VALUE'
+    ];
+
     let dcs_language = {
         id: 'dcs_query',
-        rules: Object.assign({}, query_language.rules)
+        rules: dcs_rules
     }
-    
+
     let dcs_expressions = query_expressions.concat(bsl_language.rules.DCSFunctions);
-    dcs_language.rules.expressions = dcs_expressions; 
+    dcs_language.rules.expressions = dcs_expressions;
 
     languages = {
         bsl: {
             languageDef: bsl_language,
             completionProvider: {
                 triggerCharacters: ['.', '"', ' '],
-                provideCompletionItems: function (model, position, context, token) {                    
+                provideCompletionItems: function (model, position, context, token) {
                     resetSuggestWidgetDisplay();
                     let bsl = new bslHelper(model, position);
                     let completion = bsl.getCompletion(context, token);
                     bsl.onProvideCompletion(context, completion);
                     return completion;
+                },
+                resolveCompletionItem: function (model, position, item) {
+                    let bsl = new bslHelper(model, position);
+                    item = bsl.resolveCompletionItem(item);
+                    return model;
                 }
             },
             foldingProvider: {
@@ -487,8 +551,8 @@ define([], function () {
             },
             autoIndentation: true,
             indentationRules: {
-                increaseIndentPattern: /^\s*(функция|function|процедура|procedure|если|if|пока|while|для|for|попытка|try|исключение|except).*$/i,
-                decreaseIndentPattern: /^\s*(конецфункции|endfunction|конецпроцедуры|endprocedure|конецесли|endif|конеццикла|enddo|конецпопытки|endtry).*$/i
+                increaseIndentPattern: /^\s*(функция|function|процедура|procedure|если|if|#если|#if|пока|while|для|for|попытка|try|исключение|except).*$/i,
+                decreaseIndentPattern: /^\s*(конецфункции|endfunction|конецпроцедуры|endprocedure|конецесли|endif|#конецесли|#endif|конеццикла|enddo|конецпопытки|endtry).*$/i
             },
             brackets: [
                 ['(', ')'],

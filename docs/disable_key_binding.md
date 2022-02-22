@@ -10,7 +10,7 @@
 * **keybinding** - *integer*, результат ПОБИТОВОГО ИЛИ для сочетания кодов клавиш
 
 ## Коды клавиш
-Все коды, кроме CTRL/ALT/SHIFT можно посмотреть [тут](https://microsoft.github.io/monaco-editor/api/enums/monaco.keycode)
+Все коды, кроме CTRL/ALT/SHIFT можно посмотреть [тут](https://microsoft.github.io/monaco-editor/api/enums/monaco.KeyCode)
 
 key | KeyCode | 
 -- | --
