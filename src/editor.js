@@ -2232,7 +2232,6 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         setTimeout(() => {
           generateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', 'selection', element);
         }, 10);
-        // stopEventIfSuggestListIsClosed(e);
       }
     }
     else if (e.ctrlKey && (e.keyCode == 36 || e.keyCode == 38)) {
@@ -2269,7 +2268,6 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
           setTimeout(() => {
             generateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', 'selection', element);
           }, 10);
-          // stopEventIfSuggestListIsClosed(e);  
         }
       }
     }
@@ -2291,15 +2289,6 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
     checkEmptySuggestions();
 
-  }
-
-  // Prevent propagation of event to editor if SuggestList was closed in EVENT_ON_SELECT_SUGGEST_ROW event handler https://github.com/salexdv/bsl_console/issues/90
-  function stopEventIfSuggestListIsClosed(e) {
-    element = document.querySelector('.monaco-list-row.focused');
-    if (!element) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
   }
 
   function  initContextMenuActions() {
