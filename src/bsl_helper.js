@@ -5006,11 +5006,9 @@ class bslHelper {
 		
 				if (key.toLowerCase() == word && value) {
 
-					let activeSignature = context && context.activeSignatureHelp ? context.activeSignatureHelp.activeSignature : 0;
-					
 					helper = {
 						activeParameter: this.getSignatureActiveParameter(),
-						activeSignature: activeSignature,
+						activeSignature: 0,
 						signatures: value,
 					}						
 							
@@ -5102,8 +5100,14 @@ class bslHelper {
 
 			}
 
-			if (helper)
+			if (helper) {
+				
+				if (context && context.activeSignatureHelp)
+					helper.activeSignature = context.activeSignatureHelp.activeSignature;
+
 				return new SignatureHelpResult(helper);
+
+			}
 
 		}
 
