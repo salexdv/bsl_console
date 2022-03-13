@@ -2170,8 +2170,12 @@ class bslHelper {
 				
 				let postfix = '';
 				let command = null;
+				let ref = null;
 
-				if (signatures.length) {
+				if (mvalue.hasOwnProperty('ref'))
+					ref = mvalue.ref;
+
+				if (ref || signatures.length) {
 					postfix = '(';
 					command = {
 						id: 'vs.editor.ICodeEditor:1:saveref',
@@ -2179,7 +2183,7 @@ class bslHelper {
 							{
 								"name": mvalue[this.nameField],
 								"data": {
-									"ref": null,
+									"ref": ref,
 									"sig": signatures
 								},
 								"post_action": 'editor.action.triggerParameterHints'
