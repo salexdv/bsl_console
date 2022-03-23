@@ -1847,7 +1847,8 @@ class bslHelper {
 				className = className ? className.toLowerCase() : '';
 			}
 			else {			
-				className = exp;
+				if (!this.lastExpressionHasSeparatedParams())
+					className = exp;
 			}
 			
 			if (onlyQuickAccess && (className == 'new' || className == 'новый')) {
