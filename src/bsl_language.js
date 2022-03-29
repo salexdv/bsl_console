@@ -243,6 +243,9 @@ define([], function () {
 
             ],
             queryOperators: /[=><+\-*\/%;,]+/,
+            expBeforeAs: [
+                'КОНЕЦ', 'END', 'NULL', 'НЕОПРЕДЕЛЕНО', 'UNDEFINED'
+            ],
             // The main tokenizer for our languages
             tokenizer: {
                 root: [
@@ -279,6 +282,33 @@ define([], function () {
                     [/'/, 'string.invalid']
                 ],
                 query: [
+                    [/([a-zA-Z\u0410-\u044F]+)(\s+)(как|as)(\s+)([a-zA-Z\u0410-\u044F0-9]+)/, [
+                        { cases: {
+                            '@expBeforeAs': 'query.exp',                            
+                            '@default': 'query'
+                        }},
+                        {token: 'query'},
+                        {token: 'query.keyword'},
+                        {token: 'query'},
+                        {token: 'query'},
+                    ]],                    
+                    [/(как|as)(\s+)([a-zA-Z\u0410-\u044F]+)(\()/, [
+                        {token: 'query.keyword'},
+                        {token: 'query'},
+                        {token: 'query.exp'},
+                        {token: 'query.brackets'}
+                    ]],
+                    [/(как|as)(\s+)([a-zA-Z\u0410-\u044F_0-9]+)([,\s]*)/, [
+                        {token: 'query.keyword'},
+                        {token: 'query'},
+                        {token: 'query'},
+                        {token: 'query.operator'}
+                    ]],
+                    [/(\.)([a-zA-Z\u0410-\u044F_0-9]+)/, [
+                        {token: 'query'},
+                        {token: 'query'}                        
+                    ]],
+                    [/([a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]+)(\.)([a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]+)/, 'query'],
                     [/[a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]*/, {
                         cases: {
                             '@queryWords': 'query.keyword',
