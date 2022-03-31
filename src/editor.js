@@ -1677,6 +1677,7 @@ function initEditorEventListenersAndProperies() {
   window.editor.onDidChangeCursorSelection(e => {
     
     updateStatusBar();
+    onChangeSnippetSelection(e);
     
   });
 
@@ -1690,6 +1691,39 @@ function initEditorEventListenersAndProperies() {
 // #endregion
   
 // #region non-public functions
+function onChangeSnippetSelection(e) {
+
+  if (e.source == 'snippet' || e.source == 'api') {
+
+    let text = window.editor.getModel().getValueInRange(e.selection);
+    
+    let events = new Map();
+    events.set('ТекстЗапроса', 'EVENT_QUERY_CONSTRUCT');
+    events.set('ФорматнаяСтрока', 'EVENT_FORMAT_CONSTRUCT');
+    events.set('ВыборТипа', 'EVENT_TYPE_CONSTRUCT');
+    events.set('КонструкторОписанияТипов', 'EVENT_TYPEDESCRIPTION_CONSTRUCT');
+
+    let event = events.get(text);
+
+    if (event) {
+
+      let mod_event = window.getOption('generateModificationEvent');
+
+      if (mod_event)
+        window.setOption('generateModificationEvent', false);
+
+      window.setText('', e.selection, false);
+      window.sendEvent(event);
+
+      if (mod_event)
+        window.setOption('generateModificationEvent', true);
+
+    }
+
+  }
+
+}
+
 function goToCurrentMarker(sorted_marks) {
 
   let idx = 0;
