@@ -1288,7 +1288,7 @@ window.insertSnippet = function(snippet) {
 
 }
 
-window.parseSnippets = function(stData) {
+window.parseSnippets = function(stData, unionSnippets = false) {
 
   let parser = new SnippetsParser();
   parser.setStream(stData);
@@ -1296,11 +1296,19 @@ window.parseSnippets = function(stData) {
   let loaded_snippets = parser.getSnippets();
 
   if (loaded_snippets) {
-    snippets = loaded_snippets;
+
+    let snip_obj = loaded_snippets;
+
+    if (unionSnippets)
+      snippets = Object.assign(snippets, snip_obj);
+    else
+      snippets = snip_obj;
+
     return true;
+
   }
-  else
-    return false;
+  
+  return false;
   
 }
 
