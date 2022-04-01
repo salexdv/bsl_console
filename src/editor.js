@@ -2255,19 +2255,6 @@ function diffEditorOnKeyDown(e) {
 
 }
 
-// Prevent propagation of event to editor if SuggestList was closed in EVENT_ON_SELECT_SUGGEST_ROW event handler https://github.com/salexdv/bsl_console/issues/90
-function stopEventIfSuggestListIsClosed(e) {
-
-  element = document.querySelector('.monaco-list-row.focused');
-  
-  if (!element) {
-    //   e.preventDefault() // sometimes it does not help
-    e.preventDefault();
-    e.stopPropagation();
-  }
-
-}
-
 function generateOnKeyDownEvent(e) {
 
   let fire_event = window.getOption('generateOnKeyDownEvent');
@@ -2314,7 +2301,6 @@ function editorOnKeyDown(e) {
       setTimeout(() => {
         window.generateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', 'selection', element);
       }, 10);
-      // stopEventIfSuggestListIsClosed(e);
     }
   }  
   else if (e.ctrlKey && (e.keyCode == 36 || e.keyCode == 38)) {
@@ -2347,7 +2333,6 @@ function editorOnKeyDown(e) {
       let element = document.querySelector('.monaco-list-row.focused');
       if (element) {
         window.generateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', 'selection', element);
-        stopEventIfSuggestListIsClosed(e);
       }
     }
   }
