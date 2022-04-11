@@ -1587,6 +1587,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
       checkBookmarksAfterRemoveLine(e);
       updateBookmarks(undefined);
+
+      setOption('lastContentChanges', e);
           
     });
 
@@ -1668,6 +1670,47 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   // #endregion
     
   // #region non-public functions
+  function generateSnippetEvent(e) {
+
+    if (e.source == 'snippet') {
+
+      let last_changes = getOption('lastContentChanges');
+      let generate = getOption('generateSnippetEvent');
+
+      if (generate && last_changes && last_changes.versionId == e.modelVersionId && e.modelVersionId == e.oldModelVersionId) {
+
+        if (last_changes.changes.length) {
+
+          let changes = last_changes.changes[0];
+          let change_range = changes.range;
+          let content_model = monaco.editor.createModel(changes.text);
+          let content_range = content_model.getFullModelRange();
+
+          let target_range = new monaco.Range(
+            change_range.startLineNumber,
+            change_range.startColumn,
+            change_range.startLineNumber + content_range.endLineNumber - 1,
+            content_range.endColumn
+          );
+
+          let event = {
+            text: changes.text,
+            range: target_range,
+            position: editor.getPosition(),
+            selection: getSelection(),
+            selected_text: getSelectedText()
+          }
+
+          sendEvent('EVENT_ON_INSERT_SNIPPET', event);
+
+        }
+
+      }
+
+    }
+
+  }
+
   function onChangeSnippetSelection(e) {
 
     if (e.source == 'snippet' || e.source == 'api') {
@@ -1698,6 +1741,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       }
 
     }
+
+    generateSnippetEvent(e);
 
   }
 
