@@ -186,6 +186,7 @@
 | `EVENT_KEY_BINDING_ХХХ`        | При нажатии отключенного сочетания клавиш [(подробнее)](docs/disable_key_binding.md)          |
 | `EVENT_GET_DEFINITION`         | При переходе к определению [(подробнее)](docs/get_definition_event.md)                        |
 | `EVENT_ON_KEY_DOWN`            | При нажатии на клавиатуру [(подробнее)](docs/key_down_event.md)                               |
+| `EVENT_ON_INSERT_SNIPPET`      | При вставке сниппета (шаблона) [(подробнее)](docs/insert_snippet_event.md)                    |
 
 *Перед началом работы с редактором из 1С Предприятия желательно вызвать функцию инициализации и передать в нее текущую версию платформы.*
 Пример:
