@@ -271,8 +271,8 @@ define([], function () {
                         {token: 'query.quote', next: '@query'},
                         {token: 'query.keyword'}                        
                     ]],
-                    [/"([^"\\]|\\.)*$/, 'string.invalid'],
                     [/["|]/, { token: 'string.invalid', next: '@string' }],
+                    [/"([^"\\]|\\.)*$/, 'string.invalid'],
                     [/\$\@"/, { token: 'string.quote', next: '@litinterpstring' }],
                     [/\@"/, { token: 'string.quote', next: '@litstring' }],
                     [/\$"/, { token: 'string.quote', next: '@interpolatedstring' }],
@@ -341,9 +341,8 @@ define([], function () {
                 ],
                 string: [
                     [/^\s*\/\/.*$/, 'comment'],
-                    [/[^\\"]+/, 'string'],
+                    [/[^"]+/, 'string'],
                     [/@escapes/, 'string.escape'],
-                    [/\\./, 'string'],
                     [/"/, { token: 'string.quote', next: '@pop' }],
                     [/\|.*"/, { token: 'string.quote', next: '@pop' }],
                 ],
