@@ -591,7 +591,6 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   compare = function (text, sideBySide, highlight, markLines = true) {
     
-    document.getElementById("container").innerHTML = '';
     let language_id = getCurrentLanguageId();
     let currentTheme = getCurrentThemeName();
     let previous_options = getActiveEditor().getRawOptions();
@@ -614,6 +613,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       let originalModel = originalText ? monaco.editor.createModel(originalText) : monaco.editor.createModel(editor.getModel().getValue());
       let modifiedModel = monaco.editor.createModel(text);
       originalText = originalModel.getValue();
+      disposeEditor();
       editor = monaco.editor.createDiffEditor(document.getElementById("container"), {
         theme: currentTheme,
         language: language_id,
@@ -672,6 +672,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     }
     else
     {
+      disposeEditor();
       createEditor(language_id, originalText, currentTheme);
       initEditorEventListenersAndProperies();
       originalText = '';
@@ -1670,6 +1671,26 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   // #endregion
     
   // #region non-public functions
+  function disposeEditor() {
+
+    if (editor) {
+
+      if (editor.navi) {
+        editor.getOriginalEditor().getModel().dispose();
+        editor.getOriginalEditor().dispose();
+        editor.getModifiedEditor().getModel().dispose();
+        editor.getModifiedEditor().dispose();
+      }
+      else {
+        editor.getModel().dispose();
+      }
+
+      editor.dispose();
+
+    }
+
+  }
+
   function generateSnippetEvent(e) {
 
     if (e.source == 'snippet') {
