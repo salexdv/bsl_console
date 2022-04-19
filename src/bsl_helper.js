@@ -1943,8 +1943,9 @@ class bslHelper {
 				className = match.matches[match.matches.length - 1];
 				className = className ? className.toLowerCase() : '';
 			}
-			else {			
-				className = exp;
+			else {
+				if (!this.lastExpressionHasSeparatedParams())
+					className = exp;
 			}
 			
 			if (onlyQuickAccess && (className == 'new' || className == 'новый')) {
