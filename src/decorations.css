@@ -49,7 +49,7 @@
     height: 15px !important;
     left: 4px !important;
     top: 3px !important;
-    border-radius: 20%;	
+    border-radius: 20%;
 }
 
 .statusbar-widget {
@@ -85,7 +85,7 @@
 }
 
 .diff-navi {
-	border-left: 3px solid;	
+	border-left: 3px solid;
 	width: 3px !important;
 	margin-left: 3px;
 	cursor: pointer;
@@ -102,7 +102,7 @@
 	border-color: #10aa00;
 }
 
-.diff-new:hover {		
+.diff-new:hover {
 	border-color: #10aa00;
 }
 
@@ -110,16 +110,16 @@
 	border-color: #f8a62b;
 }
 
-.diff-changed:hover {	
-	border-color: #f8a62b;	
+.diff-changed:hover {
+	border-color: #f8a62b;
 }
 
 .diff-removed {
 	border-color: #dd0000;
 }
 
-.diff-removed:hover {	
-	border-color: #dd0000;	
+.diff-removed:hover {
+	border-color: #dd0000;
 }
 
 .diff-close {
@@ -133,11 +133,11 @@
 }
 
 .diff-close:hover {
-	opacity: 1;	
+	opacity: 1;
 }
 
 .diff-close:before, .diff-close:after {
-	position: absolute;	
+	position: absolute;
 	content: ' ';
 	height: 12px;
 	width: 2px;
@@ -177,16 +177,16 @@
 	height: 100%;
 }
 
-.new-block {		
-	border-color: #10aa00;	
+.new-block {
+	border-color: #10aa00;
 }
 
-.changed-block {		
-	border-color: #f8a62b;	
+.changed-block {
+	border-color: #f8a62b;
 }
 
-.removed-block {		
-	border-color: #dd0000;	
+.removed-block {
+	border-color: #dd0000;
 }
 
 .query-delimiter {
