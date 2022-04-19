@@ -195,6 +195,18 @@ class bslHelper {
 	}
 
 	/**
+	 * Determines if the last expression has separated params
+	 * 
+	 * @returns {bool}
+	 */
+	 lastExpressionHasSeparatedParams() {
+		
+		let expArray = this.getExpressioArray();
+		return (expArray.length && 0 <= expArray.pop().indexOf(','))
+
+	}
+
+	/**
 	 * Find first string which has no pair braces
 	 * @param {string} str string for analisis
 	 * 
@@ -720,8 +732,7 @@ class bslHelper {
 		let exp = this.getFuncName();
 
 		if (exp == 'typedescription' || exp == 'описаниетипов') {
-			let array = this.getExpressioArray();
-			return (array.length && array[array.length - 1].indexOf(',') == -1)
+			return !this.lastExpressionHasSeparatedParams();
 		}
 		else
 			return (exp == 'type' || exp == 'тип');
