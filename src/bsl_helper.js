@@ -718,7 +718,13 @@ class bslHelper {
 	requireType() {
 
 		let exp = this.getFuncName();
-		return (exp == 'type' || exp == 'тип');
+
+		if (exp == 'typedescription' || exp == 'описаниетипов') {
+			let array = this.getExpressioArray();
+			return (array.length && array[array.length - 1].indexOf(',') == -1)
+		}
+		else
+			return (exp == 'type' || exp == 'тип');
 
 	}
 
