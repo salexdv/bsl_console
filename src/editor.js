@@ -626,7 +626,6 @@ window.getPositionOffset = function() {
 
 window.compare = function (text, sideBySide, highlight, markLines = true) {
   
-  document.getElementById("container").innerHTML = ''
   let language_id = window.getCurrentLanguageId();
   let currentTheme = getCurrentThemeName();
   let previous_options = getActiveEditor().getRawOptions();
@@ -649,6 +648,7 @@ window.compare = function (text, sideBySide, highlight, markLines = true) {
     let originalModel = window.originalText ? monaco.editor.createModel(window.originalText) : monaco.editor.createModel(window.editor.getModel().getValue());
     let modifiedModel = monaco.editor.createModel(text);
     window.originalText = originalModel.getValue();
+    disposeEditor();
     window.editor = monaco.editor.createDiffEditor(document.getElementById("container"), {
       theme: currentTheme,
       language: language_id,
@@ -707,6 +707,7 @@ window.compare = function (text, sideBySide, highlight, markLines = true) {
   }
   else
   {
+    disposeEditor();
     createEditor(language_id, originalText, currentTheme);
     initEditorEventListenersAndProperies();
     window.originalText = '';
@@ -1693,6 +1694,26 @@ function initEditorEventListenersAndProperies() {
 // #endregion
   
 // #region non-public functions
+function disposeEditor() {
+
+  if (window.editor) {
+
+    if (window.editor.navi) {
+      window.editor.getOriginalEditor().getModel().dispose();
+      window.editor.getOriginalEditor().dispose();
+      window.editor.getModifiedEditor().getModel().dispose();
+      window.editor.getModifiedEditor().dispose();
+    }
+    else {
+      window.editor.getModel().dispose();
+    }
+
+    window.editor.dispose();
+
+  }
+
+}
+
 function generateSnippetEvent(e) {
 
   if (e.source == 'snippet') {
