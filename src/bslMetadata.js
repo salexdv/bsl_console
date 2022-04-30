@@ -10096,6 +10096,8 @@ define([], function () {
          "items":{
             "РозничныйСайт":{
                "tables":{
+                  "name":"Таблицы",
+                  "name_en":"Tables",
                   "items":{
                      "Customers":{
                         "properties":{
@@ -10126,10 +10128,15 @@ define([], function () {
                   }
                },
                "cubes":{
+                  "name":"Кубы",
+                  "name_en":"Cubes",
+                  "items":{}
                }
             },
             "CRM":{
                "tables":{
+                  "name":"Таблицы",
+                  "name_en":"Tables",
                   "items":{
                      "Messages":{
                         "properties":{
@@ -10147,6 +10154,9 @@ define([], function () {
                   }
                },
                "cubes":{
+                  "name":"Кубы",
+                  "name_en":"Cubes",
+                  "items":{}
                }
             }
          },
