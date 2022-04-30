@@ -1881,6 +1881,34 @@ class bslHelper {
 	}
 
 	/**
+	 * Fills array of completion for external data sources
+	 * 
+	 * @param {object} object metadata object from BSL-JSON dictionary
+	 * @param {array} suggestions array of completion for object	 
+	 */
+	fillSuggestionsForExternalDataSources(object, suggestions) {
+
+		if (object.hasOwnProperty('tables')) {
+
+			suggestions.push({
+				label: object.tables[this.nameField],
+				kind: monaco.languages.CompletionItemKind.Field,
+				insertText: object.tables[this.nameField],
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+			});
+
+			suggestions.push({
+				label: object.cubes[this.nameField],
+				kind: monaco.languages.CompletionItemKind.Field,
+				insertText: object.cubes[this.nameField],
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+			});
+
+		}
+
+	}
+
+	/**
 	 * Gets the list of tabulars owned by object
 	 * (Catalog, Document, etc) and fills the suggestions by it
 	 * 
@@ -2305,6 +2333,7 @@ class bslHelper {
 							}
 
 							this.getMetadataGeneralMethodCompletionByType(value, 'methods', suggestions, 'Method');
+							this.fillSuggestionsForExternalDataSources(itemNode, suggestions);
 
 							if (!updateItemNode) {
 								if (itemNode.hasOwnProperty('manager'))									
