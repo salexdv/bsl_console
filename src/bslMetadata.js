@@ -10346,6 +10346,7 @@ define([], function () {
                "name":"СоздатьКлючЗаписи",
                "name_en":"CreateRecordKey",
                "description":"Создает ключ записи по переданной структуре.",
+               "tableDataType":"NonobjectData",
                "signature":{
                   "default":{
                      "СтрокаПараметров":"(ЗначенияКлюча)",
@@ -10359,12 +10360,14 @@ define([], function () {
                "name":"СоздатьМенеджерЗаписи",
                "name_en":"CreateRecordManager",
                "description":"Создает объект для управления записью таблицы внешнего источника данных.",
+               "tableDataType":"NonobjectData",
                "ref": "externalDataSources:obj"
             },
             "СоздатьНаборЗаписей":{
                "name":"СоздатьНаборЗаписей",
                "name_en":"CreateRecordSet",
                "description":"Создает набор записей. Набор записей создается пустым.",
+               "tableDataType":"NonobjectData",
                "ref": "externalDataSources:obj"
             },
             "СоздатьОбъект":{
