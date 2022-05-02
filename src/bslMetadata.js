@@ -10100,6 +10100,7 @@ define([], function () {
                   "name_en":"Tables",
                   "items":{
                      "Customers":{
+                        "tableDataType":"ObjectData",
                         "properties":{
                            "customer_id":{
                               "name": "customer_id"
@@ -10113,6 +10114,7 @@ define([], function () {
                         }
                      },
                      "Orders":{
+                        "tableDataType":"NonobjectData",
                         "properties":{
                            "customer_id":{
                               "name": "customer_id"
@@ -10139,6 +10141,7 @@ define([], function () {
                   "name_en":"Tables",
                   "items":{
                      "Messages":{
+                        "tableDataType":"ObjectData",
                         "properties":{
                            "message_id":{
                               "name": "message_id"
