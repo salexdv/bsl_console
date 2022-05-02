@@ -1909,6 +1909,109 @@ class bslHelper {
 	}
 
 	/**
+ 	 * Gets the list of methods owned by object
+ 	 * and fills the suggestions by it
+ 	 * 
+ 	 * @param {array} suggestions the list of suggestions
+ 	 * @param {object} obj object from BSL-JSON dictionary
+ 	 * @param {sting} methodsName the name of node (objMethods, refMethods)
+ 	 */
+	getExternalDataSourcesMethods(suggestions, obj, methodsName, metadataKey, medatadaName) {
+
+		if (obj.hasOwnProperty(methodsName)) {
+
+			let signatures = [];
+
+			for (const [mkey, mvalue] of Object.entries(obj[methodsName])) {
+
+				let command = null;
+				let postfix = '';
+				let post_action = null;
+
+				signatures = this.getMethodsSignature(mvalue);
+
+				if (signatures.length) {
+					postfix = '(';
+					post_action = 'editor.action.triggerParameterHints';
+				}
+
+				if (signatures.length == 0 || (signatures.length == 1 && signatures[0].parameters.length == 0))
+					postfix = '()';
+
+				let ref = null;
+				if (mvalue.hasOwnProperty('ref'))
+					ref = mvalue.ref;
+
+				if (ref && ref.indexOf(':') != -1) {
+					if (metadataKey && medatadaName) {
+						if (ref.indexOf(':metadata') != -1)
+							ref = metadataKey + '.metadata';
+						else if (ref.indexOf(':obj') != -1)
+							ref = metadataKey + '.' + medatadaName + '.obj';
+						else
+							ref = metadataKey + '.' + medatadaName + '.ref';
+					}
+				}
+
+				if (ref || signatures.length) {
+					// If the attribute contains a ref, we need to run the command to save the position of ref
+					command = {
+						id: 'vs.editor.ICodeEditor:1:saveref',
+						arguments: [
+							{
+								"name": mvalue[this.nameField],
+								"data": {
+									"ref": ref,
+									"sig": signatures
+								},
+								"post_action": post_action
+							}
+						]
+					}
+				}
+
+				suggestions.push({
+					label: mvalue[this.nameField],
+					kind: monaco.languages.CompletionItemKind.Function,
+					insertText: mvalue.name + postfix,
+					insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+					detail: mvalue.description,
+					command: command
+				});
+
+			}
+
+			if (methodsName == 'objMethods' && this.objectHasProperties(obj, 'items', medatadaName, 'registerRecords')) {
+
+				let recName = obj.items[medatadaName].registerRecords[this.nameField];
+				let list = [];
+
+				obj.items[medatadaName].registerRecords.registers.forEach(function (regName) {
+					list.push({
+						name: regName.split('.')[1],
+						ref: regName,
+						kind: monaco.languages.CompletionItemKind.Function,
+					});
+				});
+
+				let command = { id: 'vs.editor.ICodeEditor:1:saveref', arguments: [{ "name": recName, "data": { "list": list } }] }
+
+				suggestions.push({
+					label: recName,
+					kind: monaco.languages.CompletionItemKind.Function,
+					insertText: recName,
+					insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+					command: command
+				});
+
+			}
+
+		}
+
+
+	}
+
+	/**
 	 * Gets the list of tables and cubes owned by external data source 
 	 * 
 	 * @param {string} metadataName metadata item type
@@ -1924,25 +2027,38 @@ class bslHelper {
 
 			for (const [key, value] of Object.entries(bslMetadata.externalDataSources.items)) {
 
-				if (key.toLowerCase() == metadataItem) {
+				let objects_array = metadataObject.split('.').filter(e => e);
+				let field_name = objects_array[0];
+				let item_name = (1 < objects_array.length) ? objects_array[1] : '';
+				let methods_name = '';
 
-					metadataObject = metadataObject.replace('.', '');
+				if (key.toLowerCase() == metadataItem) {
+					
 					let item_node = null;
 
-					if (value.tables[this.nameField].toLowerCase() == metadataObject)
+					if (value.tables[this.nameField].toLowerCase() == field_name) {
 						item_node = value.tables;
-					else if (value.cubes[this.nameField].toLowerCase() == metadataObject)
+						methods_name = 'tablesMethods';
+					}						
+					else if (value.cubes[this.nameField].toLowerCase() == field_name) {
 						item_node = value.cubes;
+						methods_name = 'cubesMethods';
+					}
 
 					if (item_node) {
 
-						for (const [ikey, ivalue] of Object.entries(item_node.items)) {
-							suggestions.push({
-								label: ikey,
-								kind: monaco.languages.CompletionItemKind.Unit,
-								insertText: ikey,
-								insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
-							});
+						if (item_name) {
+							this.getExternalDataSourcesMethods(suggestions, bslMetadata.externalDataSources, methods_name, metadataName, metadataItem);
+						}
+						else {
+							for (const [ikey, ivalue] of Object.entries(item_node.items)) {
+								suggestions.push({
+									label: ikey,
+									kind: monaco.languages.CompletionItemKind.Unit,
+									insertText: ikey,
+									insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+								});
+							}
 						}
 
 					}
