@@ -4343,21 +4343,51 @@ class bslHelper {
 	 * Fills array of completion for external data as source
 	 * 
 	 * @param {object} externalData object with external data
-	 * @param {string} sourceName name of source
+	 * @param {string} sourceItem name of source item
+	 * @param {string} sourceSubitem name of source subitem
 	 * @param {array} suggestions array of suggestions for provideCompletionItems	 
 	 * @param {CompletionItemKind} kind - monaco.languages.CompletionItemKind (class, function, constructor etc.)
 	 */
-	getQuerySourceForExternalData(externalData, sourceName, suggestions, kind) {
+	getQuerySourceForExternalData(externalData, sourceItem, sourceSubitem, suggestions, kind) {
 
-		if (!sourceName) {
-			let label = externalData[this.queryNameField + '_tables'];
-			suggestions.push({
-				label: label,
-				kind: kind,
-				insertText: label,
-				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-				command: { id: 'vs.editor.ICodeEditor:1:requestMetadata', arguments: [{ "metadata": externalData.name.toLowerCase() + '.' + label.toLowerCase() }] }
-			});
+		for (const [key, value] of Object.entries(externalData.items)) {
+		
+			if (key.toLowerCase() == sourceItem) {
+
+				let tables_label = externalData[this.queryNameField + '_tables'];
+
+				if (sourceSubitem) {
+					
+					sourceSubitem = sourceSubitem.replace('.', '');
+					
+					if (tables_label.toLowerCase() == sourceSubitem) {
+					
+						for (const [ikey, ivalue] of Object.entries(value.tables.items)) {
+							suggestions.push({
+								label: ikey,
+								kind: kind,
+								insertText: ikey,
+								insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+							});
+						}
+
+					}
+
+				}
+				else {
+
+					suggestions.push({
+						label: tables_label,
+						kind: kind,
+						insertText: tables_label,
+						insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+						command: { id: 'vs.editor.ICodeEditor:1:requestMetadata', arguments: [{ "metadata": externalData.name.toLowerCase() + '.' + tables_label.toLowerCase() }] }
+					});
+
+				}
+
+			}
+
 		}
 
 	}
@@ -4403,7 +4433,7 @@ class bslHelper {
 
 				}
 				else if (key == 'externalDataSources') {
-					this.getQuerySourceForExternalData(value, metadataFunc, suggestions, kind);
+					this.getQuerySourceForExternalData(value, metadataItem, metadataFunc, suggestions, kind);
 				}
 				else if (!metadataFunc && 2 < maxLevel) {
 					this.getQuerySourceMetadataRegTempraryTablesCompletion(value, metadataItem, suggestions)
