@@ -3979,9 +3979,18 @@ class bslHelper {
 						for (const [ikey, ivalue] of Object.entries(value.items)) {
 
 							if (ikey.toLowerCase() == metadataName) {
-								
+
 								if (ivalue.hasOwnProperty('properties'))
 									this.fillSuggestionsForMetadataItemInQuery(suggestions, ivalue, metadataSubtable);
+								else if (ivalue.hasOwnProperty('tables') && 3 < sourceArray.length &&
+									value[this.queryNameField + '_tables'].toLowerCase() == metadataSubtable) {
+									let tableName = sourceArray[3].toLowerCase();
+									for (const [tkey, tvalue] of Object.entries(ivalue.tables.items)) {
+										if (tkey.toLowerCase() == tableName) {
+											this.fillSuggestionsForMetadataItemInQuery(suggestions, tvalue, '');
+										}
+									}
+								}
 								else
 									requestMetadata(value.name.toLowerCase() + '.' + ikey.toLowerCase());
 
@@ -4183,7 +4192,7 @@ class bslHelper {
 											
 						// Searching the source
 						position =  new monaco.Position(match.range.endLineNumber, match.range.endColumn);
-						match = Finder.findPreviousMatch(this.model, '[a-zA-Z0-9\u0410-\u044F]+\\.[a-zA-Z0-9\u0410-\u044F_]+(?:\\.[a-zA-Z0-9\u0410-\u044F]+)?', position);
+						match = Finder.findPreviousMatch(this.model, '[a-zA-Z0-9\u0410-\u044F]+\\.[a-zA-Z0-9\u0410-\u044F_]+(?:\\.[a-zA-Z0-9\u0410-\u044F]+)?(?:\\.[a-zA-Z0-9\u0410-\u044F]+)?', position);
 				
 						if (match) {									
 							sourceDefinition = match.matches[0];
