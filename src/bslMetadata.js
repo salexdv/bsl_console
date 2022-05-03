@@ -10091,13 +10091,17 @@ define([], function () {
       "externalDataSources": {
          "name":"ВнешниеИсточникиДанных",
          "name_en":"ExternalDataSources",
+         "name_tables":"Таблицы",
+         "name_en_tables":"Tables",
+         "name_cubes":"Кубы",
+         "name_en_cubes":"Cubes",
          "query_name":"ВнешнийИсточникДанных",
          "query_name_en":"ExternalDataSource",
+         "query_name_tables":"Таблица",
+         "query_name_en_tables":"Table",
          "items":{
             "РозничныйСайт":{
                "tables":{
-                  "name":"Таблицы",
-                  "name_en":"Tables",
                   "items":{
                      "Customers":{
                         "tableDataType":"ObjectData",
@@ -10130,15 +10134,11 @@ define([], function () {
                   }
                },
                "cubes":{
-                  "name":"Кубы",
-                  "name_en":"Cubes",
                   "items":{}
                }
             },
             "CRM":{
                "tables":{
-                  "name":"Таблицы",
-                  "name_en":"Tables",
                   "items":{
                      "Messages":{
                         "tableDataType":"ObjectData",
@@ -10157,8 +10157,6 @@ define([], function () {
                   }
                },
                "cubes":{
-                  "name":"Кубы",
-                  "name_en":"Cubes",
                   "items":{}
                }
             }
