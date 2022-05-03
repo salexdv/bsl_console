@@ -378,6 +378,17 @@ describe("Проверка автокомлита и подсказок реда
 
     });
 
+    it("проверка подсказки внешнего источника в конструкции ИЗ ИЛИ СОЕДИНЕНИЕ ", function () {
+      bsl = helper(`ВЫБРАТЬ
+      *
+      ИЗ      
+      ВнешнийИсточникДанных.`);      
+      let suggestions = [];
+      bsl.getQuerySourceCompletion(suggestions, null);
+      expect(suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(suggestions.some(suggest => suggest.label === "РозничныйСайт"), true);      
+    });
+
     setLanguageMode('bsl_query');
         
     mocha.run();
