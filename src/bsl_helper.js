@@ -4379,6 +4379,18 @@ class bslHelper {
 					}
 
 				}
+				else if (key == 'externalDataSources') {
+					if (!metadataFunc) {
+						let label = value[this.queryNameField + '_tables'];
+						suggestions.push({
+							label: label,
+							kind: kind,
+							insertText: label,
+							insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+							command: { id: 'vs.editor.ICodeEditor:1:requestMetadata', arguments: [{ "metadata": value.name.toLowerCase() + '.' + label.toLowerCase()}] }
+						});
+					}
+				}
 				else if (!metadataFunc && 2 < maxLevel) {
 					this.getQuerySourceMetadataRegTempraryTablesCompletion(value, metadataItem, suggestions)
 
