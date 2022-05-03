@@ -1040,6 +1040,15 @@ describe("Проверка автокомлита и подсказок реда
         assert.equal(suggestions.some(suggest => suggest.label === "НомерСтроки"), true);
 
       });
+
+      it("проверка подсказки внешних источников", function () {
+
+        bsl = helper('ВнешниеИсточникиДанных.');
+        let suggestions = bsl.getCodeCompletion({triggerCharacter: ''});
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "РозничныйСайт"), true);
+
+      });
       
     }
 
