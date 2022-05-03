@@ -1883,24 +1883,25 @@ class bslHelper {
 	/**
 	 * Fills array of completion for external data sources
 	 * 
+	 * @param {object} parent parent of metadata object from BSL-JSON dictionary 
 	 * @param {object} object metadata object from BSL-JSON dictionary
 	 * @param {array} suggestions array of completion for object	 
 	 */
-	fillSuggestionsForExternalDataSources(object, suggestions) {
+	fillSuggestionsForExternalDataSources(parent, object, suggestions) {
 
 		if (object.hasOwnProperty('tables')) {
 
 			suggestions.push({
-				label: object.tables[this.nameField],
+				label: parent[this.nameField + '_tables'],
 				kind: monaco.languages.CompletionItemKind.Field,
-				insertText: object.tables[this.nameField],
+				insertText: parent[this.nameField + '_tables'],
 				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
 			});
 
 			suggestions.push({
-				label: object.cubes[this.nameField],
+				label: parent[this.nameField + '_cubes'],
 				kind: monaco.languages.CompletionItemKind.Field,
-				insertText: object.cubes[this.nameField],
+				insertText: parent[this.nameField + '_cubes'],
 				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
 			});
 
@@ -1943,17 +1944,6 @@ class bslHelper {
 					let ref = null;
 					if (mvalue.hasOwnProperty('ref'))
 						ref = mvalue.ref;
-
-					if (ref && ref.indexOf(':') != -1) {
-						if (metadataKey && medatadaName) {
-							if (ref.indexOf(':metadata') != -1)
-								ref = metadataKey + '.metadata';
-							else if (ref.indexOf(':obj') != -1)
-								ref = metadataKey + '.' + medatadaName + '.obj';
-							else
-								ref = metadataKey + '.' + medatadaName + '.ref';
-						}
-					}
 
 					if (ref || signatures.length) {
 						// If the attribute contains a ref, we need to run the command to save the position of ref
@@ -2014,11 +2004,11 @@ class bslHelper {
 					
 					let item_node = null;
 
-					if (value.tables[this.nameField].toLowerCase() == field_name) {
+					if (bslMetadata.externalDataSources[this.nameField + '_tables'].toLowerCase() == field_name) {
 						item_node = value.tables;
 						methods_name = 'tablesMethods';
 					}						
-					else if (value.cubes[this.nameField].toLowerCase() == field_name) {
+					else if (bslMetadata.externalDataSources.cubes[this.nameField + '_cubes'].toLowerCase() == field_name) {
 						item_node = value.cubes;
 						methods_name = 'cubesMethods';
 					}
@@ -2478,7 +2468,7 @@ class bslHelper {
 							}
 
 							this.getMetadataGeneralMethodCompletionByType(value, 'methods', suggestions, 'Method');
-							this.fillSuggestionsForExternalDataSources(itemNode, suggestions);
+							this.fillSuggestionsForExternalDataSources(value, itemNode, suggestions);
 
 							if (!updateItemNode) {
 								if (itemNode.hasOwnProperty('manager'))									
