@@ -1005,6 +1005,85 @@ describe("Проверка автокомлита и подсказок реда
 
       });
 
+      it("проверка подсказки реквизитов строки табличной части при получении по индексу (отдельная переменная для ТЧ)", function () {
+
+        bsl = helper('Спр = Справочники.Товары.НайтиПоКоду(1);\nСтрокаТЧ = Спр.ДополнительныеРеквизиты[0];\nСтрокаТЧ.');
+        contextData.clear();
+        let suggestions = [];
+        bsl.getStackCompletion(suggestions);
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "ЗначениеРеквизита"), true);
+        assert.equal(suggestions.some(suggest => suggest.label === "НомерСтроки"), true);
+
+      });
+
+      it("проверка подсказки реквизитов строки табличной части при получении через метод в строке", function () {
+
+        bsl = helper('Спр = Справочники.Товары.НайтиПоКоду(1);\nСтрокаТЧ = Спр.ДополнительныеРеквизиты.Получить(0).');
+        contextData.clear();
+        let suggestions = [];
+        bsl.getStackCompletion(suggestions);
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "ЗначениеРеквизита"), true);
+        assert.equal(suggestions.some(suggest => suggest.label === "НомерСтроки"), true);
+
+      });
+
+      it("проверка подсказки реквизитов строки табличной части при получении через индекс в строке", function () {
+
+        bsl = helper('Спр = Справочники.Товары.НайтиПоКоду(1);\nСтрокаТЧ = Спр.ДополнительныеРеквизиты[0].');
+        contextData.clear();
+        let suggestions = [];
+        bsl.getStackCompletion(suggestions);
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "ЗначениеРеквизита"), true);
+        assert.equal(suggestions.some(suggest => suggest.label === "НомерСтроки"), true);
+
+      });
+
+      it("проверка подсказки внешних источников", function () {
+
+        bsl = helper('ВнешниеИсточникиДанных.');
+        let suggestions = bsl.getCodeCompletion({triggerCharacter: ''});
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "РозничныйСайт"), true);
+
+      });
+
+      it("проверка подсказки методов и полей внешних источников", function () {
+
+        bsl = helper('ВнешниеИсточникиДанных.РозничныйСайт.');
+        let suggestions = bsl.getCodeCompletion({triggerCharacter: ''});
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "Таблицы"), true);
+        assert.equal(suggestions.some(suggest => suggest.label === "ПолучитьПараметрыСоединенияПользователя"), true);
+
+      });
+
+      it("проверка подсказки таблиц внешних источников", function () {
+
+        bsl = helper('ВнешниеИсточникиДанных.РозничныйСайт.Таблицы.');
+        let suggestions = bsl.getCodeCompletion({triggerCharacter: ''});
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "Customers"), true);
+
+      });
+
+      it("проверка подсказки методов таблиц внешних источников", function () {
+
+        bsl = helper('ВнешниеИсточникиДанных.РозничныйСайт.Таблицы.Customers.');
+        let suggestions = bsl.getCodeCompletion({triggerCharacter: ''});
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "СоздатьОбъект"), true);
+        assert.equal(suggestions.some(suggest => suggest.label === "СоздатьМенеджерЗаписи"), false);
+
+        bsl = helper('ВнешниеИсточникиДанных.РозничныйСайт.Таблицы.Orders.');
+        suggestions = bsl.getCodeCompletion({triggerCharacter: ''});
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "СоздатьОбъект"), true);
+        assert.equal(suggestions.some(suggest => suggest.label === "СоздатьМенеджерЗаписи"), true);
+
+      });
       
     }
 

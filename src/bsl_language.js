@@ -243,6 +243,9 @@ define([], function () {
 
             ],
             queryOperators: /[=><+\-*\/%;,]+/,
+            expBeforeAs: [
+                'КОНЕЦ', 'END', 'NULL', 'НЕОПРЕДЕЛЕНО', 'UNDEFINED'
+            ],
             // The main tokenizer for our languages
             tokenizer: {
                 root: [
@@ -268,8 +271,8 @@ define([], function () {
                         {token: 'query.quote', next: '@query'},
                         {token: 'query.keyword'}                        
                     ]],
-                    [/"([^"\\]|\\.)*$/, 'string.invalid'],
                     [/["|]/, { token: 'string.invalid', next: '@string' }],
+                    [/"([^"\\]|\\.)*$/, 'string.invalid'],
                     [/\$\@"/, { token: 'string.quote', next: '@litinterpstring' }],
                     [/\@"/, { token: 'string.quote', next: '@litstring' }],
                     [/\$"/, { token: 'string.quote', next: '@interpolatedstring' }],
@@ -279,6 +282,33 @@ define([], function () {
                     [/'/, 'string.invalid']
                 ],
                 query: [
+                    [/([a-zA-Z\u0410-\u044F]+)(\s+)(как|as)(\s+)([a-zA-Z\u0410-\u044F0-9]+)/, [
+                        { cases: {
+                            '@expBeforeAs': 'query.exp',                            
+                            '@default': 'query'
+                        }},
+                        {token: 'query'},
+                        {token: 'query.keyword'},
+                        {token: 'query'},
+                        {token: 'query'},
+                    ]],                    
+                    [/(как|as)(\s+)([a-zA-Z\u0410-\u044F]+)(\()/, [
+                        {token: 'query.keyword'},
+                        {token: 'query'},
+                        {token: 'query.exp'},
+                        {token: 'query.brackets'}
+                    ]],
+                    [/(как|as)(\s+)([a-zA-Z\u0410-\u044F_0-9]+)([,\s]*)/, [
+                        {token: 'query.keyword'},
+                        {token: 'query'},
+                        {token: 'query'},
+                        {token: 'query.operator'}
+                    ]],
+                    [/(\.)([a-zA-Z\u0410-\u044F_0-9]+)/, [
+                        {token: 'query'},
+                        {token: 'query'}                        
+                    ]],
+                    [/([a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]+)(\.)([a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]+)/, 'query'],
                     [/[a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]*/, {
                         cases: {
                             '@queryWords': 'query.keyword',
@@ -311,9 +341,8 @@ define([], function () {
                 ],
                 string: [
                     [/^\s*\/\/.*$/, 'comment'],
-                    [/[^\\"]+/, 'string'],
+                    [/[^"]+/, 'string'],
                     [/@escapes/, 'string.escape'],
-                    [/\\./, 'string'],
                     [/"/, { token: 'string.quote', next: '@pop' }],
                     [/\|.*"/, { token: 'string.quote', next: '@pop' }],
                 ],
@@ -477,12 +506,17 @@ define([], function () {
             languageDef: bsl_language,
             completionProvider: {
                 triggerCharacters: ['.', '"', ' '],
-                provideCompletionItems: function (model, position, context, token) {                    
+                provideCompletionItems: function (model, position, context, token) {
                     resetSuggestWidgetDisplay();
                     let bsl = new bslHelper(model, position);
                     let completion = bsl.getCompletion(context, token);
                     bsl.onProvideCompletion(context, completion);
                     return completion;
+                },
+                resolveCompletionItem: function (model, position, item) {
+                    let bsl = new bslHelper(model, position);
+                    item = bsl.resolveCompletionItem(item);
+                    return model;
                 }
             },
             foldingProvider: {

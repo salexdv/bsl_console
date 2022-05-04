@@ -118,14 +118,14 @@ define(['vs/editor/editor.main'], function () {
             }
 
             if (!isDCSMode() && !editor.disableContextQueryConstructor) {
-
-                let query_text = isQueryMode() ? getText() : getQuery();
+                
                 actions.query_bsl = {
                     label: 'Конструктор запроса...',
                     key: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_D,
                     cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_D),
                     order: 1.3,
                     callback: function (ed) {
+                        let query_text = isQueryMode() ? getText() : getQuery();
                         sendEvent('EVENT_QUERY_CONSTRUCT', query_text);
                         return null;
                     }

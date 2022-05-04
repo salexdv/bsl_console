@@ -31,10 +31,10 @@ class Finder {
 
 			last_match = match;
 
-			if (match.index < offset)
-				previous_match = match;
+			if (previous_match && match.index == previous_match.index || offset <= match.index)
+				break
 			else
-				break;
+				previous_match = match;
 
 		}
 

@@ -35,6 +35,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   inlineDiffWidget = null;
   events_queue = [];
   editor_options = [];
+  snippets = {};
   // #endregion
 
   // #region public API
@@ -211,8 +212,15 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
-  switchLang = function () {
-    engLang = !engLang;
+  switchLang = function (language) {
+    
+    if (language == undefined)
+      engLang = !engLang;
+    else
+      engLang = (language == 'en');
+
+    return engLang ? 'en' : 'ru';
+    
   }
 
   addComment = function () {
@@ -276,14 +284,6 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     
   }
 
-  enableModificationEvent = function (enabled) {
-
-    // !!! depricated !!! //
-    console.warn('enableModificationEvent is deprecated and will be removed in a future version #247');
-    setOption('generateModificationEvent', enabled);
-
-  }
-
   addContextMenuItem = function(label, eventName) {
 
     let time = new Date().getTime();
@@ -335,67 +335,11 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
-  switchLanguageMode = function(mode) {
-    
-    // !!! depricated !!! //
-    let currentTheme = getCurrentThemeName();
-
-    if (queryMode && mode == 'query')
-      monaco.editor.setModelLanguage(editor.getModel(), "bsl_query");
-    else if (DCSMode && mode == 'dcs')
-      monaco.editor.setModelLanguage(editor.getModel(), "dcs_query");
-    else if (queryMode)
-      monaco.editor.setModelLanguage(editor.getModel(), "bsl_query");
-    else if (DCSMode)
-      monaco.editor.setModelLanguage(editor.getModel(), "dcs_query");
-    else
-      monaco.editor.setModelLanguage(editor.getModel(), "bsl");
-    
-    setTheme(currentTheme);
-
-    initContextMenuActions();
-    console.warn('switchLanguageMode is deprecated and will be removed in a future version #241');
-
-  }
-
   getCurrentLanguageId = function() {
 
     let identifier = getActiveEditor().getModel().getLanguageIdentifier();
     return identifier.language;
 
-  }
-
-  switchQueryMode = function() {
-    
-    // !!! depricated !!! //
-    queryMode = !queryMode;
-    switchLanguageMode('query');
-    console.warn('switchQueryMode is deprecated and will be removed in a future version #241');
-
-  }
-
-  switchDCSMode = function() {
-
-    // !!! depricated !!! //
-    DCSMode = !DCSMode;
-    switchLanguageMode('dcs');
-    console.warn('switchDCSMode is deprecated and will be removed in a future version #241');
-
-  }
-
-  switchXMLMode = function() {
-    
-    // !!! depricated !!! //
-    let identifier = editor.getModel().getLanguageIdentifier();
-    let language_id = 'xml';
-
-    if (identifier.language == 'xml') {
-      language_id = isQueryMode() ? 'bsl_query' : 'bsl';
-    }
-
-    monaco.editor.setModelLanguage(editor.getModel(), language_id);
-    console.warn('switchXMLMode is deprecated and will be removed in a future version #241');
-      
   }
 
   getSelectedText = function() {
@@ -647,7 +591,6 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   compare = function (text, sideBySide, highlight, markLines = true) {
     
-    document.getElementById("container").innerHTML = '';
     let language_id = getCurrentLanguageId();
     let currentTheme = getCurrentThemeName();
     let previous_options = getActiveEditor().getRawOptions();
@@ -670,6 +613,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       let originalModel = originalText ? monaco.editor.createModel(originalText) : monaco.editor.createModel(editor.getModel().getValue());
       let modifiedModel = monaco.editor.createModel(text);
       originalText = originalModel.getValue();
+      disposeEditor();
       editor = monaco.editor.createDiffEditor(document.getElementById("container"), {
         theme: currentTheme,
         language: language_id,
@@ -728,6 +672,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     }
     else
     {
+      disposeEditor();
       createEditor(language_id, originalText, currentTheme);
       initEditorEventListenersAndProperies();
       originalText = '';
@@ -771,14 +716,27 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
-  requestMetadata = function(metadata) {
+  requestMetadata = function (metadata, trigger, data) {
+
+    if (!trigger)
+      trigger = 'suggestion';
 
     let metadata_name = metadata.toLowerCase();
     let request = metadataRequests.get(metadata_name);
 
     if (!request) {
+
       metadataRequests.set(metadata_name, true);
-      sendEvent("EVENT_GET_METADATA", metadata_name);
+
+      let event_params = {
+        metadata: metadata_name,
+        trigger: trigger
+      }
+
+      if (data)
+        event_params = Object.assign(event_params, data);
+
+      sendEvent("EVENT_GET_METADATA", event_params);
     }
 
   }
@@ -915,117 +873,6 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   getLastToken = function() {
 
     return getTokenFromPosition(editor.getPosition());
-
-  }
-
-  function getSuggestWidgetRows(element) {
-
-    let rows = [];
-
-    if (element) {
-
-      for (let i = 0; i < element.parentElement.childNodes.length; i++) {              
-        
-        let row = element.parentElement.childNodes[i];
-        
-        if (row.classList.contains('monaco-list-row'))
-          rows.push(row.getAttribute('aria-label'));
-
-      }
-
-    }
-
-    return rows;
-
-  }
-
-  generateEventWithSuggestData = function(eventName, trigger, row, suggestRows = []) {
-
-    let bsl = new bslHelper(editor.getModel(), editor.getPosition());
-    let row_id = row ? row.getAttribute('data-index') : "";
-    let insert_text = '';
-
-    if (row_id) {
-
-      let suggestWidget = getSuggestWidget();
-
-      if (suggestWidget && row_id < suggestWidget.widget.list.view.items.length) {
-        let suggest_item = suggestWidget.widget.list.view.items[row_id];
-        insert_text = suggest_item.element.completion.insertText;
-      }
-
-    }
-
-    eventParams = {
-      trigger: trigger,
-      current_word: bsl.word,
-      last_word: bsl.lastRawExpression,
-      last_expression: bsl.lastExpression,                    
-      rows: suggestRows.length ? suggestRows : getSuggestWidgetRows(row),
-      altKey: altPressed,
-			ctrlKey: ctrlPressed,
-			shiftKey: shiftPressed,
-      row_id: row_id,
-      insert_text: insert_text
-    }
-
-    if (row) {
-      
-      eventParams['kind'] = getChildWithClass(row, 'suggest-icon').className;
-      eventParams['sideDetailIsOpened'] = (null != document.querySelector('.suggest-widget.docs-side .details .header'));
-
-      if (eventName == 'EVENT_ON_ACTIVATE_SUGGEST_ROW' || eventName == 'EVENT_ON_DETAIL_SUGGEST_ROW')
-        eventParams['focused'] = row.getAttribute('aria-label');
-      else if (eventName == 'EVENT_ON_SELECT_SUGGEST_ROW')
-        eventParams['selected'] = row.getAttribute('aria-label');
-
-    }
-    
-    sendEvent(eventName, eventParams);
-
-  }
-
-  enableSuggestActivationEvent = function (enabled, alwaysDisplayDetails = false) {
-
-    // !!! depricated !!! //
-    console.warn('enableSuggestActivationEvent is deprecated and will be removed in a future version #247');
-    setOption('generateSuggestActivationEvent', enabled);
-    setOption('alwaysDisplaySuggestDetails', alwaysDisplayDetails);
-    startStopSuggestActivationObserver();
-
-  }
-
-  enableBeforeShowSuggestEvent = function(enabled) {
-    
-    // !!! depricated !!! //
-    console.warn('enableBeforeShowSuggestEvent is deprecated and will be removed in a future version #247');
-    setOption('generateBeforeShowSuggestEvent', enabled);
-
-  }
-
-  enableSelectSuggestEvent = function (enabled) {
-
-    // !!! depricated !!! //
-    console.warn('enableSelectSuggestEvent is deprecated and will be removed in a future version #247');
-    setOption('generateSelectSuggestEvent', enabled);
-    startStopSuggestSelectionObserver();
-
-  }
-
-  enableBeforeHoverEvent = function(enabled) {
-    
-    // !!! depricated !!! //
-    console.warn('enableBeforeHoverEvent is deprecated and will be removed in a future version #247');
-    setOption('generateBeforeHoverEvent', enabled);
-
-  }
-
-  enableBeforeSignatureEvent = function (enabled) {
-
-    // !!! depricated !!! //
-    console.warn('enableBeforeSignatureEvent is deprecated and will be removed in a future version #247');
-    setOption('generateBeforeSignatureEvent', enabled);
-    startStopSignatureObserver();
 
   }
 
@@ -1270,6 +1117,9 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     if (optionName == 'disableDefinitionMessage')
       startStopDefinitionMessegeObserver();
 
+    if (optionName == 'generateSuggestActivationEvent')
+      startStopSuggestActivationObserver();
+
   }
 
   getOption = function (optionName) {
@@ -1410,7 +1260,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
-  parseSnippets = function(stData) {
+  parseSnippets = function(stData, unionSnippets = false) {
 
     let parser = new SnippetsParser();
     parser.setStream(stData);
@@ -1418,12 +1268,52 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     let loaded_snippets = parser.getSnippets();
 
     if (loaded_snippets) {
-      snippets = loaded_snippets;
+
+      let snip_obj = loaded_snippets;
+
+      if (unionSnippets)
+        snippets = Object.assign(snippets, snip_obj);
+      else
+        snippets = snip_obj;
+
       return true;
+
     }
-    else
-      return false;
     
+    return false;
+    
+  }
+
+  setDefaultSnippets = function() {
+
+    snippets = bslSnippets;
+
+  }
+
+  clearSnippets = function() {
+
+    snippets = {};
+
+  }
+
+  updateSnippetByGUID = function (snippetGUID) {
+
+    suggestWidget = getSuggestWidget();
+
+    if (suggestWidget) {
+
+      suggestWidget.widget.list.view.items.forEach((completionItem) => {
+
+        if (completionItem.element.completion.guid == snippetGUID)
+          completionItem.element.provider.resolveCompletionItem(editor.getModel(),
+            editor.getPosition(),
+            completionItem.element.completion
+          );
+
+      });
+
+    }
+
   }
 
   setMarkers = function (markersJSON) {
@@ -1487,6 +1377,52 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     }
 
     return false;
+
+  }
+
+  generateEventWithSuggestData = function(eventName, trigger, row, suggestRows = []) {
+
+    let bsl = new bslHelper(editor.getModel(), editor.getPosition());
+    let row_id = row ? row.getAttribute('data-index') : "";
+    let insert_text = '';
+
+    if (row_id) {
+
+      let suggestWidget = getSuggestWidget();
+
+      if (suggestWidget && row_id < suggestWidget.widget.list.view.items.length) {
+        let suggest_item = suggestWidget.widget.list.view.items[row_id];
+        insert_text = suggest_item.element.completion.insertText;
+      }
+
+    }
+
+    eventParams = {
+      trigger: trigger,
+      current_word: bsl.word,
+      last_word: bsl.lastRawExpression,
+      last_expression: bsl.lastExpression,
+      rows: suggestRows.length ? suggestRows : getSuggestWidgetRows(row),
+      altKey: altPressed,
+      ctrlKey: ctrlPressed,
+      shiftKey: shiftPressed,
+      row_id: row_id,
+      insert_text: insert_text
+    }
+
+    if (row) {
+
+      eventParams['kind'] = getChildWithClass(row, 'suggest-icon').className;
+      eventParams['sideDetailIsOpened'] = (null != document.querySelector('.suggest-widget.docs-side .details .header'));
+
+      if (eventName == 'EVENT_ON_ACTIVATE_SUGGEST_ROW' || eventName == 'EVENT_ON_DETAIL_SUGGEST_ROW')
+        eventParams['focused'] = row.getAttribute('aria-label');
+      else if (eventName == 'EVENT_ON_SELECT_SUGGEST_ROW')
+        eventParams['selected'] = row.getAttribute('aria-label');
+
+    }
+
+    sendEvent(eventName, eventParams);
 
   }
   // #endregion
@@ -1575,6 +1511,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
       createEditor(language.id, getCode(), 'bsl-white');
       registerCodeLensProviders();
+      setDefaultSnippets();
     
       contextMenuEnabled = editor.getRawOptions().contextmenu;
       editor.originalText = '';
@@ -1651,6 +1588,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
       checkBookmarksAfterRemoveLine(e);
       updateBookmarks(undefined);
+
+      setOption('lastContentChanges', e);
           
     });
 
@@ -1716,9 +1655,10 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     });
 
     editor.onDidChangeCursorSelection(e => {
-      
+
       updateStatusBar();
-      
+      onChangeSnippetSelection(e);
+
     });
 
     editor.onDidLayoutChange(e => {
@@ -1731,6 +1671,123 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   // #endregion
     
   // #region non-public functions
+  function disposeEditor() {
+
+    if (editor) {
+
+      if (editor.navi) {
+        editor.getOriginalEditor().getModel().dispose();
+        editor.getOriginalEditor().dispose();
+        editor.getModifiedEditor().getModel().dispose();
+        editor.getModifiedEditor().dispose();
+      }
+      else {
+        editor.getModel().dispose();
+      }
+
+      editor.dispose();
+
+    }
+
+  }
+
+  function generateSnippetEvent(e) {
+
+    if (e.source == 'snippet') {
+
+      let last_changes = getOption('lastContentChanges');
+      let generate = getOption('generateSnippetEvent');
+
+      if (generate && last_changes && last_changes.versionId == e.modelVersionId && e.modelVersionId == e.oldModelVersionId) {
+
+        if (last_changes.changes.length) {
+
+          let changes = last_changes.changes[0];
+          let change_range = changes.range;
+          let content_model = monaco.editor.createModel(changes.text);
+          let content_range = content_model.getFullModelRange();
+
+          let target_range = new monaco.Range(
+            change_range.startLineNumber,
+            change_range.startColumn,
+            change_range.startLineNumber + content_range.endLineNumber - 1,
+            content_range.endColumn
+          );
+
+          let event = {
+            text: changes.text,
+            range: target_range,
+            position: editor.getPosition(),
+            selection: getSelection(),
+            selected_text: getSelectedText()
+          }
+
+          sendEvent('EVENT_ON_INSERT_SNIPPET', event);
+
+        }
+
+      }
+
+    }
+
+  }
+
+  function onChangeSnippetSelection(e) {
+
+    if (e.source == 'snippet' || e.source == 'api') {
+
+      let text = editor.getModel().getValueInRange(e.selection);
+      
+      let events = new Map();
+      events.set('ТекстЗапроса', 'EVENT_QUERY_CONSTRUCT');
+      events.set('ФорматнаяСтрока', 'EVENT_FORMAT_CONSTRUCT');
+      events.set('ВыборТипа', 'EVENT_TYPE_CONSTRUCT');
+      events.set('КонструкторОписанияТипов', 'EVENT_TYPEDESCRIPTION_CONSTRUCT');
+
+      let event = events.get(text);
+
+      if (event) {
+
+        let mod_event = getOption('generateModificationEvent');
+
+        if (mod_event)
+          setOption('generateModificationEvent', false);
+
+        setText('', e.selection, false);
+        sendEvent(event);
+
+        if (mod_event)
+          setOption('generateModificationEvent', true);
+
+      }
+
+    }
+
+    generateSnippetEvent(e);
+
+  }
+
+  function getSuggestWidgetRows(element) {
+
+    let rows = [];
+
+    if (element) {
+
+      for (let i = 0; i < element.parentElement.childNodes.length; i++) {              
+        
+        let row = element.parentElement.childNodes[i];
+        
+        if (row.classList.contains('monaco-list-row'))
+          rows.push(row.getAttribute('aria-label'));
+
+      }
+
+    }
+
+    return rows;
+
+  }
+  
   function goToCurrentMarker(sorted_marks) {
 
     let idx = 0;
@@ -2241,7 +2298,6 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         setTimeout(() => {
           generateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', 'selection', element);
         }, 10);
-        // stopEventIfSuggestListIsClosed(e);
       }
     }
     else if (e.ctrlKey && (e.keyCode == 36 || e.keyCode == 38)) {
@@ -2278,7 +2334,6 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
           setTimeout(() => {
             generateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', 'selection', element);
           }, 10);
-          // stopEventIfSuggestListIsClosed(e);  
         }
       }
     }
@@ -2300,15 +2355,6 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
     checkEmptySuggestions();
 
-  }
-
-  // Prevent propagation of event to editor if SuggestList was closed in EVENT_ON_SELECT_SUGGEST_ROW event handler https://github.com/salexdv/bsl_console/issues/90
-  function stopEventIfSuggestListIsClosed(e) {
-    element = document.querySelector('.monaco-list-row.focused');
-    if (!element) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
   }
 
   function  initContextMenuActions() {
@@ -2730,7 +2776,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
           let pos = document.createElement('div');
           pos.style.margin = 'auto 10px';
-          this.domNode.append(pos);
+          this.domNode.appendChild(pos);
 
         }
 
