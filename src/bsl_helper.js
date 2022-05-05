@@ -4778,11 +4778,15 @@ class bslHelper {
 
 		if (this.isSuitablePlaceForQueryAlias()) {
 
+			let position = this.position;
+			while (!this.model.getWordUntilPosition(position).word && 1 < position.column) {
+				position = new monaco.Position(position.lineNumber, position.column - 1);
+			}
 			let data = this.model.getValueInRange({
-				startLineNumber: this.lineNumber,
+				startLineNumber: position.lineNumber,
 				startColumn: 1,
-				endLineNumber: this.lineNumber,
-				endColumn: this.column - this.lastExpression.length - 1
+				endLineNumber: position.lineNumber,
+				endColumn: position.column - this.lastExpression.length - 1
 			}).trim().split('.');
 			let label = data.pop().replace(/[\(\)]/g, '');
 			suggestions.push({
