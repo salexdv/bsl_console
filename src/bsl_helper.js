@@ -4610,7 +4610,7 @@ class bslHelper {
 
 		if (this.getLastCharacter() != '.' && this.lastExpression.indexOf('&') < 0) {
 			let word = this.model.getWordUntilPosition(this.position).word;
-			let line_content = this.model.getLineContent(this.lineNumber);
+			let line_content = this.model.getLineContent(this.lineNumber);			
 			line_content = line_content.substr(0, this.column - word.length - 1);
 			let pattern = /.*(,|=|\(|по|on|выбрать|select|когда|when|тогда|then|иначе|else|где|where|и|and|или|or)/i;
 			line_content = line_content.replace(pattern, '').trim();
@@ -4742,57 +4742,125 @@ class bslHelper {
 	}
 
 	/**
+	 * Determines if the current position is suitable to
+	 * suggest an alias for field/table
+	 * 
+	 * @returns {bool}
+	 */
+	 isSuitablePlaceForQueryAlias() {
+
+		let isSuitable = false;
+
+		if (this.lastExpression == 'as' || this.lastExpression == 'как') {
+
+			if (this.getLastNExpression(2) == '.') {
+				let text_after = this.model.getValueInRange({
+					startLineNumber: this.lineNumber,
+					startColumn: this.column,
+					endLineNumber: this.lineNumber,
+					endColumn: this.model.getLineMaxColumn(this.lineNumber)
+				}).trim();
+				isSuitable = (!text_after || text_after.startsWith(','));
+			}
+
+		}
+
+		return isSuitable;
+
+	}
+
+	/**
+	 * Fills array of completion for table alias or field alias
+	 * 
+	 * @param {array} suggestions array of suggestions for provideCompletionItems
+	 */
+	getQueryAliasCompletion(suggestions) {
+
+		if (this.isSuitablePlaceForQueryAlias()) {
+
+			let data = this.model.getValueInRange({
+				startLineNumber: this.lineNumber,
+				startColumn: 1,
+				endLineNumber: this.lineNumber,
+				endColumn: this.column - this.lastExpression.length - 1
+			}).trim().split('.');
+			let label = data.pop().replace(/[\(\)]/g, '');
+			suggestions.push({
+				label: label,
+				kind: monaco.languages.CompletionItemKind.Field,
+				insertText: label,
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+			});
+
+		}
+
+	}
+
+	/**
 	 * Completion provider for query language	
 	 * 
 	 * @returns {array} array of completion
 	 */
-	getQueryCompletion() {
+	getQueryCompletion(context) {
 
-		let suggestions = this.getCustomSuggestions(true);		
-		
-		if (!suggestions.length && !editor.disableNativeSuggestions) {
-		
-			if (!this.requireQueryValue()) {
+		let suggestions = [];
+		let trigger_char = (context && context.triggerCharacter) ? context.triggerCharacter : '';
 
-				if (!this.requireQueryRef()) {
+		if (trigger_char == ' ') {
+			this.getQueryAliasCompletion(suggestions);
+		}
+		else {
 
-					if (!this.getQuerySourceCompletion(suggestions, monaco.languages.CompletionItemKind.Enum)) {
+			suggestions = this.getCustomSuggestions(true);
 
-						let functions = null;
+			if (!suggestions.length && !editor.disableNativeSuggestions) {
 
-						if (this.lastOperator != '"') {
-							functions = this.getQueryFunctions(bslQuery);
-							this.getRefCompletion(suggestions);
-							this.getQueryTablesCompletion(suggestions, monaco.languages.CompletionItemKind.Class);
-							this.getCustomObjectsCompletion(suggestions, bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
+				if (!this.requireQueryValue()) {
+
+					if (!this.requireQueryRef()) {
+
+						if (!this.getQuerySourceCompletion(suggestions, monaco.languages.CompletionItemKind.Enum)) {
+
+							let functions = null;
+
+							if (this.lastOperator != '"') {
+								functions = this.getQueryFunctions(bslQuery);
+								this.getRefCompletion(suggestions);
+								this.getQueryTablesCompletion(suggestions, monaco.languages.CompletionItemKind.Class);
+								this.getCustomObjectsCompletion(suggestions, bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
+							}
+
+							if (trigger_char == '&')
+								this.getQueryParamsCompletion(suggestions, monaco.languages.CompletionItemKind.Enum);
+
+							this.getQueryFieldsCompletion(suggestions);
+
+							if (this.lastExpression.indexOf('.') < 0) {
+								this.getQueryCommonCompletion(suggestions, monaco.languages.CompletionItemKind.Module);
+								if (functions)
+									this.getCommonCompletion(suggestions, functions, monaco.languages.CompletionItemKind.Function, true);
+							}
+
+							this.getSnippets(suggestions, querySnippets, false);
+							this.getQueryAliasCompletion(suggestions);
+
 						}
-						
-						this.getQueryParamsCompletion(suggestions, monaco.languages.CompletionItemKind.Enum);				
-						this.getQueryFieldsCompletion(suggestions);
 
-						if (this.lastExpression.indexOf('.') < 0) {
-							this.getQueryCommonCompletion(suggestions, monaco.languages.CompletionItemKind.Module);
-							if (functions)
-								this.getCommonCompletion(suggestions, functions, monaco.languages.CompletionItemKind.Function, true);
-						}
+					}
+					else {
 
-						this.getSnippets(suggestions, querySnippets, false);
+						this.getQueryRefCompletion(suggestions, monaco.languages.CompletionItemKind.Enum);
 
 					}
 
 				}
 				else {
-					
-					this.getQueryRefCompletion(suggestions, monaco.languages.CompletionItemKind.Enum);
+
+					this.getQueryValuesCompletion(suggestions, bslQuery.values, monaco.languages.CompletionItemKind.Enum);
 
 				}
-
 			}
-			else {
-				
-				this.getQueryValuesCompletion(suggestions, bslQuery.values, monaco.languages.CompletionItemKind.Enum);
 
-			}
 		}
 
 		if (suggestions.length)
