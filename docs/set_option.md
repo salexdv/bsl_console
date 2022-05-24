@@ -23,6 +23,7 @@ setOption("skipInsertSuggestionAcceptor", true);
 * `generateDefinitionEvent` - *boolean*, включает генерацию [события](get_definition_event.md) при переходе к определению
 * `generateOnKeyDownEvent` - *boolean*, включает генерацию [события](key_down_event.md) при нажатии на клавиатуру
 	* `onKeyDownFilter` - *string*, дополнительный фильтр по кодам клавиш
+* `generateSnippetEvent` - *boolean*, включает генерацию [события](insert_snippet_event.md) при вставке сниппета
 
 ##### Управление подсказками
 Позволяет оставить только пользовательские подсказки

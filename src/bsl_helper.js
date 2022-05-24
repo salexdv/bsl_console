@@ -194,6 +194,18 @@ class bslHelper {
 	}
 
 	/**
+	 * Determines if the last expression has separated params
+	 * 
+	 * @returns {bool}
+	 */
+	 lastExpressionHasSeparatedParams() {
+		
+		let expArray = this.getExpressioArray();
+		return (expArray.length && 0 <= expArray.pop().indexOf(','))
+
+	}
+
+	/**
 	 * Find first string which has no pair braces
 	 * @param {string} str string for analisis
 	 * 
@@ -717,7 +729,12 @@ class bslHelper {
 	requireType() {
 
 		let exp = this.getFuncName();
-		return (exp == 'type' || exp == 'тип');
+				
+		if (exp == 'typedescription' || exp == 'описаниетипов') {			
+			return !this.lastExpressionHasSeparatedParams();
+		}
+		else
+			return (exp == 'type' || exp == 'тип');
 
 	}
 
@@ -1830,7 +1847,8 @@ class bslHelper {
 				className = className ? className.toLowerCase() : '';
 			}
 			else {			
-				className = exp;
+				if (!this.lastExpressionHasSeparatedParams())
+					className = exp;
 			}
 			
 			if (onlyQuickAccess && (className == 'new' || className == 'новый')) {
@@ -1859,6 +1877,169 @@ class bslHelper {
 		}
 
 		return classExists;
+
+	}
+
+	/**
+	 * Fills array of completion for external data sources
+	 * 
+	 * @param {object} parent parent of metadata object from BSL-JSON dictionary 
+	 * @param {object} object metadata object from BSL-JSON dictionary
+	 * @param {array} suggestions array of completion for object	 
+	 */
+	fillSuggestionsForExternalDataSources(parent, object, suggestions) {
+
+		if (object.hasOwnProperty('tables')) {
+
+			suggestions.push({
+				label: parent[this.nameField + '_tables'],
+				kind: monaco.languages.CompletionItemKind.Field,
+				insertText: parent[this.nameField + '_tables'],
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+			});
+
+			suggestions.push({
+				label: parent[this.nameField + '_cubes'],
+				kind: monaco.languages.CompletionItemKind.Field,
+				insertText: parent[this.nameField + '_cubes'],
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+			});
+
+		}
+
+	}
+
+	/**
+ 	 * Gets the list of methods owned by external data source
+ 	 * 
+ 	 * @param {array} suggestions the list of suggestions
+ 	 * @param {object} obj object from BSL-JSON dictionary
+ 	 * @param {sting} methodsName the name of node (objMethods, refMethods)
+	 * @param {sting} dataType the type of table (ObjectData, NonobjectData)
+ 	 */
+	getExternalDataSourcesMethods(suggestions, obj, methodsName, dataType) {
+
+		if (obj.hasOwnProperty(methodsName)) {
+
+			let signatures = [];
+
+			for (const [mkey, mvalue] of Object.entries(obj[methodsName])) {
+
+				if (!dataType || !mvalue.hasOwnProperty('tableDataType') || mvalue.tableDataType == dataType) {
+					
+					let command = null;
+					let postfix = '';
+					let post_action = null;
+
+					signatures = this.getMethodsSignature(mvalue);
+
+					if (signatures.length) {
+						postfix = '(';
+						post_action = 'editor.action.triggerParameterHints';
+					}
+
+					if (signatures.length == 0 || (signatures.length == 1 && signatures[0].parameters.length == 0))
+						postfix = '()';
+
+					let ref = null;
+					if (mvalue.hasOwnProperty('ref'))
+						ref = mvalue.ref;
+
+					if (ref || signatures.length) {
+						// If the attribute contains a ref, we need to run the command to save the position of ref
+						command = {
+							id: 'vs.editor.ICodeEditor:1:saveref',
+							arguments: [
+								{
+									"name": mvalue[this.nameField],
+									"data": {
+										"ref": ref,
+										"sig": signatures
+									},
+									"post_action": post_action
+								}
+							]
+						}
+					}
+
+					suggestions.push({
+						label: mvalue[this.nameField],
+						kind: monaco.languages.CompletionItemKind.Function,
+						insertText: mvalue.name + postfix,
+						insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+						detail: mvalue.description,
+						command: command
+					});
+
+				}
+
+			}
+
+		}
+
+	}
+
+	/**
+	 * Gets the list of tables and cubes owned by external data source 
+	 * 
+	 * @param {string} metadataName metadata item type
+	 * @param {string} metadataItem metadata item name
+	 * @param {string} metadataObject metadata item object
+	 * @param {array} suggestions array of completion for object	 
+	 */
+	getExternalDataSourcesCompletion(metadataName, metadataItem, metadataObject, suggestions) {
+
+		if (bslMetadata.hasOwnProperty('externalDataSources') &&
+			bslMetadata.externalDataSources.hasOwnProperty('items') &&
+			bslMetadata.externalDataSources[this.nameField].toLowerCase() == metadataName) {
+
+			for (const [key, value] of Object.entries(bslMetadata.externalDataSources.items)) {
+
+				let objects_array = metadataObject.split('.').filter(e => e);
+				let field_name = objects_array[0];
+				let item_name = (1 < objects_array.length) ? objects_array[1] : '';
+				let methods_name = '';
+
+				if (key.toLowerCase() == metadataItem) {
+					
+					let item_node = null;
+
+					if (bslMetadata.externalDataSources[this.nameField + '_tables'].toLowerCase() == field_name) {
+						item_node = value.tables;
+						methods_name = 'tablesMethods';
+					}						
+					else if (bslMetadata.externalDataSources.cubes[this.nameField + '_cubes'].toLowerCase() == field_name) {
+						item_node = value.cubes;
+						methods_name = 'cubesMethods';
+					}
+
+					if (item_node) {
+
+						for (const [ikey, ivalue] of Object.entries(item_node.items)) {
+							
+							if (item_name) {
+								if (ikey.toLowerCase() == item_name.toLowerCase()) {
+									let data_type = ivalue.hasOwnProperty('tableDataType') ? ivalue.tableDataType : '';
+									this.getExternalDataSourcesMethods(suggestions, bslMetadata.externalDataSources, methods_name, data_type);
+								}
+							}
+							else {
+								suggestions.push({
+									label: ikey,
+									kind: monaco.languages.CompletionItemKind.Unit,
+									insertText: ikey,
+									insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+								});
+							}
+						}
+
+					}
+
+				}
+
+			}
+
+		}
 
 	}
 
@@ -2170,8 +2351,12 @@ class bslHelper {
 				
 				let postfix = '';
 				let command = null;
+				let ref = null;
 
-				if (signatures.length) {
+				if (mvalue.hasOwnProperty('ref'))
+					ref = mvalue.ref;
+
+				if (ref || signatures.length) {
 					postfix = '(';
 					command = {
 						id: 'vs.editor.ICodeEditor:1:saveref',
@@ -2179,7 +2364,7 @@ class bslHelper {
 							{
 								"name": mvalue[this.nameField],
 								"data": {
-									"ref": null,
+									"ref": ref,
 									"sig": signatures
 								},
 								"post_action": 'editor.action.triggerParameterHints'
@@ -2283,6 +2468,7 @@ class bslHelper {
 							}
 
 							this.getMetadataGeneralMethodCompletionByType(value, 'methods', suggestions, 'Method');
+							this.fillSuggestionsForExternalDataSources(value, itemNode, suggestions);
 
 							if (!updateItemNode) {
 								if (itemNode.hasOwnProperty('manager'))									
@@ -2343,6 +2529,9 @@ class bslHelper {
 			else if (metadataName && metadataExists && !metadataItem && !suggestions.length)				
 				requestMetadata(metadataName);
 
+		}
+		else if (metadataFunc) {
+			this.getExternalDataSourcesCompletion(metadataName, metadataItem, metadataFunc, suggestions);
 		}
 
 		if (!metadataExists)
@@ -3790,9 +3979,18 @@ class bslHelper {
 						for (const [ikey, ivalue] of Object.entries(value.items)) {
 
 							if (ikey.toLowerCase() == metadataName) {
-								
+
 								if (ivalue.hasOwnProperty('properties'))
 									this.fillSuggestionsForMetadataItemInQuery(suggestions, ivalue, metadataSubtable);
+								else if (ivalue.hasOwnProperty('tables') && 3 < sourceArray.length &&
+									value[this.queryNameField + '_tables'].toLowerCase() == metadataSubtable) {
+									let tableName = sourceArray[3].toLowerCase();
+									for (const [tkey, tvalue] of Object.entries(ivalue.tables.items)) {
+										if (tkey.toLowerCase() == tableName) {
+											this.fillSuggestionsForMetadataItemInQuery(suggestions, tvalue, '');
+										}
+									}
+								}
 								else
 									requestMetadata(value.name.toLowerCase() + '.' + ikey.toLowerCase());
 
@@ -3965,10 +4163,20 @@ class bslHelper {
 	 */
 	getQueryFieldsCompletion(suggestions, allowChain = true) {
 
-		if (this.getLastCharacter() == '.' && this.lastRawExpression) {
+		let position = null;
+		let last_expression = this.lastRawExpression;
+
+		if (this.getLastCharacter() == '.' && last_expression)
+			position = this.position;
+		else if (last_expression && this.getLastNExpression(1) == '.') {
+			position = new monaco.Position(this.lineNumber, this.column - last_expression.length);
+			last_expression = this.getLastNExpression(2);
+		}
+			
+		if (position) {
 			
 			// Let's find start of current query
-			let startMatch = Finder.findPreviousMatch(this.model, '(?:выбрать|select)', this.position, false);
+			let startMatch = Finder.findPreviousMatch(this.model, '(?:выбрать|select)', position, false);
 			
 			if (startMatch) {
 								
@@ -3977,7 +4185,7 @@ class bslHelper {
 
 				// Temp table definition
 				let sourceDefinition = '';
-				let match = Finder.findNextMatch(this.model, '^[\\s\\t]*([a-zA-Z0-9\u0410-\u044F_]+)\\s+(?:как|as)\\s+' + this.lastRawExpression + '[\\s,\\n]*$', position);
+				let match = Finder.findNextMatch(this.model, '^[\\s\\t]*([a-zA-Z0-9\u0410-\u044F_]+)\\s+(?:как|as)\\s+' + last_expression + '[\\s,\\n]*$', position);
 
 				if (match) {
 
@@ -3988,13 +4196,13 @@ class bslHelper {
 				else {
 					
 					// Metadata table definition
-					match = Finder.findNextMatch(this.model, '(?:из|from)[\\s\\S\\n]*?(?:как|as)\\s+' +  this.lastRawExpression + '[\\s,\\n]*$' , position);
+					match = Finder.findNextMatch(this.model, '(?:из|from)[\\s\\S\\n]*?(?:как|as)\\s+' +  last_expression + '[\\s,\\n]*$' , position);
 											
 					if (match) {					
 											
 						// Searching the source
 						position =  new monaco.Position(match.range.endLineNumber, match.range.endColumn);
-						match = Finder.findPreviousMatch(this.model, '[a-zA-Z0-9\u0410-\u044F]+\\.[a-zA-Z0-9\u0410-\u044F_]+(?:\\.[a-zA-Z0-9\u0410-\u044F]+)?', position);
+						match = Finder.findPreviousMatch(this.model, '[a-zA-Z0-9\u0410-\u044F]+\\.[a-zA-Z0-9\u0410-\u044F_]+(?:\\.[a-zA-Z0-9\u0410-\u044F_]+)?(?:\\.[a-zA-Z0-9\u0410-\u044F_]+)?', position);
 				
 						if (match) {									
 							sourceDefinition = match.matches[0];
@@ -4151,6 +4359,58 @@ class bslHelper {
 	}
 
 	/**
+	 * Fills array of completion for external data as source
+	 * 
+	 * @param {object} externalData object with external data
+	 * @param {string} sourceItem name of source item
+	 * @param {string} sourceSubitem name of source subitem
+	 * @param {array} suggestions array of suggestions for provideCompletionItems	 
+	 * @param {CompletionItemKind} kind - monaco.languages.CompletionItemKind (class, function, constructor etc.)
+	 */
+	getQuerySourceForExternalData(externalData, sourceItem, sourceSubitem, suggestions, kind) {
+
+		for (const [key, value] of Object.entries(externalData.items)) {
+		
+			if (key.toLowerCase() == sourceItem) {
+
+				let tables_label = externalData[this.queryNameField + '_tables'];
+
+				if (sourceSubitem) {
+					
+					sourceSubitem = sourceSubitem.replace('.', '');
+					
+					if (tables_label.toLowerCase() == sourceSubitem) {
+					
+						for (const [ikey, ivalue] of Object.entries(value.tables.items)) {
+							suggestions.push({
+								label: ikey,
+								kind: kind,
+								insertText: ikey,
+								insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+							});
+						}
+
+					}
+
+				}
+				else {
+
+					suggestions.push({
+						label: tables_label,
+						kind: kind,
+						insertText: tables_label,
+						insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+					});
+
+				}
+
+			}
+
+		}
+
+	}
+
+	/**
 	 * Fills array of completion for source of table
 	 * 
 	 * @param {array} suggestions array of suggestions for provideCompletionItems	 
@@ -4189,6 +4449,9 @@ class bslHelper {
 						requestMetadata(value.name.toLowerCase());
 					}
 
+				}
+				else if (key == 'externalDataSources') {
+					this.getQuerySourceForExternalData(value, metadataItem, metadataFunc, suggestions, kind);
 				}
 				else if (!metadataFunc && 2 < maxLevel) {
 					this.getQuerySourceMetadataRegTempraryTablesCompletion(value, metadataItem, suggestions)
@@ -4336,6 +4599,30 @@ class bslHelper {
 	}
 
 	/**
+	 * Determines if the current position is suitable for
+	 * showing a table name
+	 * 
+	 * @returns {bool}
+	 */
+	isSuitablePlaceForQueryTable() {
+
+		let isSuitable = false;
+
+		if (this.getLastCharacter() != '.' && this.lastExpression.indexOf('&') < 0) {
+			let word = this.model.getWordUntilPosition(this.position).word;
+			let line_content = this.model.getLineContent(this.lineNumber);
+			if (word.length)
+				line_content = line_content.substr(0, this.column - word.length - 1);
+			let pattern = /.*(,|=|\(|по|on|выбрать|select|когда|when|тогда|then|иначе|else|где|where|и|and|или|or)/i;
+			line_content = line_content.replace(pattern, '').trim();
+			isSuitable = !line_content
+		}
+
+		return isSuitable;
+
+	}
+
+	/**
 	 * Fills array of completion for tables in the current query
 	 * 
 	 * @param {array} suggestions array of suggestions for provideCompletionItems	 
@@ -4343,7 +4630,7 @@ class bslHelper {
 	 */
 	getQueryTablesCompletion(suggestions, kind) {
 		
-		if (this.getLastCharacter() != '.' && this.getLastCharacter() != '(' && this.lastExpression.indexOf('&') < 0) {
+		if (this.isSuitablePlaceForQueryTable()) {
 
 			// Let's find start of current query
 			let startMatch = Finder.findPreviousMatch(this.model, '(?:выбрать|select)', this.position);
@@ -4472,17 +4759,24 @@ class bslHelper {
 
 					if (!this.getQuerySourceCompletion(suggestions, monaco.languages.CompletionItemKind.Enum)) {
 
+						let functions = null;
+
 						if (this.lastOperator != '"') {
-							let functions = this.getQueryFunctions(bslQuery);
-							this.getCommonCompletion(suggestions, functions, monaco.languages.CompletionItemKind.Function, true);
+							functions = this.getQueryFunctions(bslQuery);
 							this.getRefCompletion(suggestions);
 							this.getQueryTablesCompletion(suggestions, monaco.languages.CompletionItemKind.Class);
 							this.getCustomObjectsCompletion(suggestions, bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
 						}
-
-						this.getQueryCommonCompletion(suggestions, monaco.languages.CompletionItemKind.Module);
+						
 						this.getQueryParamsCompletion(suggestions, monaco.languages.CompletionItemKind.Enum);				
 						this.getQueryFieldsCompletion(suggestions);
+
+						if (this.lastExpression.indexOf('.') < 0) {
+							this.getQueryCommonCompletion(suggestions, monaco.languages.CompletionItemKind.Module);
+							if (functions)
+								this.getCommonCompletion(suggestions, functions, monaco.languages.CompletionItemKind.Function, true);
+						}
+
 						this.getSnippets(suggestions, querySnippets, false);
 
 					}
@@ -5006,11 +5300,9 @@ class bslHelper {
 		
 				if (key.toLowerCase() == word && value) {
 
-					let activeSignature = context && context.activeSignatureHelp ? context.activeSignatureHelp.activeSignature : 0;
-					
 					helper = {
 						activeParameter: this.getSignatureActiveParameter(),
-						activeSignature: activeSignature,
+						activeSignature: 0,
 						signatures: value,
 					}						
 							
@@ -5102,8 +5394,14 @@ class bslHelper {
 
 			}
 
-			if (helper)
+			if (helper) {
+				
+				if (context && context.activeSignatureHelp)
+					helper.activeSignature = context.activeSignatureHelp.activeSignature;
+
 				return new SignatureHelpResult(helper);
+
+			}
 
 		}
 
