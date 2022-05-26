@@ -2006,6 +2006,53 @@ class bslHelper {
 	}
 
 	/**
+	 * Gets the list of tables and cubes owned by external data source 
+	 * 
+	 * @param {string} metadataName metadata item type
+	 * @param {string} metadataItem metadata item name
+	 * @param {string} metadataObject metadata item object
+	 * @param {array} suggestions array of completion for object	 
+	 */
+	getExternalDataSourcesCompletion(metadataName, metadataItem, metadataObject, suggestions) {
+
+		if (bslMetadata.hasOwnProperty('externalDataSources') &&
+			bslMetadata.externalDataSources.hasOwnProperty('items') &&
+			bslMetadata.externalDataSources[this.nameField].toLowerCase() == metadataName) {
+
+			for (const [key, value] of Object.entries(bslMetadata.externalDataSources.items)) {
+
+				if (key.toLowerCase() == metadataItem) {
+
+					metadataObject = metadataObject.replace('.', '');
+					let item_node = null;
+
+					if (value.tables[this.nameField].toLowerCase() == metadataObject)
+						item_node = value.tables;
+					else if (value.cubes[this.nameField].toLowerCase() == metadataObject)
+						item_node = value.cubes;
+
+					if (item_node) {
+
+						for (const [ikey, ivalue] of Object.entries(item_node.items)) {
+							suggestions.push({
+								label: ikey,
+								kind: monaco.languages.CompletionItemKind.Unit,
+								insertText: ikey,
+								insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+							});
+						}
+
+					}
+
+				}
+
+			}
+
+		}
+
+	}
+
+	/**
 	 * Gets the list of tabulars owned by object
 	 * (Catalog, Document, etc) and fills the suggestions by it
 	 * 
@@ -2486,6 +2533,9 @@ class bslHelper {
 			else if (metadataName && metadataExists && !metadataItem && !suggestions.length)				
 				window.requestMetadata(metadataName);
 
+		}
+		else if (metadataFunc) {
+			this.getExternalDataSourcesCompletion(metadataName, metadataItem, metadataFunc, suggestions);
 		}
 
 		if (!metadataExists)
