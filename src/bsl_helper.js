@@ -2041,6 +2041,17 @@ class bslHelper {
 					if (mvalue.hasOwnProperty('ref'))
 						ref = mvalue.ref;
 
+					if (ref && ref.indexOf(':') != -1) {
+						if (metadataKey && medatadaName) {
+							if (ref.indexOf(':metadata') != -1)
+								ref = metadataKey + '.metadata';
+							else if (ref.indexOf(':obj') != -1)
+								ref = metadataKey + '.' + medatadaName + '.obj';
+							else
+								ref = metadataKey + '.' + medatadaName + '.ref';
+						}
+					}
+
 					if (ref || signatures.length) {
 						// If the attribute contains a ref, we need to run the command to save the position of ref
 						command = {
