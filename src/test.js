@@ -1050,7 +1050,25 @@ setTimeout(() => {
         expect(suggestions).to.be.an('array').that.not.is.empty;
         assert.equal(suggestions.some(suggest => suggest.label === "РозничныйСайт"), true);
 
-      })
+      });
+
+      it("проверка подсказки методов и полей внешних источников", function () {
+
+        bsl = helper('ВнешниеИсточникиДанных.РозничныйСайт.');
+        let suggestions = bsl.getCodeCompletion({triggerCharacter: ''});
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "Таблицы"), true);
+        assert.equal(suggestions.some(suggest => suggest.label === "ПолучитьПараметрыСоединенияПользователя"), true);
+
+      });
+
+      it("проверка подсказки таблиц внешних источников", function () {
+
+        bsl = helper('ВнешниеИсточникиДанных.РозничныйСайт.Таблицы.');
+        let suggestions = bsl.getCodeCompletion({triggerCharacter: ''});
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "Customers"), true);
+      });
 
     }
 
