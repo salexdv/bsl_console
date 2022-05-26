@@ -2011,8 +2011,9 @@ class bslHelper {
  	 * @param {array} suggestions the list of suggestions
  	 * @param {object} obj object from BSL-JSON dictionary
  	 * @param {sting} methodsName the name of node (objMethods, refMethods)
+	 * @param {sting} dataType the type of table (ObjectData, NonobjectData)
  	 */
-	getExternalDataSourcesMethods(suggestions, obj, methodsName, metadataKey, medatadaName) {
+	getExternalDataSourcesMethods(suggestions, obj, methodsName, dataType) {
 
 		if (obj.hasOwnProperty(methodsName)) {
 
@@ -2020,49 +2021,53 @@ class bslHelper {
 
 			for (const [mkey, mvalue] of Object.entries(obj[methodsName])) {
 
-				let command = null;
-				let postfix = '';
-				let post_action = null;
+				if (!dataType || !mvalue.hasOwnProperty('tableDataType') || mvalue.tableDataType == dataType) {
 
-				signatures = this.getMethodsSignature(mvalue);
+					let command = null;
+					let postfix = '';
+					let post_action = null;
 
-				if (signatures.length) {
-					postfix = '(';
-					post_action = 'editor.action.triggerParameterHints';
-				}
+					signatures = this.getMethodsSignature(mvalue);
 
-				if (signatures.length == 0 || (signatures.length == 1 && signatures[0].parameters.length == 0))
-					postfix = '()';
-
-				let ref = null;
-				if (mvalue.hasOwnProperty('ref'))
-					ref = mvalue.ref;
-
-				if (ref || signatures.length) {
-					// If the attribute contains a ref, we need to run the command to save the position of ref
-					command = {
-						id: 'vs.editor.ICodeEditor:1:saveref',
-						arguments: [
-							{
-								"name": mvalue[this.nameField],
-								"data": {
-									"ref": ref,
-									"sig": signatures
-								},
-								"post_action": post_action
-							}
-						]
+					if (signatures.length) {
+						postfix = '(';
+						post_action = 'editor.action.triggerParameterHints';
 					}
-				}
 
-				suggestions.push({
-					label: mvalue[this.nameField],
-					kind: monaco.languages.CompletionItemKind.Function,
-					insertText: mvalue.name + postfix,
-					insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-					detail: mvalue.description,
-					command: command
-				});
+					if (signatures.length == 0 || (signatures.length == 1 && signatures[0].parameters.length == 0))
+						postfix = '()';
+
+					let ref = null;
+					if (mvalue.hasOwnProperty('ref'))
+						ref = mvalue.ref;
+
+					if (ref || signatures.length) {
+						// If the attribute contains a ref, we need to run the command to save the position of ref
+						command = {
+							id: 'vs.editor.ICodeEditor:1:saveref',
+							arguments: [
+								{
+									"name": mvalue[this.nameField],
+									"data": {
+										"ref": ref,
+										"sig": signatures
+									},
+									"post_action": post_action
+								}
+							]
+						}
+					}
+
+					suggestions.push({
+						label: mvalue[this.nameField],
+						kind: monaco.languages.CompletionItemKind.Function,
+						insertText: mvalue.name + postfix,
+						insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+						detail: mvalue.description,
+						command: command
+					});
+
+				}
 
 			}
 
@@ -2092,13 +2097,13 @@ class bslHelper {
 				let methods_name = '';
 
 				if (key.toLowerCase() == metadataItem) {
-
+					
 					let item_node = null;
 
 					if (value.tables[this.nameField].toLowerCase() == field_name) {
 						item_node = value.tables;
 						methods_name = 'tablesMethods';
-					}
+					}						
 					else if (value.cubes[this.nameField].toLowerCase() == field_name) {
 						item_node = value.cubes;
 						methods_name = 'cubesMethods';
@@ -2106,11 +2111,15 @@ class bslHelper {
 
 					if (item_node) {
 
-						if (item_name) {
-							this.getExternalDataSourcesMethods(suggestions, bslMetadata.externalDataSources, methods_name, metadataName, metadataItem);
-						}
-						else {
-							for (const [ikey, ivalue] of Object.entries(item_node.items)) {
+						for (const [ikey, ivalue] of Object.entries(item_node.items)) {
+							
+							if (item_name) {
+								if (ikey.toLowerCase() == item_name.toLowerCase()) {
+									let data_type = ivalue.hasOwnProperty('tableDataType') ? ivalue.tableDataType : '';
+									this.getExternalDataSourcesMethods(suggestions, bslMetadata.externalDataSources, methods_name, data_type);
+								}
+							}
+							else {
 								suggestions.push({
 									label: ikey,
 									kind: monaco.languages.CompletionItemKind.Unit,
