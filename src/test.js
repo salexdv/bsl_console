@@ -1068,6 +1068,23 @@ setTimeout(() => {
         let suggestions = bsl.getCodeCompletion({triggerCharacter: ''});
         expect(suggestions).to.be.an('array').that.not.is.empty;
         assert.equal(suggestions.some(suggest => suggest.label === "Customers"), true);
+
+      });
+
+      it("проверка подсказки методов таблиц внешних источников", function () {
+
+        bsl = helper('ВнешниеИсточникиДанных.РозничныйСайт.Таблицы.Customers.');
+        let suggestions = bsl.getCodeCompletion({triggerCharacter: ''});
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "СоздатьОбъект"), true);
+        assert.equal(suggestions.some(suggest => suggest.label === "СоздатьМенеджерЗаписи"), false);
+
+        bsl = helper('ВнешниеИсточникиДанных.РозничныйСайт.Таблицы.Orders.');
+        suggestions = bsl.getCodeCompletion({triggerCharacter: ''});
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "СоздатьОбъект"), true);
+        assert.equal(suggestions.some(suggest => suggest.label === "СоздатьМенеджерЗаписи"), true);
+
       });
 
     }
