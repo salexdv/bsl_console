@@ -2006,8 +2006,7 @@ class bslHelper {
 	}
 
 	/**
- 	 * Gets the list of methods owned by object
- 	 * and fills the suggestions by it
+ 	 * Gets the list of methods owned by external data source
  	 * 
  	 * @param {array} suggestions the list of suggestions
  	 * @param {object} obj object from BSL-JSON dictionary
@@ -2039,17 +2038,6 @@ class bslHelper {
 				if (mvalue.hasOwnProperty('ref'))
 					ref = mvalue.ref;
 
-				if (ref && ref.indexOf(':') != -1) {
-					if (metadataKey && medatadaName) {
-						if (ref.indexOf(':metadata') != -1)
-							ref = metadataKey + '.metadata';
-						else if (ref.indexOf(':obj') != -1)
-							ref = metadataKey + '.' + medatadaName + '.obj';
-						else
-							ref = metadataKey + '.' + medatadaName + '.ref';
-					}
-				}
-
 				if (ref || signatures.length) {
 					// If the attribute contains a ref, we need to run the command to save the position of ref
 					command = {
@@ -2078,33 +2066,7 @@ class bslHelper {
 
 			}
 
-			if (methodsName == 'objMethods' && this.objectHasProperties(obj, 'items', medatadaName, 'registerRecords')) {
-
-				let recName = obj.items[medatadaName].registerRecords[this.nameField];
-				let list = [];
-
-				obj.items[medatadaName].registerRecords.registers.forEach(function (regName) {
-					list.push({
-						name: regName.split('.')[1],
-						ref: regName,
-						kind: monaco.languages.CompletionItemKind.Function,
-					});
-				});
-
-				let command = { id: 'vs.editor.ICodeEditor:1:saveref', arguments: [{ "name": recName, "data": { "list": list } }] }
-
-				suggestions.push({
-					label: recName,
-					kind: monaco.languages.CompletionItemKind.Function,
-					insertText: recName,
-					insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-					command: command
-				});
-
-			}
-
 		}
-
 
 	}
 
