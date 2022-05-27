@@ -36151,6 +36151,25 @@ define([], function () {
                     }
                 }
             }
+        },
+        "metadataObjectEnumeratedProperties": {
+            "HTTPМетод": {
+                "name": "HTTPМетод",
+                "name_en": "HTTPMethod",
+                "description": "Перечисление описывает HTTP-методы.",
+                "values": {
+                    "CONNECT": {
+                        "name": "CONNECT",
+                        "name_en": "CONNECT",
+                        "description": "Соответствует HTTP-методу CONNECT."
+                    },
+                    "COPY": {
+                        "name": "COPY",
+                        "name_en": "COPY",
+                        "description": "Соответствует HTTP-методу COPY."
+                    }
+                }
+            }
         }
     }
 });
