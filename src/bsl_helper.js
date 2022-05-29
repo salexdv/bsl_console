@@ -1062,12 +1062,23 @@ class bslHelper {
 				}
 
 				let label = engLang ? 'ObjectProperties': 'СвойстваОбъектов';
+				let command = {
+					id: 'vs.editor.ICodeEditor:1:saveref',
+					arguments: [
+						{
+							"name": label,
+							"data": {
+								"ref": 'metadataObjectEnumeratedProperties'
+							}									
+						}
+					]
+				}
 				suggestions.push({
 					label: label,
 					kind: monaco.languages.CompletionItemKind.Function,
 					insertText: label,
 					insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-					command: null
+					command: command
 				});
 
 				return true;
