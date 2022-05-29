@@ -1061,10 +1061,11 @@ class bslHelper {
 		
 				}
 
+				let label = engLang ? 'ObjectProperties': 'СвойстваОбъектов';
 				suggestions.push({
-					label: "СвойстваОбъектов",
+					label: label,
 					kind: monaco.languages.CompletionItemKind.Function,
-					insertText: "СвойстваОбъектов",
+					insertText: label,
 					insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
 					command: null
 				});
