@@ -1018,6 +1018,28 @@ class bslHelper {
 	};
 
 	/**
+	 * Returns object by path
+	 * 
+	 * @param {Object} obj global object (bslGlobal/bslMetadata/etc)
+	 * @param {array} path the path to object
+	 */
+	static getObjectByPath(obj, path) {
+
+		if (Object(obj) !== obj) return obj;
+
+		if (!Array.isArray(path))
+			path = path.toString().match(/[^.[\]]+/g) || [];
+
+		return path.slice(0, -1).reduce((a, c, i) =>
+			Object(a[c]) === a[c]
+				? a[c]
+				: a[c] = Math.abs(path[i + 1]) >> 0 === +path[i + 1]
+					? []
+					: {},
+			obj)[path[path.length - 1]];	
+	};
+
+	/**
 	 * Fill suggestion list for metadata description
 	 *
 	 * @param {array} suggestions the list of suggestions
@@ -1299,6 +1321,58 @@ class bslHelper {
 	}
 
 	/**
+	 * Fills suggestions for element of bslGlobals
+	 * 
+	 * @param {array} suggestions the list of suggestions
+	 * @param {string} globalObject name of global object
+	 */
+	getGlobalObjectSuggestions(suggestions, globalObject) {
+
+		if (bslGlobals.hasOwnProperty(globalObject)) {
+
+			for (const [key, value] of Object.entries(bslGlobals[globalObject])) {
+
+				if (value.hasOwnProperty('ref')) {
+				
+					let refArray = value.ref.split('.');
+
+					if (bslHelper.objectHasPropertiesFromArray(bslGlobals, refArray)) {
+				
+						let refItem = bslHelper.getObjectByPath(bslGlobals, refArray);
+						let command = {
+							id: 'vs.editor.ICodeEditor:1:saveref',
+							arguments: [
+								{
+									"name": refItem[this.nameField],
+									"data": {
+										"ref": value.ref,
+										"sig": null
+									}
+								}
+							]
+						};
+
+						suggestions.push({
+							label: refItem[this.nameField],
+							kind: monaco.languages.CompletionItemKind.Field,
+							insertText: refItem[this.nameField],
+							insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+							detail: refItem.description,
+							documentation: '',
+							command: command
+						});
+
+					}
+
+				}
+
+			}
+
+		}
+
+	}
+
+	/**
 	 * Fills the suggestions for reference-type object
 	 * 
 	 * @param {array} suggestions the list of suggestions
@@ -1315,8 +1389,11 @@ class bslHelper {
 			for (let i = 0; i < arrRefs.length; i++) {
 			
 				let refArray = arrRefs[i].trim().split('.');
-
-				if (refArray.length >= 2) {
+				
+				if (refArray.length == 1) {
+					this.getGlobalObjectSuggestions(suggestions, refArray[0]);
+				}
+				else if (refArray.length >= 2) {
 
 					let itemName = refArray[0];
 					let subItemName = refArray[1];
