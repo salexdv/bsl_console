@@ -240,7 +240,6 @@ describe("Проверка автокомлита и подсказок реда
 
       it("проверка подсказки параметров для конструктора HTTPЗапрос обернутого в функцию", function () {
         bsl = helper('СтрНайти(Новый HTTPЗапрос(');
-        let suggestions = [];
         let context = bsl.getLastSigMethod({});
         let help = bsl.getClassSigHelp(context, bslGlobals.classes);
         expect(help).to.have.property('activeParameter');
@@ -355,8 +354,8 @@ describe("Проверка автокомлита и подсказок реда
 
       it("проверка подсказки параметров для метода 'Записать' документа 'АвансовыйОтчет'", function () {
         bsl = helper('Док = Документы.АвансовыйОтчет.НайтиПоНомеру(1);\nДок.Записать(');
-        let suggestions = [];
-        let help = bsl.getMetadataSigHelp(bslMetadata);
+        let context = bsl.getLastSigMethod({});
+        let help = bsl.getMetadataSigHelp(context, bslMetadata);
         expect(help).to.have.property('activeParameter');
       });
 
@@ -878,7 +877,8 @@ describe("Проверка автокомлита и подсказок реда
 
       it("проверка подсказки параметров для метода менеджера справочника", function () {
         bsl = helper('Справочники.Товары.ПервыйМетодМенеджера(');
-        let help = bsl.getMetadataSigHelp(bslMetadata);
+        let context = bsl.getLastSigMethod({});
+        let help = bsl.getMetadataSigHelp(context, bslMetadata);
         expect(help).to.have.property('activeParameter');
       });
 
