@@ -5146,17 +5146,18 @@ class bslHelper {
 	/**
 	 * Finds signatures provided for current class
 	 * 
+	 * @param {SignatureHelpContext} context signature help context 
 	 * @param {object} data objects from BSL-JSON dictionary
 	 * 
 	 * @returns {SignatureHelp} helper with signatures
 	 */
-	getClassSigHelp(data) {
+	getClassSigHelp(context, data) {
 
 		let helper = null;
 
-		let regex = /(.+?)(?:\.(.*))?$/.exec(this.lastExpression);
-		let className = regex && 1 < regex.length ? regex[1] : '';
-		let methodName = regex && 2 < regex.length ? regex[2] : '';
+		let method = context.methodName.toLowerCase().split('.');
+		let className = method[0];
+		let methodName = 1 < method.length ? method[1] : '';
 
 		if (className) {
 
@@ -5182,7 +5183,7 @@ class bslHelper {
 
 					if (signatures.length) {
 						helper = {
-							activeParameter: this.getSignatureActiveParameter(),
+							activeParameter: context.activeParameter,
 							activeSignature: 0,
 							signatures: signatures,
 						}
@@ -5533,6 +5534,75 @@ class bslHelper {
 	}
 
 	/**
+	 * Return an index of the active parameter
+	 * 
+	 * @param {string} signatureString string with method's params
+	 * 
+	 * @returns {int} index
+	 */
+	 getSignatureStringActiveParameter(signatureString) {
+
+		let is_query = (isQueryMode() || isDCSMode());
+		
+		if (!is_query && this.isItStringLiteral()) {
+
+			while (signatureString && signatureString.slice(-1) != '"')
+			signatureString = signatureString.substr(0, signatureString.length - 1);
+
+		}
+
+		signatureString = signatureString.replace(/\(.*?\)/gi, '');
+		signatureString = signatureString.replace(/\".*?\"/gi, '');
+
+		return signatureString.split(',').length - 1;
+		
+	}
+
+	/**
+	 * Returnes name of last method for signature help
+	 * 
+	 * @param {SignatureHelpContext} context signature help context
+	 * 
+	 * @returns {SignatureHelpContext} context
+	 */
+	getLastSigMethod(context) {
+
+		let method = '';
+		let bracket = this.model.findMatchingBracketUp('(', this.position);
+
+		if (bracket && !this.isItStringLiteral()) {
+
+			let position = new monaco.Position(bracket.startLineNumber, bracket.startColumn);
+			let data = this.model.getWordUntilPosition(position);
+
+			while (data.word) {
+				method = data.word + method;
+				let range = new monaco.Range(position.lineNumber, data.startColumn - 1, position.lineNumber, data.startColumn);
+				let last_char = this.getLastCharacter(range);
+				if (last_char == '.') {
+					method = '.' + method;
+					position = new monaco.Position(position.lineNumber, data.startColumn - 1);
+					data = this.model.getWordUntilPosition(position);
+				}
+				else {
+					data.word = '';
+				}
+			}
+
+			context.methodPosition = position;
+
+			let range = new monaco.Range(bracket.startLineNumber, bracket.startColumn + 1, this.lineNumber, this.column);
+			let params_text = this.model.getValueInRange(range);
+			context.activeParameter = this.getSignatureActiveParameter1(params_text);
+		}
+
+		context.methodName = method;
+
+		return context;
+
+	}
+
+	/**
 	 * Signature help provider
 	 * 
 	 * @param {SignatureHelpContext} context signature help context
@@ -5541,10 +5611,10 @@ class bslHelper {
 	 */
 	getSigHelp(context) {
 		
-		let unclosed = this.unclosedString(this.textBeforePosition);
-		
-		if (this.lastOperator != ')' && 0 <= unclosed.index) {
+		context = this.getLastSigMethod(context);
 
+		if (context.methodName) {
+			
 			let helper = this.getCustomSigHelp(context);
 
 			if (!editor.disableNativeSignatures) {
@@ -5556,7 +5626,7 @@ class bslHelper {
 					helper = this.getMetadataSigHelp(bslMetadata);
 
 				if (!helper)
-					helper = this.getClassSigHelp(bslGlobals.classes);
+					helper = this.getClassSigHelp(context, bslGlobals.classes);
 
 				if (!helper)
 					helper = this.getCommonSigHelp(bslGlobals.globalfunctions);
