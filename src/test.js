@@ -703,7 +703,8 @@ describe("Проверка автокомлита и подсказок реда
           [2, new Map([["скопировать", { "ref": "classes.ТаблицаЗначений", "sig": null }]])],
           [3, new Map([["выгрузитьколонку", { "ref": "classes.Массив", "sig": signature }]])]
         ]);        
-        let help = bsl.getRefSigHelp();        
+        let context = bsl.getLastSigMethod({});
+        let help = bsl.getRefSigHelp(context);
         expect(help).to.have.property('activeParameter');
         contextData = new Map();
       });
