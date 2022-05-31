@@ -233,14 +233,16 @@ describe("Проверка автокомлита и подсказок реда
       it("проверка подсказки параметров для конструктора HTTPЗапрос", function () {
         bsl = helper('Новый HTTPЗапрос(');
         let suggestions = [];
-        let help = bsl.getClassSigHelp(bslGlobals.classes);
+        let context = bsl.getLastSigMethod({});
+        let help = bsl.getClassSigHelp(context, bslGlobals.classes);
         expect(help).to.have.property('activeParameter');
       });
 
       it("проверка подсказки параметров для конструктора HTTPЗапрос обернутого в функцию", function () {
         bsl = helper('СтрНайти(Новый HTTPЗапрос(');
         let suggestions = [];
-        let help = bsl.getClassSigHelp(bslGlobals.classes);
+        let context = bsl.getLastSigMethod({});
+        let help = bsl.getClassSigHelp(context, bslGlobals.classes);
         expect(help).to.have.property('activeParameter');
       });
 
