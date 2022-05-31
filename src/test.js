@@ -464,7 +464,8 @@ describe("Проверка автокомлита и подсказок реда
         let model = editor.getModel();
         editor.setPosition(position);
         bsl = new bslHelper(model, position);
-        let help = bsl.getCustomSigHelp();
+        let context = bsl.getLastSigMethod({});
+        let help = bsl.getCustomSigHelp(context);
         expect(help).to.have.property('activeParameter');
         assert.equal(setCustomSignatures('{}'), true);        
       });
