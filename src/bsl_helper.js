@@ -5200,6 +5200,40 @@ class bslHelper {
 	}
 
 	/**
+	 * Finds metadata item by name
+	 * 
+	 * @param {object} data objects from BSL-JSON dictionary
+	 * @param {string} metadataName name of metadata type
+	 * @param {string} metadataItem name of metadata item
+	 * 
+	 * @returns {object} object containing metadata item
+	 */
+	getMetadataItemByName(data, metadataName, metadataItem) {
+
+		for (const [key, value] of Object.entries(data)) {
+
+			if (value.hasOwnProperty(this.nameField)) {
+
+				if (value[this.nameField].toLowerCase() == metadataName) {
+
+					for (const [ikey, ivalue] of Object.entries(value.items)) {
+
+						if (ikey.toLowerCase() == metadataItem) {
+							return value;
+						}
+
+					}
+
+				}
+			}
+
+		}
+
+		return null;
+
+	}
+
+	/**
 	 * Finds signatures provided for metadata subitem`s methods
 	 * like Write, Unlock
 	 * 
@@ -5211,9 +5245,8 @@ class bslHelper {
 	getMetadataItemSigHelp(context, data) {
 
 		let helper = null;
-
 		let method = context.methodName.toLowerCase().split('.');
-		
+
 		if (method.length == 2) {
 
 			let fullText = this.getFullTextBeforePosition();
@@ -5241,42 +5274,25 @@ class bslHelper {
 
 					if (metadataFunc) {
 
-						for (const [key, value] of Object.entries(data)) {
+						let item = this.getMetadataItemByName(data, metadataName, metadataItem);
 
-							if (value.hasOwnProperty(this.nameField)) {
+						if (item && item.hasOwnProperty('objMethods')) {
 
-								if (value[this.nameField].toLowerCase() == metadataName) {
+							for (const [mkey, mvalue] of Object.entries(item.objMethods)) {
 
-									for (const [ikey, ivalue] of Object.entries(value.items)) {
+								if (mvalue[this.nameField].toLowerCase() == metadataFunc) {
 
-										if (ikey.toLowerCase() == metadataItem) {
-
-											if (value.hasOwnProperty('objMethods')) {
-
-												for (const [mkey, mvalue] of Object.entries(value.objMethods)) {
-
-													if (mvalue[this.nameField].toLowerCase() == metadataFunc) {
-
-														let signatures = this.getMethodsSignature(mvalue);
-														if (signatures.length) {
-															helper = {
-																activeParameter: context.activeParameter,
-																activeSignature: 0,
-																signatures: signatures,
-															}
-														}
-
-													}
-
-												}
-
-											}
-
+									let signatures = this.getMethodsSignature(mvalue);
+									if (signatures.length) {
+										helper = {
+											activeParameter: context.activeParameter,
+											activeSignature: 0,
+											signatures: signatures,
 										}
-
 									}
 
 								}
+
 							}
 
 						}
