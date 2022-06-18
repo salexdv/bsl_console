@@ -1088,6 +1088,15 @@ describe("Проверка автокомлита и подсказок реда
         assert.equal(suggestions.some(suggest => suggest.label === "СоздатьМенеджерЗаписи"), true);
 
       });
+
+      it("проверка подсказки методов менеджера справочников/документов/т.п", function () {
+
+        bsl = helper('Справочники.');
+        let suggestions = bsl.getCodeCompletion({triggerCharacter: '.'});
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "ТипВсеСсылки"), true);
+
+      });
       
     }
 
