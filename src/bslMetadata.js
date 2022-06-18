@@ -955,6 +955,15 @@ define([], function () {
                   "ref": "classes.ФиксированныйМассив"
                }
             }
+         },
+         "managerMethods": {
+            "ТипВсеСсылки": {
+               "name": "ТипВсеСсылки",
+               "name_en": "AllRefsType",
+               "description": "Получает описание типов, содержащее типы ссылок справочников.",
+               "returns": "ОписаниеТипов",
+               "ref": "classes.ОписаниеТипов"
+            }
          }
       },
       "documents":{
