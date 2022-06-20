@@ -359,6 +359,7 @@ describe("Проверка автокомлита и подсказок реда
         expect(suggestions).to.be.an('array').that.not.is.empty;
         assert.equal(suggestions.some(suggest => suggest.label === "Цена"), true);
         assert.equal(suggestions.some(suggest => suggest.label === "Следующий"), true);
+        assert.equal(suggestions.some(suggest => suggest.label === "ЭтоГруппа"), true);
       });
 
       it("проверка подсказки параметров для метода 'Записать' документа 'АвансовыйОтчет'", function () {
