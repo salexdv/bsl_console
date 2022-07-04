@@ -1473,61 +1473,65 @@ for (const [key, lang] of Object.entries(window.languages)) {
 
   // Register providers for the new language
   monaco.languages.registerCompletionItemProvider(language.id, lang.completionProvider);
-  monaco.languages.registerFoldingRangeProvider(language.id, lang.foldingProvider);      
+  monaco.languages.registerFoldingRangeProvider(language.id, lang.foldingProvider);
   monaco.languages.registerSignatureHelpProvider(language.id, lang.signatureProvider);
-  monaco.languages.registerHoverProvider(language.id, lang.hoverProvider);    
+  monaco.languages.registerHoverProvider(language.id, lang.hoverProvider);
   monaco.languages.registerDocumentFormattingEditProvider(language.id, lang.formatProvider);
   monaco.languages.registerColorProvider(language.id, lang.colorProvider);
   monaco.languages.registerDefinitionProvider(language.id, lang.definitionProvider);
 
   if (lang.autoIndentation && lang.indentationRules)
-    monaco.languages.setLanguageConfiguration(language.id, {indentationRules: lang.indentationRules});
+    monaco.languages.setLanguageConfiguration(language.id, { indentationRules: lang.indentationRules });
 
-  monaco.languages.setLanguageConfiguration(language.id, {brackets: lang.brackets, autoClosingPairs: lang.autoClosingPairs});
+  monaco.languages.setLanguageConfiguration(language.id, { brackets: lang.brackets, autoClosingPairs: lang.autoClosingPairs });
 
   if (!window.editor) {
 
     monaco.editor.onDidCreateEditor(e => {
-            
-      import('./bslGlobals').then(({ default: bslGlobals }) => {
-        window.bslGlobals = bslGlobals
-      }).catch((error) => 'An error occurred while loading the bslGlobals');
-      
-      import('./bslMetadata').then(({ default: bslMetadata }) => {
-        window.bslMetadata = bslMetadata
-      }).catch((error) => 'An error occurred while loading the bslMetadata');
 
-      import('./bslQuery').then(({ default: bslQuery }) => {
-        window.bslQuery = bslQuery
-      }).catch((error) => 'An error occurred while loading the bslQuery');
+      if (!window.editor) {
 
-      import('./bslDCS').then(({ default: bslDCS }) => {
-        window.bslDCS = bslDCS
-      }).catch((error) => 'An error occurred while loading the bslDCS');
-      
-      import('./snippets').then(({ default: snippets }) => {
-        window.bslSnippets = snippets;
-        window.setDefaultSnippets();
-      }).catch((error) => 'An error occurred while loading the snippets');
-      
-      import('./querySnippets').then(({ default: querySnippets }) => {        
-        window.querySnippets = querySnippets;        
-      }).catch((error) => 'An error occurred while loading the querySnippets');
+        import('./bslGlobals').then(({ default: bslGlobals }) => {
+          window.bslGlobals = bslGlobals
+        }).catch((error) => 'An error occurred while loading the bslGlobals');
 
-      import('./DCSSnippets').then(({ default: DCSSnippets }) => {        
-        window.DCSSnippets = DCSSnippets;
-      }).catch((error) => 'An error occurred while loading the DCSSnippets');
-      
-      import('./bsl_helper').then(({ default: bslHelper }) => {
-        window.bslHelper = bslHelper
-      }).catch((error) => 'An error occurred while loading the bsl_helper');
+        import('./bslMetadata').then(({ default: bslMetadata }) => {
+          window.bslMetadata = bslMetadata
+        }).catch((error) => 'An error occurred while loading the bslMetadata');
 
-      import('./colors').then(({ default: colors }) => {
-        window.colors = colors
-      }).catch((error) => 'An error occurred while loading the colors');
+        import('./bslQuery').then(({ default: bslQuery }) => {
+          window.bslQuery = bslQuery
+        }).catch((error) => 'An error occurred while loading the bslQuery');
 
-      registerCodeLensProviders();
-      
+        import('./bslDCS').then(({ default: bslDCS }) => {
+          window.bslDCS = bslDCS
+        }).catch((error) => 'An error occurred while loading the bslDCS');
+
+        import('./snippets').then(({ default: snippets }) => {
+          window.bslSnippets = snippets;
+          window.setDefaultSnippets();
+        }).catch((error) => 'An error occurred while loading the snippets');
+
+        import('./querySnippets').then(({ default: querySnippets }) => {
+          window.querySnippets = querySnippets;
+        }).catch((error) => 'An error occurred while loading the querySnippets');
+
+        import('./DCSSnippets').then(({ default: DCSSnippets }) => {
+          window.DCSSnippets = DCSSnippets;
+        }).catch((error) => 'An error occurred while loading the DCSSnippets');
+
+        import('./bsl_helper').then(({ default: bslHelper }) => {
+          window.bslHelper = bslHelper
+        }).catch((error) => 'An error occurred while loading the bsl_helper');
+
+        import('./colors').then(({ default: colors }) => {
+          window.colors = colors
+        }).catch((error) => 'An error occurred while loading the colors');
+
+        registerCodeLensProviders();
+
+      }
+
     });
 
     for (const [key, value] of Object.entries(language.themes)) {
