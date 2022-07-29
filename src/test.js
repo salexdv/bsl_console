@@ -970,6 +970,34 @@ describe("Проверка автокомлита и подсказок реда
 
       });
 
+      it("проверка подсказки структуры метаданных справочника 'Товары'", function () {
+
+        contextData = new Map([
+          [1, new Map([["товары", { "ref": "catalogs.metadata.Товары", "sig": null }]])],
+        ]);
+
+        bsl = helper('(Метаданные.Справочники.Товары.');
+        let suggestions = bsl.getCodeCompletion({triggerCharacter: ''});
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(
+          suggestions.some(
+            suggest => suggest.label === "Реквизиты" &&
+            expect(suggest).to.have.property('command') &&
+            expect(suggest.command).to.have.property('arguments') &&
+            expect(suggest.command.arguments).to.be.an('array').that.not.is.empty &&
+            suggest.command.arguments.some(
+              arg => expect(arg).to.have.property('data') &&
+              expect(arg.data.list).to.be.an('array').that.not.is.empty &&
+              arg.data.list.some(
+                list => list.name === "СтавкаНДС" &&
+                list.ref === "metadataObjectCollection.Реквизит"
+              )
+            )
+          ), true
+        );
+
+      });
+
       it("проверка подсказки табличных частей для справочника 'Товары.' ", function () {
         
         bsl = helper('Товар = Справочники.Товары.НайтиПоКоду(1);\nТовар.');
