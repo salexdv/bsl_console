@@ -864,7 +864,8 @@ define([], function () {
                   "name_en":"Attributes",
                   "description":"Коллекция объектов метаданных, описывающих реквизиты данного объекта метаданных.",
                   "ref":"types.КоллекцияОбъектовМетаданных",
-                  "list": "properties"
+                  "list": "properties",
+                  "type": "metadataObjectCollection.Реквизит"
                },
                "СерииКодов":{
                   "name":"СерииКодов",
