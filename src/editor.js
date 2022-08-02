@@ -2964,42 +2964,35 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   
   function onSuggestListMouseOver(activationEventEnabled) {
 
-    return; // Disabled until fix https://github.com/salexdv/bsl_console/issues/190
     let widget = getSuggestWidget().widget;
 
     if (activationEventEnabled) {
-      
-      let alwaysDisplaySuggestDetails = getOption('alwaysDisplaySuggestDetails');
 
-      if (!alwaysDisplaySuggestDetails) {
+      widget.listElement.onmouseoverOrig = widget.listElement.onmouseover;
+      widget.listElement.onmouseover = function (e) {
 
-        widget.listElement.onmouseoverOrig = widget.listElement.onmouseover;
-        widget.listElement.onmouseover = function(e) {        
-          
-          removeSuggestListInactiveDetails();
+        removeSuggestListInactiveDetails();
 
-          let parent_row = getParentWithClass(e.target, 'monaco-list-row');        
+        let parent_row = getParentWithClass(e.target, 'monaco-list-row');
 
-          if (parent_row) {
-            
-            if (!parent_row.classList.contains('focused')) {
-              
-              let details = getChildWithClass(parent_row, 'details-label');
-              
-              if (details) {
-                details.classList.add('inactive-detail');
-                generateEventWithSuggestData('EVENT_ON_ACTIVATE_SUGGEST_ROW', 'hover', parent_row);
-              }
+        if (parent_row) {
 
-              let read_more = getChildWithClass(parent_row, 'readMore');
-              
-              if (read_more)
-                read_more.classList.add('inactive-more');
+          if (!parent_row.classList.contains('focused')) {
 
-              if (typeof(widget.listElement.onmouseoverOrig) == 'function')
-                widget.listElement.onmouseoverOrig(e);
+            let details = getChildWithClass(parent_row, 'details-label');
 
+            if (details) {
+              details.classList.add('inactive-detail');
+              generateEventWithSuggestData('EVENT_ON_ACTIVATE_SUGGEST_ROW', 'hover', parent_row);
             }
+
+            let read_more = getChildWithClass(parent_row, 'readMore');
+
+            if (read_more)
+              read_more.classList.add('inactive-more');
+
+            if (typeof (widget.listElement.onmouseoverOrig) == 'function')
+              widget.listElement.onmouseoverOrig(e);
 
           }
 
