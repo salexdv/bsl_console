@@ -1105,20 +1105,24 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   setOption = function (optionName, optionValue) {
 
-    editor[optionName] = optionValue;
-    editor_options[optionName] = optionValue;
+    setTimeout(() => {
 
-    if (optionName == 'generateBeforeSignatureEvent')
-      startStopSignatureObserver();
+      editor[optionName] = optionValue;
+      editor_options[optionName] = optionValue;
 
-    if (optionName == 'generateSelectSuggestEvent')
-      startStopSuggestSelectionObserver();
+      if (optionName == 'generateBeforeSignatureEvent')
+        startStopSignatureObserver();
 
-    if (optionName == 'disableDefinitionMessage')
-      startStopDefinitionMessegeObserver();
+      if (optionName == 'generateSelectSuggestEvent')
+        startStopSuggestSelectionObserver();
 
-    if (optionName == 'generateSuggestActivationEvent')
-      startStopSuggestActivationObserver();
+      if (optionName == 'disableDefinitionMessage')
+        startStopDefinitionMessegeObserver();
+
+      if (optionName == 'generateSuggestActivationEvent')
+        startStopSuggestActivationObserver();
+        
+    }, 10);
 
   }
 
