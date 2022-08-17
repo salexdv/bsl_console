@@ -669,6 +669,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       editor.getOriginalEditor().onDidChangeCursorPosition(e => diffEditorOnDidChangeCursorPosition(e));
       editor.getModifiedEditor().onDidLayoutChange(e => diffEditorOnDidLayoutChange(e));
       editor.getOriginalEditor().onDidLayoutChange(e => diffEditorOnDidLayoutChange(e));
+      setDefaultStyle();
     }
     else
     {
@@ -937,6 +938,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   setLineHeight = function(lineHeight) {
 
     editor.updateOptions({lineHeight: lineHeight});
+
+  }
+
+  setLetterSpacing = function(letterSpacing) {
+
+    editor.updateOptions({letterSpacing: letterSpacing});
 
   }
 
@@ -1384,6 +1391,15 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  setDefaultStyle = function() {
+
+    setFontFamily("Courier New");
+    setFontSize(14);
+    setLineHeight(16);
+    setLetterSpacing(0);
+
+  }
+
   generateEventWithSuggestData = function(eventName, trigger, row, suggestRows = []) {
 
     let bsl = new bslHelper(editor.getModel(), editor.getPosition());
@@ -1459,6 +1475,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     changeCommandKeybinding('editor.action.peekDefinition', monaco.KeyMod.CtrlCmd | monaco.KeyCode.F12);
     changeCommandKeybinding('editor.action.deleteLines',  monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_L);
     changeCommandKeybinding('editor.action.selectToBracket',  monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.KEY_B);
+
+    setDefaultStyle();
 
   }
 
