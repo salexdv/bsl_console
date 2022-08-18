@@ -4432,6 +4432,29 @@ class bslHelper {
 	}
 
 	/**
+	 * Fills array of completion for external data as source
+	 * 
+	 * @param {object} externalData object with external data
+	 * @param {string} sourceName name of source
+	 * @param {array} suggestions array of suggestions for provideCompletionItems	 
+	 * @param {CompletionItemKind} kind - monaco.languages.CompletionItemKind (class, function, constructor etc.)
+	 */
+	getQuerySourceForExternalData(externalData, sourceName, suggestions, kind) {
+
+		if (!sourceName) {
+			let label = externalData[this.queryNameField + '_tables'];
+			suggestions.push({
+				label: label,
+				kind: kind,
+				insertText: label,
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				command: { id: 'vs.editor.ICodeEditor:1:requestMetadata', arguments: [{ "metadata": externalData.name.toLowerCase() + '.' + label.toLowerCase() }] }
+			});
+		}
+
+	}
+
+	/**
 	 * Fills array of completion for source of table
 	 * 
 	 * @param {array} suggestions array of suggestions for provideCompletionItems	 
@@ -4472,16 +4495,7 @@ class bslHelper {
 
 				}
 				else if (key == 'externalDataSources') {
-					if (!metadataFunc) {
-						let label = value[this.queryNameField + '_tables'];
-						suggestions.push({
-							label: label,
-							kind: kind,
-							insertText: label,
-							insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-							command: { id: 'vs.editor.ICodeEditor:1:requestMetadata', arguments: [{ "metadata": value.name.toLowerCase() + '.' + label.toLowerCase()}] }
-						});
-					}
+					this.getQuerySourceForExternalData(value, metadataFunc, suggestions, kind);
 				}
 				else if (!metadataFunc && 2 < maxLevel) {
 					this.getQuerySourceMetadataRegTempraryTablesCompletion(value, metadataItem, suggestions)
