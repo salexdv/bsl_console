@@ -106,7 +106,12 @@ module.exports = (env, args) => {
             multiple: [{
               search: 'let __insane_func;',
               replace: 'var __insane_func;'
-            }]
+            },
+            {
+              search: '0x2192',
+              replace: '0xBB'
+            }
+          ]
           }
         },
         {
