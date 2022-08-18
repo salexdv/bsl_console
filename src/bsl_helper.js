@@ -4852,17 +4852,25 @@ class bslHelper {
 
 					if (!this.getQuerySourceCompletion(suggestions, monaco.languages.CompletionItemKind.Enum)) {
 
+						let functions = null;
+
 						if (this.lastOperator != '"') {
-							let functions = this.getQueryFunctions(window.bslQuery);
+							functions = this.getQueryFunctions(window.bslQuery);
 							this.getCommonCompletion(suggestions, functions, monaco.languages.CompletionItemKind.Function, true);
 							this.getRefCompletion(suggestions);
 							this.getQueryTablesCompletion(suggestions, monaco.languages.CompletionItemKind.Class);
 							this.getCustomObjectsCompletion(suggestions, window.bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
 						}
 
-						this.getQueryCommonCompletion(suggestions, monaco.languages.CompletionItemKind.Module);
 						this.getQueryParamsCompletion(suggestions, monaco.languages.CompletionItemKind.Enum);				
 						this.getQueryFieldsCompletion(suggestions);
+
+						if (this.lastExpression.indexOf('.') < 0) {
+							this.getQueryCommonCompletion(suggestions, monaco.languages.CompletionItemKind.Module);
+							if (functions)
+								this.getCommonCompletion(suggestions, functions, monaco.languages.CompletionItemKind.Function, true);
+						}
+
 						this.getSnippets(suggestions, window.querySnippets, false);
 
 					}
