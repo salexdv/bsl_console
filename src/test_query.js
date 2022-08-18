@@ -409,8 +409,18 @@ setTimeout(() => {
       let suggestions = [];
       bsl.getQuerySourceCompletion(suggestions, null);
       expect(suggestions).to.be.an('array').that.not.is.empty;
-      assert.equal(suggestions.some(suggest => suggest.label === "Customers"), true);      
-      
+      assert.equal(suggestions.some(suggest => suggest.label === "Customers"), true);
+    });
+
+    it("проверка подсказки полей таблицы внешнего источника", function () {
+      bsl = helper(`ВЫБРАТЬ
+      Покупатели.
+      ИЗ      
+      ВнешнийИсточникДанных.РозничныйСайт.Таблица.Customers КАК Покупатели`, 2, 18);
+      let suggestions = [];
+      bsl.getQueryFieldsCompletion(suggestions);
+      expect(suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(suggestions.some(suggest => suggest.label === "customer_id"), true);   
     });
 
     window.setLanguageMode('bsl_query');
