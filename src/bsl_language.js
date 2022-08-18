@@ -597,11 +597,11 @@ let languages = {
     query: {
         languageDef: query_language,
         completionProvider: {
-            triggerCharacters: ['.', '(', '&'],
+            triggerCharacters: ['.', '(', '&', ' '],
             provideCompletionItems: function (model, position, context, token) {
                 resetSuggestWidgetDisplay();
                 let bsl = new bslHelper(model, position);
-                let completion = bsl.getQueryCompletion(query_language);
+                let completion = bsl.getQueryCompletion(context);
                 bsl.onProvideCompletion(context, completion);
                 return completion;
             }
