@@ -390,6 +390,17 @@ setTimeout(() => {
       assert.equal(suggestions.some(suggest => suggest.label === "РозничныйСайт"), true);      
     });
 
+    it("проверка подсказки поля 'Таблица' внешнего источника в конструкции ИЗ ИЛИ СОЕДИНЕНИЕ ", function () {
+      bsl = helper(`ВЫБРАТЬ
+      *
+      ИЗ      
+      ВнешнийИсточникДанных.РозничныйСайт.`);      
+      let suggestions = [];
+      bsl.getQuerySourceCompletion(suggestions, null);
+      expect(suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(suggestions.some(suggest => suggest.label === "Таблица"), true);
+    });
+
     window.setLanguageMode('bsl_query');
         
     mocha.run();
