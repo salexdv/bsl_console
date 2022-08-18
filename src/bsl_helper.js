@@ -4491,8 +4491,7 @@ class bslHelper {
 						label: tables_label,
 						kind: kind,
 						insertText: tables_label,
-						insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-						command: { id: 'vs.editor.ICodeEditor:1:requestMetadata', arguments: [{ "metadata": externalData.name.toLowerCase() + '.' + tables_label.toLowerCase() }] }
+						insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
 					});
 
 				}
