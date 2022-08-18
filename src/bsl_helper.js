@@ -4703,8 +4703,7 @@ class bslHelper {
 		if (this.getLastCharacter() != '.' && this.lastExpression.indexOf('&') < 0) {
 			let word = this.model.getWordUntilPosition(this.position).word;
 			let line_content = this.model.getLineContent(this.lineNumber);
-			if (word.length)
-				line_content = line_content.substr(0, this.column - word.length - 1);
+			line_content = line_content.substr(0, this.column - word.length - 1);
 			let pattern = /.*(,|=|\(|по|on|выбрать|select|когда|when|тогда|then|иначе|else|где|where|и|and|или|or)/i;
 			line_content = line_content.replace(pattern, '').trim();
 			isSuitable = !line_content
