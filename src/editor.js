@@ -1391,6 +1391,30 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  fold = function() {
+
+    editor.trigger('', 'editor.fold');
+
+  }
+
+  foldAll = function() {
+
+    editor.trigger('', 'editor.foldAll');
+
+  }
+
+  unfold = function() {
+
+    editor.trigger('', 'editor.unfold');
+
+  }
+
+  unfoldAll = function() {
+
+    editor.trigger('', 'editor.unfoldAll');
+
+  }
+
   setDefaultStyle = function() {
 
     setFontFamily("Courier New");
