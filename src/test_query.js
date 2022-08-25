@@ -76,7 +76,8 @@ describe("Проверка автокомлита и подсказок реда
 
     it("проверка подсказки параметров для функции запроса", function () {                                                     
       bsl = helper('РАЗНОСТЬДАТ(');
-      let help = bsl.getCommonSigHelp(bslQuery.functions);
+      let context = bsl.getLastSigMethod({});
+      let help = bsl.getCommonSigHelp(context, bslQuery.functions);
       expect(help).to.have.property('activeParameter');              
     });
 
