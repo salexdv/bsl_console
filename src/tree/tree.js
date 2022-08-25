@@ -1,0 +1,100 @@
+class Treeview {
+  constructor(treeviewId, editor, imageBase) {
+    this.treeviewId = treeviewId;
+    this.editor = editor;
+    this.selected = null;
+    this.imageBase = imageBase;
+    document.querySelector(this.treeviewId).addEventListener("click", (event) => {
+      this.on("click", event);
+    });
+    document.querySelector(this.treeviewId)
+  };
+  on(eventName, eventData) {
+    switch (eventName) {
+      case "click": {
+        if (eventData.target.tagName == 'A') {
+          eventData.preventDefault();
+          let element = eventData.target;
+          if (this.editor) {            
+            this.editor.sendEvent("EVENT_ON_LINK_CLICK", { label: element.innerText, href: element.getAttribute('href') });
+          }
+        }
+        else if (eventData.target.nodeName == 'SUMMARY' && !eventData.target.parentNode.hasAttribute("open")) {
+          if (eventData.target.dataset.requested == "false" && !eventData.target.classList.contains('final')) {
+            eventData.target.classList.add('loading');
+            eventData.preventDefault();
+            if (this.editor) {            
+              let request = {
+                variableName: eventData.target.dataset.label,
+                variableId: eventData.target.id,
+                variablePath: eventData.target.dataset.path
+              };
+              this.editor.sendEvent("EVENT_GET_VARIABLE_DATA", request);
+            }
+            else {
+              setTimeout(() => {
+                eventData.target.dataset.requested = true;
+                this.open(eventData.target.id);
+              }, 500);
+            }
+          }
+        }
+        break;
+      }
+    }   
+  }
+  appendData(data, targetId) {
+    if (targetId != null) {
+      let target = document.getElementById(targetId);
+      target.parentNode.innerHTML += this.parseData(data)
+    }
+    else {
+      let target = document.querySelector(this.treeviewId);
+      target.innerHTML += this.parseData(data);
+    }
+  };
+  replaceData(data, targetId) {
+    if (targetId != null) {
+      let target = document.getElementById(targetId);
+      target.parentNode.outerHTML = this.parseData(data)
+      target.dataset.requested = true;
+    }
+    else {
+      let target = document.querySelector(this.treeviewId);
+      target.innerHTML = this.parseData(data);
+    }
+  };
+  parseData(data) {
+    let me = this;
+    let buf = Object.keys(data).map((key) => 
+      `<details><summary  id="${key}" data-label="${data[key].label}" data-requested="false" data-path="${data[key].path}" class="${data[key].class}">
+      <img class="icon" src="${me.imageBase}${data[key].icon ? data[key].icon : data[key].children ? 'structure.png' : 'undefined.png'}"> </img>
+      ${data[key].label}<span class="equal"> = </span>
+      ${Object.keys(data[key]).map((subkey) => {
+        return subkey == 'type' || subkey == 'value' ? `<span class="${subkey}">${data[key][subkey]}</span>` : ' ' 
+      }).join(' ')}
+      </summary>
+      ${data[key].children ? me.parseData(data[key].children) : ""}</details>`
+    );
+    return buf.join("\n")
+  };
+  open(id) {    
+    let node = document.getElementById(id);
+    while (node.parentNode.nodeName == "DETAILS") {
+      node.classList.remove('loading');
+      node = node.parentNode;
+      node.setAttribute("open", "true");
+    }
+  };
+  close(id) {
+    let node = document.getElementById(id).parentNode;
+    node.removeAttribute("open");
+    let detailNodes = node.querySelectorAll("DETAILS");
+    console.log(detailNodes); detailNodes.forEach((node) => node.removeAttribute("open"));
+  };
+  select(id) {
+    this.open(id);
+    document.getElementById(id).focus();
+    document.getElementById(id).click();
+  }
+}
