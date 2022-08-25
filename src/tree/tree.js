@@ -104,5 +104,8 @@ class Treeview {
     this.open(id);
     document.getElementById(id).focus();
     document.getElementById(id).click();
-  }
+  };
+  dispose() {
+  	document.querySelector(this.treeviewId).innerHTML = '';
+  };
 }

@@ -36,6 +36,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   events_queue = [];
   editor_options = [];
   snippets = {};
+  treeview = null;
   // #endregion
 
   // #region public API
@@ -1420,12 +1421,15 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   showVariablesDescription = function(variablesJSON) {    
     
     try {
-
-      showVariablesDisplay();
+      
+      if (treeview != null)
+        hideVariablesDisplay();
 
       const variables = JSON.parse(variablesJSON);
       treeview = new Treeview("#variables-tree", editor, "./tree/icons/");
       treeview.replaceData(variables);
+      showVariablesDisplay();
+
       return true;
 
     }
@@ -3118,6 +3122,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     let element = document.getElementById("display");
     element.style.height = "0";
     element.style.display = "none";
+    treeview.dispose();
+    treeview = null;
 
   }
 
