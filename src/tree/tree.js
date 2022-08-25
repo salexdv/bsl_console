@@ -1,17 +1,19 @@
 class Treeview {
   constructor(treeviewId, editor, imageBase) {
+    let self = this;
     this.treeviewId = treeviewId;
     this.editor = editor;
     this.selected = null;
     this.imageBase = imageBase;
-    document.querySelector(this.treeviewId).addEventListener("click", (event) => {
-      this.on("click", event);
-    });
-    document.querySelector(this.treeviewId)
+    this.clickListener = function(event) {
+    	self.on("click", event);
+    }
+    document.querySelector(this.treeviewId).addEventListener("click", this.clickListener);
   };
   on(eventName, eventData) {
-    switch (eventName) {
+    switch (eventName) {      
       case "click": {
+      	console.log(eventData);
         if (eventData.target.tagName == 'A') {
           eventData.preventDefault();
           let element = eventData.target;
@@ -106,6 +108,7 @@ class Treeview {
     document.getElementById(id).click();
   };
   dispose() {
+  	document.querySelector(this.treeviewId).removeEventListener("click", this.clickListener);
   	document.querySelector(this.treeviewId).innerHTML = '';
   };
 }
