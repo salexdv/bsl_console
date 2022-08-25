@@ -93,6 +93,10 @@
   background-image: url('./icons/empty.png');
 }
 
+#variables-tree details[open] > summary.final:before {
+  background-image: url('./icons/empty.png');    
+}
+
 #variables-tree summary:before {    
   content: '.';
   padding-left: 7px;

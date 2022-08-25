@@ -38,6 +38,14 @@ class Treeview {
               }, 500);
             }
           }
+          else if (eventData.target.classList.contains('final')) {
+            eventData.preventDefault();
+          }
+        }
+        else if (eventData.target.nodeName == 'SUMMARY' && eventData.target.parentNode.hasAttribute("open")) {
+        }
+        else {
+            eventData.preventDefault();
         }
         break;
       }
@@ -57,7 +65,7 @@ class Treeview {
     if (targetId != null) {
       let target = document.getElementById(targetId);
       target.parentNode.outerHTML = this.parseData(data)
-      target.dataset.requested = true;
+      document.getElementById(targetId).dataset.requested = true;
     }
     else {
       let target = document.querySelector(this.treeviewId);
@@ -90,7 +98,7 @@ class Treeview {
     let node = document.getElementById(id).parentNode;
     node.removeAttribute("open");
     let detailNodes = node.querySelectorAll("DETAILS");
-    console.log(detailNodes); detailNodes.forEach((node) => node.removeAttribute("open"));
+    detailNodes.forEach((node) => node.removeAttribute("open"));
   };
   select(id) {
     this.open(id);
