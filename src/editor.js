@@ -192,7 +192,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   setTheme = function (theme) {
         
-    monaco.editor.setTheme(theme);    
+    monaco.editor.setTheme(theme);
+    setThemeVariablesDisplay(theme);
 
   }
 
@@ -269,6 +270,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
     version1C = version;
     initContextMenuActions();
+    editor.layout();
 
   }
 
@@ -406,10 +408,10 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
-  getVarsNames = function () {
+  getVarsNames = function (includeLineNumber = false) {
     
     let bsl = new bslHelper(editor.getModel(), editor.getPosition());		
-    return bsl.getVarsNames(0);    
+    return bsl.getVarsNames(0, includeLineNumber);    
     
   }
 
@@ -1415,6 +1417,40 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  showVariablesDescription = function(variablesJSON) {    
+    
+    try {
+
+      showVariablesDisplay();
+
+      const variables = JSON.parse(variablesJSON);
+      treeview = new Treeview("#variables-tree", editor, "./tree/icons/");
+      treeview.replaceData(variables);
+      return true;
+
+    }
+    catch (e) {
+      return { errorDescription: e.message };
+    }
+
+  }
+
+  updateVariableDescription = function(variableId, variableJSON) { 
+
+    try {
+
+      const variables = JSON.parse(variableJSON);
+      treeview.replaceData(variables, variableId);
+      treeview.open(variableId);
+      return true;
+
+    }
+    catch (e) {
+      return { errorDescription: e.message };
+    }
+
+  }   
+    
   setDefaultStyle = function() {
 
     setFontFamily("Courier New");
@@ -1586,6 +1622,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   // #region editor events
   function initEditorEventListenersAndProperies() {
 
+    editor.sendEvent = sendEvent;
     editor.decorations = [];
     editor.bookmarks = new Map();
     editor.checkBookmarks = true;
@@ -2187,7 +2224,6 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     else if (element.classList.contains('detected-link-active')) {
 
       let href = getNativeLinkHref(element, null);
-
       if (href) {
         sendEvent("EVENT_ON_LINK_CLICK", { label: href, href: href });
         setTimeout(() => {
@@ -2842,7 +2878,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     updateStatusBar();
 
   }
-
+  
   function createDiffWidget(e) {
 
     if (inlineDiffWidget) {
@@ -3063,6 +3099,36 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     editor.checkBookmarks = true;
 
   }
+
+  function showVariablesDisplay() {
+
+    document.getElementById("container").style.height = "70%";
+    getActiveEditor().layout();
+    document.getElementById("display-title").innerHTML = engLang ? "Variables" : "Просмотр значений переменных:"
+    let element = document.getElementById("display");
+    element.style.height = "30%";
+    element.style.display = "block";
+
+  }
+
+  function hideVariablesDisplay() {
+    
+    document.getElementById("container").style.height = "100%";
+    getActiveEditor().layout();
+    let element = document.getElementById("display");
+    element.style.height = "0";
+    element.style.display = "none";
+
+  }
+
+  function setThemeVariablesDisplay(theme) {
+
+    if (0 < theme.indexOf('dark'))
+      document.getElementById("display").classList.add('dark');
+    else
+      document.getElementById("display").classList.remove('dark');
+
+  }
   // #endregion
 
   // #region browser events
@@ -3120,6 +3186,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       resizeStatusBar();    
     
   }, true);
+
+  document.getElementById("display-close").addEventListener("click", (event) => {    
+    
+    hideVariablesDisplay();
+
+  });
   // #endregion
 
 });
