@@ -6090,6 +6090,11 @@ class bslHelper {
 				let match = Finder.findMatches(model, pattern, range);
 				let param_description = '';
 
+				if (match && !match.length) {
+					pattern = '\/\/ параметры:[\\s\\SS\\n\\t]*?' + param_name + '([\\s\\SS\\n\\t]*?)(?:\/\/\\s*$)';
+					match = Finder.findMatches(model, pattern, range);
+				}
+
 				if (match && match.length) {
 					param_description = match[0].matches[1];
 					param_description = param_description.replace(/^\/\/*/gm, '');
