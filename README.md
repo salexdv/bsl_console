@@ -170,6 +170,8 @@
 | `unfold`                       | Разворачивает текущий блок                                                                    |
 | `foldAll`                      | Сворачиват все блоки                                                                          |
 | `unfoldAll`                    | Разворачивает все блоки                                                                       |
+| [`showVariablesDescription`]((docs/show_var_description.md)) | Вывод окна со значениями переменных (табло)                     |
+| [`updateVariableDescription`]((docs/upd_var_drscription.md)) | Обновление значения переменной в табло                          |
 
 ## События, генерируемые редактором для 1С:Предприятия
 
@@ -193,6 +195,7 @@
 | `EVENT_GET_DEFINITION`         | При переходе к определению [(подробнее)](docs/get_definition_event.md)                        |
 | `EVENT_ON_KEY_DOWN`            | При нажатии на клавиатуру [(подробнее)](docs/key_down_event.md)                               |
 | `EVENT_ON_INSERT_SNIPPET`      | При вставке сниппета (шаблона) [(подробнее)](docs/insert_snippet_event.md)                    |
+| `EVENT_GET_VARIABLE_DATA`      | При расшифровке значения переменной в табло [(подробнее)](docs/get_var_data_event.md)         |
 
 *Перед началом работы с редактором из 1С Предприятия желательно вызвать функцию инициализации и передать в нее текущую версию платформы.*
 Пример:
