@@ -1418,6 +1418,17 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  scale = function(direction) {
+
+    if (direction == 0)
+      editor.trigger('', 'editor.action.fontZoomReset');
+    else if (0 < direction)
+      editor.trigger('', 'editor.action.fontZoomIn');
+    else
+      editor.trigger('', 'editor.action.fontZoomOut');
+
+  }
+
   showVariablesDescription = function(variablesJSON) {    
     
     try {
