@@ -6079,20 +6079,21 @@ class bslHelper {
 
 			line_number++;
 
-			let params = parametersStr.split(',');
+			const params = parametersStr.split(',');
+			const range = new monaco.Range(line_number, 1, funcLineNumber, 1);
+			const func_model = monaco.editor.createModel(model.getValueInRange(range));
 
 			params.forEach(function (param) {
 
 				let param_full_name = param.split('=')[0].trim();
 				let param_name = param_full_name.replace(/знач\s+/gi, '');
 				let pattern = '\/\/ параметры:[\\s\\SS\\n\\t]*?' + param_name + '([\\s\\SS\\n\\t]*?)(?:\/\/\\s{1,4}[a-zA-Z0-9\u0410-\u044F_])';
-				let range = new monaco.Range(line_number, 1, funcLineNumber, 1);
-				let match = Finder.findMatches(model, pattern, range);
+				let match = Finder.findMatches(func_model, pattern);
 				let param_description = '';
 
 				if (match && !match.length) {
 					pattern = '\/\/ параметры:[\\s\\SS\\n\\t]*?' + param_name + '([\\s\\SS\\n\\t]*?)(?:\/\/\\s*$)';
-					match = Finder.findMatches(model, pattern, range);
+					match = Finder.findMatches(func_model, pattern);
 				}
 
 				if (match && match.length) {
