@@ -1429,6 +1429,13 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  gotoLine = function() {
+
+    editor.trigger('', 'editor.action.gotoLine');
+    getQuickOpenWidget().widget.quickOpenWidget.inputElement.focus();
+
+  }
+
   showVariablesDescription = function(variablesJSON) {    
     
     try {
@@ -2202,6 +2209,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   function getFindWidget() {
   
     return getActiveEditor()._overlayWidgets['editor.contrib.findWidget'];
+
+  }
+
+  function getQuickOpenWidget() {
+  
+    return getActiveEditor()._overlayWidgets['editor.contrib.quickOpenEditorWidget'];
 
   }
 
