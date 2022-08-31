@@ -4646,28 +4646,47 @@ class bslHelper {
 
 	/**
 	 * Fills array of completion for virtual tables of registers in source
+	 * or for tabulars of metadata object
 	 * 
 	 * @param {object} data objects from BSL-JSON dictionary
 	 * @param {string} metadataItem name of metadata item like (ЦеныНоменклатуры/ProductPrices, СвободныеОстатки/AvailableStock)
 	 * @param {array} suggestions array of suggestions for provideCompletionItems	 	 
 	 */
-	getQuerySourceMetadataRegTempraryTablesCompletion(data, metadataItem, suggestions) {
+	getQuerySourceMetadataTabularsRegTempraryTables(data, metadataItem, suggestions) {
 
 		for (const [ikey, ivalue] of Object.entries(data.items)) {
 
-			if (ikey.toLowerCase() == metadataItem.toLowerCase() && ivalue.hasOwnProperty('type')) {
+			if (ikey.toLowerCase() == metadataItem.toLowerCase()) {
+			
+				if (ivalue.hasOwnProperty('type')) {
 
-				let tables = this.getRegisterVirtualTables(ivalue.type);
+					let tables = this.getRegisterVirtualTables(ivalue.type);
 
-				for (const [tkey, tvalue] of Object.entries(tables)) {
+					for (const [tkey, tvalue] of Object.entries(tables)) {
 
-					suggestions.push({
-						label: tkey,
-						kind: monaco.languages.CompletionItemKind.Unit,
-						insertText: tvalue,
-						insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
-					});
+						suggestions.push({
+							label: tkey,
+							kind: monaco.languages.CompletionItemKind.Unit,
+							insertText: tvalue,
+							insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+						});
 
+					}
+
+				}
+				else if (ivalue.hasOwnProperty('tabulars')) {
+
+					for (const [tkey, tvalue] of Object.entries(ivalue.tabulars)) {
+	
+						suggestions.push({
+							label: tkey,
+							kind: monaco.languages.CompletionItemKind.Unit,
+							insertText: tkey,
+							insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+						});
+	
+					}
+	
 				}
 
 			}
@@ -4772,8 +4791,7 @@ class bslHelper {
 					this.getQuerySourceForExternalData(value, metadataItem, metadataFunc, suggestions, kind);
 				}
 				else if (!metadataFunc && 2 < maxLevel) {
-					this.getQuerySourceMetadataRegTempraryTablesCompletion(value, metadataItem, suggestions)
-
+					this.getQuerySourceMetadataTabularsRegTempraryTables(value, metadataItem, suggestions)
 				}
 
 			}
