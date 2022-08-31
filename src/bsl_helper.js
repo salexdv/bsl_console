@@ -4499,8 +4499,28 @@ class bslHelper {
 					if (match) {
 
 						// Searching the source
-						position = new monaco.Position(match.range.endLineNumber, match.range.endColumn);
-						match = Finder.findPreviousMatch(this.model, '[a-zA-Z0-9\u0410-\u044F]+\\.[a-zA-Z0-9\u0410-\u044F_]+(?:\\.[a-zA-Z0-9\u0410-\u044F_]+)?(?:\\.[a-zA-Z0-9\u0410-\u044F_]+)?', position);
+						position = new monaco.Position(match.range.endLineNumber, match.range.endColumn);						
+						let bracket_match = this.model.findPrevBracket(position);
+
+						if (bracket_match && match.range.startLineNumber < bracket_match.range.startLineNumber) {
+							position = new monaco.Position(bracket_match.range.startLineNumber, bracket_match.range.startColumn);
+							let brackets = editor.getModel().matchBracket(position);
+							if (brackets) {
+								brackets = brackets.sort();
+								const open = brackets[0], close = brackets[1];
+								const bracket_range = new monaco.Range(open.startLineNumber, open.endColumn, close.startLineNumber, close.startColumn);
+								const bracket_text = this.model.getValueInRange(bracket_range);
+								const source_text = this.model.getValueInRange(match.range).replace(bracket_text, '');
+								const source_model = monaco.editor.createModel(source_text);
+								const model_range = source_model.getFullModelRange();
+								const model_position = new monaco.Position(model_range.endLineNumber, model_range.endColumn);
+								match = Finder.findPreviousMatch(source_model, '[a-zA-Z0-9\u0410-\u044F]+\\.[a-zA-Z0-9\u0410-\u044F_]+(?:\\.[a-zA-Z0-9\u0410-\u044F_]+)?(?:\\.[a-zA-Z0-9\u0410-\u044F_]+)?', model_position);
+							}
+							else 
+								match = null;
+						}
+						else
+							match = Finder.findPreviousMatch(this.model, '[a-zA-Z0-9\u0410-\u044F]+\\.[a-zA-Z0-9\u0410-\u044F_]+(?:\\.[a-zA-Z0-9\u0410-\u044F_]+)?(?:\\.[a-zA-Z0-9\u0410-\u044F_]+)?', position);
 
 						if (match) {
 							sourceDefinition = match.matches[0];
