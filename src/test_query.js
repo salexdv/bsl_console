@@ -426,6 +426,18 @@ describe("Проверка автокомлита и подсказок реда
       
     });
 
+    it("проверка подсказки табличных частей в конструкции ИЗ или СОЕДИНЕНИЕ", function () {
+      bsl = helper(`ВЫБРАТЬ
+      *
+      ИЗ      
+        Справочник.Товары.`);
+      let suggestions = bsl.getQueryCompletion();
+      console.log(suggestions);
+      expect(suggestions).to.be.an('object');
+      expect(suggestions.suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(suggestions.suggestions.some(suggest => suggest.label === "ДополнительныеРеквизиты"), true);
+    });
+
     setLanguageMode('bsl_query');
         
     mocha.run();
