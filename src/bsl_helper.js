@@ -4938,18 +4938,18 @@ class bslHelper {
 
 			if (startMatch) {
 
-				let template = '(?:из|from)\\s+(?:(?:.|\\n|\\r)*?)\\s*(?:\\s|\\t)*(?:сгруппировать|объединить|упорядочить|имеющие|где|индексировать|havin|where|index|group|union|order|;)'
+				let template = '(?:из|from)\\s+(?:[\\s\\S]*?)(?:сгруппировать|объединить|упорядочить|имеющие|где|индексировать|havin|where|index|group|union|order|;)'
 				let position = new monaco.Position(startMatch.range.startLineNumber, startMatch.range.startColumn);
 				let fromMatch = Finder.findNextMatch(this.model, template, position);
 
 				if (!fromMatch) {
-					template = '(?:из|from)\\s+(?:(?:.|\\n|\\r)*?)\\s*(?:\\s|\\t)*$';
+					template = '(?:из|from)\\s+(?:[\\s\\S]*?)$';
 					fromMatch = Finder.findNextMatch(this.model, template, position);
 				}
 
 				if (fromMatch && fromMatch.range.startLineNumber < startMatch.range.startLineNumber) {
 					// This is loops to the beginning. Trying another template
-					fromMatch = Finder.findNextMatch(this.model, '(?:из|from)\\s+(?:(?:.|\\n|\\r)+)$', position);
+					fromMatch = Finder.findNextMatch(this.model, '(?:из|from)\\s+(?:[\\s\\S]+)$', position);
 				}
 
 				if (fromMatch) {
@@ -6412,8 +6412,8 @@ class bslHelper {
 	 */
 	static getFoldingRanges(model) {
 
-		let ranges = this.getRangesForRegexp(model, "\"(?:\\n|\\r|\\|)*(?:выбрать|select)(?:(?:.|\\n|\\r)*?)?\"");
-		ranges = ranges.concat(this.getRangesForRegexp(model, "(?:^|\\b)(?:функция|процедура).*\\((?:.|\\n|\\r)*?(?:конецпроцедуры|конецфункции)"));
+		let ranges = this.getRangesForRegexp(model, "\"(?:\\n|\\r|\\|)*(?:выбрать|select)(?:(?:\\s|\\S|\"\")*?)?\"");
+		ranges = ranges.concat(this.getRangesForRegexp(model, "(?:^|\\b)(?:функция|процедура).*\\([\\s\\S]*?(?:конецпроцедуры|конецфункции)"));
 		ranges = ranges.concat(this.getRangesForConstruction(model, "пока|while", "конеццикла|enddo", true));
 		ranges = ranges.concat(this.getRangesForConstruction(model, "для .*(?:по|из) .*|for .* (?:to|each) .*", "конеццикла|enddo", true));
 		ranges = ranges.concat(this.getRangesForConstruction(model, "если|if", "конецесли|endif", true));
@@ -6586,21 +6586,21 @@ class bslHelper {
 
 		ranges = this.getRangesForQuery(model);
 		ranges = ranges.concat(nestedQueries);
-		ranges = ranges.concat(this.getRangesForQueryBlock(model, '(?:выбрать|select)\\s+(?:(?:.|\\n|\\r)*?)\\n(?:\s|\t)*(?:из|from|поместить|into|;)', false, false, false));
-		ranges = ranges.concat(this.getRangesForQueryBlock(model, '(?:где|where)\\s+(?:(?:.|\\n|\\r)*?)\\s*(?:\\s|\\t)*(?:сгруппировать|объединить|упорядочить|group|union|order|;)', false, true, false));
-		ranges = ranges.concat(this.getRangesForQueryBlock(model, '(?:где|where)\\s+(?:(?:.|\\n|\\r)*?)\\s*(?:\\s|\\t)*(?:сгруппировать|объединить|упорядочить|group|union|order|;|\\))', nestedQueries, true, true));
-		ranges = ranges.concat(this.getRangesForQueryBlock(model, '(?:выбор|case)\\s+(?:(?:.|\\n|\\r)*?)\\n(?:\\s|\\t)*(?:конец|end)', false, true, true));
-		ranges = ranges.concat(this.getRangesForQueryBlock(model, '(?:иначе|else)\\s+(?:(?:.|\\n|\\r)*?)\\n(?:\\s|\\t)*(?:конец|end)', false, true, false));
-		ranges = ranges.concat(this.getRangesForQueryBlock(model, '(?:когда|when)\\s+(?:(?:.|\\n|\\r)*?)\\n(?:\\s|\\t)*(?:тогда|then)', false, true, true));
-		ranges = ranges.concat(this.getRangesForQueryBlock(model, '(?:левое|внешнее|правое|полное|left|outer|right|full)\\s+(?:соединение|join).*\\s+(?:(?:.|\\n|\\r)*?)\\n(?:\\s|\\t)*(?:где|сгруппировать|объединить|упорядочить|where|group|union|order|;)', false, true, false));
-		ranges = ranges.concat(this.getRangesForQueryBlock(model, '(?:левое|внешнее|правое|полное|left|outer|right|full)\\s+(?:соединение|join).*\\s+(?:(?:.|\\n|\\r)*?)\\n(?:\\s|\\t)*(?:где|сгруппировать|объединить|упорядочить|where|group|union|order|;|\\))', nestedQueries, true, true));
-		ranges = ranges.concat(this.getRangesForQueryBlock(model, '(?:имеющие|havin)\\s+(?:(?:.|\\n|\\r)*?)\\s*(?:\\s|\\t)*(?:индексировать|индекс|;)', false, true, false));
-		ranges = ranges.concat(this.getRangesForQueryBlock(model, '(?:имеющие|havin)\\s+(?:(?:.|\\n|\\r)*?)\\s*(?:\\s|\\t)*(?:индексировать|индекс|;|\\))', nestedQueries, true, false));
-		ranges = ranges.concat(this.getRangesForQueryBlock(model, '(?:сгруппировать|group)\\s+(?:(?:.|\\n|\\r)*?)\\s*(?:\\s|\\t)*(?:имеющие|having|индексировать|index|;)', false, true, false));
-		ranges = ranges.concat(this.getRangesForQueryBlock(model, '(?:сгруппировать|group)\\s+(?:(?:.|\\n|\\r)*?)\\s*(?:\\s|\\t)*(?:имеющие|having|индексировать|index|;|\\))', nestedQueries, true, true));
-		ranges = ranges.concat(this.getRangesForQueryBlock(model, '(?:из|from)\\s+(?:(?:.|\\n|\\r)*?)\\s*(?:\\s|\\t)*(?:сгруппировать|объединить|упорядочить|имеющие|где|индексировать|havin|where|index|group|union|order|;)', false, true, false));
-		ranges = ranges.concat(this.getRangesForQueryBlock(model, '(?:из|from)\\s+(?:(?:.|\\n|\\r)*?)\\s*(?:\\s|\\t)*(?:сгруппировать|объединить|упорядочить|имеющие|где|индексировать|havin|where|index|group|union|order|;|\\))', nestedQueries, true, true));
-		ranges = ranges.concat(this.getRangesForQueryBlock(model, '(?:индексировать|index)\\s+(?:(?:.|\\n|\\r)*?)\\s*(?:\\s|\\t)*;', false, true, true));
+		ranges = ranges.concat(this.getRangesForQueryBlock(model, '(?:выбрать|select)\\s+(?:[\\s\\S]*?)\\n(?:\s|\t)*(?:из|from|поместить|into|;)', false, false, false));
+		ranges = ranges.concat(this.getRangesForQueryBlock(model, '(?:где|where)\\s+(?:[\\s\\S]*?)(?:сгруппировать|объединить|упорядочить|group|union|order|;)', false, true, false));
+		ranges = ranges.concat(this.getRangesForQueryBlock(model, '(?:где|where)\\s+(?:[\\s\\S]*?)(?:сгруппировать|объединить|упорядочить|group|union|order|;|\\))', nestedQueries, true, true));
+		ranges = ranges.concat(this.getRangesForQueryBlock(model, '(?:выбор|case)\\s+(?:[\\s\\S]*?)(?:конец|end)', false, true, true));
+		ranges = ranges.concat(this.getRangesForQueryBlock(model, '(?:иначе|else)\\s+(?:[\\s\\S]*?)(?:конец|end)', false, true, false));
+		ranges = ranges.concat(this.getRangesForQueryBlock(model, '(?:когда|when)\\s+(?:[\\s\\S]*?)(?:тогда|then)', false, true, true));
+		ranges = ranges.concat(this.getRangesForQueryBlock(model, '(?:левое|внешнее|правое|полное|left|outer|right|full)\\s+(?:соединение|join).*\\s+(?:[\\s\\S]*?)(?:где|сгруппировать|объединить|упорядочить|where|group|union|order|;)', false, true, false));
+		ranges = ranges.concat(this.getRangesForQueryBlock(model, '(?:левое|внешнее|правое|полное|left|outer|right|full)\\s+(?:соединение|join).*\\s+(?:[\\s\\S]*?)(?:где|сгруппировать|объединить|упорядочить|where|group|union|order|;|\\))', nestedQueries, true, true));
+		ranges = ranges.concat(this.getRangesForQueryBlock(model, '(?:имеющие|havin)\\s+(?:[\\s\\S]*?)(?:индексировать|индекс|;)', false, true, false));
+		ranges = ranges.concat(this.getRangesForQueryBlock(model, '(?:имеющие|havin)\\s+(?:[\\s\\S]*?)(?:индексировать|индекс|;|\\))', nestedQueries, true, false));
+		ranges = ranges.concat(this.getRangesForQueryBlock(model, '(?:сгруппировать|group)\\s+(?:[\\s\\S]*?)(?:имеющие|having|индексировать|index|;)', false, true, false));
+		ranges = ranges.concat(this.getRangesForQueryBlock(model, '(?:сгруппировать|group)\\s+(?:[\\s\\S]*?)(?:имеющие|having|индексировать|index|;|\\))', nestedQueries, true, true));
+		ranges = ranges.concat(this.getRangesForQueryBlock(model, '(?:из|from)\\s+(?:[\\s\\S]*?)(?:сгруппировать|объединить|упорядочить|имеющие|где|индексировать|havin|where|index|group|union|order|;)', false, true, false));
+		ranges = ranges.concat(this.getRangesForQueryBlock(model, '(?:из|from)\\s+(?:[\\s\\S]*?)(?:сгруппировать|объединить|упорядочить|имеющие|где|индексировать|havin|where|index|group|union|order|;|\\))', nestedQueries, true, true));
+		ranges = ranges.concat(this.getRangesForQueryBlock(model, '(?:индексировать|index)\\s+(?:[\\s\\S]*?);', false, true, true));
 		ranges = ranges.concat(this.getRangesForNestedBlock(model, '(?:сумма|максимум|минимум|sum|min|max)\\s*\\('));
 
 		return ranges;
