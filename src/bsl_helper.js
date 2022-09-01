@@ -2312,6 +2312,7 @@ class bslHelper {
 	fillSuggestionsForMetadataItem(suggestions, obj, metadataName, metadataItem) {
 
 		let objects = [];
+		let is_query = (isQueryMode() || isDCSMode());
 
 		if (obj.hasOwnProperty('properties'))
 			objects.push(obj.properties);
@@ -2319,7 +2320,7 @@ class bslHelper {
 		if (obj.hasOwnProperty('resources'))
 			objects.push(obj.resources);
 
-		if (obj.hasOwnProperty('tabulars')) {
+		if (obj.hasOwnProperty('tabulars') && !is_query) {
 			this.fillSuggestionsForItemTabulars(suggestions, obj.tabulars, metadataName, metadataItem)
 		}
 
@@ -4164,6 +4165,47 @@ class bslHelper {
 	}
 
 	/**
+	 * Adds standart tabular attributes to suggestion list
+	 * 
+	 * @param {array} suggestions the list of suggestions
+	 * @param {string} ref to tabular owner
+	 */
+	addStandardTabularAttributesToQuerySuggestions(suggestions, ref) {
+
+		let label = engLang ? 'Ref' : 'Ссылка';
+
+		let command = {
+			id: 'vs.editor.ICodeEditor:1:saveref',
+			arguments: [
+				{
+					"name": label,
+					"data": {
+						"ref": ref,
+						"sig": null
+					}					
+				}
+			]
+		}
+		
+		suggestions.push({
+			label: label,
+			kind: monaco.languages.CompletionItemKind.Field,
+			insertText: label,
+			insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+			command: command
+		});
+
+		label = engLang ? 'LineNumber' : 'НомерСтроки';
+		suggestions.push({
+			label: label,
+			kind: monaco.languages.CompletionItemKind.Field,
+			insertText: label,
+			insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+		});
+
+	}
+
+	/**
 	 * Gets the list of properties (attributes) owned by object
 	 * (Catalog, Document, etc) and fills the suggestions by it
 	 * Used only for query-mode
@@ -4278,8 +4320,19 @@ class bslHelper {
 
 							if (ikey.toLowerCase() == metadataName) {
 
-								if (ivalue.hasOwnProperty('properties'))
-									this.fillSuggestionsForMetadataItemInQuery(suggestions, ivalue, metadataSubtable);
+								if (ivalue.hasOwnProperty('properties')) {									
+									if (ivalue.hasOwnProperty('tabulars') && 3 == sourceArray.length) {
+										for (const [tkey, tvalue] of Object.entries(ivalue.tabulars)) {
+											if (tkey.toLowerCase() == metadataSubtable) {
+												this.addStandardTabularAttributesToQuerySuggestions(suggestions, key + '.' + ikey);
+												this.fillSuggestionsForMetadataItemInQuery(suggestions, tvalue, '');												
+											}
+										}
+									}
+									else {
+										this.fillSuggestionsForMetadataItemInQuery(suggestions, ivalue, metadataSubtable);
+									}
+								}
 								else if (ivalue.hasOwnProperty('tables') && 3 < sourceArray.length &&
 									value[this.queryNameField + '_tables'].toLowerCase() == metadataSubtable) {
 									let tableName = sourceArray[3].toLowerCase();
