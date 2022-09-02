@@ -752,6 +752,20 @@ class bslHelper {
 	}
 
 	/**
+	 * Determines if the current function of query
+	 * is the CAST func or not
+	 * 
+	 * @returns {bool}
+	 */
+	isItCastFunction() {
+
+		let exp = this.getFuncName();
+		let word = this.getLastSeparatedWord(this.position).toLowerCase();
+		return (exp == 'выразить' || exp == 'cast') && (word == 'как' || word == 'as');
+
+	}
+
+	/**
 	 * Checks if string contain ref constructor (ССЫЛКА|REFS)
 	 * 
 	 * 
@@ -3712,6 +3726,138 @@ class bslHelper {
 	}
 
 	/**
+	 * Adds AS-delimiter into CAST function if needed
+	 * 
+	 * @param {array} suggestions array of suggestions for provideCompletionItems
+	 */
+	getCastDelimiter(suggestions) {
+
+		let exp = this.getFuncName();
+		
+		if (exp == 'выразить' || exp == 'cast') {
+
+			let last_expression = this.lastRawExpression;
+			let text_before = this.textBeforePosition;
+			let as_require = (last_expression != 'выразить' && last_expression != 'cast');
+			as_require = as_require && this.getLastCharacter() == ' ';
+			as_require = as_require && (text_before.indexOf(' как ') < 0 && text_before.indexOf(' as '));
+
+			if (as_require) {
+
+				let label = engLang ? 'AS ' : 'КАК '
+				suggestions.push({
+					label: label,
+					kind: monaco.languages.CompletionItemKind.Module,
+					insertText: label,
+					insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+					command: { id: 'editor.action.triggerSuggest', title: 'suggest_type' }
+				});
+
+			}
+
+		}
+
+	}
+
+	/**
+	 * Fills array of completion for CAST function
+	 * 
+	 * @param {array} suggestions array of suggestions for provideCompletionItems
+	 * @param {object} data objects from BSL-JSON dictionary
+	 * @param {CompletionItemKind} kind - monaco.languages.CompletionItemKind (class, function, constructor etc.)
+	 */
+	 getCastValuesCompletion(suggestions, data) {
+		
+		let metadataName = '';
+		let word = this.getLastSeparatedWords(1).toString().toLowerCase();
+		let exp = this.getLastNExpression(1);
+
+		if (word == 'как' || word == 'as' || exp == 'как' || exp == 'as') {
+			
+			metadataName = ''
+			
+			let label = engLang ? 'String' : 'Строка';
+			suggestions.push({
+				label: label,
+				kind: monaco.languages.CompletionItemKind.Enum,
+				insertText: label,
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+			});
+
+			label = engLang ? 'Number' : 'Число';
+			suggestions.push({
+				label: label,
+				kind: monaco.languages.CompletionItemKind.Enum,
+				insertText: label,
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+			});
+			
+		}
+		else {
+			if (this.getLastNExpression(1) == '.')
+				metadataName = this.getLastNExpression(2);
+			else
+				metadataName = word;
+		}
+
+		if (word) {
+			
+			for (const [key, value] of Object.entries(data)) {
+
+				if (!metadataName && value.hasOwnProperty('ref')) {
+
+					let suggestion = {
+						label: key,
+						kind: monaco.languages.CompletionItemKind.Enum,
+						insertText: key,
+						insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+					}
+
+					if (value.hasOwnProperty('ref') || value.hasOwnProperty('items')) {
+						suggestion.insertText += '.';
+						suggestion['command'] = { id: 'editor.action.triggerSuggest', title: 'suggest_type' };
+					}
+
+					suggestions.push(suggestion);
+
+				}
+				else {
+
+					if (key.toLowerCase() == metadataName) {
+
+						if (value.hasOwnProperty('ref') && bslMetadata.hasOwnProperty(value.ref) && bslMetadata[value.ref].hasOwnProperty('items')) {
+
+							if (!Object.keys(bslMetadata[value.ref].items).length) {
+								requestMetadata(bslMetadata[value.ref].name.toLowerCase());
+							}
+							else {
+
+								for (const [mkey, mvalue] of Object.entries(bslMetadata[value.ref].items)) {
+
+									suggestions.push({
+										label: mkey,
+										kind: monaco.languages.CompletionItemKind.Enum,
+										insertText: mkey + ')',
+										insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+									});
+
+								}
+
+							}
+					
+						}
+
+					}
+
+				}
+
+			}
+
+		}
+
+	}
+
+	/**
 	 * Fills array of completion for query values	 
 	 * 
 	 * @param {array} suggestions array of suggestions for provideCompletionItems
@@ -5204,7 +5350,11 @@ class bslHelper {
 		let trigger_char = (context && context.triggerCharacter) ? context.triggerCharacter : '';
 
 		if (trigger_char == ' ') {
+			
 			this.getQueryAliasCompletion(suggestions);
+			
+			if (!suggestions.length);
+				this.getCastDelimiter(suggestions);
 		}
 		else {
 
@@ -5212,50 +5362,54 @@ class bslHelper {
 
 			if (!suggestions.length && !editor.disableNativeSuggestions) {
 
-				if (!this.requireQueryValue()) {
+				let interrupt = false;
 
-					if (!this.requireQueryRef()) {
-
-						if (!this.getQuerySourceCompletion(suggestions, monaco.languages.CompletionItemKind.Enum)) {
-
-							let functions = null;
-
-							if (this.lastOperator != '"') {
-								functions = this.getQueryFunctions(bslQuery);
-								this.getRefCompletion(suggestions);
-								this.getQueryTablesCompletion(suggestions, monaco.languages.CompletionItemKind.Class);
-								this.getCustomObjectsCompletion(suggestions, bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
-							}
-
-							if (trigger_char == '&')
-								this.getQueryParamsCompletion(suggestions, monaco.languages.CompletionItemKind.Enum);
-
-							this.getQueryFieldsCompletion(suggestions);
-
-							if (this.lastExpression.indexOf('.') < 0) {
-								this.getQueryCommonCompletion(suggestions, monaco.languages.CompletionItemKind.Module);
-								if (functions)
-									this.getCommonCompletion(suggestions, functions, monaco.languages.CompletionItemKind.Function, true);
-							}
-
-							this.getSnippets(suggestions, querySnippets, false);
-							this.getQueryAliasCompletion(suggestions);
-
-						}
-
-					}
-					else {
-
-						this.getQueryRefCompletion(suggestions, monaco.languages.CompletionItemKind.Enum);
-
-					}
-
-				}
-				else {
-
+				if (this.requireQueryValue()) {
 					this.getQueryValuesCompletion(suggestions, bslQuery.values, monaco.languages.CompletionItemKind.Enum);
+					interrupt = true;
+				}
+
+				if (!interrupt && this.requireQueryRef()) {
+					this.getQueryRefCompletion(suggestions, monaco.languages.CompletionItemKind.Enum);
+					interrupt = true;
+				}
+
+				if (!interrupt && this.isItCastFunction()) {
+					this.getCastValuesCompletion(suggestions, bslQuery.values);
+					interrupt = true;
+				}
+
+				if (!interrupt && this.getCastDelimiter(suggestions)) {
+					interrupt = true;
+				}
+
+				if (!interrupt && !this.getQuerySourceCompletion(suggestions, monaco.languages.CompletionItemKind.Enum)) {
+					
+					let functions = null;
+
+					if (this.lastOperator != '"') {
+						functions = this.getQueryFunctions(bslQuery);
+						this.getRefCompletion(suggestions);
+						this.getQueryTablesCompletion(suggestions, monaco.languages.CompletionItemKind.Class);
+						this.getCustomObjectsCompletion(suggestions, bslMetadata.customObjects, monaco.languages.CompletionItemKind.Enum);
+					}
+
+					if (trigger_char == '&')
+						this.getQueryParamsCompletion(suggestions, monaco.languages.CompletionItemKind.Enum);
+
+					this.getQueryFieldsCompletion(suggestions);
+
+					if (this.lastExpression.indexOf('.') < 0) {
+						this.getQueryCommonCompletion(suggestions, monaco.languages.CompletionItemKind.Module);
+						if (functions)
+							this.getCommonCompletion(suggestions, functions, monaco.languages.CompletionItemKind.Function, true);
+					}
+
+					this.getSnippets(suggestions, querySnippets, false);
+					this.getQueryAliasCompletion(suggestions);
 
 				}
+
 			}
 
 		}
