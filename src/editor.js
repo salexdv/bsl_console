@@ -320,6 +320,14 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
     let isCompareMode = (editor.navi != undefined);
 
+    queryMode = (mode == 'bsl_query');
+    DCSMode = (mode == 'dcs_query');
+
+    if (queryMode || DCSMode)
+      editor.updateOptions({ foldingStrategy: "indentation" });
+    else
+      editor.updateOptions({ foldingStrategy: "auto" });
+
     if (isCompareMode) {
       monaco.editor.setModelLanguage(editor.getModifiedEditor().getModel(), mode);
       monaco.editor.setModelLanguage(editor.getOriginalEditor().getModel(), mode);
@@ -327,9 +335,6 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     else {
       monaco.editor.setModelLanguage(editor.getModel(), mode);
     }
-
-    queryMode = (mode == 'bsl_query');
-    DCSMode = (mode == 'dcs_query');
 
     let currentTheme = getCurrentThemeName();
     setTheme(currentTheme);
