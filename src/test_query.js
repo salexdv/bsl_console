@@ -453,14 +453,12 @@ describe("Проверка автокомлита и подсказок реда
 
       bsl = helper("ВЫРАЗИТЬ(Товары.Код ");
       suggestions = bsl.getQueryCompletion();
-      console.log(suggestions);
       expect(suggestions).to.be.an('object');
       expect(suggestions.suggestions).to.be.an('array').that.is.not.empty;
       assert.equal(suggestions.suggestions.some(suggest => suggest.label === "КАК "), true);
 
       bsl = helper("ВЫРАЗИТЬ(Товары.Код КАК ");
       suggestions = bsl.getQueryCompletion();
-      console.log(suggestions);
       expect(suggestions).to.be.an('object');
       expect(suggestions.suggestions).to.be.an('array').that.is.not.empty;
       assert.equal(suggestions.suggestions.some(suggest => suggest.label === "Строка"), true);
@@ -468,7 +466,6 @@ describe("Проверка автокомлита и подсказок реда
 
       bsl = helper("ВЫРАЗИТЬ(Товары.Код КАК Справочник.");
       suggestions = bsl.getQueryCompletion();
-      console.log(suggestions);
       expect(suggestions).to.be.an('object');
       expect(suggestions.suggestions).to.be.an('array').that.is.not.empty;
       assert.equal(suggestions.suggestions.some(suggest => suggest.label === "Товары"), true);      
