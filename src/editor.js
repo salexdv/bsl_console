@@ -1726,8 +1726,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
           let target = editor.getModel().getWordAtPosition(position);
 
-          if (target)
-            setSelection(position.lineNumber, target.startColumn, position.lineNumber, target.endColumn)
+          if (target) {
+            let current_selection = editor.getSelection();
+            let target_selection = new monaco.Range(position.lineNumber, target.startColumn, position.lineNumber, target.endColumn);
+            if (!current_selection.containsRange(target_selection))
+              setSelection(position.lineNumber, target.startColumn, position.lineNumber, target.endColumn)
+          }
 
         }
 
