@@ -386,8 +386,7 @@ describe("Проверка автокомлита и подсказок реда
       let suggestions = [];
       bsl.getQuerySourceCompletion(suggestions, null);
       expect(suggestions).to.be.an('array').that.not.is.empty;
-      assert.equal(suggestions.some(suggest => suggest.label === "РозничныйСайт"), true);      
-
+      assert.equal(suggestions.some(suggest => suggest.label === "РозничныйСайт"), true);
     });
 
     it("проверка подсказки поля 'Таблица' внешнего источника в конструкции ИЗ ИЛИ СОЕДИНЕНИЕ ", function () {
@@ -398,8 +397,7 @@ describe("Проверка автокомлита и подсказок реда
       let suggestions = [];
       bsl.getQuerySourceCompletion(suggestions, null);
       expect(suggestions).to.be.an('array').that.not.is.empty;
-      assert.equal(suggestions.some(suggest => suggest.label === "Таблица"), true);      
-
+      assert.equal(suggestions.some(suggest => suggest.label === "Таблица"), true);
     });
 
     it("проверка подсказки таблиц внешнего источника в конструкции ИЗ ИЛИ СОЕДИНЕНИЕ ", function () {
@@ -410,8 +408,7 @@ describe("Проверка автокомлита и подсказок реда
       let suggestions = [];
       bsl.getQuerySourceCompletion(suggestions, null);
       expect(suggestions).to.be.an('array').that.not.is.empty;
-      assert.equal(suggestions.some(suggest => suggest.label === "Customers"), true);      
-      
+      assert.equal(suggestions.some(suggest => suggest.label === "Customers"), true);
     });
 
     it("проверка подсказки полей таблицы внешнего источника", function () {
@@ -423,7 +420,56 @@ describe("Проверка автокомлита и подсказок реда
       bsl.getQueryFieldsCompletion(suggestions);
       expect(suggestions).to.be.an('array').that.not.is.empty;
       assert.equal(suggestions.some(suggest => suggest.label === "customer_id"), true);
-      
+    });
+
+    it("проверка подсказки табличных частей в конструкции ИЗ или СОЕДИНЕНИЕ", function () {
+      bsl = helper(`ВЫБРАТЬ
+      *
+      ИЗ      
+        Справочник.Товары.`);
+      let suggestions = bsl.getQueryCompletion();
+      expect(suggestions).to.be.an('object');
+      expect(suggestions.suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(suggestions.suggestions.some(suggest => suggest.label === "ДополнительныеРеквизиты"), true);
+    });
+
+    it("проверка подсказки реквизитов табличных частей", function () {
+      bsl = helper(`ВЫБРАТЬ
+      ДопРеквизиты.
+      ИЗ      
+        Справочник.Товары.ДополнительныеРеквизиты КАК ДопРеквизиты`, 2, 20);
+      let suggestions = [];
+      bsl.getQueryFieldsCompletion(suggestions);
+      expect(suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(suggestions.some(suggest => suggest.label === "Ссылка"), true);
+      assert.equal(suggestions.some(suggest => suggest.label === "ИмяРеквизита"), true);
+    });
+
+    it("проверка подсказки для функции ВЫРАЗИТЬ", function () {
+            
+      bsl = helper("ВЫРАЗИТЬ(");
+      let suggestions = bsl.getQueryCompletion();
+      expect(suggestions).to.be.an('array').that.is.empty;
+
+      bsl = helper("ВЫРАЗИТЬ(Товары.Код ");
+      suggestions = bsl.getQueryCompletion();
+      expect(suggestions).to.be.an('object');
+      expect(suggestions.suggestions).to.be.an('array').that.is.not.empty;
+      assert.equal(suggestions.suggestions.some(suggest => suggest.label === "КАК "), true);
+
+      bsl = helper("ВЫРАЗИТЬ(Товары.Код КАК ");
+      suggestions = bsl.getQueryCompletion();
+      expect(suggestions).to.be.an('object');
+      expect(suggestions.suggestions).to.be.an('array').that.is.not.empty;
+      assert.equal(suggestions.suggestions.some(suggest => suggest.label === "Строка"), true);
+      assert.equal(suggestions.suggestions.some(suggest => suggest.label === "Справочник"), true);
+
+      bsl = helper("ВЫРАЗИТЬ(Товары.Код КАК Справочник.");
+      suggestions = bsl.getQueryCompletion();
+      expect(suggestions).to.be.an('object');
+      expect(suggestions.suggestions).to.be.an('array').that.is.not.empty;
+      assert.equal(suggestions.suggestions.some(suggest => suggest.label === "Товары"), true);      
+
     });
 
     setLanguageMode('bsl_query');

@@ -320,6 +320,14 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
     let isCompareMode = (editor.navi != undefined);
 
+    queryMode = (mode == 'bsl_query');
+    DCSMode = (mode == 'dcs_query');
+
+    if (queryMode || DCSMode)
+      editor.updateOptions({ foldingStrategy: "indentation" });
+    else
+      editor.updateOptions({ foldingStrategy: "auto" });
+
     if (isCompareMode) {
       monaco.editor.setModelLanguage(editor.getModifiedEditor().getModel(), mode);
       monaco.editor.setModelLanguage(editor.getOriginalEditor().getModel(), mode);
@@ -327,9 +335,6 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     else {
       monaco.editor.setModelLanguage(editor.getModel(), mode);
     }
-
-    queryMode = (mode == 'bsl_query');
-    DCSMode = (mode == 'dcs_query');
 
     let currentTheme = getCurrentThemeName();
     setTheme(currentTheme);
@@ -427,7 +432,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     if (endLineNumber <= getLineCount()) {
       let range = new monaco.Range(startLineNumber, startColumn, endLineNumber, endColumn);
       editor.setSelection(range);
-      editor.revealLineInCenterIfOutsideViewport(startLineNumber);
+      editor.revealPositionInCenterIfOutsideViewport(range.getEndPosition());
       return true;
     }
     else
@@ -441,7 +446,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     let endPosition = editor.getModel().getPositionAt(end - 1);
     let range = new monaco.Range(startPosition.lineNumber, startPosition.column, endPosition.lineNumber, endPosition.column);    
     editor.setSelection(range);
-    editor.revealPositionInCenterIfOutsideViewport(startPosition);
+    editor.revealPositionInCenterIfOutsideViewport(endPosition);
 
     return true;
 
@@ -1418,6 +1423,24 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  scale = function(direction) {
+
+    if (direction == 0)
+      editor.trigger('', 'editor.action.fontZoomReset');
+    else if (0 < direction)
+      editor.trigger('', 'editor.action.fontZoomIn');
+    else
+      editor.trigger('', 'editor.action.fontZoomOut');
+
+  }
+
+  gotoLine = function() {
+
+    editor.trigger('', 'editor.action.gotoLine');
+    getQuickOpenWidget().widget.quickOpenWidget.inputElement.focus();
+
+  }
+
   showVariablesDescription = function(variablesJSON) {    
     
     try {
@@ -1703,8 +1726,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
           let target = editor.getModel().getWordAtPosition(position);
 
-          if (target)
-            setSelection(position.lineNumber, target.startColumn, position.lineNumber, target.endColumn)
+          if (target) {
+            let current_selection = editor.getSelection();
+            let target_selection = new monaco.Range(position.lineNumber, target.startColumn, position.lineNumber, target.endColumn);
+            if (!current_selection.containsRange(target_selection))
+              setSelection(position.lineNumber, target.startColumn, position.lineNumber, target.endColumn)
+          }
 
         }
 
@@ -2191,6 +2218,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   function getFindWidget() {
   
     return getActiveEditor()._overlayWidgets['editor.contrib.findWidget'];
+
+  }
+
+  function getQuickOpenWidget() {
+  
+    return getActiveEditor()._overlayWidgets['editor.contrib.quickOpenEditorWidget'];
 
   }
 

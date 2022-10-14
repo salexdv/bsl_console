@@ -11,6 +11,7 @@
 	</script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/chai/2.0.0/chai.js"></script>	
 	<link href="./decorations.css" rel="stylesheet">
+	<link href="./tree/tree.css" rel="stylesheet">  
 </head>
 
 <body>
@@ -1120,7 +1121,7 @@
 		'	Справочник.Товары КАК Товары',
 		'		ЛЕВОЕ СОЕДИНЕНИЕ РегистрСведений.ЦеныНоменклатуры.СрезПоследних(',
 		'			&Период,',
-		'			Номенклатура В (&СписокНоменклатуры),',
+		'			Номенклатура.ВидНоменклатуры В (&СписокВидовНоменклатуры),',
 		'		) КАК Цены',
 		'		ПО Товары.Ссылка = Цены.Номенклатура',
 		'		ЛЕВОЕ СОЕДИНЕНИЕ РегистрНакопления.ОстаткиТоваров.Остатки КАК Остатки',
@@ -1177,6 +1178,15 @@
   </script>
 
   <div id="container" style="width:100%;height:600px;border:1px solid grey"></div>  
+  <div id="display">
+    <div id="display-header">
+      <div id="display-title"></div>
+      <div id="display-close"></div>
+    </div>
+    <div id="variables-display">
+      <div id="variables-tree"></div>
+    </div>    
+  </div>
   <button id="event-button"></button>
 
   <script src="./vs/loader.js"></script>
@@ -1185,6 +1195,7 @@
   <script src="./bsl_helper.js"></script>
   <script src="./test_query.js"></script>
   <script src="./init.js"></script>
+  <script src="./tree/tree.js"></script>
 
   <div id="mocha"></div>
 
