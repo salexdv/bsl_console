@@ -36,6 +36,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   events_queue = [];
   editor_options = [];
   snippets = {};
+  treeview = null;
   // #endregion
 
   // #region public API
@@ -192,7 +193,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   setTheme = function (theme) {
         
-    monaco.editor.setTheme(theme);    
+    monaco.editor.setTheme(theme);
+    setThemeVariablesDisplay(theme);
 
   }
 
@@ -269,6 +271,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
     version1C = version;
     initContextMenuActions();
+    editor.layout();
 
   }
 
@@ -317,6 +320,14 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
     let isCompareMode = (editor.navi != undefined);
 
+    queryMode = (mode == 'bsl_query');
+    DCSMode = (mode == 'dcs_query');
+
+    if (queryMode || DCSMode)
+      editor.updateOptions({ foldingStrategy: "indentation" });
+    else
+      editor.updateOptions({ foldingStrategy: "auto" });
+
     if (isCompareMode) {
       monaco.editor.setModelLanguage(editor.getModifiedEditor().getModel(), mode);
       monaco.editor.setModelLanguage(editor.getOriginalEditor().getModel(), mode);
@@ -324,9 +335,6 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     else {
       monaco.editor.setModelLanguage(editor.getModel(), mode);
     }
-
-    queryMode = (mode == 'bsl_query');
-    DCSMode = (mode == 'dcs_query');
 
     let currentTheme = getCurrentThemeName();
     setTheme(currentTheme);
@@ -406,10 +414,10 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
-  getVarsNames = function () {
+  getVarsNames = function (includeLineNumber = false) {
     
     let bsl = new bslHelper(editor.getModel(), editor.getPosition());		
-    return bsl.getVarsNames(0);    
+    return bsl.getVarsNames(0, includeLineNumber);    
     
   }
 
@@ -424,7 +432,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     if (endLineNumber <= getLineCount()) {
       let range = new monaco.Range(startLineNumber, startColumn, endLineNumber, endColumn);
       editor.setSelection(range);
-      editor.revealLineInCenterIfOutsideViewport(startLineNumber);
+      editor.revealPositionInCenterIfOutsideViewport(range.getEndPosition());
       return true;
     }
     else
@@ -438,7 +446,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     let endPosition = editor.getModel().getPositionAt(end - 1);
     let range = new monaco.Range(startPosition.lineNumber, startPosition.column, endPosition.lineNumber, endPosition.column);    
     editor.setSelection(range);
-    editor.revealPositionInCenterIfOutsideViewport(startPosition);
+    editor.revealPositionInCenterIfOutsideViewport(endPosition);
 
     return true;
 
@@ -669,6 +677,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       editor.getOriginalEditor().onDidChangeCursorPosition(e => diffEditorOnDidChangeCursorPosition(e));
       editor.getModifiedEditor().onDidLayoutChange(e => diffEditorOnDidLayoutChange(e));
       editor.getOriginalEditor().onDidLayoutChange(e => diffEditorOnDidLayoutChange(e));
+      setDefaultStyle();
     }
     else
     {
@@ -940,6 +949,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  setLetterSpacing = function(letterSpacing) {
+
+    editor.updateOptions({letterSpacing: letterSpacing});
+
+  }
+
   renderWhitespace = function(enabled) {
 
     let mode = enabled ? 'all' : 'none';
@@ -1041,8 +1056,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       let suggest_item = suggestWidget.widget.list.view.items[i];
       suggest_item.element.completion.detail = detailInList;      
       
-      if (!documentation)
-        suggest_item.element.completion.documentation = documentation;      
+      if (documentation)
+        suggest_item.element.completion.documentation = documentation;
      
       let detail_element = getChildWithClass(suggest_item.row.domNode,'details-label');
 
@@ -1105,20 +1120,24 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   setOption = function (optionName, optionValue) {
 
-    editor[optionName] = optionValue;
-    editor_options[optionName] = optionValue;
+    setTimeout(() => {
 
-    if (optionName == 'generateBeforeSignatureEvent')
-      startStopSignatureObserver();
+      editor[optionName] = optionValue;
+      editor_options[optionName] = optionValue;
 
-    if (optionName == 'generateSelectSuggestEvent')
-      startStopSuggestSelectionObserver();
+      if (optionName == 'generateBeforeSignatureEvent')
+        startStopSignatureObserver();
 
-    if (optionName == 'disableDefinitionMessage')
-      startStopDefinitionMessegeObserver();
+      if (optionName == 'generateSelectSuggestEvent')
+        startStopSuggestSelectionObserver();
 
-    if (optionName == 'generateSuggestActivationEvent')
-      startStopSuggestActivationObserver();
+      if (optionName == 'disableDefinitionMessage')
+        startStopDefinitionMessegeObserver();
+
+      if (optionName == 'generateSuggestActivationEvent')
+        startStopSuggestActivationObserver();
+        
+    }, 10);
 
   }
 
@@ -1380,6 +1399,94 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  fold = function() {
+
+    editor.trigger('', 'editor.fold');
+
+  }
+
+  foldAll = function() {
+
+    editor.trigger('', 'editor.foldAll');
+
+  }
+
+  unfold = function() {
+
+    editor.trigger('', 'editor.unfold');
+
+  }
+
+  unfoldAll = function() {
+
+    editor.trigger('', 'editor.unfoldAll');
+
+  }
+
+  scale = function(direction) {
+
+    if (direction == 0)
+      editor.trigger('', 'editor.action.fontZoomReset');
+    else if (0 < direction)
+      editor.trigger('', 'editor.action.fontZoomIn');
+    else
+      editor.trigger('', 'editor.action.fontZoomOut');
+
+  }
+
+  gotoLine = function() {
+
+    editor.trigger('', 'editor.action.gotoLine');
+    getQuickOpenWidget().widget.quickOpenWidget.inputElement.focus();
+
+  }
+
+  showVariablesDescription = function(variablesJSON) {    
+    
+    try {
+      
+      if (treeview != null)
+        hideVariablesDisplay();
+
+      const variables = JSON.parse(variablesJSON);
+      treeview = new Treeview("#variables-tree", editor, "./tree/icons/");
+      treeview.replaceData(variables);
+      showVariablesDisplay();
+
+      return true;
+
+    }
+    catch (e) {
+      return { errorDescription: e.message };
+    }
+
+  }
+
+  updateVariableDescription = function(variableId, variableJSON) { 
+
+    try {
+
+      const variables = JSON.parse(variableJSON);
+      treeview.replaceData(variables, variableId);
+      treeview.open(variableId);
+      return true;
+
+    }
+    catch (e) {
+      return { errorDescription: e.message };
+    }
+
+  }   
+    
+  setDefaultStyle = function() {
+
+    setFontFamily("Courier New");
+    setFontSize(14);
+    setLineHeight(16);
+    setLetterSpacing(0);
+
+  }
+
   generateEventWithSuggestData = function(eventName, trigger, row, suggestRows = []) {
 
     let bsl = new bslHelper(editor.getModel(), editor.getPosition());
@@ -1455,6 +1562,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     changeCommandKeybinding('editor.action.peekDefinition', monaco.KeyMod.CtrlCmd | monaco.KeyCode.F12);
     changeCommandKeybinding('editor.action.deleteLines',  monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_L);
     changeCommandKeybinding('editor.action.selectToBracket',  monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.KEY_B);
+
+    setDefaultStyle();
 
   }
 
@@ -1540,6 +1649,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   // #region editor events
   function initEditorEventListenersAndProperies() {
 
+    editor.sendEvent = sendEvent;
     editor.decorations = [];
     editor.bookmarks = new Map();
     editor.checkBookmarks = true;
@@ -1616,8 +1726,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
           let target = editor.getModel().getWordAtPosition(position);
 
-          if (target)
-            setSelection(position.lineNumber, target.startColumn, position.lineNumber, target.endColumn)
+          if (target) {
+            let current_selection = editor.getSelection();
+            let target_selection = new monaco.Range(position.lineNumber, target.startColumn, position.lineNumber, target.endColumn);
+            if (!current_selection.containsRange(target_selection))
+              setSelection(position.lineNumber, target.startColumn, position.lineNumber, target.endColumn)
+          }
 
         }
 
@@ -2107,6 +2221,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  function getQuickOpenWidget() {
+  
+    return getActiveEditor()._overlayWidgets['editor.contrib.quickOpenEditorWidget'];
+
+  }
+
   function getNativeLinkHref(element, isForwardDirection) {
 
     let href = '';
@@ -2141,7 +2261,6 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     else if (element.classList.contains('detected-link-active')) {
 
       let href = getNativeLinkHref(element, null);
-
       if (href) {
         sendEvent("EVENT_ON_LINK_CLICK", { label: href, href: href });
         setTimeout(() => {
@@ -2796,7 +2915,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     updateStatusBar();
 
   }
-
+  
   function createDiffWidget(e) {
 
     if (inlineDiffWidget) {
@@ -2964,42 +3083,35 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   
   function onSuggestListMouseOver(activationEventEnabled) {
 
-    return; // Disabled until fix https://github.com/salexdv/bsl_console/issues/190
     let widget = getSuggestWidget().widget;
 
     if (activationEventEnabled) {
-      
-      let alwaysDisplaySuggestDetails = getOption('alwaysDisplaySuggestDetails');
 
-      if (!alwaysDisplaySuggestDetails) {
+      widget.listElement.onmouseoverOrig = widget.listElement.onmouseover;
+      widget.listElement.onmouseover = function (e) {
 
-        widget.listElement.onmouseoverOrig = widget.listElement.onmouseover;
-        widget.listElement.onmouseover = function(e) {        
-          
-          removeSuggestListInactiveDetails();
+        removeSuggestListInactiveDetails();
 
-          let parent_row = getParentWithClass(e.target, 'monaco-list-row');        
+        let parent_row = getParentWithClass(e.target, 'monaco-list-row');
 
-          if (parent_row) {
-            
-            if (!parent_row.classList.contains('focused')) {
-              
-              let details = getChildWithClass(parent_row, 'details-label');
-              
-              if (details) {
-                details.classList.add('inactive-detail');
-                generateEventWithSuggestData('EVENT_ON_ACTIVATE_SUGGEST_ROW', 'hover', parent_row);
-              }
+        if (parent_row) {
 
-              let read_more = getChildWithClass(parent_row, 'readMore');
-              
-              if (read_more)
-                read_more.classList.add('inactive-more');
+          if (!parent_row.classList.contains('focused')) {
 
-              if (typeof(widget.listElement.onmouseoverOrig) == 'function')
-                widget.listElement.onmouseoverOrig(e);
+            let details = getChildWithClass(parent_row, 'details-label');
 
+            if (details) {
+              details.classList.add('inactive-detail');
+              generateEventWithSuggestData('EVENT_ON_ACTIVATE_SUGGEST_ROW', 'hover', parent_row);
             }
+
+            let read_more = getChildWithClass(parent_row, 'readMore');
+
+            if (read_more)
+              read_more.classList.add('inactive-more');
+
+            if (typeof (widget.listElement.onmouseoverOrig) == 'function')
+              widget.listElement.onmouseoverOrig(e);
 
           }
 
@@ -3022,6 +3134,38 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     editor.checkBookmarks = false;
     bslHelper.setText('', editor.getModel().getFullModelRange(), false);
     editor.checkBookmarks = true;
+
+  }
+
+  function showVariablesDisplay() {
+
+    document.getElementById("container").style.height = "70%";
+    getActiveEditor().layout();
+    document.getElementById("display-title").innerHTML = engLang ? "Variables" : "Просмотр значений переменных:"
+    let element = document.getElementById("display");
+    element.style.height = "30%";
+    element.style.display = "block";
+
+  }
+
+  function hideVariablesDisplay() {
+    
+    document.getElementById("container").style.height = "100%";
+    getActiveEditor().layout();
+    let element = document.getElementById("display");
+    element.style.height = "0";
+    element.style.display = "none";
+    treeview.dispose();
+    treeview = null;
+
+  }
+
+  function setThemeVariablesDisplay(theme) {
+
+    if (0 < theme.indexOf('dark'))
+      document.getElementById("display").classList.add('dark');
+    else
+      document.getElementById("display").classList.remove('dark');
 
   }
   // #endregion
@@ -3081,6 +3225,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       resizeStatusBar();    
     
   }, true);
+
+  document.getElementById("display-close").addEventListener("click", (event) => {    
+    
+    hideVariablesDisplay();
+
+  });
   // #endregion
 
 });

@@ -163,7 +163,16 @@ describe("Проверка автокомлита и подсказок реда
       '  ',
       '  Возврат Результат.Ошибки;',
       '',
-      'КонецФункции'].join('\n');
+      'КонецФункции',
+      '',
+      '// Выполняет фрагмент кода, который передается ему в качестве строкового значения',
+      '//',
+      '// Параметры:',
+      '//  __Текст__	- Строка	- Строка, содержащая текст исполняемого кода',
+      '//',
+      'Процедура __Выполнить__(__Текст__) Экспорт',
+      ' Вычислить(__Текст__);',
+      'КонецПроцедуры'].join('\n');
 
     }
 
@@ -200,15 +209,15 @@ describe("Проверка автокомлита и подсказок реда
 
       it("проверка подсказки параметров для глобальной функции Найти(", function () {
         bsl = helper('Найти(');        
-        let suggestions = [];
-        let help = bsl.getCommonSigHelp(bslGlobals.globalfunctions);
+        let context = bsl.getLastSigMethod({});
+        let help = bsl.getCommonSigHelp(context, bslGlobals.globalfunctions);
         expect(help).to.have.property('activeParameter');
       });
 
       it("проверка подсказки параметров для глобальной функции Найти обернутой в функцию", function () {
         bsl = helper('СтрНайти(Найти(');
-        let suggestions = [];
-        let help = bsl.getCommonSigHelp(bslGlobals.globalfunctions);
+        let context = bsl.getLastSigMethod({});
+        let help = bsl.getCommonSigHelp(context, bslGlobals.globalfunctions);
         expect(help).to.have.property('activeParameter');
       });
 
@@ -233,14 +242,15 @@ describe("Проверка автокомлита и подсказок реда
       it("проверка подсказки параметров для конструктора HTTPЗапрос", function () {
         bsl = helper('Новый HTTPЗапрос(');
         let suggestions = [];
-        let help = bsl.getClassSigHelp(bslGlobals.classes);
+        let context = bsl.getLastSigMethod({});
+        let help = bsl.getClassSigHelp(context, bslGlobals.classes);
         expect(help).to.have.property('activeParameter');
       });
 
       it("проверка подсказки параметров для конструктора HTTPЗапрос обернутого в функцию", function () {
         bsl = helper('СтрНайти(Новый HTTPЗапрос(');
-        let suggestions = [];
-        let help = bsl.getClassSigHelp(bslGlobals.classes);
+        let context = bsl.getLastSigMethod({});
+        let help = bsl.getClassSigHelp(context, bslGlobals.classes);
         expect(help).to.have.property('activeParameter');
       });
 
@@ -351,10 +361,20 @@ describe("Проверка автокомлита и подсказок реда
         assert.equal(suggestions.some(suggest => suggest.label === "Цена"), true);
       });
 
+      it("проверка подсказки для выборки справочника 'Товары'", function () {
+        bsl = helper('Выборка = Справочники.Товары.Выбрать();\nВыборка.');
+        let suggestions = [];
+        bsl.getMetadataCompletion(suggestions, bslMetadata)
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "Цена"), true);
+        assert.equal(suggestions.some(suggest => suggest.label === "Следующий"), true);
+        assert.equal(suggestions.some(suggest => suggest.label === "ЭтоГруппа"), true);
+      });
+
       it("проверка подсказки параметров для метода 'Записать' документа 'АвансовыйОтчет'", function () {
         bsl = helper('Док = Документы.АвансовыйОтчет.НайтиПоНомеру(1);\nДок.Записать(');
-        let suggestions = [];
-        let help = bsl.getMetadataSigHelp(bslMetadata);
+        let context = bsl.getLastSigMethod({});
+        let help = bsl.getMetadataSigHelp(context, bslMetadata);
         expect(help).to.have.property('activeParameter');
       });
 
@@ -449,9 +469,9 @@ describe("Проверка автокомлита и подсказок реда
       });
 
       it("проверка подсказки параметров для пользовательской функции МояФункция2", function () {
-        bsl = helper('МояФункция2');        
-        let suggestions = [];
-        let help = bsl.getCommonSigHelp(bslGlobals.customFunctions);
+        bsl = helper('МояФункция2(');        
+        let context = bsl.getLastSigMethod({});
+        let help = bsl.getCommonSigHelp(context, bslGlobals.customFunctions);
         expect(help).to.have.property('activeParameter');
       });
 
@@ -462,7 +482,8 @@ describe("Проверка автокомлита и подсказок реда
         let model = editor.getModel();
         editor.setPosition(position);
         bsl = new bslHelper(model, position);
-        let help = bsl.getCustomSigHelp();
+        let context = bsl.getLastSigMethod({});
+        let help = bsl.getCustomSigHelp(context);
         expect(help).to.have.property('activeParameter');
         assert.equal(setCustomSignatures('{}'), true);        
       });
@@ -700,7 +721,8 @@ describe("Проверка автокомлита и подсказок реда
           [2, new Map([["скопировать", { "ref": "classes.ТаблицаЗначений", "sig": null }]])],
           [3, new Map([["выгрузитьколонку", { "ref": "classes.Массив", "sig": signature }]])]
         ]);        
-        let help = bsl.getRefSigHelp();        
+        let context = bsl.getLastSigMethod({});
+        let help = bsl.getRefSigHelp(context);
         expect(help).to.have.property('activeParameter');
         contextData = new Map();
       });
@@ -874,7 +896,8 @@ describe("Проверка автокомлита и подсказок реда
 
       it("проверка подсказки параметров для метода менеджера справочника", function () {
         bsl = helper('Справочники.Товары.ПервыйМетодМенеджера(');
-        let help = bsl.getMetadataSigHelp(bslMetadata);
+        let context = bsl.getLastSigMethod({});
+        let help = bsl.getMetadataSigHelp(context, bslMetadata);
         expect(help).to.have.property('activeParameter');
       });
 
@@ -912,6 +935,18 @@ describe("Проверка автокомлита и подсказок реда
         suggestions = bsl.getCodeCompletion({triggerCharacter: ''});
         expect(suggestions).to.be.an('array').that.not.is.empty;
         assert.equal(suggestions.some(suggest => suggest.label === "ЗначениеРеквизитаОбъекта"), true);
+
+        bsl = helper('ЕстьСсылкиНаОбъект(');
+        let context = bsl.getLastSigMethod({});
+        let help = bsl.getCommonSigHelp(context, bslGlobals.globalfunctions);
+        expect(help).to.have.property('signatures');
+        expect(help.signatures).to.be.an('array').that.not.is.empty;
+        assert.equal(
+          help.signatures.some(
+            signature => expect(signature).to.have.property('parameters') &&
+            signature.parameters.some(param => param.documentation.indexOf('ЛюбаяСсылка, Массив - объект или список объектов') === 0)
+          ), true
+        );
         
       });
 
@@ -953,6 +988,34 @@ describe("Проверка автокомлита и подсказок реда
         bsl.getMetadataDescription(suggestions);
         expect(suggestions).to.be.an('array').that.not.is.empty;
         assert.equal(suggestions.some(suggest => suggest.label === "Справочники"), true);
+
+      });
+
+      it("проверка подсказки структуры метаданных справочника 'Товары'", function () {
+
+        contextData = new Map([
+          [1, new Map([["товары", { "ref": "catalogs.metadata.Товары", "sig": null }]])],
+        ]);
+
+        bsl = helper('(Метаданные.Справочники.Товары.');
+        let suggestions = bsl.getCodeCompletion({triggerCharacter: ''});
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(
+          suggestions.some(
+            suggest => suggest.label === "Реквизиты" &&
+            expect(suggest).to.have.property('command') &&
+            expect(suggest.command).to.have.property('arguments') &&
+            expect(suggest.command.arguments).to.be.an('array').that.not.is.empty &&
+            suggest.command.arguments.some(
+              arg => expect(arg).to.have.property('data') &&
+              expect(arg.data.list).to.be.an('array').that.not.is.empty &&
+              arg.data.list.some(
+                list => list.name === "СтавкаНДС" &&
+                list.ref === "metadataObjectCollection.Реквизит"
+              )
+            )
+          ), true
+        );
 
       });
 
@@ -1082,6 +1145,15 @@ describe("Проверка автокомлита и подсказок реда
         expect(suggestions).to.be.an('array').that.not.is.empty;
         assert.equal(suggestions.some(suggest => suggest.label === "СоздатьОбъект"), true);
         assert.equal(suggestions.some(suggest => suggest.label === "СоздатьМенеджерЗаписи"), true);
+
+      });
+
+      it("проверка подсказки методов менеджера справочников/документов/т.п", function () {
+
+        bsl = helper('Справочники.');
+        let suggestions = bsl.getCodeCompletion({triggerCharacter: '.'});
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "ТипВсеСсылки"), true);
 
       });
       
