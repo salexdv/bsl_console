@@ -13,12 +13,19 @@ class Treeview {
   on(eventName, eventData) {
     switch (eventName) {      
       case "click": {
-      	console.log(eventData);
-        if (eventData.target.tagName == 'A') {
+      	if (eventData.target.tagName == 'A') {
           eventData.preventDefault();
           let element = eventData.target;
-          if (this.editor) {            
-            this.editor.sendEvent("EVENT_ON_LINK_CLICK", { label: element.innerText, href: element.getAttribute('href') });
+          if (this.editor) {                        
+            let parent = eventData.target.closest('summary');
+            let link = {
+              variableName: parent.dataset.label,
+              variableId: parent.id,
+              variablePath: parent.dataset.path,
+              label: element.innerText,
+              href: element.getAttribute('href')
+            };
+            this.editor.sendEvent("EVENT_ON_LINK_CLICK", link);
           }
         }
         else if (eventData.target.nodeName == 'SUMMARY' && !eventData.target.parentNode.hasAttribute("open")) {
@@ -79,7 +86,7 @@ class Treeview {
     let buf = Object.keys(data).map((key) => 
       `<details><summary  id="${key}" data-label="${data[key].label}" data-requested="false" data-path="${data[key].path}" class="${data[key].class}">
       <img class="icon" src="${me.imageBase}${data[key].icon ? data[key].icon : data[key].children ? 'structure.png' : 'undefined.png'}"> </img>
-      ${data[key].label}<span class="equal"> = </span>
+      ${data[key].label} ${data[key].type || data[key].value ? '<span class="equal"> = </span>' : ' '}
       ${Object.keys(data[key]).map((subkey) => {
         return subkey == 'type' || subkey == 'value' ? `<span class="${subkey}">${data[key][subkey]}</span>` : ' ' 
       }).join(' ')}
