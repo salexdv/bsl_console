@@ -37,6 +37,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   editor_options = [];
   snippets = {};
   treeview = null;
+  lineNumbersDedocrations = []
   // #endregion
 
   // #region public API
@@ -1487,6 +1488,33 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  setLineNumbersDecorations = function(decorations) {
+
+    lineNumbersDedocrations = [];
+    lineNumbersDedocrations.push();
+
+    try {
+      
+      const decor = JSON.parse(decorations);
+      let length = 0;
+      decor.forEach(function (value) {
+        lineNumbersDedocrations.push(value);
+        length = Math.max(length, value.length)
+      });
+
+      editor.updateOptions({ lineNumbersMinChars: 0 });
+      editor.updateOptions({ lineNumbersMinChars: length + 3 });
+      editor.layout();
+
+      return true;
+
+    }
+    catch (e) {
+      return { errorDescription: e.message };
+    }
+
+  }
+
   generateEventWithSuggestData = function(eventName, trigger, row, suggestRows = []) {
 
     let bsl = new bslHelper(editor.getModel(), editor.getPosition());
@@ -1555,13 +1583,16 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       parameterHints: {
         cycle: true
       },
-      customOptions: true
+      customOptions: true,
+      lineNumbers: getLineNumber
     });
 
     changeCommandKeybinding('editor.action.revealDefinition', monaco.KeyCode.F12);
     changeCommandKeybinding('editor.action.peekDefinition', monaco.KeyMod.CtrlCmd | monaco.KeyCode.F12);
     changeCommandKeybinding('editor.action.deleteLines',  monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_L);
     changeCommandKeybinding('editor.action.selectToBracket',  monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.KEY_B);
+    
+    lineNumbersDedocrations = [];
 
     setDefaultStyle();
 
@@ -1785,6 +1816,15 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   // #endregion
     
   // #region non-public functions
+  function getLineNumber(originalLineNumber) {
+
+    if (originalLineNumber < lineNumbersDedocrations.length)
+      return lineNumbersDedocrations[originalLineNumber] + ' ' + originalLineNumber;
+    
+     return originalLineNumber;
+
+  }
+
   function disposeEditor() {
 
     if (editor) {
