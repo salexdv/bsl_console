@@ -1121,7 +1121,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   setOption = function (optionName, optionValue) {
 
-    setTimeout(() => {
+    // setTimeout(() => { // Асинхронное выполнение не совместимо со старым API и рождает много скрытых проблем https://github.com/salexdv/bsl_console/issues/297
 
       editor[optionName] = optionValue;
       editor_options[optionName] = optionValue;
@@ -1138,7 +1138,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       if (optionName == 'generateSuggestActivationEvent')
         startStopSuggestActivationObserver();
         
-    }, 10);
+    // }, 10);
 
   }
 
