@@ -1818,8 +1818,9 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   // #region non-public functions
   function getLineNumber(originalLineNumber) {
 
-    if (originalLineNumber < lineNumbersDedocrations.length)
-      return lineNumbersDedocrations[originalLineNumber] + ' ' + originalLineNumber;
+    // Исправлена потеря первой декорации https://github.com/salexdv/bsl_console/issues/296#issuecomment-1303625104
+    if (originalLineNumber <= lineNumbersDedocrations.length)
+      return lineNumbersDedocrations[originalLineNumber - 1] + ' ' + originalLineNumber;
     
      return originalLineNumber;
 
