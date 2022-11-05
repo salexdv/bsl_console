@@ -1502,8 +1502,9 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         length = Math.max(length, value.length)
       });
 
+      const max_length = lineNumbersDedocrations.length.toString().length + 3
       editor.updateOptions({ lineNumbersMinChars: 0 });
-      editor.updateOptions({ lineNumbersMinChars: length + 3 });
+      editor.updateOptions({ lineNumbersMinChars: length + max_length });
       editor.layout();
 
       return true;
@@ -1816,13 +1817,28 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   // #endregion
     
   // #region non-public functions
+  function getLineNumberMargin(originalLineNumber) {
+    
+    let margin = '';
+    const max_length =  lineNumbersDedocrations.length.toString().length;
+    const length = originalLineNumber.toString().length;
+    const nbsp = String.fromCharCode(160);    
+
+    for (let x = length; x <= max_length; x++)
+      margin += nbsp;
+
+    return margin;
+
+  }
+
   function getLineNumber(originalLineNumber) {
 
-    // Исправлена потеря первой декорации https://github.com/salexdv/bsl_console/issues/296#issuecomment-1303625104
-    if (originalLineNumber <= lineNumbersDedocrations.length)
-      return lineNumbersDedocrations[originalLineNumber - 1] + ' ' + originalLineNumber;
+    if (originalLineNumber <= lineNumbersDedocrations.length) {
+      let str = lineNumbersDedocrations[originalLineNumber - 1].replace(/ /g, String.fromCharCode(160))
+      return str + getLineNumberMargin(originalLineNumber)  + originalLineNumber;
+    }
     
-     return originalLineNumber;
+    return originalLineNumber;
 
   }
 
