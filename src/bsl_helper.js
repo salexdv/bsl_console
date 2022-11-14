@@ -3478,6 +3478,34 @@ class bslHelper {
 	}
 
 	/**
+	 * Fills array of completion for compile directives
+	 * 
+	 * @param {array} suggestions array of suggestions for provideCompletionItems
+	 */
+	getCompilerDirectivesCompetition(suggestions) {
+
+		for (const [key, value] of Object.entries(bslGlobals.compilerDirectives)) {
+
+			if ((key == 'ru' && !engLang) || (key == 'en' && engLang)) {
+
+				for (const [directive, empty] of Object.entries(value)) {
+
+					suggestions.push({
+						label: directive,
+						kind: monaco.languages.CompletionItemKind.Enum,
+						insertText: directive,
+						insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+					});
+
+				}
+
+			}
+
+		}
+
+	}
+
+	/**
 	 * Fills completions for object's methods and properties
 	 * into expressions like 'Types = New Array; Types.Cou<-(unt)'
 	 * 
@@ -3644,6 +3672,47 @@ class bslHelper {
 	}
 
 	/**
+	 * Determines if compile directives is needed
+	 * 
+	 * @returns {bool}
+	 */
+	requireCompilerDirectives(triggerCharacter) {
+
+		if (triggerCharacter && triggerCharacter == '&' && this.column == 2) {
+			
+			return true;
+			
+		}
+		else {
+
+			if (this.wordData) {
+				const range = new monaco.Range(
+					this.lineNumber,
+					this.wordData.startColumn - 1,
+					this.lineNumber,
+					this.wordData.startColumn
+				);
+				return (this.wordData.startColumn == 2 && this.model.getValueInRange(range) == '&')
+			}
+			else if (this.column == 2) {
+
+				const range = new monaco.Range(
+					this.lineNumber,
+					1,
+					this.lineNumber,
+					2
+				);
+				return (this.model.getValueInRange(range) == '&')
+
+			}
+
+		}
+
+		return false
+
+	}
+
+	/**
 	 * Completion provider for code-mode
 	 * 
 	 * @param {CompletionContext} context
@@ -3656,9 +3725,10 @@ class bslHelper {
 		let suggestions = [];
 
 		if (context.triggerCharacter && context.triggerCharacter == ' ') {
-
 			this.getClassCompletion(suggestions, bslGlobals.classes, true);
-
+		}
+		else if (this.requireCompilerDirectives(context.triggerCharacter)) {
+			this.getCompilerDirectivesCompetition(suggestions);
 		}
 		else {
 

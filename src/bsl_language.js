@@ -515,7 +515,7 @@ define([], function () {
         bsl: {
             languageDef: bsl_language,
             completionProvider: {
-                triggerCharacters: ['.', '"', ' '],
+                triggerCharacters: ['.', '"', ' ', '&'],
                 provideCompletionItems: function (model, position, context, token) {
                     resetSuggestWidgetDisplay();
                     let bsl = new bslHelper(model, position);
