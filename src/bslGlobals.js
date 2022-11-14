@@ -38005,6 +38005,22 @@ define([], function () {
                     }
                 }
             }
-        }        
+        },
+        "compilerDirectives": {
+            "ru": {
+                "НаСервере": {},
+                "НаСервереБезКонтекста": {},
+                "НаКлиенте": {},
+                "НаКлиентеНаСервере": {},
+                "НаКлиентеНаСервереБезКонтекста": {}
+            },
+            "en": {
+                "AtServer": {},
+                "AtServerNoContext": {},
+                "AtClient": {},
+                "AtClientAtServer": {},
+                "AtClientAtServerNoContext": {}
+            }
+        }
     }
 });
