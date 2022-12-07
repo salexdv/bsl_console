@@ -1720,13 +1720,16 @@ define([], function () {
                "type": "periodical",
                "properties":{
                   "Номенклатура":{
-                     "name": "Номенклатура"
+                     "name": "Номенклатура",
+                     "type": "Dimension"
                   },
                   "Цена":{
-                     "name": "Цена"
+                     "name": "Цена",
+                     "type": "Resource"
                   },
                   "ВидЦены":{
-                     "name": "Вид цены"
+                     "name": "Вид цены",
+                     "type": "Dimension"
                   }
                }
             },
@@ -1734,13 +1737,16 @@ define([], function () {
                "type": "nonperiodical",
                "properties":{
                   "Объект":{
-                     "name": "Объект"
+                     "name": "Объект",
+                     "type": "Dimension"
                   },
                   "НомерВерсии":{
-                     "name": "Номер версии"
+                     "name": "Номер версии",
+                     "type": "Attribute"
                   },
                   "ВерсияОбъекта":{
-                     "name": "Версия объекта"
+                     "name": "Версия объекта",
+                     "type": "Resource"
                   }
                }
             },
