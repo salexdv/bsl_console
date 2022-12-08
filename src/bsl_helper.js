@@ -2596,6 +2596,7 @@ class bslHelper {
 				let metadataFunc = regex && 3 < regex.length ? regex[3] : '';
 
 				if (metadataName && metadataItem && metadataFunc) {
+					metadataFunc = metadataFunc.replace(/[();]/g, '');
 					let result = this.getMetadataItemCompletionFromFullDefinition(suggestions, data, metadataName, metadataItem, metadataFunc);
 					itemExists = result.itemExists;
 				}
