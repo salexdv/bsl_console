@@ -2512,7 +2512,8 @@ class bslHelper {
 									if (!methodDef || !methodDef.hasOwnProperty('ref'))
 										break;
 
-									let isObject = (methodDef && methodDef.hasOwnProperty('ref') && methodDef.ref.indexOf(':obj') != -1);
+									let refToItem = (methodDef.ref.indexOf(key) == 0);
+									let isObject = (methodDef && methodDef.ref.indexOf(':obj') != -1);
 									let methodsName = isObject ? 'objMethods' : 'refMethods';
 
 									let module_type = isObject ? 'object' : 'manager';
@@ -2521,11 +2522,13 @@ class bslHelper {
 										requestMetadata('module.' + module_type + '.' + metadataName.toLowerCase() + '.' + metadataItem.toLowerCase());
 
 									itemExists = true;
-									this.fillSuggestionsForMetadataItem(suggestions, ivalue, key, ikey);
-									this.getMetadataMethods(suggestions, value, methodsName, key, ikey);
-
-									if (methodDef.hasOwnProperty('ref'))
-										this.getRefSuggestions(suggestions, methodDef);
+									
+									if (refToItem) {
+										this.fillSuggestionsForMetadataItem(suggestions, ivalue, key, ikey);
+										this.getMetadataMethods(suggestions, value, methodsName, key, ikey);
+									}
+									
+									this.getRefSuggestions(suggestions, methodDef);
 
 									if (isObject)
 										this.getMetadataCommmonObjectProperties(suggestions, value);
