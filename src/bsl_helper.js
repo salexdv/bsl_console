@@ -2512,7 +2512,7 @@ class bslHelper {
 									if (!methodDef || !methodDef.hasOwnProperty('ref'))
 										break;
 
-									let refToItem = (methodDef.ref.indexOf(key) == 0);
+									let refToItem = (methodDef.ref.indexOf(key) >= 0);
 									let isObject = (methodDef && methodDef.ref.indexOf(':obj') != -1);
 									let methodsName = isObject ? 'objMethods' : 'refMethods';
 
