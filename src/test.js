@@ -1200,6 +1200,16 @@ describe("Проверка автокомлита и подсказок реда
         assert.equal(suggestions.some(suggest => suggest.label === "ПолучитьОбъект"), false);
 
       });
+
+      it("проверка получения ресурсов регистра сведений по указанным ключевым полям.", function () {
+
+        bsl = helper('Ресурсы = РегистрыСведений.ЦеныНоменклатуры.Получить(Отбор);\Ресурсы.');
+        let suggestions = bsl.getCodeCompletion({triggerCharacter: '.'});
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "Цена"), true);
+        assert.equal(suggestions.some(suggest => suggest.label === "Номенклатура"), false);
+
+      });
       
     }
 
