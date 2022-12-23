@@ -2312,6 +2312,69 @@ class bslHelper {
 	}
 
 	/**
+	 * Gets the list of resources owned by register
+	 * 
+	 * @param {array} suggestions the list of suggestions
+	 * @param {object} obj object from BSL-JSON dictionary
+	 */
+	fillSuggestionsForRegisterResources(suggestions, register) {
+
+		if (register.hasOwnProperty('resources')) {
+				
+			for (const [pkey, pvalue] of Object.entries(register.resources)) {
+
+				let postfix = '';
+
+				if (pvalue.hasOwnProperty('postfix')) {
+					postfix = pvalue.postfix;
+				}
+
+				let command = null;
+				let ref = pvalue.hasOwnProperty('ref') ? pvalue.ref : null;
+				let nestedSuggestions = [];
+
+				let detail = pvalue;
+				let description = '';
+
+				if (pvalue.hasOwnProperty('detail'))
+					detail = pvalue.detail;
+				else if (pvalue.hasOwnProperty('name'))
+					detail = pvalue.name;
+
+				if (pvalue.hasOwnProperty('description'))
+					description = pvalue.description;
+
+
+				if (pvalue.hasOwnProperty('properties'))
+					this.fillSuggestionsForMetadataItem(nestedSuggestions, pvalue, metadataName, metadataItem);
+
+				if (pvalue.hasOwnProperty('methods'))
+					this.getMetadataMethods(nestedSuggestions, pvalue, 'methods', null, null);
+
+				if (ref || nestedSuggestions.length) {
+					// If the attribute contains a ref, we need to run the command to save the position of ref
+					command = { id: 'vs.editor.ICodeEditor:1:saveref', arguments: [{ 'name': pkey, "data": { "ref": ref, "sig": null, "list": nestedSuggestions } }] }
+				}
+
+				if (typeof (detail) == 'object')
+					detail = '';
+
+				suggestions.push({
+					label: pkey,
+					kind: monaco.languages.CompletionItemKind.Field,
+					insertText: pkey + postfix,
+					insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+					detail: detail,
+					documentation: description,
+					command: command
+				});
+			}
+
+		}
+
+	}
+
+	/**
 	 * Gets the list of tabulars owned by object
 	 * (Catalog, Document, etc) and fills the suggestions by it
 	 * 
@@ -2512,8 +2575,9 @@ class bslHelper {
 									if (!methodDef || !methodDef.hasOwnProperty('ref'))
 										break;
 
-									let refToItem = (methodDef.ref.indexOf(key) >= 0);
-									let isObject = (methodDef && methodDef.ref.indexOf(':obj') != -1);
+									let ref = methodDef.ref;
+									let refToItem = (0 <= ref.indexOf(key) && (0 < ref.indexOf(":obj") || 0 < ref.indexOf(":ref")));
+									let isObject = (methodDef && ref.indexOf(':obj') != -1);
 									let methodsName = isObject ? 'objMethods' : 'refMethods';
 
 									let module_type = isObject ? 'object' : 'manager';
@@ -2526,6 +2590,10 @@ class bslHelper {
 									if (refToItem) {
 										this.fillSuggestionsForMetadataItem(suggestions, ivalue, key, ikey);
 										this.getMetadataMethods(suggestions, value, methodsName, key, ikey);
+									}
+
+									if (0 < ref.indexOf(":resources")) {
+										this.fillSuggestionsForRegisterResources(suggestions, ivalue);
 									}
 									
 									this.getRefSuggestions(suggestions, methodDef);
