@@ -1724,15 +1724,14 @@ define([], function () {
                "properties":{
                   "Номенклатура":{
                      "name": "Номенклатура",
-                     "type": "Dimension"
-                  },
-                  "Цена":{
-                     "name": "Цена",
-                     "type": "Resource"
                   },
                   "ВидЦены":{
-                     "name": "Вид цены",
-                     "type": "Dimension"
+                     "name": "Вид цены"
+                  }
+               },
+               "resources":{
+                  "Цена":{
+                     "name": "Цена"                     
                   }
                }
             },
@@ -1740,16 +1739,15 @@ define([], function () {
                "type": "nonperiodical",
                "properties":{
                   "Объект":{
-                     "name": "Объект",
-                     "type": "Dimension"
+                     "name": "Объект"
                   },
                   "НомерВерсии":{
-                     "name": "Номер версии",
-                     "type": "Attribute"
-                  },
+                     "name": "Номер версии"
+                  }
+               },
+               "resources":{
                   "ВерсияОбъекта":{
-                     "name": "Версия объекта",
-                     "type": "Resource"
+                     "name": "Версия объекта"
                   }
                }
             },
@@ -1800,6 +1798,7 @@ define([], function () {
                "name_en":"Get",
                "description":"Получает ресурсы регистра сведений по указанным ключевым полям.",
                "returns":"Структура",
+               "ref":"classes.Структура,infoRegs:resources",
                "signature":{
                   "ДляПериодическогоРегистра":{
                      "СтрокаПараметров":"(Период, Отбор) : Структура",
