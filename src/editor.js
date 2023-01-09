@@ -1817,6 +1817,25 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   // #endregion
     
   // #region non-public functions
+  generateEscapeEvent = function() {
+
+    let position = editor.getPosition();
+    let bsl = new bslHelper(editor.getModel(), position);
+
+    eventParams = {
+      current_word: bsl.word,
+      last_word: bsl.lastRawExpression,
+      last_expression: bsl.lastExpression,
+      altKey: altPressed,
+      ctrlKey: ctrlPressed,
+      shiftKey: shiftPressed,
+      position: position
+    }
+
+    sendEvent('EVENT_ON_KEY_ESC', eventParams);
+
+  }
+
   function getLineNumberMargin(originalLineNumber) {
     
     let margin = '';
@@ -2407,6 +2426,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     }
     else if (e.keyCode == 9) {
       // Esc
+      generateEscapeEvent();
       closeSearchWidget();      
     }
     else if (e.keyCode == 61) {
@@ -2482,6 +2502,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     }
     else if (e.keyCode == 9) {
       // Esc
+      generateEscapeEvent();
       setFindWidgetDisplay('none');
       hideSuggestionsList();
     }
