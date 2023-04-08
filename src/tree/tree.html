@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Treeview</title>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8">  
+  <link href="./tree.css" rel="stylesheet">  
+</head>
+
+<body>
+
+<h1>Variables tree</h1>
+<section>
+<div id="variables-tree"></div>
+</section>
+<script src="./tree.js"></script>
+<script type="text/javascript">
+    let treeview = new Treeview("#variables-tree", null, "./icons/");
+    let cat = {
+      ПриходнаяНакладная: {
+        label: "ПриходнаяНакладная",
+        value: '<a href="#1">Приходная накладная 000-2398 от 22.08.2022 21:32:59</a>',
+        type: "ДокументСсылка.ПриходнаяНакладаная",
+        children: {
+          "Номер": { label: "Код", value: "000-2398", type: "Число", icon: "int.png" },
+          "Дата": { label: "Дата", value: "22.08.2022 21:32:59", type: "Дата", icon: "date.png" },
+          "Организация": {
+            label: "Организация",
+            value: "Рога и копыта",
+            type: "СправочникСсылка.Организации",
+            children: {
+              "Код": { label: "Код", value: "0000001", type: "Число", icon: "int.png" },
+              "ИНН": { label: "ИНН", value: "771111111", type: "Строка", icon: "string.png" },
+              "КПП": { label: "КПП", value: "770000001", type: "Строка", icon: "string.png" }
+            }
+          },
+          "Контрагент": {
+            label: "Контрагент",
+            value: '<a href="#1">Иванов И.И."</a>',
+            type: "СправочникСсылка.Контрагенты",
+            children: {
+              "Код": { label: "Код", value: "0000052", type: "Число" },
+              "ИНН": { label: "ИНН", value: "781111111", type: "Строка" },
+              "КПП": { label: "КПП", value: "780000001", type: "Строка" }
+            }
+          },
+          "Товары": {
+            label: "Товары",
+            type: "ТабличнаяЧасть",
+            children: {
+              "Методы": {
+                label: "Методы",
+                icon: "func.png",
+                children: {
+                  "Выгрузить": { label: "<a href='#1'>Выгрузить()</a>", icon: "func.png", class: "final" },
+                  "Свернуть": { label: "<a href='#1'>Свернуть()</a>", icon: "proc.png", class: "final" }
+                }
+              },
+              "Строка 0": {
+                label: "Строка 0",
+                type: "СтрокаТабличнойЧасти",
+                children: {
+                  "НомерСтроки": { label: "НомерСтроки", value: "1", type: "Число" },
+                  "Товар": { label: "Товар", value: "Товар №1", type: "СправочникСсылка.Товары" },
+                  "Количество": { label: "Количество", value: "5", type: "Число" },
+                  "Цена": { label: "Цена", value: "100", type: "Число" },
+                  "Сумма": { label: "Сумма", value: "500", type: "Число" }
+                }
+              },
+              "Строка 1": {
+                label: "Строка 1",
+                type: "СтрокаТабличнойЧасти",
+                children: {
+                  "НомерСтроки": { label: "НомерСтроки", value: "2", type: "Число" },
+                  "Товар": { label: "Товар", value: "Товар №2", type: "СправочникСсылка.Товары" },
+                  "Количество": { label: "Количество", value: "3", type: "Число" },
+                  "Цена": { label: "Цена", value: "50", type: "Число" },
+                  "Сумма": { label: "Сумма", value: "150", type: "Число" }
+                }
+              },
+              "Строка 2": {
+                label: "Строка 2",
+                type: "СтрокаТабличнойЧасти",
+                children: {
+                  "НомерСтроки": { label: "НомерСтроки", value: "3", type: "Число" },
+                  "Товар": { label: "Товар", value: "Товар №3", type: "СправочникСсылка.Товары" },
+                  "Количество": { label: "Количество", value: "6", type: "Число" },
+                  "Цена": { label: "Цена", value: "90", type: "Число" },
+                  "Сумма": { label: "Сумма", value: "540", type: "Число" }
+                }
+              }
+            }
+          }
+        }
+      },
+      НачалоПериода: {
+        label: "НачалоПериода",
+        value: "01.08.2022 00:00:00",
+        type: "Дата"
+      },
+      КоличествоТоваров: {
+        label: "КоличествоТоваров",
+        value: "14",
+        type: "Число",
+        class: "final"
+      },
+      ТекущийПартнер: {
+        label: "ТекущийПартнер",
+        value: "",
+        type: ""
+      },
+      Строка: {
+        label: "Строка",
+        value: "Это какое-то предложение",
+        type: "Строка",
+        icon: "string.png"
+      },
+
+    };
+    treeview.replaceData(cat);	
+</script>
+</body>
