@@ -59,6 +59,7 @@ window.colors = {};
 window.editor_options = [];
 window.snippets = {};
 window.bslSnippets = {};
+window.treeview = null;
 // #endregion
 
 // #region public API
@@ -1461,11 +1462,14 @@ window.showVariablesDescription = function(variablesJSON) {
     
   try {
 
-    showVariablesDisplay();
+    if (window.treeview != null)
+      hideVariablesDisplay();
 
     const variables = JSON.parse(variablesJSON);
-    treeview = new Treeview("#variables-tree", window.editor, "./tree/icons/");
-    treeview.replaceData(variables);
+    window.treeview = new Treeview("#variables-tree", window.editor, "./tree/icons/");
+    window.treeview.replaceData(variables);
+    showVariablesDisplay();
+
     return true;
 
   }
@@ -1480,8 +1484,8 @@ window.updateVariableDescription = function(variableId, variableJSON) {
   try {
 
     const variables = JSON.parse(variableJSON);
-    treeview.replaceData(variables, variableId);
-    treeview.open(variableId);
+    window.treeview.replaceData(variables, variableId);
+    window.treeview.open(variableId);
     return true;
 
   }
@@ -3191,6 +3195,8 @@ function hideVariablesDisplay() {
   let element = document.getElementById("display");
   element.style.height = "0";
   element.style.display = "none";
+  window.treeview.dispose();
+  window.treeview = null;
 
 }
 
