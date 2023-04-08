@@ -234,14 +234,16 @@ setTimeout(() => {
       it("проверка подсказки параметров для конструктора HTTPЗапрос", function () {
         bsl = helper('Новый HTTPЗапрос(');
         let suggestions = [];
-        let help = bsl.getClassSigHelp(window.bslGlobals.classes);
+        let context = bsl.getLastSigMethod({});
+        let help = bsl.getClassSigHelp(context, window.bslGlobals.classes);
         expect(help).to.have.property('activeParameter');
       });
 
       it("проверка подсказки параметров для конструктора HTTPЗапрос обернутого в функцию", function () {
         bsl = helper('СтрНайти(Новый HTTPЗапрос(');
         let suggestions = [];
-        let help = bsl.getClassSigHelp(window.bslGlobals.classes);
+        let context = bsl.getLastSigMethod({});
+        let help = bsl.getClassSigHelp(context, window.bslGlobals.classes);
         expect(help).to.have.property('activeParameter');
       });
 
