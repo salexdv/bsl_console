@@ -5659,6 +5659,24 @@ class bslHelper {
 	}
 
 	/**
+	 * Determines if the current position is suitable for
+	 * showing a signature help
+	 * 
+	 * @returns {bool}
+	 */
+	isSuitablePlaceForSigHelp() {
+
+		if (window.isQueryMode())
+			return !this.requireQueryValue()
+		else if (window.isDCSMode())
+			return true;
+		else
+			return !this.isItStringLiteral();
+
+
+	}
+	
+	/**
 	 * Returnes name of last method for signature help
 	 * 
 	 * @param {SignatureHelpContext} context signature help context
@@ -5670,7 +5688,7 @@ class bslHelper {
 		let method = '';
 		let bracket = this.model.findMatchingBracketUp('(', this.position);
 
-		if (bracket && (!this.isItStringLiteral() || window.isQueryMode() || window.isDCSMode())) {
+		if (bracket && this.isSuitablePlaceForSigHelp()) {
 
 			let position = new monaco.Position(bracket.startLineNumber, bracket.startColumn);
 			let data = this.model.getWordUntilPosition(position);
@@ -5752,9 +5770,9 @@ class bslHelper {
 	 */
 	getQuerySigHelp(context) {
 		
-		let unclosed = this.unclosedString(this.textBeforePosition);
+		context = this.getLastSigMethod(context);
 
-		if (this.lastOperator != ')' && !this.requireQueryValue() && 0 <= unclosed.index) {
+		if (context.methodName) {
 			
 			context = this.getLastSigMethod(context);
 			let helper = this.getCustomSigHelp(context);
@@ -5780,20 +5798,20 @@ class bslHelper {
  	 */
 	getDCSSigHelp(context) {
 
-		let unclosed = this.unclosedString(this.textBeforePosition);
+		context = this.getLastSigMethod(context);
 
-		if (this.lastOperator != ')' && 0 <= unclosed.index) {
+		if (context.methodName) {
 
 			let helper = this.getCustomSigHelp(context);
 
 			if (!helper && !window.editor.disableNativeSignatures) {
 
 				let functions = this.getQueryFunctions(window.bslDCS);
-				helper = this.getCommonSigHelp(functions);
+				helper = this.getCommonSigHelp(context, functions);
 
 				if (!helper) {
 					functions = this.getQueryFunctions(window.bslQuery);
-					helper = this.getCommonSigHelp(functions);
+					helper = this.getCommonSigHelp(context, functions);
 				}
 
 			}
