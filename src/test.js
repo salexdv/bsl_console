@@ -451,7 +451,7 @@ setTimeout(() => {
       });
 
       it("проверка подсказки параметров для пользовательской функции МояФункция2", function () {
-        bsl = helper('МояФункция2');        
+        bsl = helper('МояФункция2(');        
         let context = bsl.getLastSigMethod({});
         let help = bsl.getCommonSigHelp(context, window.bslGlobals.customFunctions);
         expect(help).to.have.property('activeParameter');
