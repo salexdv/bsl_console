@@ -704,6 +704,7 @@ window.compare = function (text, sideBySide, highlight, markLines = true) {
     window.editor.getOriginalEditor().onDidChangeCursorPosition(e => diffEditorOnDidChangeCursorPosition(e));
     window.editor.getModifiedEditor().onDidLayoutChange(e => diffEditorOnDidLayoutChange(e));
     window.editor.getOriginalEditor().onDidLayoutChange(e => diffEditorOnDidLayoutChange(e));
+    window.setDefaultStyle();
   }
   else
   {
@@ -970,6 +971,12 @@ window.setFontWeight = function(fontWeight)  {
 window.setLineHeight = function(lineHeight) {
 
   window.editor.updateOptions({lineHeight: lineHeight});
+
+}
+
+window.setLetterSpacing = function(letterSpacing) {
+
+  window.editor.updateOptions({letterSpacing: letterSpacing});
 
 }
 
@@ -1442,6 +1449,8 @@ function createEditor(language_id, text, theme) {
   changeCommandKeybinding('editor.action.peekDefinition', monaco.KeyMod.CtrlCmd | monaco.KeyCode.F12);
   changeCommandKeybinding('editor.action.deleteLines',  monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_L);
   changeCommandKeybinding('editor.action.selectToBracket',  monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.KEY_B);
+
+  window.setDefaultStyle();
 
 }
 
@@ -2135,6 +2144,15 @@ function getSuggestWidgetRows(element) {
   }
 
   return rows;
+
+}
+
+window.setDefaultStyle = function() {
+
+  window.setFontFamily("Courier New");
+  window.setFontSize(14);
+  window.setLineHeight(16);
+  window.setLetterSpacing(0);
 
 }
 
