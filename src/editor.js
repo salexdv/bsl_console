@@ -4,6 +4,8 @@ import "@babel/polyfill";
 import languages from './bsl_language';
 import { getActions, permanentActions } from './actions';
 import './decorations.css'
+import './tree/tree.css'
+import './tree/tree.js'
 import { setLocaleData } from 'monaco-editor-nls';
 import ruLocale from 'monaco-editor-nls/locale/ru';
 import Finder from "./finder";
@@ -227,7 +229,8 @@ window.updateCustomFunctions = function (data) {
 
 window.setTheme = function (theme) {
       
-  monaco.editor.setTheme(theme);    
+  monaco.editor.setTheme(theme);
+  setThemeVariablesDisplay(theme);
 
 }
 
@@ -313,6 +316,7 @@ window.init = function(version) {
 
   window.version1C = version;
   initContextMenuActions();
+  window.editor.layout();
 
 }
 
@@ -450,10 +454,10 @@ window.setCustomCodeLenses = function(lensJSON) {
 
 }
 
-window.getVarsNames = function () {
+window.getVarsNames = function (includeLineNumber = false) {
   
   let bsl = new bslHelper(window.editor.getModel(), window.editor.getPosition());		
-  return bsl.getVarsNames(0);    
+  return bsl.getVarsNames(0, includeLineNumber);
   
 }
 
@@ -1452,6 +1456,40 @@ window.unfoldAll = function() {
   window.editor.trigger('', 'editor.unfoldAll');
 
 }
+
+window.showVariablesDescription = function(variablesJSON) {    
+    
+  try {
+
+    showVariablesDisplay();
+
+    const variables = JSON.parse(variablesJSON);
+    treeview = new Treeview("#variables-tree", window.editor, "./tree/icons/");
+    treeview.replaceData(variables);
+    return true;
+
+  }
+  catch (e) {
+    return { errorDescription: e.message };
+  }
+
+}
+
+window.updateVariableDescription = function(variableId, variableJSON) { 
+
+  try {
+
+    const variables = JSON.parse(variableJSON);
+    treeview.replaceData(variables, variableId);
+    treeview.open(variableId);
+    return true;
+
+  }
+  catch (e) {
+    return { errorDescription: e.message };
+  }
+
+}
 // #endregion
 
 // #region init editor
@@ -1613,6 +1651,7 @@ initEditorEventListenersAndProperies();
 // #region editor events
 function initEditorEventListenersAndProperies() {
 
+  window.editor.sendEvent = sendEvent;
   window.editor.decorations = [];
   window.editor.bookmarks = new Map();
   window.editor.checkBookmarks = true;
@@ -3133,6 +3172,36 @@ function eraseTextBeforeUpdate() {
   window.editor.checkBookmarks = true;
 
 }
+
+function showVariablesDisplay() {
+
+  document.getElementById("container").style.height = "70%";
+  getActiveEditor().layout();
+  document.getElementById("display-title").innerHTML = window.engLang ? "Variables" : "Просмотр значений переменных:"
+  let element = document.getElementById("display");
+  element.style.height = "30%";
+  element.style.display = "block";
+
+}
+
+function hideVariablesDisplay() {
+  
+  document.getElementById("container").style.height = "100%";
+  getActiveEditor().layout();
+  let element = document.getElementById("display");
+  element.style.height = "0";
+  element.style.display = "none";
+
+}
+
+function setThemeVariablesDisplay(theme) {
+
+  if (0 < theme.indexOf('dark'))
+    document.getElementById("display").classList.add('dark');
+  else
+    document.getElementById("display").classList.remove('dark');
+
+}
 // #endregion
 
 // #region browser events
@@ -3192,4 +3261,10 @@ window.addEventListener('resize', function(event) {
   resizeStatusBar();
   
 }, true);
+
+document.getElementById("display-close").addEventListener("click", (event) => {    
+    
+  hideVariablesDisplay();
+
+});
 // #endregion
