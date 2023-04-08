@@ -1519,6 +1519,9 @@ class bslHelper {
 					else if (itemName == 'universalObjects' && this.objectHasProperties(window.bslGlobals, itemName, subItemName)) {
 						this.getUniversalObjectSuggestions(suggestions, window.bslGlobals[itemName][subItemName], parentRef);
 					}
+					else if (itemName == 'metadataObjectCollection' && this.objectHasProperties(window.bslGlobals, itemName, subItemName)) {
+						this.getUniversalObjectSuggestions(suggestions, window.bslGlobals[itemName][subItemName], parentRef);
+					}
 					else {
 
 						if (window.isQueryMode() || window.isDCSMode()) {
@@ -1928,11 +1931,12 @@ class bslHelper {
 
 				if (pvalue.hasOwnProperty('list') && item) {
 					let list_name = pvalue.list;
+					let type = pvalue.hasOwnProperty('type') ? pvalue.type : '';
 					if (item.child.hasOwnProperty(list_name)) {
 						for (const [lkey, lvalue] of Object.entries(item.child[list_name])) {
 							list.push({
 								name: lkey,
-								ref: '',
+								ref: type,
 								kind: monaco.languages.CompletionItemKind.Field,
 							});
 						};
