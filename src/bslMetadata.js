@@ -1687,7 +1687,16 @@ let bslMetadata = {
         }
      },
      "manager": {},
-     "object": {}
+     "object": {},
+     "managerMethods": {
+         "ТипВсеСсылки": {
+            "name": "ТипВсеСсылки",
+            "name_en": "AllRefsType",
+            "description": "Получает описание типов, содержащее типы ссылок документов.",
+            "returns": "ОписаниеТипов",
+            "ref": "classes.ОписаниеТипов"
+         }
+      }
   },
   "infoRegs":{
      "name":"РегистрыСведений",
@@ -5459,7 +5468,16 @@ let bslMetadata = {
               "returns": "Описание метаданных"
            }
         }
-     }
+     },
+     "managerMethods": {
+         "ТипВсеСсылки": {
+            "name": "ТипВсеСсылки",
+            "name_en": "AllRefsType",
+            "description": "Получает описание типов, содержащее типы ссылок перечислений.",
+            "returns": "ОписаниеТипов",
+            "ref": "classes.ОписаниеТипов"
+         }
+      }
   },
   "commonModules": {
      "items":{
@@ -6308,7 +6326,16 @@ let bslMetadata = {
               "description": "Возвращает имена предопределенных, заданные в конфигурации в виде фиксированного массива из имен предопределенных типа Строка."
            }
         }
-     }
+     },
+     "managerMethods": {
+         "ТипВсеСсылки": {
+            "name": "ТипВсеСсылки",
+            "name_en": "AllRefsType",
+            "description": "Получает описание типов, содержащее типы ссылок планов счетов.",
+            "returns": "ОписаниеТипов",
+            "ref": "classes.ОписаниеТипов"
+         }
+      }
   },
   "businessProcesses": {
      "name":"БизнесПроцессы",
@@ -7054,7 +7081,16 @@ let bslMetadata = {
               "returns": "Описание метаданных"
            }
         }
-     }
+     },
+     "managerMethods": {
+         "ТипВсеСсылки": {
+            "name": "ТипВсеСсылки",
+            "name_en": "AllRefsType",
+            "description": "Получает описание типов, содержащее типы ссылок бизнес-процессов.",
+            "returns": "ОписаниеТипов",
+            "ref": "classes.ОписаниеТипов"
+         }
+      }
   },
   "tasks": {
      "name":"Задачи",
@@ -7811,7 +7847,16 @@ let bslMetadata = {
               "returns": "Описание метаданных"
            }
         }
-     }
+     },
+     "managerMethods": {
+         "ТипВсеСсылки": {
+            "name": "ТипВсеСсылки",
+            "name_en": "AllRefsType",
+            "description": "Получает описание типов, содержащее типы ссылок задач.",
+            "returns": "ОписаниеТипов",
+            "ref": "classes.ОписаниеТипов"
+         }
+      }
   },
   "exchangePlans": {
      "name":"ПланыОбмена",
@@ -8454,7 +8499,16 @@ let bslMetadata = {
               "returns": "Описание метаданных"
            }
         }
-     }
+     },
+     "managerMethods": {
+         "ТипВсеСсылки": {
+            "name": "ТипВсеСсылки",
+            "name_en": "AllRefsType",
+            "description": "Получает описание типов, содержащее типы ссылок планов обмена.",
+            "returns": "ОписаниеТипов",
+            "ref": "classes.ОписаниеТипов"
+         }
+      }
   },
   "chartsOfCharacteristicTypes": {
      "name":"ПланыВидовХарактеристик",
@@ -9317,7 +9371,16 @@ let bslMetadata = {
               "ref": "classes.ФиксированныйМассив"
            }
         }
-     }
+     },
+     "managerMethods": {
+         "ТипВсеСсылки": {
+            "name": "ТипВсеСсылки",
+            "name_en": "AllRefsType",
+            "description": "Получает описание типов, содержащее типы ссылок планов видов характеристик.",
+            "returns": "ОписаниеТипов",
+            "ref": "classes.ОписаниеТипов"
+         }
+      }
   },
   "chartsOfCalculationTypes": {
      "name":"ПланыВидовРасчета",
@@ -10063,7 +10126,16 @@ let bslMetadata = {
               "ref": "classes.ФиксированныйМассив"
            }
         }
-     }
+     },
+     "managerMethods": {
+         "ТипВсеСсылки": {
+            "name": "ТипВсеСсылки",
+            "name_en": "AllRefsType",
+            "description": "Получает описание типов, содержащее типы ссылок планов видов расчета.",
+            "returns": "ОписаниеТипов",
+            "ref": "classes.ОписаниеТипов"
+         }
+      }
   },
   "constants": {
      "name":"Константы",
