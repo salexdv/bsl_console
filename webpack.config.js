@@ -69,7 +69,7 @@ module.exports = (env, args) => {
             },
             {
               search: /var idx = signature\.label\.[\s\S.]*];/im,
-              replace: 'if (!param.label.length) { return [0, 0]; } else { var regex = new RegExp("(\\\\W|^)${escapeRegExpCharacters(param.label)}(?=\\\\W|$)", "g"); regex.test(signature.label); var idx = regex.lastIndex - param.label.length; return idx >= 0 ? [idx, regex.lastIndex] : [0, 0]; }'
+              replace: 'if (!param.label.length) { return [0, 0]; } else { var regex = new RegExp("(\\\\p{L}\\\\p{N}_]|^)${escapeRegExpCharacters(param.label)}(?=\\\\p{L}\\\\p{N}_]|$)", "g"); regex.test(signature.label); var idx = regex.lastIndex - param.label.length; return idx >= 0 ? [idx, regex.lastIndex] : [0, 0]; }'
             }]
 
           }
