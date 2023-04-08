@@ -1074,7 +1074,7 @@ window.setSuggestItemDetailById = function (rowId, detailInList, documentation =
     let suggest_item = suggestWidget.widget.list.view.items[i];
     suggest_item.element.completion.detail = detailInList;      
     
-    if (!documentation)
+    if (documentation)
       suggest_item.element.completion.documentation = documentation;      
    
     let detail_element = getChildWithClass(suggest_item.row.domNode,'details-label');
