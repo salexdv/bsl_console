@@ -5481,32 +5481,29 @@ class bslHelper {
 	/**
 	 * Finds signatures provided for global functions	 
 	 * 
+	 * @param {SignatureHelpContext} context signature help context  
 	 * @param {object} data objects from BSL-JSON dictionary
 	 * 
 	 * @returns {SignatureHelp} helper with signatures
 	 */
-	getCommonSigHelp(data) {
+	getCommonSigHelp(context, data) {
 
 		let helper = null;
 
-		let funcName = this.getFuncName();
+		let funcName = context.methodName.toLowerCase();
 
-		if (funcName) {
+		for (const [key, value] of Object.entries(data)) {
 
-			for (const [key, value] of Object.entries(data)) {
+			if (value[this.nameField].toLowerCase() == funcName) {
 
-				if (value[this.nameField].toLowerCase() == funcName) {
+				let signatures = this.getMethodsSignature(value);
 
-					let signatures = this.getMethodsSignature(value);
-
-					if (signatures.length) {
-						helper = {
-							activeParameter: this.getSignatureActiveParameter(),
-							activeSignature: 0,
-							signatures: signatures,
-						}
+				if (signatures.length) {
+					helper = {
+						activeParameter: context.activeParameter,
+						activeSignature: 0,
+						signatures: signatures,
 					}
-
 				}
 
 			}
@@ -5714,10 +5711,10 @@ class bslHelper {
 					helper = this.getClassSigHelp(context, bslGlobals.classes);
 
 				if (!helper)
-					helper = this.getCommonSigHelp(window.bslGlobals.globalfunctions);
+					helper = this.getCommonSigHelp(context, window.bslGlobals.globalfunctions);
 
 				if (!helper)
-					helper = this.getCommonSigHelp(window.bslGlobals.customFunctions);
+					helper = this.getCommonSigHelp(context, window.bslGlobals.customFunctions);
 
 			}
 
