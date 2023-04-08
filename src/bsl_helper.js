@@ -6174,6 +6174,11 @@ class bslHelper {
 				let def_model = monaco.editor.createModel(func.definition);
 				let match = Finder.findMatches(def_model, pattern);
 				let param_description = '';
+
+				if (match && !match.length) {
+					pattern = '\/\/ параметры:[\\s\\SS\\n\\t]*?' + param_name + '([\\s\\SS\\n\\t]*?)(?:\/\/\\s*$)';
+					match = Finder.findMatches(model, pattern, range);
+				}
 				
 				if (match && match.length) {
 					param_description = match[0].matches[1];
