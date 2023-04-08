@@ -1138,17 +1138,21 @@ window.previousMatch = function () {
 
 window.setOption = function (optionName, optionValue) {
 
-  window.editor[optionName] = optionValue;
-  window.editor_options[optionName] = optionValue;
+  setTimeout(() => {
 
-  if (optionName == 'generateBeforeSignatureEvent')
-      startStopSignatureObserver();
+    window.editor[optionName] = optionValue;
+    window.editor_options[optionName] = optionValue;
 
-  if (optionName == 'generateSelectSuggestEvent')
-    startStopSuggestSelectionObserver();
+    if (optionName == 'generateBeforeSignatureEvent')
+        startStopSignatureObserver();
 
-  if (optionName == 'disableDefinitionMessage')
-    startStopDefinitionMessegeObserver();
+    if (optionName == 'generateSelectSuggestEvent')
+      startStopSuggestSelectionObserver();
+
+    if (optionName == 'disableDefinitionMessage')
+      startStopDefinitionMessegeObserver();
+
+  }, 10);
 
 }
 
