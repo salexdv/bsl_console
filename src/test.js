@@ -465,7 +465,8 @@ setTimeout(() => {
         let model = window.editor.getModel();
         window.editor.setPosition(position);
         bsl = new bslHelper(model, position);
-        let help = bsl.getCustomSigHelp();
+        let context = bsl.getLastSigMethod({});
+        let help = bsl.getCustomSigHelp(context);
         expect(help).to.have.property('activeParameter');
         assert.equal(window.setCustomSignatures('{}'), true);        
       });
