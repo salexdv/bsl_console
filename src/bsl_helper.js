@@ -5298,22 +5298,23 @@ class bslHelper {
 	 * Finds signatures provided for metadata subitem`s methods
 	 * like Write, Unlock
 	 * 
+	 * @param {SignatureHelpContext} context signature help context 
 	 * @param {object} data objects from BSL-JSON dictionary
 	 * 
 	 * @returns {SignatureHelp} helper with signatures
 	 */
-	getMetadataItemSigHelp(data) {
+	getMetadataItemSigHelp(context, data) {
 
 		let helper = null;
 
-		let exp = this.getLastNExpression(4);
-
-		if (exp) {
+		let method = context.methodName.toLowerCase().split('.');
+		
+		if (method.length == 2) {
 
 			let fullText = this.getFullTextBeforePosition();
 			let regex = null;
 			try {
-				regex = new RegExp(exp + '\\s*=\\s*(.*)\\(.*\\);', 'gi');
+				regex = new RegExp(method.shift() + '\\s*=\\s*(.*)\\(.*\\);', 'gi');
 			}
 			catch {
 				return helper;
@@ -5331,7 +5332,7 @@ class bslHelper {
 
 				if (metadataName && metadataItem && metadataFunc) {
 
-					metadataFunc = this.lastRawExpression;
+					metadataFunc = method.shift();
 
 					if (metadataFunc) {
 
@@ -5354,7 +5355,7 @@ class bslHelper {
 														let signatures = this.getMethodsSignature(mvalue);
 														if (signatures.length) {
 															helper = {
-																activeParameter: this.getSignatureActiveParameter(),
+																activeParameter: context.activeParameter,
 																activeSignature: 0,
 																signatures: signatures,
 															}
@@ -5392,13 +5393,14 @@ class bslHelper {
 	 * like FindByCode, CreateRecordManager by method type
 	 * like 'method', 'manager'
 	 * 
+	 * @param {SignatureHelpContext} context signature help context  
 	 * @param {object} object metadata object from BSL-JSON dictionary
 	 * @param {string} typeOfMethods type of method
 	 * @param {object} methodName method name for filtering
 	 * 
 	 * @returns {SignatureHelp} helper with signatures
 	 */
-	 getMetadataSigHelpByMethodType(object, typeOfMethods, methodName) {
+	getMetadataSigHelpByMethodType(context, object, typeOfMethods, methodName) {
 
 		let helper = null;
 
@@ -5410,7 +5412,7 @@ class bslHelper {
 					let signatures = this.getMethodsSignature(mvalue);
 					if (signatures.length) {
 						helper = {
-							activeParameter: this.getSignatureActiveParameter(),
+							activeParameter: context.activeParameter,
 							activeSignature: 0,
 							signatures: signatures,
 						}
@@ -5429,18 +5431,18 @@ class bslHelper {
 	 * Finds signatures provided for metadata item`s methods
 	 * like FindByCode, CreateRecordManager
 	 * 
+	 * @param {SignatureHelpContext} context signature help context  
 	 * @param {object} data objects from BSL-JSON dictionary
 	 * 
 	 * @returns {SignatureHelp} helper with signatures
 	 */
-	getMetadataSigHelp(data) {
+	getMetadataSigHelp(context, data) {
 
 		let helper = null;
-
-		let regex = /(.+?)(?:\.(.*?))?\.?(?:\.(.*?))?\(?$/.exec(this.lastExpression);
-		let metadataName = regex && 1 < regex.length ? regex[1] : '';
-		let metadataItem = regex && 2 < regex.length ? regex[2] : '';
-		let metadataFunc = regex && 3 < regex.length ? regex[3] : '';
+		let method = context.methodName.toLowerCase().split('.');
+		let metadataName = method[0];
+		let metadataItem = 1 < method.length ? method[1] : '';
+		let metadataFunc = 2 < method.length ? method[2] : '';
 
 		if (metadataFunc) {
 
@@ -5449,15 +5451,15 @@ class bslHelper {
 				if (value.hasOwnProperty(this.nameField)) {
 
 					if (value[this.nameField].toLowerCase() == metadataName) {
-
-						helper = this.getMetadataSigHelpByMethodType(value, 'methods', metadataFunc);
+						
+						helper = this.getMetadataSigHelpByMethodType(context, value, 'methods', metadataFunc);
 
 						if (!helper && value.hasOwnProperty('items')) {
 						
 							for (const [ikey, ivalue] of Object.entries(value.items)) {
 
 								if (ikey.toLowerCase() == metadataItem)
-									helper = this.getMetadataSigHelpByMethodType(ivalue, 'manager', metadataFunc);
+									helper = this.getMetadataSigHelpByMethodType(context, ivalue, 'manager', metadataFunc);
 
 							}
 							
@@ -5471,7 +5473,7 @@ class bslHelper {
 
 		}
 		else {
-			helper = this.getMetadataItemSigHelp(data);
+			helper = this.getMetadataItemSigHelp(context, data);
 		}
 
 		return helper;
@@ -5705,7 +5707,7 @@ class bslHelper {
 					helper = this.getRefSigHelp(context);
 
 				if (!helper)
-					helper = this.getMetadataSigHelp(window.bslMetadata);
+					helper = this.getMetadataSigHelp(context, bslMetadata);
 
 				if (!helper)
 					helper = this.getClassSigHelp(context, bslGlobals.classes);
