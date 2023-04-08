@@ -36,7 +36,7 @@ class bslHelper {
 		this.lastExpression = this.getLastExpression();
 		this.lastRawExpression = this.getLastRawExpression();
 		
-		this.nameField = window.engLang ? 'name_en': 'name';
+		this.nameField = window.engLang ? 'name_en' : 'name';
 		this.queryNameField = window.engLang ? 'query_name_en' : 'query_name';
 		this.token = this.getLastToken();
 
@@ -760,7 +760,7 @@ class bslHelper {
 	 */
 	requireQueryRef() {
 
-		let match = window.editor.getModel().findPreviousMatch('\\s+(ссылка|refs)\\s+' , window.editor.getPosition(), true);		
+		let match = window.editor.getModel().findPreviousMatch('\\s+(ссылка|refs)\\s+', window.editor.getPosition(), true);		
 		return (match && match.range.startLineNumber == this.lineNumber);
 
 	}	
@@ -1097,21 +1097,21 @@ class bslHelper {
 	 * @param {Object} value the value of property
 	 */
 	static setObjectProperty(obj, path, value) {
-		
-		if (Object(obj) !== obj) return obj;
-	    
-		if (!Array.isArray(path))
-			path = path.toString().match(/[^.[\]]+/g) || []; 
 
-	    path.slice(0,-1).reduce((a, c, i) => 
-	         Object(a[c]) === a[c]	             
-	             ? a[c] 	             
-	             : a[c] = Math.abs(path[i+1])>>0 === +path[i+1] 
-	                   ? []
-	                   : {},
-			 obj)[path[path.length-1]] = value;
-			 
-	    return obj;
+		if (Object(obj) !== obj) return obj;
+
+		if (!Array.isArray(path))
+			path = path.toString().match(/[^.[\]]+/g) || [];
+
+		path.slice(0, -1).reduce((a, c, i) =>
+			Object(a[c]) === a[c]
+				? a[c]
+				: a[c] = Math.abs(path[i + 1]) >> 0 === +path[i + 1]
+					? []
+					: {},
+			obj)[path[path.length - 1]] = value;
+
+		return obj;
 	};
 
 	/**
@@ -1181,7 +1181,7 @@ class bslHelper {
 		
 				}
 
-				let label = engLang ? 'ObjectProperties': 'СвойстваОбъектов';
+				let label = engLang ? 'ObjectProperties' : 'СвойстваОбъектов';
 				let command = {
 					id: 'vs.editor.ICodeEditor:1:saveref',
 					arguments: [
@@ -1810,7 +1810,7 @@ class bslHelper {
 				}
 
 				suggestions.push({
-					label:  mvalue[this.nameField],
+					label: mvalue[this.nameField],
 					kind: monaco.languages.CompletionItemKind.Method,
 					insertText: mvalue[this.nameField] + postfix,
 					insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
@@ -1897,7 +1897,7 @@ class bslHelper {
 				}
 
 				suggestions.push({
-					label:  mvalue[this.nameField],
+					label: mvalue[this.nameField],
 					kind: monaco.languages.CompletionItemKind.Method,
 					insertText: mvalue[this.nameField] + postfix,
 					insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
@@ -2476,7 +2476,7 @@ class bslHelper {
 
 		}
 
-		return {itemExists: itemExists, refType: refType};
+		return { itemExists: itemExists, refType: refType };
 
 	}
 
@@ -2764,7 +2764,7 @@ class bslHelper {
 				let source_arr = source_exp.split('(');				
 				let exp_arr = source_arr[0].split('.');
 
-				for(let i = 0; i < exp_arr.length; i++) {
+				for (let i = 0; i < exp_arr.length; i++) {
 					
 					let expression = exp_arr[i];
 					expression = expression.replace(/[;]/g, '');
@@ -2886,7 +2886,7 @@ class bslHelper {
 
 		let exp_name = item.var;		
 
-		for(let i = 0; i < suggestions.length; i++) {
+		for (let i = 0; i < suggestions.length; i++) {
 			
 			let suggestion = suggestions[i];
 
@@ -2894,7 +2894,7 @@ class bslHelper {
 				
 				let command = suggestion.command;
 
-				if (command && command.id =='vs.editor.ICodeEditor:1:saveref') {
+				if (command && command.id == 'vs.editor.ICodeEditor:1:saveref') {
 																	
 					return this.setContextDataForRefExpression(exp_name, command.arguments[0].data.ref, item.line, command.arguments[0].data.parent_ref);
 
@@ -2964,7 +2964,7 @@ class bslHelper {
 
 				let prev_ref = null;
 
-				for(let i = 3; i < stack.length; i++) {
+				for (let i = 3; i < stack.length; i++) {
 				
 					let stack_item = stack[i];
 					if (i == 3) {
@@ -3490,8 +3490,7 @@ class bslHelper {
 			this.getClassCompletion(suggestions, window.bslGlobals.classes, true);
 
 		}
-		else 
-		{
+		else {
 
 			if (!this.requireType()) {
 
@@ -3655,7 +3654,7 @@ class bslHelper {
 
 											for (const [ikey, ivalue] of Object.entries(window.bslMetadata[value.ref].items[mkey].properties)) {
 												suggestions.push({
-													label:  ikey,
+													label: ikey,
 													kind: kind,
 													insertText: ikey + ')',
 													insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,											
@@ -3667,7 +3666,7 @@ class bslHelper {
 											
 											for (const [pkey, pvalue] of Object.entries(window.bslMetadata[value.ref].items[mkey].predefined)) {
 												suggestions.push({
-													label:  pvalue ? pvalue : pkey,
+													label: pvalue ? pvalue : pkey,
 													kind: kind,
 													insertText: pkey + ')',
 													insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,											
@@ -3681,7 +3680,7 @@ class bslHelper {
 										let EmptyRef = window.engLang ? 'EmptyRef' : 'ПустаяСсылка';
 
 										suggestions.push({
-											label:  EmptyRef,
+											label: EmptyRef,
 											kind: kind,
 											insertText: EmptyRef + ')',
 											insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,											
@@ -4083,7 +4082,7 @@ class bslHelper {
 			
 			if (ref || nestedSuggestions.length) {					
 				// If the attribute contains a ref, we need to run the command to save the position of ref
-				command = { id: 'vs.editor.ICodeEditor:1:saveref', arguments: [{'name': pkey, "data": { "ref": ref, "sig": null, "list" : nestedSuggestions } }]}
+				command = { id: 'vs.editor.ICodeEditor:1:saveref', arguments: [{ 'name': pkey, "data": { "ref": ref, "sig": null, "list": nestedSuggestions } }] }
 			}
 
 			suggestions.push({
@@ -4101,7 +4100,7 @@ class bslHelper {
 		if (obj.hasOwnProperty('resources')) {
 
 			for (const [rkey, rvalue] of Object.entries(obj.resources)) {
-				resources.push({'label': rkey, 'name': rvalue.name});
+				resources.push({ 'label': rkey, 'name': rvalue.name });
 			}
 			
 			let regType = obj.hasOwnProperty('type') ? obj.type : '';
@@ -4115,7 +4114,7 @@ class bslHelper {
 
 				for (const [skey, svalue] of Object.entries(subresouces)) {
 					subExists = true;
-					items.push({'label': resource.label + skey, 'name': resource.name + ' ' + svalue});
+					items.push({ 'label': resource.label + skey, 'name': resource.name + ' ' + svalue });
 				}
 
 				if (!subExists)
@@ -4223,7 +4222,7 @@ class bslHelper {
 		if (intoMatch) {
 			
 			// Now we need to find start of this query
-			let position =  new monaco.Position(intoMatch.range.startLineNumber, intoMatch.range.startColumn);
+			let position = new monaco.Position(intoMatch.range.startLineNumber, intoMatch.range.startColumn);
 			let startMatch = Finder.findPreviousMatch(this.model, '(?:выбрать|select)', position);
 
 			if (startMatch) {
@@ -4372,7 +4371,7 @@ class bslHelper {
 			if (startMatch) {
 								
 				// Now we need to find lastExpression definition
-				let position =  new monaco.Position(startMatch.range.startLineNumber, startMatch.range.startColumn);
+				let position = new monaco.Position(startMatch.range.startLineNumber, startMatch.range.startColumn);
 
 				// Temp table definition
 				let sourceDefinition = '';
@@ -4387,12 +4386,12 @@ class bslHelper {
 				else {
 					
 					// Metadata table definition
-					match = Finder.findNextMatch(this.model, '(?:из|from)[\\s\\S\\n]*?(?:как|as)\\s+' +  last_expression + '[\\s,\\n]*$' , position);
+					match = Finder.findNextMatch(this.model, '(?:из|from)[\\s\\S\\n]*?(?:как|as)\\s+' + last_expression + '[\\s,\\n]*$', position);
 											
 					if (match) {					
 											
 						// Searching the source
-						position =  new monaco.Position(match.range.endLineNumber, match.range.endColumn);
+						position = new monaco.Position(match.range.endLineNumber, match.range.endColumn);
 						match = Finder.findPreviousMatch(this.model, '[a-zA-Z0-9\u0410-\u044F]+\\.[a-zA-Z0-9\u0410-\u044F_]+(?:\\.[a-zA-Z0-9\u0410-\u044F_]+)?(?:\\.[a-zA-Z0-9\u0410-\u044F_]+)?', position);
 				
 						if (match) {									
@@ -4536,7 +4535,7 @@ class bslHelper {
 
 					suggestions.push({
 						label: tkey,
-						kind:  monaco.languages.CompletionItemKind.Unit,
+						kind: monaco.languages.CompletionItemKind.Unit,
 						insertText: tvalue,
 						insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
 					});
@@ -4630,7 +4629,7 @@ class bslHelper {
 								kind: kind,
 								insertText: label,
 								insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-								command: { id: 'vs.editor.ICodeEditor:1:requestMetadata', arguments: [{ "metadata": value.name.toLowerCase() + '.' + label.toLowerCase()}] }
+								command: { id: 'vs.editor.ICodeEditor:1:requestMetadata', arguments: [{ "metadata": value.name.toLowerCase() + '.' + label.toLowerCase() }] }
 							});
 
 						}
@@ -5671,7 +5670,7 @@ class bslHelper {
 		let method = '';
 		let bracket = this.model.findMatchingBracketUp('(', this.position);
 
-		if (bracket && !this.isItStringLiteral()) {
+		if (bracket && (!this.isItStringLiteral() || window.isQueryMode() || window.isDCSMode())) {
 
 			let position = new monaco.Position(bracket.startLineNumber, bracket.startColumn);
 			let data = this.model.getWordUntilPosition(position);
@@ -5757,11 +5756,12 @@ class bslHelper {
 
 		if (this.lastOperator != ')' && !this.requireQueryValue() && 0 <= unclosed.index) {
 			
+			context = this.getLastSigMethod(context);
 			let helper = this.getCustomSigHelp(context);
 
 			if (!helper && !window.editor.disableNativeSignatures) {
 				let functions = this.getQueryFunctions(window.bslQuery);
-				helper = this.getCommonSigHelp(functions);
+				helper = this.getCommonSigHelp(context, functions);
 			}
 			
 			if (helper)
@@ -6185,7 +6185,7 @@ class bslHelper {
 		if (semicolon)
 			template += ';';
 
-		const endMatches =  Finder.findMatches(model, template);
+		const endMatches = Finder.findMatches(model, template);
 		let endMatch = null;
 		
 		let structFound = false;
@@ -6477,8 +6477,8 @@ class bslHelper {
 				
 				let contents = [];
 
-				if (typeof(value) == "object") {
-					value.forEach(function(val){
+				if (typeof (value) == "object") {
+					value.forEach(function (val) {
 						contents.push({ value: val });
 					});
 				}
@@ -6783,7 +6783,7 @@ class bslHelper {
 		if (usePadding && 1 < startColumn) {
 			// Replacing tab to whitespaces for calculation number of appended tabs/whitespaces
 			let tabSize = window.editor.getModel().getOptions().tabSize;
-			let valueBefore =  window.editor.getModel().getValueInRange(
+			let valueBefore = window.editor.getModel().getValueInRange(
 				new monaco.Range(insertRange.startLineNumber, 1, insertRange.startLineNumber, startColumn)
 			);
 			if (valueBefore.trim().length == 0) {
@@ -6826,7 +6826,7 @@ class bslHelper {
 		
 		if (match !== null && match.length)  {
 			let position = this.model.getPositionAt(match.index);
-			lineNumber =  position.lineNumber;
+			lineNumber = position.lineNumber;
 		}
 
 		return lineNumber;
