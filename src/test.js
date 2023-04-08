@@ -689,7 +689,7 @@ setTimeout(() => {
         window.contextData = new Map();
       });
 
-      it("проверка подсказки параметров для функции ВыгрузитьКолонку таблицы значений, полученной из другой таблицы", function () {              	                                
+      it("проверка подсказки параметров для функции ВыгрузитьКолонку таблицы значений, полученной из другой таблицы", function () {
         bsl = helper('Таблица1 = Новый ТаблицаЗначений();\nТаблица2 = Таблица1.Скопировать();\nТаблица2.ВыгрузитьКолонку(');
         let suggestions = [];  
         let signature = {
@@ -704,7 +704,8 @@ setTimeout(() => {
           [2, new Map([["скопировать", { "ref": "classes.ТаблицаЗначений", "sig": null }]])],
           [3, new Map([["выгрузитьколонку", { "ref": "classes.Массив", "sig": signature }]])]
         ]);        
-        let help = bsl.getRefSigHelp();        
+        let context = bsl.getLastSigMethod({});
+        let help = bsl.getRefSigHelp(context);
         expect(help).to.have.property('activeParameter');
         window.contextData = new Map();
       });
