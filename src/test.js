@@ -201,15 +201,15 @@ setTimeout(() => {
 
       it("проверка подсказки параметров для глобальной функции Найти(", function () {
         bsl = helper('Найти(');        
-        let suggestions = [];
-        let help = bsl.getCommonSigHelp(window.bslGlobals.globalfunctions);
+        let context = bsl.getLastSigMethod({});
+        let help = bsl.getCommonSigHelp(context, window.bslGlobals.globalfunctions);
         expect(help).to.have.property('activeParameter');
       });
 
       it("проверка подсказки параметров для глобальной функции Найти обернутой в функцию", function () {
         bsl = helper('СтрНайти(Найти(');
-        let suggestions = [];
-        let help = bsl.getCommonSigHelp(window.bslGlobals.globalfunctions);
+        let context = bsl.getLastSigMethod({});
+        let help = bsl.getCommonSigHelp(context, window.bslGlobals.globalfunctions);
         expect(help).to.have.property('activeParameter');
       });
 
@@ -453,8 +453,8 @@ setTimeout(() => {
 
       it("проверка подсказки параметров для пользовательской функции МояФункция2", function () {
         bsl = helper('МояФункция2');        
-        let suggestions = [];
-        let help = bsl.getCommonSigHelp(window.bslGlobals.customFunctions);
+        let context = bsl.getLastSigMethod({});
+        let help = bsl.getCommonSigHelp(context, window.bslGlobals.customFunctions);
         expect(help).to.have.property('activeParameter');
       });
 
