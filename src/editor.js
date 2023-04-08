@@ -1458,6 +1458,17 @@ window.unfoldAll = function() {
 
 }
 
+window.scale = function(direction) {
+
+  if (direction == 0)
+    window.editor.trigger('', 'editor.action.fontZoomReset');
+  else if (0 < direction)
+    window.editor.trigger('', 'editor.action.fontZoomIn');
+  else
+    window.editor.trigger('', 'editor.action.fontZoomOut');
+
+}
+
 window.showVariablesDescription = function(variablesJSON) {    
     
   try {
