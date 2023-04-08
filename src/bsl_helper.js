@@ -3434,6 +3434,31 @@ class bslHelper {
 	}
 
 	/**
+	 * Looks for variables into iterations of loops
+	 * 
+	 * @returns {array} array with variables names
+	 */
+	getLoopsVarNames() {
+
+		let names = [];
+		let matches = Finder.findMatches(this.model, '(?:для каждого|for each)\\s+([a-zA-Z0-9\u0410-\u044F_,\\s=]+)\\s+(?:из|in)');
+		matches = matches.concat(Finder.findMatches(this.model, '(?:для|for)\\s+([a-zA-Z0-9\u0410-\u044F_,\\s=]+)\\s+=.*(?:по|to)'));
+
+		for (let idx = 0; idx < matches.length; idx++) {
+
+			let match = matches[idx];
+			let varDef = match.matches[match.matches.length - 1];
+
+			if (!names.some(name => name === varDef))
+				names.push(varDef);
+
+		}
+
+		return names;
+
+	}
+
+	/**
 	 * Fills and returns array of variables names
 	 * 
 	 * @param {int} currentLine the last line below which we don't search variables
@@ -3447,6 +3472,9 @@ class bslHelper {
 		let funcLine = 0;
 		names = names.concat(this.getFunctionsVarsNames(currentLine, funcLine));
 		names = names.concat(this.getDefaultVarsNames(currentLine, funcLine));
+
+		if (currentLine == 0)
+			names = names.concat(this.getLoopsVarNames());
 
 		return names;
 
