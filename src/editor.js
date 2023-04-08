@@ -84,6 +84,15 @@ window.fireEvent = function() {
 
 }
 
+window.setDefaultStyle = function() {
+
+  window.setFontFamily("Courier New");
+  window.setFontSize(14);
+  window.setLineHeight(16);
+  window.setLetterSpacing(0);
+
+}
+
 window.setText = function(txt, range, usePadding) {
 
   window.editor.pushUndoStop();
@@ -2144,15 +2153,6 @@ function getSuggestWidgetRows(element) {
   }
 
   return rows;
-
-}
-
-window.setDefaultStyle = function() {
-
-  window.setFontFamily("Courier New");
-  window.setFontSize(14);
-  window.setLineHeight(16);
-  window.setLetterSpacing(0);
 
 }
 
