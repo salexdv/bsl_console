@@ -75,9 +75,10 @@ setTimeout(() => {
       assert.equal(suggestions.suggestions.some(suggest => suggest.label === "ВЫРАЗИТЬ"), true);
     });
 
-    it("проверка подсказки параметров для функции запроса", function () {                                                     
+    it("проверка подсказки параметров для функции запроса", function () {
       bsl = helper('РАЗНОСТЬДАТ(');
-      let help = bsl.getCommonSigHelp(window.bslQuery.functions);
+      let context = bsl.getLastSigMethod({});
+      let help = bsl.getCommonSigHelp(context, window.bslQuery.functions);
       expect(help).to.have.property('activeParameter');              
     });
 
