@@ -1857,12 +1857,12 @@ class bslHelper {
 	}
 
 	/**
-	 * Fills the suggestions for objects from bslGlobals 
-	 * like classes or types
+	 * Fills suggestions for metadata of item	 
 	 * 
 	 * @param {array} suggestions the list of suggestions
-	 * @param {object} obj object from BSL-JSON dictionary
-	 */
+	 * @param {object} item like catalog.Товары
+	 * @param {object} metadata object with metadata properties
+	 */	
 	getItemMedatadaSuggestions(suggestions, item, metadata) {
 
 		if (metadata.hasOwnProperty('methods')) {
@@ -2723,6 +2723,14 @@ class bslHelper {
 
 	}
 
+	/**
+	 * Adds items of metadata object to suggestion list	 
+	 * 
+	 * @param {array} suggestions array of suggestions for provideCompletionItems
+	 * @param {object} metadataObject objects from BSL-JSON dictionary
+	 * @param {string} metadataName name of object
+	 * @param {string} ref ref to object
+	 */
 	fillSuggestionsForMetadataItems(suggestions, metadataObject, metadataName, ref) {
 
 		if (Object.keys(metadataObject.items).length) {
