@@ -134,6 +134,8 @@ npm run build  -- --customOptions "automaticLayout: true, someOption: false"
 | `setFontFamily`                | Установка семейства шрифтов                                                                   |
 | `setFontWeight`                | Установка насыщенности (толщины) шрифта                                                       |
 | `setLineHeight`                | Установка высоты строки                                                                       |
+| `setLetterSpacing`             | Установка расстояния между символами                                                          |
+| `setDefaultStyle`              | Установка стиля редактора по умолчанию                                                        |
 | `showStatusBar`                | Включает отображение строки состояния в нижней части редактора                                |
 | `hideStatusBar`                | Отключает отображение строки состояния                                                        |
 | [`renderWhitespace`](docs/whitespaces.md) | Включает/отключает отображение пробелов и табуляций                                |
