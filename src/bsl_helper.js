@@ -1248,7 +1248,7 @@ class bslHelper {
 				if (ref && ref.indexOf(':') != -1) {
 					if (metadataKey && medatadaName) {
 						if (ref.indexOf(':metadata') != -1)
-							ref = metadataKey + '.metadata';
+							ref = metadataKey + '.metadata.' + medatadaName;
 						else if (ref.indexOf(':obj') != -1)
 							ref = metadataKey + '.' + medatadaName + '.obj';
 						else
@@ -1509,7 +1509,12 @@ class bslHelper {
 						}
 					}
 					else if (subItemName == 'metadata' && this.objectHasProperties(window.bslMetadata, itemName, 'metadata')) {
-						this.getClassSuggestions(suggestions, window.bslMetadata[itemName]['metadata']);
+						if (refArray.length == 2)
+							this.fillSuggestionsForMetadataItems(suggestions, window.bslMetadata[itemName], itemName, wordContext.ref);
+						else if (refArray.length == 3) {
+							let item = this.getMetadataItemByName(window.bslMetadata, itemName, refArray[2]);
+							this.getItemMedatadaSuggestions(suggestions, item, window.bslMetadata[itemName]['metadata']);
+						}
 					}
 					else if (itemName == 'universalObjects' && this.objectHasProperties(window.bslGlobals, itemName, subItemName)) {
 						this.getUniversalObjectSuggestions(suggestions, window.bslGlobals[itemName][subItemName], parentRef);
@@ -1831,6 +1836,124 @@ class bslHelper {
 								
 				if (pvalue.hasOwnProperty('ref'))
 					command = { id: 'vs.editor.ICodeEditor:1:saveref', arguments: [{ "name": pvalue[this.nameField], "data": { "ref": pvalue.ref, "sig": null } }] };
+
+				suggestions.push({
+					label: pvalue[this.nameField],
+					kind: monaco.languages.CompletionItemKind.Field,
+					insertText: pvalue[this.nameField],
+					insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+					detail: pvalue.description,
+					documentation: '',
+					command: command
+				});
+
+			}
+
+		}
+
+	}
+
+	/**
+	 * Fills the suggestions for objects from bslGlobals 
+	 * like classes or types
+	 * 
+	 * @param {array} suggestions the list of suggestions
+	 * @param {object} obj object from BSL-JSON dictionary
+	 */
+	getItemMedatadaSuggestions(suggestions, item, metadata) {
+
+		if (metadata.hasOwnProperty('methods')) {
+
+			for (const [mkey, mvalue] of Object.entries(metadata.methods)) {
+
+				let description = mvalue.hasOwnProperty('returns') ? mvalue.returns : '';
+				let signatures = this.getMethodsSignature(mvalue);
+				let command = null;
+				let postfix = '';
+				let post_action = null;
+
+				if (signatures.length) {
+					postfix = '(';
+					post_action = 'editor.action.triggerParameterHints';
+				}
+
+				if (signatures.length == 0 || (signatures.length == 1 && signatures[0].parameters.length == 0))
+					postfix = '()';
+
+				let ref = null;
+				if (mvalue.hasOwnProperty('ref'))
+					ref = mvalue.ref;
+
+				if (ref || signatures.length) {
+					// If the attribute contains a ref, we need to run the command to save the position of ref
+					command = {
+						id: 'vs.editor.ICodeEditor:1:saveref',
+						arguments: [
+							{
+								"name": mvalue[this.nameField],
+								"data": {
+									"ref": ref,
+									"sig": signatures
+								},
+								"post_action": post_action
+							}
+						]
+					};
+				}
+
+				suggestions.push({
+					label: mvalue[this.nameField],
+					kind: monaco.languages.CompletionItemKind.Method,
+					insertText: mvalue[this.nameField] + postfix,
+					insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+					detail: mvalue.description,
+					documentation: description,
+					command: command
+				});
+
+			}
+
+		}
+
+		if (metadata.hasOwnProperty('properties')) {
+
+			for (const [pkey, pvalue] of Object.entries(metadata.properties)) {
+
+				let command = null;
+				let ref = null;
+				let list = [];
+
+				if (pvalue.hasOwnProperty('ref'))
+					ref = pvalue.ref;
+
+				if (pvalue.hasOwnProperty('list') && item) {
+					let list_name = pvalue.list;
+					if (item.child.hasOwnProperty(list_name)) {
+						for (const [lkey, lvalue] of Object.entries(item.child[list_name])) {
+							list.push({
+								name: lkey,
+								ref: '',
+								kind: monaco.languages.CompletionItemKind.Field,
+							});
+						};
+					}
+				}
+
+				if (ref || list) {
+					command = {
+						id: 'vs.editor.ICodeEditor:1:saveref',
+						arguments: [
+							{
+								"name": pvalue[this.nameField],
+								"data": {
+									"ref": ref,
+									"sig": null,
+									"list": list
+								}
+							}
+						]
+					};
+				}
 
 				suggestions.push({
 					label: pvalue[this.nameField],
@@ -2596,6 +2719,47 @@ class bslHelper {
 
 	}
 
+	fillSuggestionsForMetadataItems(suggestions, metadataObject, metadataName, ref) {
+
+		if (Object.keys(metadataObject.items).length) {
+
+			for (const [ikey, ivalue] of Object.entries(metadataObject.items)) {
+
+				let command = null;
+
+				if (ref) {
+					command = {
+						id: 'vs.editor.ICodeEditor:1:saveref',
+						arguments: [
+							{
+								"name": ikey,
+								"data": {
+									"ref": ref + '.' + ikey,
+									"sig": null
+								}
+							}
+						]
+					}
+				}
+
+				suggestions.push({
+					label: ikey,
+					kind: monaco.languages.CompletionItemKind.Field,
+					insertText: ikey,
+					insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+					detail: '',
+					documentation: '',
+					command: command
+				});
+			}								
+
+		}
+		else {
+			requestMetadata(metadataName);
+		}
+
+	}
+
 	/**
 	 * Fills array of completion for metadata item like Catalogs,
 	 * Documents, InformationRegisters, etc.
@@ -2690,23 +2854,7 @@ class bslHelper {
 						} else {
 
 							this.getMetadataMethods(suggestions, value, 'managerMethods', '', '');
-
-							if (Object.keys(value.items).length) {
-
-								for (const [ikey, ivalue] of Object.entries(value.items)) {
-									values.push({
-										name: ikey,
-										detail: '',
-										description: '',
-										postfix: '',
-										kind: monaco.languages.CompletionItemKind.Field
-									});
-								}
-
-							}
-							else {
-								window.requestMetadata(metadataName);
-							}
+							this.fillSuggestionsForMetadataItems(suggestions, value, metadataName);
 
 						}
 
@@ -5267,17 +5415,20 @@ class bslHelper {
 
 			if (value.hasOwnProperty(this.nameField)) {
 
-				if (value[this.nameField].toLowerCase() == metadataName) {
+				if (value.name.toLowerCase() == metadataName || value.name_en.toLowerCase() == metadataName) {
 
 					for (const [ikey, ivalue] of Object.entries(value.items)) {
 
-						if (ikey.toLowerCase() == metadataItem) {
-							return value;
+						if (ikey.toLowerCase() == metadataItem.toLowerCase()) {
+							return {
+								node: value,
+								child: ivalue
+							}
 						}
 
 					}
 
-				}
+				}	
 			}
 
 		}
@@ -5386,9 +5537,9 @@ class bslHelper {
 
 						let item = this.getMetadataItemByName(data, metadataName, metadataItem);
 
-						if (item && item.hasOwnProperty('objMethods')) {
+						if (item && item.node.hasOwnProperty('objMethods')) {
 
-							for (const [mkey, mvalue] of Object.entries(item.objMethods)) {
+							for (const [mkey, mvalue] of Object.entries(item.node.objMethods)) {
 
 								if (mvalue[this.nameField].toLowerCase() == metadataFunc) {
 
