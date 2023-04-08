@@ -310,6 +310,10 @@ let bsl_language = {
                 }],
                 [/&[a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]*/, 'query.param'],
                 [/&/, 'query.param'],
+                [/("".*"")(")/, [
+                    { token: 'query.string' },
+                    { token: 'query.quote', next: '@pop' }
+                ]],
                 [/"".*""/, 'query.string'],
                 [/[({})]/, 'query.brackets'],
                 [/\/\/.*$/, 'comment'],
