@@ -5559,27 +5559,22 @@ class bslHelper {
 	getCustomSigHelp(context) {
 
 		let helper = null;
-
-		let word = this.getWordUntilOpenBracket();
-		
-		if (word) {
-			
-			for (const [key, value] of Object.entries(window.customSignatures)) {			
-		
-				if (key.toLowerCase() == word && value) {
-
-					let activeSignature = context && context.activeSignatureHelp ? context.activeSignatureHelp.activeSignature : 0;
+		let method = context.methodName.toLowerCase();
 					
-					helper = {
-						activeParameter: this.getSignatureActiveParameter(),
-						activeSignature: activeSignature,
-						signatures: value,
-					}						
-							
-				}
+		for (const [key, value] of Object.entries(window.customSignatures)) {			
 	
+			if (key.toLowerCase() == method && value) {
+
+				let activeSignature = context && context.activeSignatureHelp ? context.activeSignatureHelp.activeSignature : 0;
+				
+				helper = {
+					activeParameter: this.getSignatureActiveParameter(),
+					activeSignature: activeSignature,
+					signatures: value,
+				}						
+						
 			}
-			
+
 		}
 
 		return helper;
@@ -5637,7 +5632,7 @@ class bslHelper {
 	 * 
 	 * @returns {int} index
 	 */
-	getSignatureStringActiveParameter(signatureString) {
+	getActiveParameterFromSignatureString(signatureString) {
 
 		let is_query = (window.isQueryMode() || window.isDCSMode());
 		
@@ -5684,13 +5679,13 @@ class bslHelper {
 				else {
 					data.word = '';
 				}
-			}
+			}	
 
 			context.methodPosition = position;
 
 			let range = new monaco.Range(bracket.startLineNumber, bracket.startColumn + 1, this.lineNumber, this.column);
 			let params_text = this.model.getValueInRange(range);
-			context.activeParameter = this.getSignatureActiveParameter1(params_text);
+			context.activeParameter = this.getActiveParameterFromSignatureString(params_text);	
 		}
 
 		context.methodName = method;
