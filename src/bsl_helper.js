@@ -4671,15 +4671,19 @@ class bslHelper {
 				let metadataItem = regex && 2 < regex.length ? regex[2] : '';
 				let metadataFunc = regex && 3 < regex.length ? regex[3] : '';
 				
-				sourceExist = this.getQuerySourceMetadataCompletion(metadataName, metadataItem, metadataFunc, suggestions, kind, 3);
+				if (metadataName != '.') {
+				
+					sourceExist = this.getQuerySourceMetadataCompletion(metadataName, metadataItem, metadataFunc, suggestions, kind, 3);
 
-				if (!sourceExist) {
-				
-					// suggestion for metadata sources like (catalog, document, etc.)
-					sourceExist = this.getQueryMetadataSources(suggestions, kind);
-					// suggestion for temporary tables
-					sourceExist = Math.max(sourceExist, this.getQuerySourceTempraryTablesCompletion(suggestions));
-				
+					if (!sourceExist) {
+					
+						// suggestion for metadata sources like (catalog, document, etc.)
+						sourceExist = this.getQueryMetadataSources(suggestions, kind);
+						// suggestion for temporary tables
+						sourceExist = Math.max(sourceExist, this.getQuerySourceTempraryTablesCompletion(suggestions));
+					
+					}
+
 				}
 												
 			}			
