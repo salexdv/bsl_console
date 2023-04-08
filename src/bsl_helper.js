@@ -1158,6 +1158,14 @@ class bslHelper {
 		
 				}
 
+				suggestions.push({
+					label: "СвойстваОбъектов",
+					kind: monaco.languages.CompletionItemKind.Function,
+					insertText: "СвойстваОбъектов",
+					insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+					command: null
+				});
+
 				return true;
 
 			}
