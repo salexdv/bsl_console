@@ -1428,6 +1428,30 @@ window.goToFuncDefinition = function (funcName) {
   return false;
 
 }
+
+window.fold = function() {
+
+  window.editor.trigger('', 'editor.fold');
+
+}
+
+window.foldAll = function() {
+
+  window.editor.trigger('', 'editor.foldAll');
+
+}
+
+window.unfold = function() {
+
+  window.editor.trigger('', 'editor.unfold');
+
+}
+
+window.unfoldAll = function() {
+
+  window.editor.trigger('', 'editor.unfoldAll');
+
+}
 // #endregion
 
 // #region init editor
