@@ -2676,6 +2676,8 @@ class bslHelper {
 
 						} else {
 
+							this.getMetadataMethods(suggestions, value, 'managerMethods', '', '');
+
 							if (Object.keys(value.items).length) {
 
 								for (const [ikey, ivalue] of Object.entries(value.items)) {
