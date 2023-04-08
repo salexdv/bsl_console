@@ -5585,44 +5585,37 @@ class bslHelper {
 	 * Fills signatures provided for reference-type object
 	 * if a reference was found in the previous position
 	 * 
+	 * @param {SignatureHelpContext} context signature help context
+	 * 
 	 * @return {SignatureHelp} helper with signatures
 	 */
-	getRefSigHelp() {
+	 getRefSigHelp(context) {
 		
 		let helper = null;
 
-		let match = Finder.findPreviousMatch(this.model, '\\(', this.position);
+		const position = context.methodPosition;
+
+		let lineContextData = contextData.get(position.lineNumber)
+		let method = context.methodName.split('.').pop(0);
+		let wordContext = null;
+
+		if (lineContextData) {
+			
+			wordContext = lineContextData.get(method.toLowerCase());
 		
-		if (match) {
-
-			const position = new monaco.Position(match.range.startLineNumber, match.range.startColumn);
-
-			if (position.lineNumber = this.lineNumber) {
-
-				let lineContextData = window.contextData.get(position.lineNumber)
-				let wordContext = null;
-
-				if (lineContextData) {
-					
-					let wordUntil = this.model.getWordUntilPosition(position);
-					wordContext = lineContextData.get(wordUntil.word.toLowerCase());
-				
-					if (wordContext && wordContext.sig) {
-												
-						helper = {
-							activeParameter: this.getSignatureActiveParameter(),
-							activeSignature: 0,
-							signatures: wordContext.sig,
-						}						
-
-					}
-				}
+			if (wordContext && wordContext.sig) {
+										
+				helper = {
+					activeParameter: context.activeParameter,
+					activeSignature: 0,
+					signatures: wordContext.sig,
+				}						
 
 			}
-
-		}	
+		}
 		
 		return helper;
+		
 	}
 
 	/**
@@ -5712,7 +5705,7 @@ class bslHelper {
 			if (!window.editor.disableNativeSignatures) {
 
 				if (!helper)
-					helper = this.getRefSigHelp();
+					helper = this.getRefSigHelp(context);
 
 				if (!helper)
 					helper = this.getMetadataSigHelp(window.bslMetadata);
