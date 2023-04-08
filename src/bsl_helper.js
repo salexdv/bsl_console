@@ -6158,41 +6158,52 @@ class bslHelper {
 	 *
 	 * @returns {object} parameters
 	 */
-	 static parseFunctionParameters(parametersStr, func) {
+	static parseFunctionParameters(model, parametersStr, funcLineNumber) {
 
 		let sig_params = {};
-			
+
 		if (parametersStr) {
 
-			let params = parametersStr.split(',');
-			
+			let line_number = funcLineNumber - 1;
+			let paramsExist = false;
+
+			while (0 < line_number && !paramsExist && model.getValueInRange(new monaco.Range(line_number, 1, line_number, 3)) == '//') {
+				line_number--;
+				paramsExist = (model.getValueInRange(new monaco.Range(line_number, 1, line_number, 3)) == '// Параметры:');
+			}
+
+			line_number++;
+
+			const params = parametersStr.split(',');
+			const range = new monaco.Range(line_number, 1, funcLineNumber, 1);
+			const func_model = monaco.editor.createModel(model.getValueInRange(range));
+
 			params.forEach(function (param) {
-				
+
 				let param_full_name = param.split('=')[0].trim();
 				let param_name = param_full_name.replace(/знач\s+/gi, '');
 				let pattern = '\/\/ параметры:[\\s\\SS\\n\\t]*?' + param_name + '([\\s\\SS\\n\\t]*?)(?:\/\/\\s{1,4}[a-zA-Z0-9\u0410-\u044F_])';
-				let def_model = monaco.editor.createModel(func.definition);
-				let match = Finder.findMatches(def_model, pattern);
+				let match = Finder.findMatches(func_model, pattern);
 				let param_description = '';
 
 				if (match && !match.length) {
 					pattern = '\/\/ параметры:[\\s\\SS\\n\\t]*?' + param_name + '([\\s\\SS\\n\\t]*?)(?:\/\/\\s*$)';
-					match = Finder.findMatches(model, pattern, range);
+					match = Finder.findMatches(func_model, pattern);
 				}
-				
+
 				if (match && match.length) {
 					param_description = match[0].matches[1];
 					param_description = param_description.replace(/^\/\/*/gm, '');
 					param_description = param_description.replace(/^\s*-\s*/gm, '');
 					param_description = param_description.replace(/^\s*/gm, '');
 				}
-				
+
 				sig_params[param_full_name] = param_description;
-				
+
 			});
 
 		}
-		
+
 		return sig_params;
 
 	}
@@ -6223,7 +6234,7 @@ class bslHelper {
 				let method_name = match.matches[1];
 				let params_str = match.matches[2];
 				const description = this.parseFunctionDescription(model, match.range.startLineNumber)
-				let sig_params = this.parseFunctionParameters(params_str, description);
+				let sig_params = this.parseFunctionParameters(model, params_str, match.range.startLineNumber);
 				
 				let method = {
 					name: method_name,

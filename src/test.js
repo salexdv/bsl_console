@@ -936,6 +936,18 @@ setTimeout(() => {
         suggestions = bsl.getCodeCompletion({triggerCharacter: ''});
         expect(suggestions).to.be.an('array').that.not.is.empty;
         assert.equal(suggestions.some(suggest => suggest.label === "ЗначениеРеквизитаОбъекта"), true);
+
+        bsl = helper('ЕстьСсылкиНаОбъект(');
+        let context = bsl.getLastSigMethod({});
+        let help = bsl.getCommonSigHelp(context, window.bslGlobals.globalfunctions);
+        expect(help).to.have.property('signatures');
+        expect(help.signatures).to.be.an('array').that.not.is.empty;
+        assert.equal(
+          help.signatures.some(
+            signature => expect(signature).to.have.property('parameters') &&
+            signature.parameters.some(param => param.documentation.indexOf('ЛюбаяСсылка, Массив - объект или список объектов') === 0)
+          ), true
+        );
         
       });
 
