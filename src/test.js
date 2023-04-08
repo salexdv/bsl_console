@@ -353,6 +353,15 @@ setTimeout(() => {
         assert.equal(suggestions.some(suggest => suggest.label === "Цена"), true);
       });
 
+      it("проверка подсказки для выборки справочника 'Товары'", function () {
+        bsl = helper('Выборка = Справочники.Товары.Выбрать();\nВыборка.');
+        let suggestions = [];
+        bsl.getMetadataCompletion(suggestions, window.bslMetadata)
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "Цена"), true);
+        assert.equal(suggestions.some(suggest => suggest.label === "Следующий"), true);
+      });
+
       it("проверка подсказки параметров для метода 'Записать' документа 'АвансовыйОтчет'", function () {
         bsl = helper('Док = Документы.АвансовыйОтчет.НайтиПоНомеру(1);\nДок.Записать(');
         let context = bsl.getLastSigMethod({});
