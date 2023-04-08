@@ -1469,6 +1469,13 @@ window.scale = function(direction) {
 
 }
 
+window.gotoLine = function() {
+
+  window.editor.trigger('', 'editor.action.gotoLine');
+  getQuickOpenWidget().widget.quickOpenWidget.inputElement.focus();
+
+}
+
 window.showVariablesDescription = function(variablesJSON) {    
     
   try {

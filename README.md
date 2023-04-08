@@ -203,6 +203,7 @@ npm run build  -- --customOptions "automaticLayout: true, someOption: false"
 | [`showVariablesDescription`]((docs/show_var_description.md)) | Вывод окна со значениями переменных (табло)                     |
 | [`updateVariableDescription`]((docs/upd_var_drscription.md)) | Обновление значения переменной в табло                          |
 | `scale`                        | Изменение масштаба (+1 - увеличить, -1 - уменьшить, 0 - сбросить)                             |
+| `gotoLine`                     | Перейти к строке...                                                                           |
 
 ## События, генерируемые редактором для 1С:Предприятия
 
