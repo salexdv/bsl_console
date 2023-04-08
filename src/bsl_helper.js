@@ -2538,7 +2538,7 @@ class bslHelper {
 	 * @param {string} kind of suggestions (CompletionItemKind)
 	 * @param {string} metadataRef ref to metadata object
 	 */
-	 getMetadataGeneralMethodCompletionByType(object, methodType, suggestions, kind) {
+	 getMetadataGeneralMethodCompletionByType(object, methodType, suggestions, kind, metadataRef) {
 
 		if (object.hasOwnProperty(methodType)) {
 
