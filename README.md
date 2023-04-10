@@ -206,6 +206,7 @@ npm run build  -- --customOptions "automaticLayout: true, someOption: false"
 | `scale`                        | Изменение масштаба (+1 - увеличить, -1 - уменьшить, 0 - сбросить)                             |
 | `gotoLine`                     | Перейти к строке...                                                                           |
 | `setActiveSuggestionAcceptors` | Установка символов, подтверждающих выбор текущего пункта подсказки (в дополнение к Enter)     |
+| [`setLineNumbersDecorations`]((docs/set_linenum_decor.md)) | Установка текста слева от номера каждой строки                    |
 
 ## События, генерируемые редактором для 1С:Предприятия
 
