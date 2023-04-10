@@ -60,6 +60,7 @@ window.editor_options = [];
 window.snippets = {};
 window.bslSnippets = {};
 window.treeview = null;
+window.lineNumbersDedocrations = []
 // #endregion
 
 // #region public API
@@ -1517,6 +1518,33 @@ window.updateVariableDescription = function(variableId, variableJSON) {
   }
 
 }
+
+window.setLineNumbersDecorations = function(decorations) {
+
+  window.lineNumbersDedocrations = [];
+  window.lineNumbersDedocrations.push();
+
+  try {
+    
+    const decor = JSON.parse(decorations);
+    let length = 0;
+    decor.forEach(function (value) {
+      window.lineNumbersDedocrations.push(value);
+      length = Math.max(length, value.length)
+    });
+
+    window.editor.updateOptions({ lineNumbersMinChars: 0 });
+    window.editor.updateOptions({ lineNumbersMinChars: length + 3 });
+    window.editor.layout();
+
+    return true;
+
+  }
+  catch (e) {
+    return { errorDescription: e.message };
+  }
+
+}
 // #endregion
 
 // #region init editor
@@ -1539,7 +1567,8 @@ function createEditor(language_id, text, theme) {
     },
     parameterHints: {
       cycle: true
-    },
+    },    
+    lineNumbers: getLineNumber(),
     customOptions: true
   });
 
@@ -1548,6 +1577,7 @@ function createEditor(language_id, text, theme) {
   changeCommandKeybinding('editor.action.deleteLines',  monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_L);
   changeCommandKeybinding('editor.action.selectToBracket',  monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.KEY_B);
 
+  window.lineNumbersDedocrations = [];
   window.setDefaultStyle();
 
 }
@@ -1814,6 +1844,15 @@ function initEditorEventListenersAndProperies() {
 // #endregion
   
 // #region non-public functions
+function getLineNumber(originalLineNumber) {
+
+  if (originalLineNumber < window.lineNumbersDedocrations.length)
+    return window.lineNumbersDedocrations[originalLineNumber] + ' ' + originalLineNumber;
+  
+   return originalLineNumber;
+
+}
+
 function disposeEditor() {
 
   if (window.editor) {
