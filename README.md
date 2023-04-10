@@ -231,6 +231,7 @@ npm run build  -- --customOptions "automaticLayout: true, someOption: false"
 | `EVENT_ON_KEY_DOWN`            | При нажатии на клавиатуру [(подробнее)](docs/key_down_event.md)                               |
 | `EVENT_ON_INSERT_SNIPPET`      | При вставке сниппета (шаблона) [(подробнее)](docs/insert_snippet_event.md)                    |
 | `EVENT_GET_VARIABLE_DATA`      | При расшифровке значения переменной в табло [(подробнее)](docs/get_var_data_event.md)         |
+| `EVENT_ON_KEY_ESC`             | При нажатии ESC [(подробнее)](docs/key_esc_event.md)                                          |
 
 *Перед началом работы с редактором из 1С Предприятия желательно вызвать функцию инициализации и передать в нее текущую версию платформы.*
 Пример:
