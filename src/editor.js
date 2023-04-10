@@ -1755,8 +1755,12 @@ function initEditorEventListenersAndProperies() {
 
         let target = window.editor.getModel().getWordAtPosition(position);
 
-        if (target)
-          window.setSelection(position.lineNumber, target.startColumn, position.lineNumber, target.endColumn)
+        if (target) {
+          let current_selection = window.editor.getSelection();
+          let target_selection = new monaco.Range(position.lineNumber, target.startColumn, position.lineNumber, target.endColumn);
+          if (!current_selection.containsRange(target_selection))
+            window.setSelection(position.lineNumber, target.startColumn, position.lineNumber, target.endColumn)
+        }
 
       }
 
