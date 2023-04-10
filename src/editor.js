@@ -366,6 +366,14 @@ window.setLanguageMode = function(mode) {
 
   let isCompareMode = (window.editor.navi != undefined);
 
+  window.queryMode = (mode == 'bsl_query');
+  window.DCSMode = (mode == 'dcs_query');
+
+  if (window.queryMode || window.DCSMode)
+    window.editor.updateOptions({ foldingStrategy: "indentation" });
+  else
+    window.editor.updateOptions({ foldingStrategy: "auto" });
+
   if (isCompareMode) {
     monaco.editor.setModelLanguage(window.editor.getModifiedEditor().getModel(), mode);
     monaco.editor.setModelLanguage(window.editor.getOriginalEditor().getModel(), mode);
@@ -373,9 +381,6 @@ window.setLanguageMode = function(mode) {
   else {
     monaco.editor.setModelLanguage(window.editor.getModel(), mode);
   }
-
-  window.queryMode = (mode == 'bsl_query');
-  window.DCSMode = (mode == 'dcs_query');
 
   let currentTheme = getCurrentThemeName();
   window.setTheme(currentTheme);
