@@ -118,6 +118,7 @@ npm run build  -- --customOptions "automaticLayout: true, someOption: false"
 | `enableQuickSuggestions`       | Включает/выключает режим быстрых подсказок                                                    |
 | `minimap`                      | Включает/выключает отображение карты кода                                                     |
 | [`compare`](docs/compare.md)   | Включает/выключает режим сравнения текстов                                                    |
+| `getDiffCount`                 | Возвращает количество изменений в режиме сравнения                                            |
 | `nextDiff`                     | Переход с следующему изменению в режиме сравнения                                             |
 | `previousDiff`                 | Переход с предыдущему изменению в режиме сравнения                                            |
 | `getVarsNames`                 | Возвращает имена всех объявленных в коде переменных                                           |
@@ -204,6 +205,7 @@ npm run build  -- --customOptions "automaticLayout: true, someOption: false"
 | [`updateVariableDescription`]((docs/upd_var_drscription.md)) | Обновление значения переменной в табло                          |
 | `scale`                        | Изменение масштаба (+1 - увеличить, -1 - уменьшить, 0 - сбросить)                             |
 | `gotoLine`                     | Перейти к строке...                                                                           |
+| `setActiveSuggestionAcceptors` | Установка символов, подтверждающих выбор текущего пункта подсказки (в дополнение к Enter)     |
 
 ## События, генерируемые редактором для 1С:Предприятия
 
