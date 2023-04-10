@@ -1542,6 +1542,50 @@ window.setLineNumbersDecorations = function(decorations) {
   }
 
 }
+
+window.getDifferences = function () {
+
+  let diff = [];
+
+  if (editor.navi) {
+
+    diff = window.editor.getLineChanges();
+    let original_model = window.editor.originalEditor.getModel();
+    let modified_model = window.editor.modifiedEditor.getModel();
+
+    diff.forEach(function (value) {
+              
+      value["originalText"] = getTextInLines(original_model, value.originalStartLineNumber, value.originalEndLineNumber);
+      value["modifiedText"] = getTextInLines(modified_model, value.modifiedStartLineNumber, value.modifiedEndLineNumber);        
+
+      if (Array.isArray(value.charChanges)) {
+        
+        value.charChanges.forEach(function (char) {
+          char["originalText"] = getTextInRange(
+            original_model,
+            char.originalStartLineNumber,
+            char.originalStartColumn,
+            char.originalEndLineNumber,
+            char.originalEndColumn
+          );
+          char["modifiedText"] = getTextInRange(
+            modified_model,
+            char.modifiedStartLineNumber,
+            char.modifiedStartColumn,
+            char.modifiedEndLineNumber,
+            char.modifiedEndColumn
+          );
+        });
+
+      }
+
+    });
+
+  }
+
+  return diff;
+
+} 
 // #endregion
 
 // #region init editor
@@ -1857,6 +1901,36 @@ window.generateEscapeEvent = function() {
   }
 
   window.sendEvent('EVENT_ON_KEY_ESC', eventParams);
+
+}
+
+function getTextInLines(model, startLineNumber, endLineNumber) {
+
+  let text = '';
+
+  if (endLineNumber >= startLineNumber) {
+    let range = {
+      startLineNumber: startLineNumber,
+      startColumn: 1,
+      endLineNumber: endLineNumber,
+      endColumn: model.getLineMaxColumn(endLineNumber),
+    }
+    text = model.getValueInRange(range);
+  }
+
+  return text;
+
+}
+
+function getTextInRange(model, startLineNumber, startColumn, endLineNumber, endColumn) {
+
+  let range = {
+    startLineNumber: startLineNumber,
+    startColumn: startColumn,
+    endLineNumber: endLineNumber,
+    endColumn: endColumn,
+  }
+  return model.getValueInRange(range);
 
 }
 
