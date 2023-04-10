@@ -1165,21 +1165,17 @@ window.previousMatch = function () {
 
 window.setOption = function (optionName, optionValue) {
 
-  setTimeout(() => {
+  window.editor[optionName] = optionValue;
+  window.editor_options[optionName] = optionValue;
 
-    window.editor[optionName] = optionValue;
-    window.editor_options[optionName] = optionValue;
+  if (optionName == 'generateBeforeSignatureEvent')
+      startStopSignatureObserver();
 
-    if (optionName == 'generateBeforeSignatureEvent')
-        startStopSignatureObserver();
+  if (optionName == 'generateSelectSuggestEvent')
+    startStopSuggestSelectionObserver();
 
-    if (optionName == 'generateSelectSuggestEvent')
-      startStopSuggestSelectionObserver();
-
-    if (optionName == 'disableDefinitionMessage')
-      startStopDefinitionMessegeObserver();
-
-  }, 10);
+  if (optionName == 'disableDefinitionMessage')
+    startStopDefinitionMessegeObserver();
 
 }
 
@@ -1846,8 +1842,8 @@ function initEditorEventListenersAndProperies() {
 // #region non-public functions
 function getLineNumber(originalLineNumber) {
 
-  if (originalLineNumber < window.lineNumbersDedocrations.length)
-    return window.lineNumbersDedocrations[originalLineNumber] + ' ' + originalLineNumber;
+  if (originalLineNumber <= window.lineNumbersDedocrations.length)
+    return window.lineNumbersDedocrations[originalLineNumber - 1] + ' ' + originalLineNumber;
   
    return originalLineNumber;
 
