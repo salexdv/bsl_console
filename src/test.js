@@ -1181,6 +1181,15 @@ setTimeout(() => {
 
       });
 
+      it("проверка подсказки объявленных процедур/функций", function () {
+
+        bsl = helper('Функция МояФункция(Параметры)\n//Код функции\nКонецФункции\n\nРезультат = Моя');
+        let suggestions = bsl.getCodeCompletion({ triggerCharacter: '' });
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "МояФункция"), true);
+        
+      });
+
     }
 
     mocha.run();
