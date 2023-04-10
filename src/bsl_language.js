@@ -601,7 +601,8 @@ let languages = {
             ['функция', 'конецфункции'],
             ['function', 'endfunction'],
             ['процедура', 'конецпроцедуры'],
-            ['procedure', 'endprocedure']
+            ['procedure', 'endprocedure'],
+            ['#область', '#конецобласти']
         ],
         autoClosingPairs: []
     },
