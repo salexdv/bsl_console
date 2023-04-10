@@ -430,7 +430,6 @@ setTimeout(() => {
       ИЗ      
         Справочник.Товары.`);
       let suggestions = bsl.getQueryCompletion();
-      console.log(suggestions);
       expect(suggestions).to.be.an('object');
       expect(suggestions.suggestions).to.be.an('array').that.not.is.empty;
       assert.equal(suggestions.suggestions.some(suggest => suggest.label === "ДополнительныеРеквизиты"), true);
@@ -446,6 +445,37 @@ setTimeout(() => {
       expect(suggestions).to.be.an('array').that.not.is.empty;
       assert.equal(suggestions.some(suggest => suggest.label === "Ссылка"), true);
       assert.equal(suggestions.some(suggest => suggest.label === "ИмяРеквизита"), true);
+    });
+
+    
+    it("проверка подсказки для функции ВЫРАЗИТЬ", function () {
+            
+      bsl = helper("ВЫРАЗИТЬ(");
+      let suggestions = bsl.getQueryCompletion();
+      expect(suggestions).to.be.an('array').that.is.empty;
+
+      bsl = helper("ВЫРАЗИТЬ(Товары.Код ");
+      suggestions = bsl.getQueryCompletion();
+      console.log(suggestions);
+      expect(suggestions).to.be.an('object');
+      expect(suggestions.suggestions).to.be.an('array').that.is.not.empty;
+      assert.equal(suggestions.suggestions.some(suggest => suggest.label === "КАК "), true);
+
+      bsl = helper("ВЫРАЗИТЬ(Товары.Код КАК ");
+      suggestions = bsl.getQueryCompletion();
+      console.log(suggestions);
+      expect(suggestions).to.be.an('object');
+      expect(suggestions.suggestions).to.be.an('array').that.is.not.empty;
+      assert.equal(suggestions.suggestions.some(suggest => suggest.label === "Строка"), true);
+      assert.equal(suggestions.suggestions.some(suggest => suggest.label === "Справочник"), true);
+
+      bsl = helper("ВЫРАЗИТЬ(Товары.Код КАК Справочник.");
+      suggestions = bsl.getQueryCompletion();
+      console.log(suggestions);
+      expect(suggestions).to.be.an('object');
+      expect(suggestions.suggestions).to.be.an('array').that.is.not.empty;
+      assert.equal(suggestions.suggestions.some(suggest => suggest.label === "Товары"), true);      
+
     });
 
     window.setLanguageMode('bsl_query');
