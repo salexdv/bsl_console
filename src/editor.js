@@ -1568,7 +1568,7 @@ function createEditor(language_id, text, theme) {
     parameterHints: {
       cycle: true
     },    
-    lineNumbers: getLineNumber(),
+    lineNumbers: getLineNumber,
     customOptions: true
   });
 
