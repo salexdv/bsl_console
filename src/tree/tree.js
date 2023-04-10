@@ -119,3 +119,5 @@ class Treeview {
   	document.querySelector(this.treeviewId).innerHTML = '';
   };
 }
+
+export default Treeview;

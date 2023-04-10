@@ -5,7 +5,7 @@ import languages from './bsl_language';
 import { getActions, permanentActions } from './actions';
 import './decorations.css'
 import './tree/tree.css'
-import './tree/tree.js'
+import Treeview from './tree/tree.js'
 import { setLocaleData } from 'monaco-editor-nls';
 import ruLocale from 'monaco-editor-nls/locale/ru';
 import Finder from "./finder";
