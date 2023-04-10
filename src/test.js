@@ -1190,6 +1190,18 @@ setTimeout(() => {
         
       });
 
+      it("проверка подсказки методов макета", function () {
+
+        bsl = helper('Макет = Справочники.Товары.ПолучитьМакет("Макет");\nМакет.');
+        let suggestions = bsl.getCodeCompletion({triggerCharacter: '.'});
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "ПолучитьОбласть"), true);
+        assert.equal(suggestions.some(suggest => suggest.label === "ПолучитьТекст"), true);
+        assert.equal(suggestions.some(suggest => suggest.label === "Размер"), true);
+        assert.equal(suggestions.some(suggest => suggest.label === "ПолучитьОбъект"), false);
+
+      });
+
     }
 
     mocha.run();
