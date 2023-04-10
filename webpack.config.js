@@ -5,6 +5,7 @@ const { CleanWebpackPlugin } = require("clean-webpack-plugin");
 const RemovePlugin = require('remove-files-webpack-plugin');
 const webpack = require('webpack');
 const path = require('path');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
 
 module.exports = (env, args) => {
 
@@ -165,6 +166,11 @@ module.exports = (env, args) => {
     plugins: [
       new MonacoWebpackPlugin({
         languages: ['xml'],
+      }),
+      new CopyWebpackPlugin({
+        patterns: [
+          { from: './tree/icons', to: 'tree/icons'}
+        ]
       }),
       args.mode == 'production' ? new webpack.optimize.LimitChunkCountPlugin({
         maxChunks: 10

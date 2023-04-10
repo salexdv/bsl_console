@@ -5,3 +5,4 @@ dist/
 node_modules/
 src/.vscode/
 src/src.zip
+package-lock.json
