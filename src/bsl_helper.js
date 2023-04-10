@@ -3450,22 +3450,71 @@ class bslHelper {
 
 	/**
 	 * Looks for variables into iterations of loops
+	 * in current position
+	 * 
+	 * @param {string} pattern to look for variables
 	 * 
 	 * @returns {array} array with variables names
 	 */
-	getLoopsVarNames() {
+	getLoopsVarNamesForCurrentPosition(pattern) {
 
 		let names = [];
-		let matches = Finder.findMatches(this.model, '(?:для каждого|for each)\\s+([a-zA-Z0-9\u0410-\u044F_,\\s=]+)\\s+(?:из|in)');
-		matches = matches.concat(Finder.findMatches(this.model, '(?:для|for)\\s+([a-zA-Z0-9\u0410-\u044F_,\\s=]+)\\s+=.*(?:по|to)'));
 
-		for (let idx = 0; idx < matches.length; idx++) {
+		let loop_start = Finder.findPreviousMatch(this.model, pattern, this.position, false);
 
-			let match = matches[idx];
-			let varDef = match.matches[match.matches.length - 1];
+		if (loop_start) {
 
-			if (!names.some(name => name === varDef))
-				names.push(varDef);
+			let start_pos = new monaco.Position(loop_start.range.startLineNumber, loop_start.range.startColumn);
+			let loop_end = Finder.findNextMatch(this.model, '(?:конеццикла|enddo)', start_pos, false);
+
+			if (loop_end) {
+
+				let end_pos = new monaco.Position(loop_end.range.startLineNumber, loop_end.range.startColumn);
+
+				if (start_pos.isBefore(this.position) && this.position.isBefore(end_pos)) {
+					names.push(loop_start.matches[loop_start.matches.length - 1]);
+				}
+
+			}
+		}
+
+		return names;
+
+	}
+
+	/**
+	 * Looks for variables into iterations of loops
+	 * 
+	 * @param {int} currentLine the current line
+	 * 
+	 * @returns {array} array with variables names
+	 */
+	getLoopsVarNames(currentLine) {
+
+		let names = [];
+		let each_pattern = '(?:для каждого|for each)\\s+([a-zA-Z0-9\u0410-\u044F_,\\s=]+)\\s+(?:из|in)';
+		let for_pattern = '(?:для|for)\\s+([a-zA-Z0-9\u0410-\u044F_,\\s=]+)\\s+=.*(?:по|to)';
+
+		if (currentLine == 0) {
+
+			let matches = Finder.findMatches(this.model, each_pattern);
+			matches = matches.concat(Finder.findMatches(this.model, for_pattern));
+
+			for (let idx = 0; idx < matches.length; idx++) {
+
+				let match = matches[idx];
+				let varDef = match.matches[match.matches.length - 1];
+
+				if (!names.some(name => name === varDef))
+					names.push(varDef);
+
+			}
+
+		}
+		else {
+
+			names = this.getLoopsVarNamesForCurrentPosition(each_pattern);
+			names = names.concat(this.getLoopsVarNamesForCurrentPosition(for_pattern));
 
 		}
 
@@ -3487,9 +3536,7 @@ class bslHelper {
 		let funcLine = 0;
 		names = names.concat(this.getFunctionsVarsNames(currentLine, funcLine));
 		names = names.concat(this.getDefaultVarsNames(currentLine, funcLine));
-
-		if (currentLine == 0)
-			names = names.concat(this.getLoopsVarNames());
+		names = names.concat(this.getLoopsVarNames(currentLine));
 
 		return names;
 
