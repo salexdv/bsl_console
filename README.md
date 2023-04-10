@@ -104,6 +104,7 @@ npm run build  -- --customOptions "automaticLayout: true, someOption: false"
 | `insertSnippet`                | Вставляет переданный сниппет в текущую позицию редактора                                      |
 | `revealDefinition`             | Переход к определению переменной, функции или поля запроса `F12`                              |
 | `peekDefinition`               | Быстрый просмотр определения переменной, функции или поля запроса `CTRL+F12`                  |
+| [`getDifferences`](docs/get_differences.md) | Возвращает список различий в режиме сравнения                                    |
 
 ### Управление режимом работы / настройками
 
