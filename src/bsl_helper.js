@@ -2605,6 +2605,10 @@ class bslHelper {
 								if (ivalue.hasOwnProperty('properties')) {
 
 									let methodDef = this.getMetadataMethodByName(value, metadataFunc);
+
+									if (!methodDef || !methodDef.hasOwnProperty('ref'))
+										break;
+
 									let isObject = (methodDef && methodDef.hasOwnProperty('ref') && methodDef.ref.indexOf(':obj') != -1);
 									let methodsName = isObject ? 'objMethods' : 'refMethods';
 
@@ -2689,6 +2693,7 @@ class bslHelper {
 				let metadataFunc = regex && 3 < regex.length ? regex[3] : '';
 
 				if (metadataName && metadataItem && metadataFunc) {					
+					metadataFunc = metadataFunc.replace(/[();]/g, '');
 					let result = this.getMetadataItemCompletionFromFullDefinition(suggestions, data, metadataName, metadataItem, metadataFunc);
 					itemExists = result.itemExists;
 				}
@@ -2710,7 +2715,7 @@ class bslHelper {
 	 * @param {string} kind of suggestions (CompletionItemKind)
 	 * @param {string} metadataRef ref to metadata object
 	 */
-	 getMetadataGeneralMethodCompletionByType(object, methodType, suggestions, kind, metadataRef) {
+	 getMetadataGeneralMethodCompletionByType(object, methodType, suggestions, kind) {
 
 		if (object.hasOwnProperty(methodType)) {
 
@@ -2725,12 +2730,6 @@ class bslHelper {
 
 				if (mvalue.hasOwnProperty('ref'))
 					ref = mvalue.ref;
-
-				if (metadataRef) {
-					if (ref)
-						ref += ', ';
-					ref += metadataRef;
-				}
 
 				if (ref || signatures.length) {
 					postfix = '(';
@@ -2855,7 +2854,6 @@ class bslHelper {
 						metadataExists = true;
 						let values = [];
 						let itemNode = null;
-						let itemKey = null;
 
 						if (metadataName) {
 
@@ -2863,7 +2861,6 @@ class bslHelper {
 
 								if (ikey.toLowerCase() == metadataItem) {
 									itemNode = ivalue;
-									itemKey = ikey;
 									break;
 								}
 
@@ -2893,8 +2890,7 @@ class bslHelper {
 
 							}
 
-							let metadata_ref = key + '.' + itemKey;
-							this.getMetadataGeneralMethodCompletionByType(value, 'methods', suggestions, 'Method', metadata_ref);
+							this.getMetadataGeneralMethodCompletionByType(value, 'methods', suggestions, 'Method');
 							this.fillSuggestionsForExternalDataSources(value, itemNode, suggestions);
 
 							if (!updateItemNode) {
