@@ -3573,6 +3573,34 @@ class bslHelper {
 	}
 
 	/**
+	 * Fills array of completion for compile directives
+	 * 
+	 * @param {array} suggestions array of suggestions for provideCompletionItems
+	 */
+	getCompilerDirectivesCompetition(suggestions) {
+
+		for (const [key, value] of Object.entries(bslGlobals.compilerDirectives)) {
+
+			if ((key == 'ru' && !engLang) || (key == 'en' && engLang)) {
+
+				for (const [directive, empty] of Object.entries(value)) {
+
+					suggestions.push({
+						label: directive,
+						kind: monaco.languages.CompletionItemKind.Enum,
+						insertText: directive,
+						insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+					});
+
+				}
+
+			}
+
+		}
+
+	}
+
+	/**
 	 * Fills completions for object's methods and properties
 	 * into expressions like 'Types = New Array; Types.Cou<-(unt)'
 	 * 
@@ -3751,9 +3779,10 @@ class bslHelper {
 		let suggestions = [];
 
 		if (context.triggerCharacter && context.triggerCharacter == ' ') {
-			
 			this.getClassCompletion(suggestions, window.bslGlobals.classes, true);
-
+		}
+		else if (this.requireCompilerDirectives(context.triggerCharacter)) {
+			this.getCompilerDirectivesCompetition(suggestions);
 		}
 		else {
 
