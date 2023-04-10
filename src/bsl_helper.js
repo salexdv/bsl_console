@@ -8022,6 +8022,85 @@ class bslHelper {
 	}
 
 	/**
+	 * Provide the definition for query field
+	 * 
+	 * @returns {array} Location[]
+	 */
+	 getQueryFieldDefinition() {
+
+		let location = null;
+		let pattern = '(as|как)\\s*' + this.word;
+		let position = new monaco.Position(this.lineNumber, 1);
+		let match = Finder.findPreviousMatch(this.model, pattern, position, false);
+
+		if (match && match.range.startLineNumber < this.lineNumber) {
+			
+			let match_position = new monaco.Position(match.range.startLineNumber, match.range.startColumn);
+			let match_comma = Finder.findPreviousMatch(this.model, ',', match_position, false);
+			
+			if (match_comma) {
+				match.range.startLineNumber = match_comma.range.startLineNumber + 1;
+				match.range.startColumn;
+			}
+
+			location = [{
+				uri: this.model.uri,
+				range: match.range
+			}];
+
+		}
+
+		return location;
+
+	}
+
+	/**
+	 * Provide the definition for query source
+	 * 
+	 * @returns {array} Location[]
+	 */
+	getQuerySourceDefinition() {
+
+		let location = null;
+		let pattern = '(as|как)\\s*' + this.word;
+		let position = new monaco.Position(this.lineNumber, this.model.getLineMaxColumn(this.lineNumber));
+		let match = Finder.findNextMatch(this.model, pattern, position, false);
+
+		if (match && match.range.startLineNumber > this.lineNumber) {
+			location = [{
+				uri: this.model.uri,
+				range: match.range
+			}];
+		}
+
+		return location;
+
+	}
+
+	/**
+	 * Provide the definition for temp table
+	 * 
+	 * @returns {array} Location[]
+	 */
+	getQueryTempTableDefinition() {
+
+		let location = null;
+		let pattern = '(поместить|into)[\\s\\n\\t]*' + this.word;
+		let position = new monaco.Position(this.lineNumber, 1);
+		let match = Finder.findPreviousMatch(this.model, pattern, position, false);
+
+		if (match && match.range.startLineNumber < this.lineNumber) {
+			location = [{
+				uri: this.model.uri,
+				range: match.range
+			}];
+		}
+
+		return location;
+
+	}
+
+	/**
 	 * Provide the definition of the symbol at the given position of query
 	 * 
 	 * @returns {array} Location[]
@@ -8032,48 +8111,12 @@ class bslHelper {
 
 		if (this.word) {
 
-			if (this.wordHasCharsBefore('.')) {
-
-				let pattern = '(as|как)\\s*' + this.word;
-				let position = new monaco.Position(this.lineNumber, 1);
-				let match = Finder.findPreviousMatch(this.model, pattern, position, false);
-
-				if (match && match.range.startLineNumber < this.lineNumber) {
-					location = [{
-						uri: this.model.uri,
-						range: match.range
-					}];
-				}
-
-			}
-			else if (this.wordHasCharsAfter('.')) {
-
-				let pattern = '(as|как)\\s*' + this.word;
-				let position = new monaco.Position(this.lineNumber, this.model.getLineMaxColumn(this.lineNumber));
-				let match = Finder.findNextMatch(this.model, pattern, position, false);
-
-				if (match && match.range.startLineNumber > this.lineNumber) {
-					location = [{
-						uri: this.model.uri,
-						range: match.range
-					}];
-				}
-
-			}
-			else {
-
-				let pattern = '(поместить|into)[\\s\\n\\t]*' + this.word;
-				let position = new monaco.Position(this.lineNumber, 1);
-				let match = Finder.findPreviousMatch(this.model, pattern, position, false);
-
-				if (match && match.range.startLineNumber < this.lineNumber) {
-					location = [{
-						uri: this.model.uri,
-						range: match.range
-					}];
-				}
-
-			}
+			if (this.wordHasCharsBefore('.'))
+				location = this.getQueryFieldDefinition()
+			else if (this.wordHasCharsAfter('.'))
+				location = this.getQuerySourceDefinition();
+			else
+				location = this.getQueryTempTableDefinition();
 
 		}
 
