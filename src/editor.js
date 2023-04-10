@@ -1841,6 +1841,25 @@ function initEditorEventListenersAndProperies() {
 // #endregion
   
 // #region non-public functions
+window.generateEscapeEvent = function() {
+
+  let position = window.editor.getPosition();
+  let bsl = new bslHelper(window.editor.getModel(), position);
+
+  eventParams = {
+    current_word: bsl.word,
+    last_word: bsl.lastRawExpression,
+    last_expression: bsl.lastExpression,
+    altKey: altPressed,
+    ctrlKey: ctrlPressed,
+    shiftKey: shiftPressed,
+    position: position
+  }
+
+  window.sendEvent('EVENT_ON_KEY_ESC', eventParams);
+
+}
+
 function getLineNumber(originalLineNumber) {
 
   if (originalLineNumber <= window.lineNumbersDedocrations.length)
@@ -2456,6 +2475,7 @@ function diffEditorOnKeyDown(e) {
   }
   else if (e.keyCode == 9) {
     // Esc
+    window.generateEscapeEvent();
     window.closeSearchWidget();      
   }
   else if (e.keyCode == 61) {
@@ -2531,6 +2551,7 @@ function editorOnKeyDown(e) {
   }
   else if (e.keyCode == 9) {
     // Esc
+    window.generateEscapeEvent();
     setFindWidgetDisplay('none');
     window.hideSuggestionsList();
   }
