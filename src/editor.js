@@ -478,7 +478,7 @@ window.setSelection = function(startLineNumber, startColumn, endLineNumber, endC
   if (endLineNumber <= window.getLineCount()) {
     let range = new monaco.Range(startLineNumber, startColumn, endLineNumber, endColumn);
     window.editor.setSelection(range);
-    window.editor.revealLineInCenterIfOutsideViewport(startLineNumber);
+    window.editor.revealPositionInCenterIfOutsideViewport(range.getEndPosition());
     return true;
   }
   else
@@ -492,7 +492,7 @@ window.setSelectionByLength = function(start, end) {
   let endPosition = window.editor.getModel().getPositionAt(end - 1);
   let range = new monaco.Range(startPosition.lineNumber, startPosition.column, endPosition.lineNumber, endPosition.column);    
   window.editor.setSelection(range);
-  window.editor.revealPositionInCenterIfOutsideViewport(startPosition);
+  window.editor.revealPositionInCenterIfOutsideViewport(endPosition);
 
   return true;
 
