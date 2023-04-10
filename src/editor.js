@@ -1529,8 +1529,9 @@ window.setLineNumbersDecorations = function(decorations) {
       length = Math.max(length, value.length)
     });
 
+    const max_length = window.lineNumbersDedocrations.length.toString().length + 3
     window.editor.updateOptions({ lineNumbersMinChars: 0 });
-    window.editor.updateOptions({ lineNumbersMinChars: length + 3 });
+    window.editor.updateOptions({ lineNumbersMinChars: length + max_length });
     window.editor.layout();
 
     return true;
