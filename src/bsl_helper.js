@@ -491,6 +491,36 @@ class bslHelper {
 	}
 
 	/**
+	 * Returns the name of current function/procudure
+	 * 
+	 * @param {string} func_name
+	 */
+	getCurrentFunctionName() {
+
+		let func_name = '';
+
+		const start_template = '(?:процедура|функция|procedure|function)\\s+([a-zA-Z0-9\u0410-\u044F_]+)';
+		const end_template = '(конецпроцедуры|конецфункции|endprocedure|endfunction)';
+		const start_prev_func = Finder.findPreviousMatch(this.model, start_template, this.position, false);
+		const end_func = Finder.findNextMatch(this.model, end_template, this.position, false);
+
+		if (start_prev_func && end_func) {
+
+			const start_next_func = Finder.findNextMatch(this.model, start_template, this.position, false);
+
+			if (start_prev_func.range.startLineNumber < this.lineNumber &&
+				this.lineNumber < end_func.range.startLineNumber &&
+				(!start_next_func || end_func.range.startLineNumber < start_next_func.range.startLineNumber)) {
+				func_name = start_prev_func.matches[1];
+			}
+
+		}
+
+		return func_name;
+
+	}
+
+	/**
 	 * GUID genarator
 	 * 
 	 * @returns {string} GUID
@@ -3573,13 +3603,49 @@ class bslHelper {
 	}
 
 	/**
+	 * Fills array of completion for functions
+	 * 
+	 * @param {array} suggestions array of suggestions for provideCompletionItems
+	 */
+	getFuncCompetition(suggestions) {
+
+		if (this.word) {
+
+			let functions = [];
+			let matches = Finder.findMatches(this.model, '(?:процедура|функция|procedure|function)\\s+([a-zA-Z0-9\u0410-\u044F_]+)\\(');
+			let current_func = this.getCurrentFunctionName();
+
+			for (let idx = 0; idx < matches.length; idx++) {
+				functions.push(matches[idx].matches[1]);
+			}
+
+			for (let idx = 0; idx < functions.length; idx++) {
+
+				let func_name = functions[idx];
+
+				if (func_name.toLowerCase().startsWith(this.word) && func_name != current_func) {
+					suggestions.push({
+						label: func_name,
+						kind: monaco.languages.CompletionItemKind.Function,
+						insertText: func_name,
+						insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+					});
+				}
+
+			}
+
+		}
+
+	}
+
+	/**
 	 * Fills array of completion for compile directives
 	 * 
 	 * @param {array} suggestions array of suggestions for provideCompletionItems
 	 */
 	getCompilerDirectivesCompetition(suggestions) {
 
-		for (const [key, value] of Object.entries(bslGlobals.compilerDirectives)) {
+		for (const [key, value] of Object.entries(window.bslGlobals.compilerDirectives)) {
 
 			if ((key == 'ru' && !engLang) || (key == 'en' && engLang)) {
 
@@ -3767,6 +3833,47 @@ class bslHelper {
 	}
 
 	/**
+	 * Determines if compile directives is needed
+	 * 
+	 * @returns {bool}
+	 */
+	requireCompilerDirectives(triggerCharacter) {
+
+		if (triggerCharacter && triggerCharacter == '&' && this.column == 2) {
+
+			return true;
+
+		}
+		else {
+
+			if (this.wordData) {
+				const range = new monaco.Range(
+					this.lineNumber,
+					this.wordData.startColumn - 1,
+					this.lineNumber,
+					this.wordData.startColumn
+				);
+				return (this.wordData.startColumn == 2 && this.model.getValueInRange(range) == '&')
+			}
+			else if (this.column == 2) {
+
+				const range = new monaco.Range(
+					this.lineNumber,
+					1,
+					this.lineNumber,
+					2
+				);
+				return (this.model.getValueInRange(range) == '&')
+
+			}
+
+		}
+
+		return false
+
+	}
+
+	/**
 	 * Completion provider for code-mode
 	 * 
 	 * @param {CompletionContext} context
@@ -3794,6 +3901,8 @@ class bslHelper {
 					this.getCompletionForCurrentObject(suggestions, context, token);
 
 					if (!suggestions.length) {
+
+						this.getFuncCompetition(suggestions);
 
 						if (!this.getClassCompletion(suggestions, window.bslGlobals.classes, false)) {
 
