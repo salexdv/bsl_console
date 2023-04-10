@@ -1158,6 +1158,29 @@ setTimeout(() => {
 
       });
 
+      it("проверка подсказки директив компиляции", function () {
+
+        bsl = helper('&');
+        let suggestions = bsl.getCodeCompletion({ triggerCharacter: '&' });
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "НаСервере"), true);
+
+        bsl = helper('&');
+        suggestions = bsl.getCodeCompletion({ triggerCharacter: '' });
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "НаСервере"), true);
+
+        bsl = helper('&На');
+        suggestions = bsl.getCodeCompletion({ triggerCharacter: '' });
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "НаСервере"), true);
+
+        bsl = helper('На &');
+        suggestions = bsl.getCodeCompletion({ triggerCharacter: '' });
+        expect(suggestions).to.be.an('array').that.is.empty;
+
+      });
+
     }
 
     mocha.run();
