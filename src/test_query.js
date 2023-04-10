@@ -436,6 +436,18 @@ setTimeout(() => {
       assert.equal(suggestions.suggestions.some(suggest => suggest.label === "ДополнительныеРеквизиты"), true);
     });
 
+    it("проверка подсказки реквизитов табличных частей", function () {
+      bsl = helper(`ВЫБРАТЬ
+      ДопРеквизиты.
+      ИЗ      
+        Справочник.Товары.ДополнительныеРеквизиты КАК ДопРеквизиты`, 2, 20);
+      let suggestions = [];
+      bsl.getQueryFieldsCompletion(suggestions);
+      expect(suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(suggestions.some(suggest => suggest.label === "Ссылка"), true);
+      assert.equal(suggestions.some(suggest => suggest.label === "ИмяРеквизита"), true);
+    });
+
     window.setLanguageMode('bsl_query');
         
     mocha.run();
