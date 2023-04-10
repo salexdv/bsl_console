@@ -37901,6 +37901,22 @@ let bslGlobals = {
                     "name_en": "Parent",
                     "description": "Получает объект описания метаданного, которому подчинен данный объект"
                 }
+            },
+            "compilerDirectives": {
+                "ru": {
+                    "НаСервере": {},
+                    "НаСервереБезКонтекста": {},
+                    "НаКлиенте": {},
+                    "НаКлиентеНаСервере": {},
+                    "НаКлиентеНаСервереБезКонтекста": {}
+                },
+                "en": {
+                    "AtServer": {},
+                    "AtServerNoContext": {},
+                    "AtClient": {},
+                    "AtClientAtServer": {},
+                    "AtClientAtServerNoContext": {}
+                }
             }
         }
     }
