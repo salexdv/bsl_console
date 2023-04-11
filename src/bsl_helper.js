@@ -5404,7 +5404,7 @@ class bslHelper {
 			let word = this.model.getWordUntilPosition(this.position).word;
 			let line_content = this.model.getLineContent(this.lineNumber);
 			line_content = line_content.substr(0, this.column - word.length - 1);
-			let pattern = /.*(,|=|\(|по|on|выбрать|select|когда|when|тогда|then|иначе|else|где|where|и|and|или|or)/i;
+			let pattern = /.*(,|=|\(|по|on|выбрать|select|когда|when|тогда|then|иначе|else|где|where|и|and|или|or|не|not)/i;
 			line_content = line_content.replace(pattern, '').trim();
 			isSuitable = !line_content
 		}
