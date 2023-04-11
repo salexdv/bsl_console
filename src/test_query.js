@@ -475,6 +475,32 @@ setTimeout(() => {
 
     });
 
+    it("проверка подсказки в условии ГДЕ", function () {
+
+      bsl = helper(`ВЫБРАТЬ
+        Товары.Ссылка
+      ИЗ      
+        Справочник.Товары КАК Товары
+      ГДЕ
+        Т`, 6, 10);
+      suggestions = bsl.getQueryCompletion();
+      expect(suggestions).to.be.an('object');
+      expect(suggestions.suggestions).to.be.an('array').that.is.not.empty;
+      assert.equal(suggestions.suggestions.some(suggest => suggest.label === "Товары"), true);
+
+      bsl = helper(`ВЫБРАТЬ
+        Товары.Ссылка
+      ИЗ      
+        Справочник.Товары КАК Товары
+      ГДЕ
+        НЕ Т`, 6, 13);
+      suggestions = bsl.getQueryCompletion();
+      expect(suggestions).to.be.an('object');
+      expect(suggestions.suggestions).to.be.an('array').that.is.not.empty;
+      assert.equal(suggestions.suggestions.some(suggest => suggest.label === "Товары"), true);      
+
+    });
+
     window.setLanguageMode('bsl_query');
         
     mocha.run();
