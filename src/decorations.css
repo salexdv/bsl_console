@@ -193,8 +193,16 @@
 	background-color: #e8ffe8;
 }
 
+.query-delimiter-selected {
+	background-color: #ffe877;
+}
+
 .query-delimiter-dark {
 	background-color: #404040;
+}
+
+.query-delimiter-dark-selected {
+	background-color: #062f4a;
 }
 
 .code-marker {

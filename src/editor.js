@@ -37,7 +37,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   editor_options = [];
   snippets = {};
   treeview = null;
-  lineNumbersDedocrations = []
+  lineNumbersDedocrations = [];
+  selectedQueryDelimiters = new Map();
   // #endregion
 
   // #region public API
@@ -1848,6 +1849,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
       updateStatusBar();
       onChangeSnippetSelection(e);
+      updateSelectedQueryDelimiters(e);
 
     });
 
@@ -1860,7 +1862,44 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   }
   // #endregion
     
-  // #region non-public functions  
+  // #region non-public functions
+  function mapsAreEqual(map1, map2) {
+    
+    let testVal;
+    
+    if (map1.size !== map2.size)
+      return false;
+    
+    for (let [key, val] of map1) {
+      testVal = map2.get(key);
+      if (testVal !== val || (testVal === undefined && !map2.has(key))) {
+        return false;
+      }
+    }
+
+    return true;
+
+  }
+
+  function updateSelectedQueryDelimiters(e) {
+
+    if (queryMode && editor.renderQueryDelimiters) {
+      
+      let prevSelectedDelimiters = new Map(selectedQueryDelimiters);
+      selectedQueryDelimiters = new Map();
+      const matches = editor.getModel().findMatches('^\\s*;\\s*$', e.selection, true, false, null, true);
+      
+      for (let idx = 0; idx < matches.length; idx++)
+        selectedQueryDelimiters.set(matches[idx].range.toString(), true);          
+
+      if (!mapsAreEqual(prevSelectedDelimiters, selectedQueryDelimiters)) {
+        editor.updateDecorations([]);
+      }
+
+    }
+
+  }
+
   generateEscapeEvent = function() {
 
     let position = editor.getPosition();
@@ -2320,20 +2359,24 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     if (queryMode && editor.renderQueryDelimiters) {
 
       const matches = editor.getModel().findMatches('^\\s*;\\s*$', false, true, false, null, true);
-      
-      let color = '#f2f2f2';
-      let class_name  = 'query-delimiter';
-      
       const current_theme = getCurrentThemeName();
       const is_dark_theme = (0 <= current_theme.indexOf('dark'));
 
-      if (is_dark_theme) {
-        class_name = 'query-delimiter-dark';
-        color = '#2d2d2d'
-      }
-
       for (let idx = 0; idx < matches.length; idx++) {
+      
+        let color = '#f2f2f2';
+        let class_name  = 'query-delimiter';
+
+        if (is_dark_theme) {
+          class_name = 'query-delimiter-dark';
+          color = '#2d2d2d'
+        }
+        
         let match = matches[idx];
+
+        if (selectedQueryDelimiters.get(match.range.toString()))
+          class_name += '-selected';
+
         decorations.push({
           range: new monaco.Range(match.range.startLineNumber, 1, match.range.startLineNumber),
           options: {
