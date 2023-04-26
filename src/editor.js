@@ -60,7 +60,8 @@ window.editor_options = [];
 window.snippets = {};
 window.bslSnippets = {};
 window.treeview = null;
-window.lineNumbersDedocrations = []
+window.lineNumbersDedocrations = [];
+window.selectedQueryDelimiters = new Map();
 // #endregion
 
 // #region public API
@@ -1872,6 +1873,7 @@ function initEditorEventListenersAndProperies() {
     
     updateStatusBar();
     onChangeSnippetSelection(e);
+    updateSelectedQueryDelimiters(e);
     
   });
 
@@ -1885,6 +1887,43 @@ function initEditorEventListenersAndProperies() {
 // #endregion
   
 // #region non-public functions
+function mapsAreEqual(map1, map2) {
+    
+  let testVal;
+  
+  if (map1.size !== map2.size)
+    return false;
+  
+  for (let [key, val] of map1) {
+    testVal = map2.get(key);
+    if (testVal !== val || (testVal === undefined && !map2.has(key))) {
+      return false;
+    }
+  }
+
+  return true;
+
+}
+
+function updateSelectedQueryDelimiters(e) {
+
+  if (window.queryMode && window.editor.renderQueryDelimiters) {
+    
+    let prevSelectedDelimiters = new Map(window.selectedQueryDelimiters);
+    window.selectedQueryDelimiters = new Map();
+    const matches = Finder.findMatches(window.editor.getModel(), '^\\s*;\\s*$', e.selection);
+    
+    for (let idx = 0; idx < matches.length; idx++)
+      window.selectedQueryDelimiters.set(matches[idx].range.toString(), true);
+
+    if (!mapsAreEqual(prevSelectedDelimiters, window.selectedQueryDelimiters)) {
+      window.editor.updateDecorations([]);
+    }
+
+  }
+
+}
+
 window.generateEscapeEvent = function() {
 
   let position = window.editor.getPosition();
@@ -2306,21 +2345,25 @@ function getQueryDelimiterDecorations(decorations) {
 
   if (window.queryMode && window.editor.renderQueryDelimiters) {
 
-    const matches = Finder.findMatches(window.editor.getModel(), '^;\\s*');
-    
-    let color = '#f2f2f2';
-    let class_name  = 'query-delimiter';
-    
+    const matches = Finder.findMatches(window.editor.getModel(), '^\\s*;\\s*$');
     const current_theme = getCurrentThemeName();
     const is_dark_theme = (0 <= current_theme.indexOf('dark'));
-
-    if (is_dark_theme) {
-      class_name = 'query-delimiter-dark';
-      color = '#2d2d2d'
-    }
-
+    
     for (let idx = 0; idx < matches.length; idx++) {
+      
+      let color = '#f2f2f2';
+      let class_name  = 'query-delimiter';
+
+      if (is_dark_theme) {
+        class_name = 'query-delimiter-dark';
+        color = '#2d2d2d'
+      }
+      
       let match = matches[idx];
+
+      if (window.selectedQueryDelimiters.get(match.range.toString()))
+        class_name += '-selected';
+
       decorations.push({
         range: new monaco.Range(match.range.startLineNumber, 1, match.range.startLineNumber),
         options: {
