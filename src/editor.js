@@ -42,6 +42,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   // #endregion
 
   // #region public API
+  wordWrap = function (enabled) {
+
+    editor.updateOptions({ wordWrap: enabled })
+  
+  }
+
   reserMark = function() {
 
     clearInterval(err_tid);
