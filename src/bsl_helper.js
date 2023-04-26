@@ -7114,7 +7114,7 @@ class bslHelper {
 
 		for (const [key, value] of Object.entries(customHovers)) {
 
-			if (key.toLowerCase() == this.word && value) {
+			if (key.toLowerCase() == this.word && value && !this.isItStringLiteral()) {
 
 				let contents = [];
 
