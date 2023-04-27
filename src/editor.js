@@ -44,7 +44,13 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   // #region public API
   wordWrap = function (enabled) {
 
-    editor.updateOptions({ wordWrap: enabled })
+    if (editor.navi) {
+      editor.originalEditor.updateOptions({ wordWrap: enabled });
+      editor.modifiedEditor.updateOptions({ wordWrap: enabled });
+    }
+    else {
+      editor.updateOptions({ wordWrap: enabled })
+    }
   
   }
 
