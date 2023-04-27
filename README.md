@@ -117,6 +117,7 @@ npm run build  -- --customOptions "automaticLayout: true, someOption: false"
 | [`switchLang`](docs/switch_lang.md)| Переключает язык подсказок с английского на русский и обратно                             |
 | `enableQuickSuggestions`       | Включает/выключает режим быстрых подсказок                                                    |
 | `minimap`                      | Включает/выключает отображение карты кода                                                     |
+| [`wordWrap`](docs/word_wrap.md)| Включает/выключает перенос строк                                                              |
 | [`compare`](docs/compare.md)   | Включает/выключает режим сравнения текстов                                                    |
 | `nextDiff`                     | Переход с следующему изменению в режиме сравнения                                             |
 | `previousDiff`                 | Переход с предыдущему изменению в режиме сравнения                                            |

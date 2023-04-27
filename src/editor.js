@@ -60,6 +60,18 @@ window.bslSnippets = {};
 // #endregion
 
 // #region public API
+window.wordWrap = function (enabled) {
+
+  if (window.editor.navi) {
+    window.editor.originalEditor.updateOptions({ wordWrap: enabled });
+    window.editor.modifiedEditor.updateOptions({ wordWrap: enabled });
+  }
+  else {
+    window.editor.updateOptions({ wordWrap: enabled })
+  }
+
+}
+
 window.reserMark = function() {
 
   clearInterval(window.err_tid);
