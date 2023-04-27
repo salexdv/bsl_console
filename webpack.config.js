@@ -5,6 +5,7 @@ const { CleanWebpackPlugin } = require("clean-webpack-plugin");
 const RemovePlugin = require('remove-files-webpack-plugin');
 const webpack = require('webpack');
 const path = require('path');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
 
 module.exports = (env, args) => {
 
@@ -69,7 +70,7 @@ module.exports = (env, args) => {
             },
             {
               search: /var idx = signature\.label\.[\s\S.]*];/im,
-              replace: 'if (!param.label.length) { return [0, 0]; } else { var regex = new RegExp("(\\\\W|^)${escapeRegExpCharacters(param.label)}(?=\\\\W|$)", "g"); regex.test(signature.label); var idx = regex.lastIndex - param.label.length; return idx >= 0 ? [idx, regex.lastIndex] : [0, 0]; }'
+              replace: 'if (!param.label.length) { return [0, 0]; } else { var regex = new RegExp("(\\\\p{L}\\\\p{N}_]|^)${escapeRegExpCharacters(param.label)}(?=\\\\p{L}\\\\p{N}_]|$)", "g"); regex.test(signature.label); var idx = regex.lastIndex - param.label.length; return idx >= 0 ? [idx, regex.lastIndex] : [0, 0]; }'
             }]
 
           }
@@ -106,7 +107,12 @@ module.exports = (env, args) => {
             multiple: [{
               search: 'let __insane_func;',
               replace: 'var __insane_func;'
-            }]
+            },
+            {
+              search: '0x2192',
+              replace: '0xBB'
+            }
+          ]
           }
         },
         {
@@ -160,6 +166,11 @@ module.exports = (env, args) => {
     plugins: [
       new MonacoWebpackPlugin({
         languages: ['xml'],
+      }),
+      new CopyWebpackPlugin({
+        patterns: [
+          { from: './tree/icons', to: 'tree/icons'}
+        ]
       }),
       args.mode == 'production' ? new webpack.optimize.LimitChunkCountPlugin({
         maxChunks: 10

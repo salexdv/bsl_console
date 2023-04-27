@@ -164,7 +164,15 @@ setTimeout(() => {
       '  ',
       '  Возврат Результат.Ошибки;',
       '',
-      'КонецФункции'].join('\n');
+      'КонецФункции',
+      '// Выполняет фрагмент кода, который передается ему в качестве строкового значения',
+      '//',
+      '// Параметры:',
+      '//  __Текст__	- Строка	- Строка, содержащая текст исполняемого кода',
+      '//',
+      'Процедура __Выполнить__(__Текст__) Экспорт',
+      ' Вычислить(__Текст__);',
+      'КонецПроцедуры'].join('\n');
 
     }
 
@@ -201,15 +209,15 @@ setTimeout(() => {
 
       it("проверка подсказки параметров для глобальной функции Найти(", function () {
         bsl = helper('Найти(');        
-        let suggestions = [];
-        let help = bsl.getCommonSigHelp(window.bslGlobals.globalfunctions);
+        let context = bsl.getLastSigMethod({});
+        let help = bsl.getCommonSigHelp(context, window.bslGlobals.globalfunctions);
         expect(help).to.have.property('activeParameter');
       });
 
       it("проверка подсказки параметров для глобальной функции Найти обернутой в функцию", function () {
         bsl = helper('СтрНайти(Найти(');
-        let suggestions = [];
-        let help = bsl.getCommonSigHelp(window.bslGlobals.globalfunctions);
+        let context = bsl.getLastSigMethod({});
+        let help = bsl.getCommonSigHelp(context, window.bslGlobals.globalfunctions);
         expect(help).to.have.property('activeParameter');
       });
 
@@ -234,14 +242,15 @@ setTimeout(() => {
       it("проверка подсказки параметров для конструктора HTTPЗапрос", function () {
         bsl = helper('Новый HTTPЗапрос(');
         let suggestions = [];
-        let help = bsl.getClassSigHelp(window.bslGlobals.classes);
+        let context = bsl.getLastSigMethod({});
+        let help = bsl.getClassSigHelp(context, window.bslGlobals.classes);
         expect(help).to.have.property('activeParameter');
       });
 
       it("проверка подсказки параметров для конструктора HTTPЗапрос обернутого в функцию", function () {
         bsl = helper('СтрНайти(Новый HTTPЗапрос(');
-        let suggestions = [];
-        let help = bsl.getClassSigHelp(window.bslGlobals.classes);
+        let context = bsl.getLastSigMethod({});
+        let help = bsl.getClassSigHelp(context, window.bslGlobals.classes);
         expect(help).to.have.property('activeParameter');
       });
 
@@ -352,10 +361,20 @@ setTimeout(() => {
         assert.equal(suggestions.some(suggest => suggest.label === "Цена"), true);
       });
 
+      it("проверка подсказки для выборки справочника 'Товары'", function () {
+        bsl = helper('Выборка = Справочники.Товары.Выбрать();\nВыборка.');
+        let suggestions = [];
+        bsl.getMetadataCompletion(suggestions, window.bslMetadata)
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "Цена"), true);
+        assert.equal(suggestions.some(suggest => suggest.label === "Следующий"), true);
+        assert.equal(suggestions.some(suggest => suggest.label === "ЭтоГруппа"), true);
+      });
+
       it("проверка подсказки параметров для метода 'Записать' документа 'АвансовыйОтчет'", function () {
         bsl = helper('Док = Документы.АвансовыйОтчет.НайтиПоНомеру(1);\nДок.Записать(');
-        let suggestions = [];
-        let help = bsl.getMetadataSigHelp(window.bslMetadata);
+        let context = bsl.getLastSigMethod({});
+        let help = bsl.getMetadataSigHelp(context, window.bslMetadata);
         expect(help).to.have.property('activeParameter');
       });
 
@@ -450,9 +469,9 @@ setTimeout(() => {
       });
 
       it("проверка подсказки параметров для пользовательской функции МояФункция2", function () {
-        bsl = helper('МояФункция2');        
-        let suggestions = [];
-        let help = bsl.getCommonSigHelp(window.bslGlobals.customFunctions);
+        bsl = helper('МояФункция2(');        
+        let context = bsl.getLastSigMethod({});
+        let help = bsl.getCommonSigHelp(context, window.bslGlobals.customFunctions);
         expect(help).to.have.property('activeParameter');
       });
 
@@ -463,7 +482,8 @@ setTimeout(() => {
         let model = window.editor.getModel();
         window.editor.setPosition(position);
         bsl = new bslHelper(model, position);
-        let help = bsl.getCustomSigHelp();
+        let context = bsl.getLastSigMethod({});
+        let help = bsl.getCustomSigHelp(context);
         expect(help).to.have.property('activeParameter');
         assert.equal(window.setCustomSignatures('{}'), true);        
       });
@@ -686,7 +706,7 @@ setTimeout(() => {
         window.contextData = new Map();
       });
 
-      it("проверка подсказки параметров для функции ВыгрузитьКолонку таблицы значений, полученной из другой таблицы", function () {              	                                
+      it("проверка подсказки параметров для функции ВыгрузитьКолонку таблицы значений, полученной из другой таблицы", function () {
         bsl = helper('Таблица1 = Новый ТаблицаЗначений();\nТаблица2 = Таблица1.Скопировать();\nТаблица2.ВыгрузитьКолонку(');
         let suggestions = [];  
         let signature = {
@@ -701,7 +721,8 @@ setTimeout(() => {
           [2, new Map([["скопировать", { "ref": "classes.ТаблицаЗначений", "sig": null }]])],
           [3, new Map([["выгрузитьколонку", { "ref": "classes.Массив", "sig": signature }]])]
         ]);        
-        let help = bsl.getRefSigHelp();        
+        let context = bsl.getLastSigMethod({});
+        let help = bsl.getRefSigHelp(context);
         expect(help).to.have.property('activeParameter');
         window.contextData = new Map();
       });
@@ -876,7 +897,8 @@ setTimeout(() => {
 
       it("проверка подсказки параметров для метода менеджера справочника", function () {
         bsl = helper('Справочники.Товары.ПервыйМетодМенеджера(');
-        let help = bsl.getMetadataSigHelp(window.bslMetadata);
+        let context = bsl.getLastSigMethod({});
+        let help = bsl.getMetadataSigHelp(context, window.bslMetadata);
         expect(help).to.have.property('activeParameter');
       });
 
@@ -914,6 +936,18 @@ setTimeout(() => {
         suggestions = bsl.getCodeCompletion({triggerCharacter: ''});
         expect(suggestions).to.be.an('array').that.not.is.empty;
         assert.equal(suggestions.some(suggest => suggest.label === "ЗначениеРеквизитаОбъекта"), true);
+
+        bsl = helper('ЕстьСсылкиНаОбъект(');
+        let context = bsl.getLastSigMethod({});
+        let help = bsl.getCommonSigHelp(context, window.bslGlobals.globalfunctions);
+        expect(help).to.have.property('signatures');
+        expect(help.signatures).to.be.an('array').that.not.is.empty;
+        assert.equal(
+          help.signatures.some(
+            signature => expect(signature).to.have.property('parameters') &&
+            signature.parameters.some(param => param.documentation.indexOf('ЛюбаяСсылка, Массив - объект или список объектов') === 0)
+          ), true
+        );
         
       });
 
@@ -955,6 +989,34 @@ setTimeout(() => {
         bsl.getMetadataDescription(suggestions);
         expect(suggestions).to.be.an('array').that.not.is.empty;
         assert.equal(suggestions.some(suggest => suggest.label === "Справочники"), true);
+
+      });
+
+      it("проверка подсказки структуры метаданных справочника 'Товары'", function () {
+
+        contextData = new Map([
+          [1, new Map([["товары", { "ref": "catalogs.metadata.Товары", "sig": null }]])],
+        ]);
+
+        bsl = helper('(Метаданные.Справочники.Товары.');
+        let suggestions = bsl.getCodeCompletion({triggerCharacter: ''});
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(
+          suggestions.some(
+            suggest => suggest.label === "Реквизиты" &&
+            expect(suggest).to.have.property('command') &&
+            expect(suggest.command).to.have.property('arguments') &&
+            expect(suggest.command.arguments).to.be.an('array').that.not.is.empty &&
+            suggest.command.arguments.some(
+              arg => expect(arg).to.have.property('data') &&
+              expect(arg.data.list).to.be.an('array').that.not.is.empty &&
+              arg.data.list.some(
+                list => list.name === "СтавкаНДС" &&
+                list.ref === "metadataObjectCollection.Реквизит"
+              )
+            )
+          ), true
+        );
 
       });
 
@@ -1040,6 +1102,113 @@ setTimeout(() => {
         expect(suggestions).to.be.an('array').that.not.is.empty;
         assert.equal(suggestions.some(suggest => suggest.label === "ЗначениеРеквизита"), true);
         assert.equal(suggestions.some(suggest => suggest.label === "НомерСтроки"), true);
+
+      });
+
+      it("проверка подсказки внешних источников", function () {
+
+        bsl = helper('ВнешниеИсточникиДанных.');
+        let suggestions = bsl.getCodeCompletion({triggerCharacter: ''});
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "РозничныйСайт"), true);
+
+      });
+
+      it("проверка подсказки методов и полей внешних источников", function () {
+
+        bsl = helper('ВнешниеИсточникиДанных.РозничныйСайт.');
+        let suggestions = bsl.getCodeCompletion({triggerCharacter: ''});
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "Таблицы"), true);
+        assert.equal(suggestions.some(suggest => suggest.label === "ПолучитьПараметрыСоединенияПользователя"), true);
+
+      });
+
+      it("проверка подсказки таблиц внешних источников", function () {
+
+        bsl = helper('ВнешниеИсточникиДанных.РозничныйСайт.Таблицы.');
+        let suggestions = bsl.getCodeCompletion({triggerCharacter: ''});
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "Customers"), true);
+
+      });
+
+      it("проверка подсказки методов таблиц внешних источников", function () {
+
+        bsl = helper('ВнешниеИсточникиДанных.РозничныйСайт.Таблицы.Customers.');
+        let suggestions = bsl.getCodeCompletion({triggerCharacter: ''});
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "СоздатьОбъект"), true);
+        assert.equal(suggestions.some(suggest => suggest.label === "СоздатьМенеджерЗаписи"), false);
+
+        bsl = helper('ВнешниеИсточникиДанных.РозничныйСайт.Таблицы.Orders.');
+        suggestions = bsl.getCodeCompletion({triggerCharacter: ''});
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "СоздатьОбъект"), true);
+        assert.equal(suggestions.some(suggest => suggest.label === "СоздатьМенеджерЗаписи"), true);
+
+      });
+
+      it("проверка подсказки методов менеджера справочников/документов/т.п", function () {
+
+        bsl = helper('Справочники.');
+        let suggestions = bsl.getCodeCompletion({triggerCharacter: '.'});
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "ТипВсеСсылки"), true);
+
+      });
+
+      it("проверка подсказки директив компиляции", function () {
+
+        bsl = helper('&');
+        let suggestions = bsl.getCodeCompletion({ triggerCharacter: '&' });
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "НаСервере"), true);
+
+        bsl = helper('&');
+        suggestions = bsl.getCodeCompletion({ triggerCharacter: '' });
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "НаСервере"), true);
+
+        bsl = helper('&На');
+        suggestions = bsl.getCodeCompletion({ triggerCharacter: '' });
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "НаСервере"), true);
+
+        bsl = helper('На &');
+        suggestions = bsl.getCodeCompletion({ triggerCharacter: '' });
+        expect(suggestions).to.be.an('array').that.is.empty;
+
+      });
+
+      it("проверка подсказки объявленных процедур/функций", function () {
+
+        bsl = helper('Функция МояФункция(Параметры)\n//Код функции\nКонецФункции\n\nРезультат = Моя');
+        let suggestions = bsl.getCodeCompletion({ triggerCharacter: '' });
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "МояФункция"), true);
+        
+      });
+
+      it("проверка подсказки методов макета", function () {
+
+        bsl = helper('Макет = Справочники.Товары.ПолучитьМакет("Макет");\nМакет.');
+        let suggestions = bsl.getCodeCompletion({triggerCharacter: '.'});
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "ПолучитьОбласть"), true);
+        assert.equal(suggestions.some(suggest => suggest.label === "ПолучитьТекст"), true);
+        assert.equal(suggestions.some(suggest => suggest.label === "Размер"), true);
+        assert.equal(suggestions.some(suggest => suggest.label === "ПолучитьОбъект"), false);
+
+      });
+
+      it("проверка получения ресурсов регистра сведений по указанным ключевым полям.", function () {
+
+        bsl = helper('Ресурсы = РегистрыСведений.ЦеныНоменклатуры.Получить(Отбор);\Ресурсы.');
+        let suggestions = bsl.getCodeCompletion({triggerCharacter: '.'});
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "Цена"), true);
+        assert.equal(suggestions.some(suggest => suggest.label === "Номенклатура"), false);
 
       });
 

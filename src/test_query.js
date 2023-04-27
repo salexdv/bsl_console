@@ -75,9 +75,10 @@ setTimeout(() => {
       assert.equal(suggestions.suggestions.some(suggest => suggest.label === "ВЫРАЗИТЬ"), true);
     });
 
-    it("проверка подсказки параметров для функции запроса", function () {                                                     
+    it("проверка подсказки параметров для функции запроса", function () {
       bsl = helper('РАЗНОСТЬДАТ(');
-      let help = bsl.getCommonSigHelp(window.bslQuery.functions);
+      let context = bsl.getLastSigMethod({});
+      let help = bsl.getCommonSigHelp(context, window.bslQuery.functions);
       expect(help).to.have.property('activeParameter');              
     });
 
@@ -376,6 +377,127 @@ setTimeout(() => {
       expect(suggestions.suggestions).to.be.an('array').that.is.not.empty;
       assert.equal(suggestions.suggestions.some(suggest => suggest.label === "ГРУППИРУЮЩИМ"), true);
       
+
+    });
+
+    it("проверка подсказки внешнего источника в конструкции ИЗ ИЛИ СОЕДИНЕНИЕ ", function () {
+      bsl = helper(`ВЫБРАТЬ
+      *
+      ИЗ      
+      ВнешнийИсточникДанных.`);      
+      let suggestions = [];
+      bsl.getQuerySourceCompletion(suggestions, null);
+      expect(suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(suggestions.some(suggest => suggest.label === "РозничныйСайт"), true);      
+    });
+
+    it("проверка подсказки поля 'Таблица' внешнего источника в конструкции ИЗ ИЛИ СОЕДИНЕНИЕ ", function () {
+      bsl = helper(`ВЫБРАТЬ
+      *
+      ИЗ      
+      ВнешнийИсточникДанных.РозничныйСайт.`);      
+      let suggestions = [];
+      bsl.getQuerySourceCompletion(suggestions, null);
+      expect(suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(suggestions.some(suggest => suggest.label === "Таблица"), true);
+    });
+
+    it("проверка подсказки таблиц внешнего источника в конструкции ИЗ ИЛИ СОЕДИНЕНИЕ ", function () {
+      bsl = helper(`ВЫБРАТЬ
+      *
+      ИЗ      
+      ВнешнийИсточникДанных.РозничныйСайт.Таблица.`);      
+      let suggestions = [];
+      bsl.getQuerySourceCompletion(suggestions, null);
+      expect(suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(suggestions.some(suggest => suggest.label === "Customers"), true);
+    });
+
+    it("проверка подсказки полей таблицы внешнего источника", function () {
+      bsl = helper(`ВЫБРАТЬ
+      Покупатели.
+      ИЗ      
+      ВнешнийИсточникДанных.РозничныйСайт.Таблица.Customers КАК Покупатели`, 2, 18);
+      let suggestions = [];
+      bsl.getQueryFieldsCompletion(suggestions);
+      expect(suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(suggestions.some(suggest => suggest.label === "customer_id"), true);   
+    });
+
+    it("проверка подсказки табличных частей в конструкции ИЗ или СОЕДИНЕНИЕ", function () {
+      bsl = helper(`ВЫБРАТЬ
+      *
+      ИЗ      
+        Справочник.Товары.`);
+      let suggestions = bsl.getQueryCompletion();
+      expect(suggestions).to.be.an('object');
+      expect(suggestions.suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(suggestions.suggestions.some(suggest => suggest.label === "ДополнительныеРеквизиты"), true);
+    });
+
+    it("проверка подсказки реквизитов табличных частей", function () {
+      bsl = helper(`ВЫБРАТЬ
+      ДопРеквизиты.
+      ИЗ      
+        Справочник.Товары.ДополнительныеРеквизиты КАК ДопРеквизиты`, 2, 20);
+      let suggestions = [];
+      bsl.getQueryFieldsCompletion(suggestions);
+      expect(suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(suggestions.some(suggest => suggest.label === "Ссылка"), true);
+      assert.equal(suggestions.some(suggest => suggest.label === "ИмяРеквизита"), true);
+    });
+
+    
+    it("проверка подсказки для функции ВЫРАЗИТЬ", function () {
+            
+      bsl = helper("ВЫРАЗИТЬ(");
+      let suggestions = bsl.getQueryCompletion();
+      expect(suggestions).to.be.an('array').that.is.empty;
+
+      bsl = helper("ВЫРАЗИТЬ(Товары.Код ");
+      suggestions = bsl.getQueryCompletion();
+      expect(suggestions).to.be.an('object');
+      expect(suggestions.suggestions).to.be.an('array').that.is.not.empty;
+      assert.equal(suggestions.suggestions.some(suggest => suggest.label === "КАК "), true);
+
+      bsl = helper("ВЫРАЗИТЬ(Товары.Код КАК ");
+      suggestions = bsl.getQueryCompletion();
+      expect(suggestions).to.be.an('object');
+      expect(suggestions.suggestions).to.be.an('array').that.is.not.empty;
+      assert.equal(suggestions.suggestions.some(suggest => suggest.label === "Строка"), true);
+      assert.equal(suggestions.suggestions.some(suggest => suggest.label === "Справочник"), true);
+
+      bsl = helper("ВЫРАЗИТЬ(Товары.Код КАК Справочник.");
+      suggestions = bsl.getQueryCompletion();
+      expect(suggestions).to.be.an('object');
+      expect(suggestions.suggestions).to.be.an('array').that.is.not.empty;
+      assert.equal(suggestions.suggestions.some(suggest => suggest.label === "Товары"), true);      
+
+    });
+
+    it("проверка подсказки в условии ГДЕ", function () {
+
+      bsl = helper(`ВЫБРАТЬ
+        Товары.Ссылка
+      ИЗ      
+        Справочник.Товары КАК Товары
+      ГДЕ
+        Т`, 6, 10);
+      suggestions = bsl.getQueryCompletion();
+      expect(suggestions).to.be.an('object');
+      expect(suggestions.suggestions).to.be.an('array').that.is.not.empty;
+      assert.equal(suggestions.suggestions.some(suggest => suggest.label === "Товары"), true);
+
+      bsl = helper(`ВЫБРАТЬ
+        Товары.Ссылка
+      ИЗ      
+        Справочник.Товары КАК Товары
+      ГДЕ
+        НЕ Т`, 6, 13);
+      suggestions = bsl.getQueryCompletion();
+      expect(suggestions).to.be.an('object');
+      expect(suggestions.suggestions).to.be.an('array').that.is.not.empty;
+      assert.equal(suggestions.suggestions.some(suggest => suggest.label === "Товары"), true);      
 
     });
 

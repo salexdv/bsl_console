@@ -217,6 +217,9 @@ let bsl_language = {
             'LEFT', 'ПРАВ', 'RIGHT', 'СТРНАЙТИ', 'STRFIND', 'ВРЕГ', 'UPPER', 'НРЕГ',
             'LOWER', 'СТРЗАМЕНИТЬ', 'STRREPLACE', 'РАЗМЕРХРАНИМЫХДАННЫХ', 'STOREDDATASIZE'
         ],
+        queryExp_8_3_22: [
+            'УНИКАЛЬНЫЙИДЕНТИФИКАТОР', 'UUID'
+        ],
         DCSExp: [
             'Выбор', 'Case', 'Когда', 'When', 'Тогда', 'Then', 'Или', 'Or',
             'Иначе', 'Else', 'Истина', 'True', 'Конец', 'End', 'Ложь', 'False'
@@ -305,11 +308,16 @@ let bsl_language = {
                         '@queryWords_8_3_16': 'query.keyword',
                         '@queryExp': 'query.exp',
                         '@queryExp_8_3_20': 'query.exp',
+                        '@queryExp_8_3_22': 'query.exp',
                         '@default': 'query'
                     }
                 }],
                 [/&[a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]*/, 'query.param'],
                 [/&/, 'query.param'],
+                [/("".*"")(")/, [
+                    { token: 'query.string' },
+                    { token: 'query.quote', next: '@pop' }
+                ]],
                 [/"".*""/, 'query.string'],
                 [/[({})]/, 'query.brackets'],
                 [/\/\/.*$/, 'comment'],
@@ -395,7 +403,9 @@ let bsl_language = {
     }        
 }
 
-let query_expressions = bsl_language.rules.queryExp.concat(bsl_language.rules.queryExp_8_3_20);
+let query_expressions = bsl_language.rules.queryExp;
+query_expressions = query_expressions.concat(bsl_language.rules.queryExp_8_3_20);
+query_expressions = query_expressions.concat(bsl_language.rules.queryExp_8_3_22);
 let query_keywords = bsl_language.rules.queryWords.concat(bsl_language.rules.queryWords_8_3_16);
 
 let query_language = {
@@ -495,7 +505,7 @@ let languages = {
     bsl: {
         languageDef: bsl_language,
         completionProvider: {
-            triggerCharacters: ['.', '"', ' '],
+            triggerCharacters: ['.', '"', ' ', '&'],
             provideCompletionItems: function (model, position, context, token) {                    
                 resetSuggestWidgetDisplay();
                 let bsl = new bslHelper(model, position);
@@ -580,6 +590,7 @@ let languages = {
             ['(', ')'],
             ['[', ']'],
             ['если', 'конецесли'],
+            ['иначеесли', 'иначеесли'],
             ['if', 'endif'],
             ['пока', 'конеццикла'],
             ['для', 'конеццикла'],
@@ -590,18 +601,19 @@ let languages = {
             ['функция', 'конецфункции'],
             ['function', 'endfunction'],
             ['процедура', 'конецпроцедуры'],
-            ['procedure', 'endprocedure']
+            ['procedure', 'endprocedure'],
+            ['#область', '#конецобласти']
         ],
         autoClosingPairs: []
     },
     query: {
         languageDef: query_language,
         completionProvider: {
-            triggerCharacters: ['.', '(', '&'],
+            triggerCharacters: ['.', '(', '&', ' '],
             provideCompletionItems: function (model, position, context, token) {
                 resetSuggestWidgetDisplay();
                 let bsl = new bslHelper(model, position);
-                let completion = bsl.getQueryCompletion(query_language);
+                let completion = bsl.getQueryCompletion(context);
                 bsl.onProvideCompletion(context, completion);
                 return completion;
             }

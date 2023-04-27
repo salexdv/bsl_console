@@ -4,6 +4,8 @@ import "@babel/polyfill";
 import languages from './bsl_language';
 import { getActions, permanentActions } from './actions';
 import './decorations.css'
+import './tree/tree.css'
+import Treeview from './tree/tree.js'
 import { setLocaleData } from 'monaco-editor-nls';
 import ruLocale from 'monaco-editor-nls/locale/ru';
 import Finder from "./finder";
@@ -57,6 +59,9 @@ window.colors = {};
 window.editor_options = [];
 window.snippets = {};
 window.bslSnippets = {};
+window.treeview = null;
+window.lineNumbersDedocrations = [];
+window.selectedQueryDelimiters = new Map();
 // #endregion
 
 // #region public API
@@ -93,6 +98,15 @@ window.fireEvent = function() {
   let button = document.getElementById('event-button');
   button.click();
 
+
+}
+
+window.setDefaultStyle = function() {
+
+  window.setFontFamily("Courier New");
+  window.setFontSize(14);
+  window.setLineHeight(16);
+  window.setLetterSpacing(0);
 
 }
 
@@ -230,7 +244,8 @@ window.updateCustomFunctions = function (data) {
 
 window.setTheme = function (theme) {
       
-  monaco.editor.setTheme(theme);    
+  monaco.editor.setTheme(theme);
+  setThemeVariablesDisplay(theme);
 
 }
 
@@ -316,6 +331,7 @@ window.init = function(version) {
 
   window.version1C = version;
   initContextMenuActions();
+  window.editor.layout();
 
 }
 
@@ -364,6 +380,14 @@ window.setLanguageMode = function(mode) {
 
   let isCompareMode = (window.editor.navi != undefined);
 
+  window.queryMode = (mode == 'bsl_query');
+  window.DCSMode = (mode == 'dcs_query');
+
+  if (window.queryMode || window.DCSMode)
+    window.editor.updateOptions({ foldingStrategy: "indentation" });
+  else
+    window.editor.updateOptions({ foldingStrategy: "auto" });
+
   if (isCompareMode) {
     monaco.editor.setModelLanguage(window.editor.getModifiedEditor().getModel(), mode);
     monaco.editor.setModelLanguage(window.editor.getOriginalEditor().getModel(), mode);
@@ -371,9 +395,6 @@ window.setLanguageMode = function(mode) {
   else {
     monaco.editor.setModelLanguage(window.editor.getModel(), mode);
   }
-
-  window.queryMode = (mode == 'bsl_query');
-  window.DCSMode = (mode == 'dcs_query');
 
   let currentTheme = getCurrentThemeName();
   window.setTheme(currentTheme);
@@ -453,10 +474,10 @@ window.setCustomCodeLenses = function(lensJSON) {
 
 }
 
-window.getVarsNames = function () {
+window.getVarsNames = function (includeLineNumber = false) {
   
   let bsl = new bslHelper(window.editor.getModel(), window.editor.getPosition());		
-  return bsl.getVarsNames(0);    
+  return bsl.getVarsNames(0, includeLineNumber);
   
 }
 
@@ -471,7 +492,7 @@ window.setSelection = function(startLineNumber, startColumn, endLineNumber, endC
   if (endLineNumber <= window.getLineCount()) {
     let range = new monaco.Range(startLineNumber, startColumn, endLineNumber, endColumn);
     window.editor.setSelection(range);
-    window.editor.revealLineInCenterIfOutsideViewport(startLineNumber);
+    window.editor.revealPositionInCenterIfOutsideViewport(range.getEndPosition());
     return true;
   }
   else
@@ -485,7 +506,7 @@ window.setSelectionByLength = function(start, end) {
   let endPosition = window.editor.getModel().getPositionAt(end - 1);
   let range = new monaco.Range(startPosition.lineNumber, startPosition.column, endPosition.lineNumber, endPosition.column);    
   window.editor.setSelection(range);
-  window.editor.revealPositionInCenterIfOutsideViewport(startPosition);
+  window.editor.revealPositionInCenterIfOutsideViewport(endPosition);
 
   return true;
 
@@ -716,6 +737,7 @@ window.compare = function (text, sideBySide, highlight, markLines = true) {
     window.editor.getOriginalEditor().onDidChangeCursorPosition(e => diffEditorOnDidChangeCursorPosition(e));
     window.editor.getModifiedEditor().onDidLayoutChange(e => diffEditorOnDidLayoutChange(e));
     window.editor.getOriginalEditor().onDidLayoutChange(e => diffEditorOnDidLayoutChange(e));
+    window.setDefaultStyle();
   }
   else
   {
@@ -985,6 +1007,12 @@ window.setLineHeight = function(lineHeight) {
 
 }
 
+window.setLetterSpacing = function(letterSpacing) {
+
+  window.editor.updateOptions({letterSpacing: letterSpacing});
+
+}
+
 window.renderWhitespace = function(enabled) {
 
   let mode = enabled ? 'all' : 'none';
@@ -1086,7 +1114,7 @@ window.setSuggestItemDetailById = function (rowId, detailInList, documentation =
     let suggest_item = suggestWidget.widget.list.view.items[i];
     suggest_item.element.completion.detail = detailInList;      
     
-    if (!documentation)
+    if (documentation)
       suggest_item.element.completion.documentation = documentation;      
    
     let detail_element = getChildWithClass(suggest_item.row.domNode,'details-label');
@@ -1420,6 +1448,157 @@ window.goToFuncDefinition = function (funcName) {
   return false;
 
 }
+
+window.fold = function() {
+
+  window.editor.trigger('', 'editor.fold');
+
+}
+
+window.foldAll = function() {
+
+  window.editor.trigger('', 'editor.foldAll');
+
+}
+
+window.unfold = function() {
+
+  window.editor.trigger('', 'editor.unfold');
+
+}
+
+window.unfoldAll = function() {
+
+  window.editor.trigger('', 'editor.unfoldAll');
+
+}
+
+window.scale = function(direction) {
+
+  if (direction == 0)
+    window.editor.trigger('', 'editor.action.fontZoomReset');
+  else if (0 < direction)
+    window.editor.trigger('', 'editor.action.fontZoomIn');
+  else
+    window.editor.trigger('', 'editor.action.fontZoomOut');
+
+}
+
+window.gotoLine = function() {
+
+  window.editor.trigger('', 'editor.action.gotoLine');
+  getQuickOpenWidget().widget.quickOpenWidget.inputElement.focus();
+
+}
+
+window.showVariablesDescription = function(variablesJSON) {    
+    
+  try {
+
+    if (window.treeview != null)
+      hideVariablesDisplay();
+
+    const variables = JSON.parse(variablesJSON);
+    window.treeview = new Treeview("#variables-tree", window.editor, "./tree/icons/");
+    window.treeview.replaceData(variables);
+    showVariablesDisplay();
+
+    return true;
+
+  }
+  catch (e) {
+    return { errorDescription: e.message };
+  }
+
+}
+
+window.updateVariableDescription = function(variableId, variableJSON) { 
+
+  try {
+
+    const variables = JSON.parse(variableJSON);
+    window.treeview.replaceData(variables, variableId);
+    window.treeview.open(variableId);
+    return true;
+
+  }
+  catch (e) {
+    return { errorDescription: e.message };
+  }
+
+}
+
+window.setLineNumbersDecorations = function(decorations) {
+
+  window.lineNumbersDedocrations = [];
+  window.lineNumbersDedocrations.push();
+
+  try {
+    
+    const decor = JSON.parse(decorations);
+    let length = 0;
+    decor.forEach(function (value) {
+      window.lineNumbersDedocrations.push(value);
+      length = Math.max(length, value.length)
+    });
+
+    const max_length = window.lineNumbersDedocrations.length.toString().length + 3
+    window.editor.updateOptions({ lineNumbersMinChars: 0 });
+    window.editor.updateOptions({ lineNumbersMinChars: length + max_length });
+    window.editor.layout();
+
+    return true;
+
+  }
+  catch (e) {
+    return { errorDescription: e.message };
+  }
+
+}
+
+window.getDifferences = function () {
+
+  let diff = [];
+
+  if (editor.navi) {
+
+    diff = window.editor.getLineChanges();
+    let original_model = window.editor.originalEditor.getModel();
+    let modified_model = window.editor.modifiedEditor.getModel();
+
+    diff.forEach(function (value) {
+              
+      value["originalText"] = getTextInLines(original_model, value.originalStartLineNumber, value.originalEndLineNumber);
+      value["modifiedText"] = getTextInLines(modified_model, value.modifiedStartLineNumber, value.modifiedEndLineNumber);        
+
+      if (Array.isArray(value.charChanges)) {
+        
+        value.charChanges.forEach(function (char) {
+          char["originalText"] = getTextInRange(
+            original_model,
+            char.originalStartLineNumber,
+            char.originalStartColumn,
+            char.originalEndLineNumber,
+            char.originalEndColumn
+          );
+          char["modifiedText"] = getTextInRange(
+            modified_model,
+            char.modifiedStartLineNumber,
+            char.modifiedStartColumn,
+            char.modifiedEndLineNumber,
+            char.modifiedEndColumn
+          );
+        });
+
+      }
+
+    });
+
+  }
+
+  return diff;
+
+} 
 // #endregion
 
 // #region init editor
@@ -1442,7 +1621,8 @@ function createEditor(language_id, text, theme) {
     },
     parameterHints: {
       cycle: true
-    },
+    },    
+    lineNumbers: getLineNumber,
     customOptions: true
   });
 
@@ -1450,6 +1630,9 @@ function createEditor(language_id, text, theme) {
   changeCommandKeybinding('editor.action.peekDefinition', monaco.KeyMod.CtrlCmd | monaco.KeyCode.F12);
   changeCommandKeybinding('editor.action.deleteLines',  monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_L);
   changeCommandKeybinding('editor.action.selectToBracket',  monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.KEY_B);
+
+  window.lineNumbersDedocrations = [];
+  window.setDefaultStyle();
 
 }
 
@@ -1485,61 +1668,65 @@ for (const [key, lang] of Object.entries(window.languages)) {
 
   // Register providers for the new language
   monaco.languages.registerCompletionItemProvider(language.id, lang.completionProvider);
-  monaco.languages.registerFoldingRangeProvider(language.id, lang.foldingProvider);      
+  monaco.languages.registerFoldingRangeProvider(language.id, lang.foldingProvider);
   monaco.languages.registerSignatureHelpProvider(language.id, lang.signatureProvider);
-  monaco.languages.registerHoverProvider(language.id, lang.hoverProvider);    
+  monaco.languages.registerHoverProvider(language.id, lang.hoverProvider);
   monaco.languages.registerDocumentFormattingEditProvider(language.id, lang.formatProvider);
   monaco.languages.registerColorProvider(language.id, lang.colorProvider);
   monaco.languages.registerDefinitionProvider(language.id, lang.definitionProvider);
 
   if (lang.autoIndentation && lang.indentationRules)
-    monaco.languages.setLanguageConfiguration(language.id, {indentationRules: lang.indentationRules});
+    monaco.languages.setLanguageConfiguration(language.id, { indentationRules: lang.indentationRules });
 
-  monaco.languages.setLanguageConfiguration(language.id, {brackets: lang.brackets, autoClosingPairs: lang.autoClosingPairs});
+  monaco.languages.setLanguageConfiguration(language.id, { brackets: lang.brackets, autoClosingPairs: lang.autoClosingPairs });
 
   if (!window.editor) {
 
     monaco.editor.onDidCreateEditor(e => {
-            
-      import('./bslGlobals').then(({ default: bslGlobals }) => {
-        window.bslGlobals = bslGlobals
-      }).catch((error) => 'An error occurred while loading the bslGlobals');
-      
-      import('./bslMetadata').then(({ default: bslMetadata }) => {
-        window.bslMetadata = bslMetadata
-      }).catch((error) => 'An error occurred while loading the bslMetadata');
 
-      import('./bslQuery').then(({ default: bslQuery }) => {
-        window.bslQuery = bslQuery
-      }).catch((error) => 'An error occurred while loading the bslQuery');
+      if (!window.editor) {
 
-      import('./bslDCS').then(({ default: bslDCS }) => {
-        window.bslDCS = bslDCS
-      }).catch((error) => 'An error occurred while loading the bslDCS');
-      
-      import('./snippets').then(({ default: snippets }) => {
-        window.bslSnippets = snippets;
-        window.setDefaultSnippets();
-      }).catch((error) => 'An error occurred while loading the snippets');
-      
-      import('./querySnippets').then(({ default: querySnippets }) => {        
-        window.querySnippets = querySnippets;        
-      }).catch((error) => 'An error occurred while loading the querySnippets');
+        import('./bslGlobals').then(({ default: bslGlobals }) => {
+          window.bslGlobals = bslGlobals
+        }).catch((error) => 'An error occurred while loading the bslGlobals');
 
-      import('./DCSSnippets').then(({ default: DCSSnippets }) => {        
-        window.DCSSnippets = DCSSnippets;
-      }).catch((error) => 'An error occurred while loading the DCSSnippets');
-      
-      import('./bsl_helper').then(({ default: bslHelper }) => {
-        window.bslHelper = bslHelper
-      }).catch((error) => 'An error occurred while loading the bsl_helper');
+        import('./bslMetadata').then(({ default: bslMetadata }) => {
+          window.bslMetadata = bslMetadata
+        }).catch((error) => 'An error occurred while loading the bslMetadata');
 
-      import('./colors').then(({ default: colors }) => {
-        window.colors = colors
-      }).catch((error) => 'An error occurred while loading the colors');
+        import('./bslQuery').then(({ default: bslQuery }) => {
+          window.bslQuery = bslQuery
+        }).catch((error) => 'An error occurred while loading the bslQuery');
 
-      registerCodeLensProviders();
-      
+        import('./bslDCS').then(({ default: bslDCS }) => {
+          window.bslDCS = bslDCS
+        }).catch((error) => 'An error occurred while loading the bslDCS');
+
+        import('./snippets').then(({ default: snippets }) => {
+          window.bslSnippets = snippets;
+          window.setDefaultSnippets();
+        }).catch((error) => 'An error occurred while loading the snippets');
+
+        import('./querySnippets').then(({ default: querySnippets }) => {
+          window.querySnippets = querySnippets;
+        }).catch((error) => 'An error occurred while loading the querySnippets');
+
+        import('./DCSSnippets').then(({ default: DCSSnippets }) => {
+          window.DCSSnippets = DCSSnippets;
+        }).catch((error) => 'An error occurred while loading the DCSSnippets');
+
+        import('./bsl_helper').then(({ default: bslHelper }) => {
+          window.bslHelper = bslHelper
+        }).catch((error) => 'An error occurred while loading the bsl_helper');
+
+        import('./colors').then(({ default: colors }) => {
+          window.colors = colors
+        }).catch((error) => 'An error occurred while loading the colors');
+
+        registerCodeLensProviders();
+
+      }
+
     });
 
     for (const [key, value] of Object.entries(language.themes)) {
@@ -1575,6 +1762,7 @@ initEditorEventListenersAndProperies();
 // #region editor events
 function initEditorEventListenersAndProperies() {
 
+  window.editor.sendEvent = sendEvent;
   window.editor.decorations = [];
   window.editor.bookmarks = new Map();
   window.editor.checkBookmarks = true;
@@ -1651,8 +1839,12 @@ function initEditorEventListenersAndProperies() {
 
         let target = window.editor.getModel().getWordAtPosition(position);
 
-        if (target)
-          window.setSelection(position.lineNumber, target.startColumn, position.lineNumber, target.endColumn)
+        if (target) {
+          let current_selection = window.editor.getSelection();
+          let target_selection = new monaco.Range(position.lineNumber, target.startColumn, position.lineNumber, target.endColumn);
+          if (!current_selection.containsRange(target_selection))
+            window.setSelection(position.lineNumber, target.startColumn, position.lineNumber, target.endColumn)
+        }
 
       }
 
@@ -1693,6 +1885,7 @@ function initEditorEventListenersAndProperies() {
     
     updateStatusBar();
     onChangeSnippetSelection(e);
+    updateSelectedQueryDelimiters(e);
     
   });
 
@@ -1706,6 +1899,101 @@ function initEditorEventListenersAndProperies() {
 // #endregion
   
 // #region non-public functions
+function mapsAreEqual(map1, map2) {
+    
+  let testVal;
+  
+  if (map1.size !== map2.size)
+    return false;
+  
+  for (let [key, val] of map1) {
+    testVal = map2.get(key);
+    if (testVal !== val || (testVal === undefined && !map2.has(key))) {
+      return false;
+    }
+  }
+
+  return true;
+
+}
+
+function updateSelectedQueryDelimiters(e) {
+
+  if (window.queryMode && window.editor.renderQueryDelimiters) {
+    
+    let prevSelectedDelimiters = new Map(window.selectedQueryDelimiters);
+    window.selectedQueryDelimiters = new Map();
+    const matches = Finder.findMatches(window.editor.getModel(), '^\\s*;\\s*$', e.selection);
+    
+    for (let idx = 0; idx < matches.length; idx++)
+      window.selectedQueryDelimiters.set(matches[idx].range.toString(), true);
+
+    if (!mapsAreEqual(prevSelectedDelimiters, window.selectedQueryDelimiters)) {
+      window.editor.updateDecorations([]);
+    }
+
+  }
+
+}
+
+window.generateEscapeEvent = function() {
+
+  let position = window.editor.getPosition();
+  let bsl = new bslHelper(window.editor.getModel(), position);
+
+  eventParams = {
+    current_word: bsl.word,
+    last_word: bsl.lastRawExpression,
+    last_expression: bsl.lastExpression,
+    altKey: altPressed,
+    ctrlKey: ctrlPressed,
+    shiftKey: shiftPressed,
+    position: position
+  }
+
+  window.sendEvent('EVENT_ON_KEY_ESC', eventParams);
+
+}
+
+function getTextInLines(model, startLineNumber, endLineNumber) {
+
+  let text = '';
+
+  if (endLineNumber >= startLineNumber) {
+    let range = {
+      startLineNumber: startLineNumber,
+      startColumn: 1,
+      endLineNumber: endLineNumber,
+      endColumn: model.getLineMaxColumn(endLineNumber),
+    }
+    text = model.getValueInRange(range);
+  }
+
+  return text;
+
+}
+
+function getTextInRange(model, startLineNumber, startColumn, endLineNumber, endColumn) {
+
+  let range = {
+    startLineNumber: startLineNumber,
+    startColumn: startColumn,
+    endLineNumber: endLineNumber,
+    endColumn: endColumn,
+  }
+  return model.getValueInRange(range);
+
+}
+
+function getLineNumber(originalLineNumber) {
+
+  if (originalLineNumber <= window.lineNumbersDedocrations.length)
+    return window.lineNumbersDedocrations[originalLineNumber - 1] + ' ' + originalLineNumber;
+  
+   return originalLineNumber;
+
+}
+
 function disposeEditor() {
 
   if (window.editor) {
@@ -2069,21 +2357,25 @@ function getQueryDelimiterDecorations(decorations) {
 
   if (window.queryMode && window.editor.renderQueryDelimiters) {
 
-    const matches = Finder.findMatches(window.editor.getModel(), '^;\\s*');
-    
-    let color = '#f2f2f2';
-    let class_name  = 'query-delimiter';
-    
+    const matches = Finder.findMatches(window.editor.getModel(), '^\\s*;\\s*$');
     const current_theme = getCurrentThemeName();
     const is_dark_theme = (0 <= current_theme.indexOf('dark'));
-
-    if (is_dark_theme) {
-      class_name = 'query-delimiter-dark';
-      color = '#2d2d2d'
-    }
-
+    
     for (let idx = 0; idx < matches.length; idx++) {
+      
+      let color = '#f2f2f2';
+      let class_name  = 'query-delimiter';
+
+      if (is_dark_theme) {
+        class_name = 'query-delimiter-dark';
+        color = '#2d2d2d'
+      }
+      
       let match = matches[idx];
+
+      if (window.selectedQueryDelimiters.get(match.range.toString()))
+        class_name += '-selected';
+
       decorations.push({
         range: new monaco.Range(match.range.startLineNumber, 1, match.range.startLineNumber),
         options: {
@@ -2312,6 +2604,7 @@ function diffEditorOnKeyDown(e) {
   }
   else if (e.keyCode == 9) {
     // Esc
+    window.generateEscapeEvent();
     window.closeSearchWidget();      
   }
   else if (e.keyCode == 61) {
@@ -2387,6 +2680,7 @@ function editorOnKeyDown(e) {
   }
   else if (e.keyCode == 9) {
     // Esc
+    window.generateEscapeEvent();
     setFindWidgetDisplay('none');
     window.hideSuggestionsList();
   }
@@ -3042,42 +3336,35 @@ function removeSuggestListInactiveDetails() {
 
 function onSuggestListMouseOver(activationEventEnabled) {
 
-  return; // Disabled until fix https://github.com/salexdv/bsl_console/issues/190
   let widget = getSuggestWidget().widget;
 
   if (activationEventEnabled) {
-    
-    let alwaysDisplaySuggestDetails = window.getOption('alwaysDisplaySuggestDetails');
 
-    if (!alwaysDisplaySuggestDetails) {
+    widget.listElement.onmouseoverOrig = widget.listElement.onmouseover;
+    widget.listElement.onmouseover = function (e) {
 
-      widget.listElement.onmouseoverOrig = widget.listElement.onmouseover;
-      widget.listElement.onmouseover = function(e) {        
-        
-        removeSuggestListInactiveDetails();
+      removeSuggestListInactiveDetails();
 
-        let parent_row = getParentWithClass(e.target, 'monaco-list-row');        
+      let parent_row = getParentWithClass(e.target, 'monaco-list-row');
 
-        if (parent_row) {
-          
-          if (!parent_row.classList.contains('focused')) {
-            
-            let details = getChildWithClass(parent_row, 'details-label');
-            
-            if (details) {
-              details.classList.add('inactive-detail');
-              window.generateEventWithSuggestData('EVENT_ON_ACTIVATE_SUGGEST_ROW', 'hover', parent_row);
-            }
+      if (parent_row) {
 
-            let read_more = getChildWithClass(parent_row, 'readMore');
-            
-            if (read_more)
-              read_more.classList.add('inactive-more');
+        if (!parent_row.classList.contains('focused')) {
 
-            if (typeof(widget.listElement.onmouseoverOrig) == 'function')
-              widget.listElement.onmouseoverOrig(e);
+          let details = getChildWithClass(parent_row, 'details-label');
 
+          if (details) {
+            details.classList.add('inactive-detail');
+            window.generateEventWithSuggestData('EVENT_ON_ACTIVATE_SUGGEST_ROW', 'hover', parent_row);
           }
+
+          let read_more = getChildWithClass(parent_row, 'readMore');
+
+          if (read_more)
+            read_more.classList.add('inactive-more');
+
+          if (typeof (widget.listElement.onmouseoverOrig) == 'function')
+            widget.listElement.onmouseoverOrig(e);
 
         }
 
@@ -3100,6 +3387,38 @@ function eraseTextBeforeUpdate() {
   window.editor.checkBookmarks = false;
   bslHelper.setText('', window.editor.getModel().getFullModelRange(), false);
   window.editor.checkBookmarks = true;
+
+}
+
+function showVariablesDisplay() {
+
+  document.getElementById("container").style.height = "70%";
+  getActiveEditor().layout();
+  document.getElementById("display-title").innerHTML = window.engLang ? "Variables" : "Просмотр значений переменных:"
+  let element = document.getElementById("display");
+  element.style.height = "30%";
+  element.style.display = "block";
+
+}
+
+function hideVariablesDisplay() {
+  
+  document.getElementById("container").style.height = "100%";
+  getActiveEditor().layout();
+  let element = document.getElementById("display");
+  element.style.height = "0";
+  element.style.display = "none";
+  window.treeview.dispose();
+  window.treeview = null;
+
+}
+
+function setThemeVariablesDisplay(theme) {
+
+  if (0 < theme.indexOf('dark'))
+    document.getElementById("display").classList.add('dark');
+  else
+    document.getElementById("display").classList.remove('dark');
 
 }
 // #endregion
@@ -3161,4 +3480,10 @@ window.addEventListener('resize', function(event) {
   resizeStatusBar();
   
 }, true);
+
+document.getElementById("display-close").addEventListener("click", (event) => {    
+    
+  hideVariablesDisplay();
+
+});
 // #endregion
