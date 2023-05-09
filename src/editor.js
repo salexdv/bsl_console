@@ -2508,11 +2508,20 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       getActiveDiffEditor().diffDecor.position = e.position.lineNumber;
       editor.diffEditorUpdateDecorations();
       editor.diffCount = editor.getLineChanges().length;
+      const line_number = e.position.lineNumber;
 
-      if (editor.getModifiedEditor().getPosition().equals(e.position))
-        editor.getOriginalEditor().setPosition(e.position);
-      else
-        editor.getModifiedEditor().setPosition(e.position);
+      if (editor.getModifiedEditor().getPosition().equals(e.position)) {
+        editor.getOriginalEditor().setPosition({
+          lineNumber: editor.getDiffLineInformationForModified(line_number).equivalentLineNumber,
+          column: 1
+        });
+      }
+      else {
+        editor.getModifiedEditor().setPosition({
+          lineNumber: editor.getDiffLineInformationForOriginal(line_number).equivalentLineNumber,
+          column: 1
+        });
+      }
 
       updateStatusBar();
 
