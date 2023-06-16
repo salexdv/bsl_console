@@ -57,7 +57,8 @@ define([], function () {
                 { token: 'string.invalidbsl', foreground: '000000' },
                 { token: 'numberbsl', foreground: '000000' },
                 { token: 'number.floatbsl', foreground: '000000' },
-                { token: 'preprocbsl', foreground: '963200' }
+                { token: 'preprocbsl', foreground: '963200' },
+                { token: 'gotomarkbsl', foreground: '3a3a3a' }
             ],
             whiteQueryOn: [
                 { token: 'querybsl', foreground: '000000' },                    
@@ -85,7 +86,8 @@ define([], function () {
                 { token: 'string.invalidbsl', foreground: 'c3602c' },
                 { token: 'numberbsl', foreground: 'b5cea8' },
                 { token: 'number.floatbsl', foreground: 'b5cea8' },
-                { token: 'preprocbsl', foreground: '963200' }
+                { token: 'preprocbsl', foreground: '963200' },
+                { token: 'gotomarkbsl', foreground: 'ff9000' }
             ],
             darkQueryOff: [
                 { token: 'querybsl', foreground: 'c3602c' },                    
@@ -163,7 +165,7 @@ define([], function () {
                 'New', 'Процедура', 'Procedure', 'Функция', 'Function', 'Перем', 'Var',
                 'Экспорт', 'Export', 'Знач', 'Val', 'Неопределено', 'Выполнить',
                 'Истина', 'Ложь', 'True', 'False', 'Undefined', 'Асинх', 'Async',
-                'Ждать', 'Await', 'Null'
+                'Ждать', 'Await', 'Null', 'Перейти', 'Goto'
             ],
             namespaceFollows: [
                 'namespace', 'using',
@@ -249,9 +251,10 @@ define([], function () {
             expBeforeAs: [
                 'КОНЕЦ', 'END', 'NULL', 'НЕОПРЕДЕЛЕНО', 'UNDEFINED'
             ],
-            // The main tokenizer for our languages
             tokenizer: {
                 root: [
+                    [/(перейти|goto)(\s+)(~[a-zA-Z\u0410-\u044F_0-9]*)/, ['keyword', '', 'gotomark']],
+                    [/(~[a-zA-Z\u0410-\u044F_0-9]*)(:)/, ['gotomark', 'delimiter']],
                     [/(\.)(выполнить)(\(?)/, ['delimiter', 'identifier', 'delimiter.parenthesis']],
                     [/[a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]*/, { cases: { '@keywords': 'keyword', '@default': 'identifier' } }],
                     // whitespace
