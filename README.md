@@ -67,6 +67,7 @@
 | `removeWordWrap`               | Удаляет перенос строки у текущего блока                                                       |
 | [`insertLine`](docs/insert_line.md) | Вставляет текст в строку с указанным номером                                             |
 | [`addLine`](docs/add_line.md)  | Добавляет новую строку с указанным текстом                                                    |
+| `deleteLine`                   | Удаляет строки с указанным номером                                                            |
 | [`getPositionOffset`](docs/get_position_offset.md) | Возвращает координаты текущей позиции курсора                             |
 | `jumpToBracket`                | Переход к парной скобке `CTRL+[]`                                                             |
 | `selectToBracket`              | Выделяет скобки и текст между ними `SHIFT+ALT+B`                                              |
