@@ -599,6 +599,15 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  deleteLine = function(lineNumber) {
+
+    editor.executeEdits('addLine', [{
+      range: new monaco.Range(lineNumber, 1, lineNumber + 1, 1),
+      text: null      
+    }]);
+
+  }
+
   getPositionOffset = function() {
 
     let position = editor.getPosition();
