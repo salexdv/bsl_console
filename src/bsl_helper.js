@@ -7904,6 +7904,9 @@ class bslHelper {
 
 			this.generateDefinitionEvent();
 
+			if (location && !ctrlPressed)
+				editor.definitionBreadcrumbs.push(this.position);
+
 		}
 
 		return location;
@@ -8006,6 +8009,9 @@ class bslHelper {
 				location = this.getQuerySourceDefinition();
 			else
 				location = this.getQueryTempTableDefinition();
+
+			if (location && !ctrlPressed)
+				editor.definitionBreadcrumbs.push(this.position);
 
 		}
 

@@ -1722,6 +1722,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     
       contextMenuEnabled = editor.getRawOptions().contextmenu;
       editor.originalText = '';
+      editor.definitionBreadcrumbs = [];
 
     }
 
@@ -2679,6 +2680,15 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
             generateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', 'selection', element);
           }, 10);
         }
+      }
+    }
+
+    if (e.ctrlKey && e.keyCode == 83) {
+      e.preventDefault();    
+      if (editor.definitionBreadcrumbs.length) {
+        let position  = editor.definitionBreadcrumbs.pop();
+        editor.revealLineInCenter(position.lineNumber);
+        editor.setPosition(position);
       }
     }
 
