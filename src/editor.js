@@ -40,6 +40,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   lineNumbersDedocrations = [];
   selectedQueryDelimiters = new Map();
   reviewMode = false;
+  reviewWidgets = [];
   // #endregion
 
   // #region public API
@@ -1789,7 +1790,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
     editor.onMouseMove(e => {
       
-      if (reviewMode) {
+      if (reviewMode && e.target.position) {
 
         editor.diff_decorations = [];
     
@@ -1870,6 +1871,10 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       if (element.classList.contains('diff-navi')) {
         createDiffWidget(e);
       }    
+
+      if (element.classList.contains('add-review')) {
+        createReviewWidget(e);
+      }
 
     });
 
@@ -3324,6 +3329,67 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       }, 50);
 
     }
+
+  }
+
+  function createReviewWidget(e) {
+      
+    let line_number = e.target.position.lineNumber;
+    
+    let reviewWidget = {      
+      domNode: null,
+      getId: function () {
+        return 'bsl.review.widget';
+      },
+      getDomNode: function () {
+
+        if (!this.domNode) {
+          this.domNode = document.createElement('div');
+          this.domNode.classList.add('review-body');
+          let textarea = document.createElement('textarea');
+          this.domNode.appendChild(textarea);
+                  
+
+        }
+        return this.domNode;
+      },
+      getPosition: function () {
+        return null;
+      }
+    };    
+
+    editor.changeViewZones(function (changeAccessor) {
+
+      let domNode = document.createElement("div");
+      editor.domNode = domNode;
+      domNode.classList.add('review-zone');
+
+      let marginDomNode = document.createElement("div");
+      marginDomNode.classList.add('review-margin-zone');
+
+      zone_id = changeAccessor.addZone({
+        afterLineNumber: line_number,
+        afterColumn: 1,
+        heightInLines: 8,
+        domNode: domNode,
+        widget: reviewWidget,
+        marginDomNode: marginDomNode,
+        onDomNodeTop: function (top) {
+          if (this.widget.domNode) {
+            let layout = editor.getLayoutInfo();
+            let width = layout.width - layout.verticalScrollbarWidth - layout.minimapWidth;
+            this.widget.domNode.style.top = top + 'px';
+            this.widget.domNode.style.width = width + 'px';
+            this.widget.domNode.style.height = this.domNode.getBoundingClientRect().height + 'px';
+          }
+        }
+      });
+
+      editor.layout();
+
+    }); 
+
+    editor.addOverlayWidget(reviewWidget);
 
   }
 

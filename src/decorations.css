@@ -123,6 +123,29 @@ div:has(> .add-review) {
     font-weight: bold;
 }
 
+.review-body {
+	border-top: 1px solid #ddd;
+	border-right: 1px solid #ddd;
+	border-bottom: 1px solid #ddd;
+	padding: 10px;
+	box-sizing: border-box;
+}
+/*
+.review-margin-zone {
+	border-top: 1px solid #ddd;
+	border-left: 1px solid #ddd;
+	border-bottom: 1px solid #ddd;
+}
+*/
+
+.review-body > textarea {
+	border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 10px;
+	width: 100%;
+	box-sizing: border-box;
+}
+
 .diff-navi {
 	border-left: 3px solid;
 	width: 3px !important;
