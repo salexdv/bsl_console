@@ -39,6 +39,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   treeview = null;
   lineNumbersDedocrations = [];
   selectedQueryDelimiters = new Map();
+  reviewMode = false;
   // #endregion
 
   // #region public API
@@ -1785,6 +1786,28 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       }
 
     }
+
+    editor.onMouseMove(e => {
+      
+      if (reviewMode) {
+
+        editor.diff_decorations = [];
+    
+        let range = new monaco.Range(e.target.position.lineNumber, 1, e.target.position.lineNumber, 1);
+            
+        editor.diff_decorations.push({
+          range: range,
+          options: {
+            isWholeLine: true,
+            linesDecorationsClassName: 'add-review',
+          }
+        });
+        
+        editor.updateDecorations([]);
+
+      }
+              
+    });
 
     editor.onKeyDown(e => editorOnKeyDown(e));
 
