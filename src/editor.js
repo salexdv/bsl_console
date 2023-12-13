@@ -706,7 +706,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       });
       editor.getModifiedEditor().onMouseDown(e => {
         if (e.target.element.classList.contains('add-review'))
-          createReviewWidget(e);          
+          createReviewWidget(e.target.position.lineNumber);          
       });
       setDefaultStyle();
     }
@@ -1609,27 +1609,41 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
-  startCodeReview = function() {
+  setReviewIssues = function(issuesJSON) {
+
+    if (!getOption('reviewMode'))
+      return { errorDescription: 'Необходимо включить режим Code Review' };
+
+    try {
+
+      const issues = JSON.parse(issuesJSON);
+      removeReviewWidgets();
+
+      for (let x = 0; x < issues.length; x++) {
+        let issue = issues[x];
+        createReviewWidget(issue.startLineNumber, issue);
+      }
+
+      return true;
+
+    }
+    catch (e) {
+      return { errorDescription: e.message };
+    }
+
+  }
+
+  startCodeReview = function(readOnlyCodeReview = false) {
 
     setOption('reviewMode', true);
+    setOption('readOnlyCodeReview', readOnlyCodeReview);
 
   }
 
   stopCodeReview = function() {
     
     setOption('reviewMode', false);
-
-    reviewWidgets.forEach((value, key, map) => {
-      value.widget.delete();
-    });
-
-    let standaloneEditor = editor.navi ? editor.getModifiedEditor() : editor;      
-    standaloneEditor.reviewDecorations = [];
-        
-    if (editor.navi)
-      editor.diffEditorUpdateDecorations();
-    else
-      editor.updateDecorations(standaloneEditor.reviewDecorations);
+    removeReviewWidgets();
 
   }
 
@@ -1906,7 +1920,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       }    
 
       if (element.classList.contains('add-review')) {
-        createReviewWidget(e);
+        createReviewWidget(e.target.position.lineNumber);
       }
 
     });
@@ -3398,9 +3412,9 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
-  function createReviewWidget(e) {
+  function createReviewWidget(lineNumber, issue = null) {
       
-    let startLineNumber = e.target.position.lineNumber;
+    let startLineNumber = lineNumber;
     let widgetId = 'bsl.review.widget.' + startLineNumber;
     
     if (reviewWidgets.get(widgetId))
@@ -3489,16 +3503,33 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
           changeAccessor.layoutZone(widget.zone);
         });
       },
+      load(issue) {
+        if (issue) {
+            this.domNode.classList.add('review-' + issue.severity);
+            this.domNode.getElementsByClassName("review-title")[0].innerHTML = issue.date;
+            this.domNode.getElementsByClassName('review-text')[0].innerHTML = issue.message;
+            this.domNode.getElementsByTagName('textarea')[0].value = issue.message;
+            this.domNode.querySelector('.severity label .' + issue.severity).previousSibling.checked = true
+            let widget = reviewWidgets.get(this.widgetId);
+            widget.date = issue.date;
+            widget.message = issue.message;
+            widget.severity = issue.severity;
+            this.close();
+        }
+      },
       getDomNode: function () {
 
         if (!this.domNode) {
           
           this.domNode = document.createElement('div');
           this.domNode.classList.add('review-body');
-
+        
           let header = document.createElement('div');
           header.classList.add('review-header');
-          header.style.display = 'none';
+          if (issue)
+            header.style.display = 'flex';
+          else
+            header.style.display = 'none';
 
           let buttons = document.createElement('div');
           buttons.classList.add('review-buttons');
@@ -3535,10 +3566,16 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
           let text = document.createElement('div');
           text.classList.add('review-text');
           this.domNode.appendChild(text);
-          text.style.display = 'none';
+          
+          if (issue)
+            text.style.display = 'block';
+          else
+            text.style.display = 'none';
 
           let editGroup = document.createElement('div');
           editGroup.classList.add('review-edit');
+          if (issue)
+            editGroup.style.display = 'none';
 
           div = document.createElement('div');
           div.classList.add('severity');
@@ -3620,6 +3657,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
           }
           editGroup.appendChild(button);
           this.domNode.appendChild(editGroup);
+          this.load(issue);
 
         }
         return this.domNode;
@@ -3664,10 +3702,27 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       });
 
       getActiveEditor().layout();
+      setTimeout(() => {reviewWidget.load(issue)}, 10);
 
     }); 
 
     getActiveEditor().addOverlayWidget(reviewWidget);
+
+  }
+
+  function removeReviewWidgets() {
+
+    reviewWidgets.forEach((value, key, map) => {
+      value.widget.delete();
+    });
+
+    let standaloneEditor = editor.navi ? editor.getModifiedEditor() : editor;      
+    standaloneEditor.reviewDecorations = [];
+        
+    if (editor.navi)
+      editor.diffEditorUpdateDecorations();
+    else
+      editor.updateDecorations(standaloneEditor.reviewDecorations);
 
   }
 
