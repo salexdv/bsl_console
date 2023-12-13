@@ -3370,10 +3370,22 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       getId: function () {
         return widgetId;
       },
+      removeSeverity() {
+        this.domNode.classList.remove('review-error');
+        this.domNode.classList.remove('review-warning');
+        this.domNode.classList.remove('review-info');
+        this.domNode.classList.remove('review-hint');
+      },
+      setSeverity() {
+        let className = this.domNode.querySelector('input:checked').nextSibling.className;
+        this.removeSeverity();
+        this.domNode.classList.add("review-" + className);
+      },
       close: function () {
         let height = editor.getOption(monaco.editor.EditorOption.lineHeight) * 4 + 'px'
         let widget = reviewWidgets.get(this.widgetId);
-        this.domNode.getElementsByClassName("review-buttons")[0].style.display = 'block';            
+        this.domNode.classList.add('close');
+        this.domNode.getElementsByClassName("review-header")[0].style.display = 'flex';
         this.domNode.getElementsByClassName("review-text")[0].style.display = 'block';
         this.domNode.getElementsByClassName("review-edit")[0].style.display = 'none'
         this.domNode.style.height = height;
@@ -3383,12 +3395,26 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         });
       },
       save: function () {
-        let widget = reviewWidgets.get(this.widgetId);
         let textarea = this.domNode.getElementsByTagName('textarea')[0];
-        let reviewText = this.domNode.getElementsByClassName("review-text")[0];
         if (textarea.value) {
+          let widget = reviewWidgets.get(this.widgetId);
+          let reviewText = this.domNode.getElementsByClassName("review-text")[0];
           widget.message = textarea.value;
           reviewText.innerHTML = textarea.value;
+          let reviewTitle = this.domNode.getElementsByClassName("review-title")[0];
+          let date = new Date(Date.now());
+          function addZero(num) {
+              return ("0" + num).slice(-2)
+          }
+          let year = date.getFullYear(),
+              month = addZero(date.getMonth() + 1),
+              day = addZero(date.getDate()),
+              hours = addZero(date.getHours()),
+              minutes = addZero(date.getMinutes());
+          let title = `${day}.${month}.${year} ${hours}:${minutes}`;
+          if (!reviewTitle.innerHTML)
+            reviewTitle.innerHTML = title;
+          this.setSeverity();
           this.close();
         }
         else {
@@ -3411,11 +3437,17 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
           this.delete();
       },
       edit: function () {
-        let height = editor.getOption(monaco.editor.EditorOption.lineHeight) * 8 + 'px'
-        this.domNode.getElementsByClassName("review-buttons")[0].style.display = 'none';
+        let widget = reviewWidgets.get(this.widgetId);
+        let height = editor.getOption(monaco.editor.EditorOption.lineHeight) * 9 + 'px'
+        this.domNode.classList.remove('close');
+        this.domNode.getElementsByClassName("review-header")[0].style.display = 'none';
         this.domNode.getElementsByClassName("review-text")[0].style.display = 'none';
         this.domNode.getElementsByClassName("review-edit")[0].style.display = 'block';
         this.domNode.style.height = height;
+        document.querySelector('[monaco-view-zone="' + widget.zone + '"]').style.height = height;
+        getActiveEditor().changeViewZones(function (changeAccessor) {
+          changeAccessor.layoutZone(widget.zone);
+        });
       },
       getDomNode: function () {
 
@@ -3424,27 +3456,39 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
           this.domNode = document.createElement('div');
           this.domNode.classList.add('review-body');
 
+          let header = document.createElement('div');
+          header.classList.add('review-header');
+          header.style.display = 'none';
+
           let buttons = document.createElement('div');
           buttons.classList.add('review-buttons');
-          buttons.style.display = 'none';
+          header.appendChild(buttons);
+
+          title = document.createElement('div');
+          title.classList.add('review-title');
+          header.appendChild(title);
 
           let button = document.createElement('div');
+          button.classList.add('review-image');
+          buttons.appendChild(button);
+
+          button = document.createElement('div');
+          button.classList.add('review-modify');
+          button.setAttribute('widgetid', widgetId);
+          button.onclick = function() {
+            reviewWidgets.get(this.getAttribute("widgetid")).widget.edit();
+          }
+          buttons.appendChild(button);
+
+          button = document.createElement('div');
           button.classList.add('review-delete');
           button.setAttribute('widgetid', widgetId);
           button.onclick = function() {
             if (confirm("Удалить замечание?"))
               reviewWidgets.get(this.getAttribute("widgetid")).widget.delete();
           }
-          buttons.appendChild(button);
-
-          button = document.createElement('div');
-          button.setAttribute('widgetid', widgetId);
-          button.classList.add('review-modify');
-          button.onclick = function() {
-            reviewWidgets.get(this.getAttribute("widgetid")).widget.edit();
-          }
-          buttons.appendChild(button);
-          this.domNode.appendChild(buttons);
+          buttons.appendChild(button);          
+          this.domNode.appendChild(header);
 
           let text = document.createElement('div');
           text.classList.add('review-text');
@@ -3453,6 +3497,59 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
           let editGroup = document.createElement('div');
           editGroup.classList.add('review-edit');
+
+          div = document.createElement('div');
+          div.classList.add('severity');
+
+          let group = document.createElement('div');          
+          div.appendChild(group)
+          
+          let label = document.createElement('label');
+          group.appendChild(label);
+          let input = document.createElement('input');
+          input.setAttribute('name', 'radio');
+          input.setAttribute('type', 'radio');
+          input.setAttribute('checked', '');
+          label.appendChild(input);
+          let span = document.createElement('span');          
+          span.classList.add('error');
+          span.innerHTML = 'Ошибка';
+          label.appendChild(span);
+
+          label = document.createElement('label');
+          group.appendChild(label);
+          input = document.createElement('input');
+          input.setAttribute('name', 'radio');
+          input.setAttribute('type', 'radio');
+          label.appendChild(input);
+          span = document.createElement('span');          
+          span.classList.add('warning');
+          span.innerHTML = 'Предупреждение';
+          label.appendChild(span);
+          
+          label = document.createElement('label');
+          group.appendChild(label);
+          input = document.createElement('input');
+          input.setAttribute('name', 'radio');
+          input.setAttribute('type', 'radio');
+          label.appendChild(input);
+          span = document.createElement('span');          
+          span.classList.add('info');
+          span.innerHTML = 'Информация';
+          label.appendChild(span);
+
+          label = document.createElement('label');
+          group.appendChild(label);
+          input = document.createElement('input');
+          input.setAttribute('name', 'radio');
+          input.setAttribute('type', 'radio');
+          label.appendChild(input);
+          span = document.createElement('span');          
+          span.classList.add('hint');
+          span.innerHTML = 'Подсказка';
+          label.appendChild(span);
+			
+          editGroup.appendChild(div);          
           
           let textarea = document.createElement('textarea');
           textarea.oninput = function() {
@@ -3463,7 +3560,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
           button = document.createElement('button');
           button.setAttribute('widgetid', widgetId);
-          button.classList.add('review-add');
+          button.classList.add('review-save');
           button.innerHTML = "Сохранить"
           button.onclick = function() {
             reviewWidgets.get(this.getAttribute("widgetid")).widget.save();
@@ -3497,7 +3594,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       zone_id = changeAccessor.addZone({
         afterLineNumber: lineNumber,
         afterColumn: 1,
-        heightInLines: 8,
+        heightInLines: 9,
         domNode: domNode,
         widget: reviewWidget,
         onDomNodeTop: function (top) {          
