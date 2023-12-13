@@ -89,7 +89,7 @@ div:has(> .add-review) {
 }
 
 .add-review {
-	margin-left: -38px;
+	margin-left: 2px;
 	margin-top: -1px;
     width: 18px !important;
     height: 18px !important;
@@ -102,7 +102,7 @@ div:has(> .add-review) {
 }
 
 .add-review:hover {
-	margin-left: -40px;
+	margin-left: 0;
 	margin-top: -3px;
     width: 22px !important;
     height: 22px !important;
