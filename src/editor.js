@@ -1590,6 +1590,25 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  getReviewIssues = function() {
+
+    issues = [];
+
+    reviewWidgets.forEach((value, key, map) => {
+      issue = {
+        startLineNumber: value.startLineNumber,
+        endLineNumber: value.startLineNumber,
+        date: value.date,
+        severity: value.severity,       
+        message: value.message
+      }
+      issues.push(issue);
+    });
+
+    return issues;
+
+  }
+
   startCodeReview = function() {
 
     setOption('reviewMode', true);
@@ -3381,8 +3400,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   function createReviewWidget(e) {
       
-    let lineNumber = e.target.position.lineNumber;
-    let widgetId = 'bsl.review.widget.' + lineNumber;
+    let startLineNumber = e.target.position.lineNumber;
+    let widgetId = 'bsl.review.widget.' + startLineNumber;
     
     if (reviewWidgets.get(widgetId))
       return;    
@@ -3617,7 +3636,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       domNode.classList.add('review-zone');
 
       zone_id = changeAccessor.addZone({
-        afterLineNumber: lineNumber,
+        afterLineNumber: startLineNumber,
         afterColumn: 1,
         heightInLines: 10,
         domNode: domNode,
@@ -3640,7 +3659,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
       reviewWidgets.set(widgetId, {
         zone: zone_id,
-        lineNumber: lineNumber,
+        startLineNumber: startLineNumber,
         widget: reviewWidget
       });
 
