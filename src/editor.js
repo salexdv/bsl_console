@@ -40,6 +40,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   lineNumbersDedocrations = [];
   selectedQueryDelimiters = new Map();
   reviewWidgets = new Map();
+  currentIssue = -1;
   // #endregion
 
   // #region public API
@@ -1587,6 +1588,31 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     }
 
     return diff;
+
+  }
+
+  goNextIssue = function () {
+
+    let sortedIssues = getSortedIssues();
+
+    if (sortedIssues.length - 1 <= currentIssue)
+      currentIssue = -1;
+
+    currentIssue++;
+    goToCurrentIssue(sortedIssues);
+
+  }
+
+  goPreviousIssue = function () {
+
+    let sortedIssues = getSortedIssues();
+
+    currentIssue--;
+
+    if (currentIssue < 0)
+      currentIssue = sortedIssues.length - 1;
+
+    goToCurrentIssue(sortedIssues);
 
   }
 
@@ -3679,6 +3705,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         heightInLines: 10,
         domNode: domNode,
         widget: reviewWidget,
+        showInHiddenAreas: false,
         onDomNodeTop: function (top) {          
           if (this.widget.domNode) {
             let layout = getActiveEditor().getLayoutInfo();
@@ -3723,6 +3750,38 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       editor.diffEditorUpdateDecorations();
     else
       editor.updateDecorations(standaloneEditor.reviewDecorations);
+
+  }
+
+  function goToCurrentIssue(sortedIssues) {
+
+    if (sortedIssues.length <= currentIssue)
+      return;
+
+    let lineCount = getLineCount();
+    let issueLine = sortedIssues[currentIssue];
+
+    if (issueLine <= lineCount) {
+      let standaloneEditor = editor.navi ? editor.getModifiedEditor() : editor;      
+      let smoothScrolling = standaloneEditor.getOption(monaco.editor.EditorOption.smoothScrolling);
+      standaloneEditor.updateOptions({ smoothScrolling: true });
+      standaloneEditor.revealLineInCenter(issueLine, 0);
+      standaloneEditor.setPosition(new monaco.Position(issueLine, 1));      
+      standaloneEditor.updateOptions({ smoothScrolling: smoothScrolling });
+    }
+
+  }
+
+  function getSortedIssues() {
+
+    let sortedIssues = [];
+    const sortedWidgets = new Map([...reviewWidgets].sort());
+
+    sortedWidgets.forEach((value, key, map) => {
+      sortedIssues.push(value.startLineNumber);
+    });
+
+    return sortedIssues;
 
   }
 
