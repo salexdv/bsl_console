@@ -97,7 +97,7 @@ div:has(> .add-review) {
     border-radius: 5px;
 	transition: transform .1s ease-in-out;
     transform: scale(0.8, 0.8);	
-	z-index: 1;
+	z-index: 2;
 	cursor: pointer;
 }
 
@@ -124,26 +124,54 @@ div:has(> .add-review) {
 }
 
 .review-body {
-	border-top: 1px solid #ddd;
-	border-right: 1px solid #ddd;
-	border-bottom: 1px solid #ddd;
+	border: 1px solid #ddd;	
 	padding: 10px;
 	box-sizing: border-box;
+	background-color: #f6f8fa;
 }
-/*
-.review-margin-zone {
-	border-top: 1px solid #ddd;
-	border-left: 1px solid #ddd;
-	border-bottom: 1px solid #ddd;
-}
-*/
 
-.review-body > textarea {
+.review-buttons {
+	float: right;
+}
+
+.review-buttons > div {
+	height: 16px;
+	width: 16px;
+	background-size: contain;
+    background-repeat: no-repeat;
+    float: right;
+	margin: 5px 5px 10px 5px;
+	cursor: pointer;
+	opacity: 0.5;
+}
+
+.review-buttons > div:hover {
+	opacity: 1;
+}
+
+.review-modify {
+	background: url("media/pencil.svg");
+}
+
+.review-delete {
+	background: url("media/trash.svg");
+}
+
+.review-body textarea.required {
+	border: 1px solid #990000;
+}
+
+.review-body textarea {
 	border: 1px solid #ddd;
     border-radius: 5px;
     padding: 10px;
 	width: 100%;
 	box-sizing: border-box;
+}
+
+.review-body textarea:focus {
+	outline: none !important;
+	border-color: #007acc;
 }
 
 .diff-navi {
