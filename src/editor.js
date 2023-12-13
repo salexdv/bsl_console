@@ -39,7 +39,6 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   treeview = null;
   lineNumbersDedocrations = [];
   selectedQueryDelimiters = new Map();
-  reviewMode = false;
   reviewWidgets = new Map();
   // #endregion
 
@@ -1589,7 +1588,31 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
     return diff;
 
-  } 
+  }
+
+  startCodeReview = function() {
+
+    setOption('reviewMode', true);
+
+  }
+
+  stopCodeReview = function() {
+    
+    setOption('reviewMode', false);
+
+    reviewWidgets.forEach((value, key, map) => {
+      value.widget.delete();
+    });
+
+    let standaloneEditor = editor.navi ? editor.getModifiedEditor() : editor;      
+    standaloneEditor.reviewDecorations = [];
+        
+    if (editor.navi)
+      editor.diffEditorUpdateDecorations();
+    else
+      editor.updateDecorations(standaloneEditor.reviewDecorations);
+
+  }
 
   generateEventWithSuggestData = function(eventName, trigger, row, suggestRows = []) {
 
@@ -2533,7 +2556,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   function newReviewDecoration(e) {
 
-    if (reviewMode && e.target.position) {
+    if (getOption('reviewMode') && !getOption("readOnlyCodeReview") && e.target.position) {
   
       let standaloneEditor = editor;
       
@@ -3376,13 +3399,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         this.domNode.classList.remove('review-info');
         this.domNode.classList.remove('review-hint');
       },
-      setSeverity() {
-        let className = this.domNode.querySelector('input:checked').nextSibling.className;
-        this.removeSeverity();
-        this.domNode.classList.add("review-" + className);
-      },
       close: function () {
-        let height = editor.getOption(monaco.editor.EditorOption.lineHeight) * 4 + 'px'
+        let height = getActiveEditor().getOption(monaco.editor.EditorOption.lineHeight) * 4 + 'px'
         let widget = reviewWidgets.get(this.widgetId);
         this.domNode.classList.add('close');
         this.domNode.getElementsByClassName("review-header")[0].style.display = 'flex';
@@ -3399,7 +3417,6 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         if (textarea.value) {
           let widget = reviewWidgets.get(this.widgetId);
           let reviewText = this.domNode.getElementsByClassName("review-text")[0];
-          widget.message = textarea.value;
           reviewText.innerHTML = textarea.value;
           let reviewTitle = this.domNode.getElementsByClassName("review-title")[0];
           let date = new Date(Date.now());
@@ -3411,10 +3428,14 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
               day = addZero(date.getDate()),
               hours = addZero(date.getHours()),
               minutes = addZero(date.getMinutes());
-          let title = `${day}.${month}.${year} ${hours}:${minutes}`;
+          let issueDate = `${day}.${month}.${year} ${hours}:${minutes}`;
           if (!reviewTitle.innerHTML)
-            reviewTitle.innerHTML = title;
-          this.setSeverity();
+            reviewTitle.innerHTML = issueDate;
+          widget.date = issueDate;
+          widget.message = textarea.value;
+          widget.severity = this.domNode.querySelector('input:checked').nextSibling.className;
+          this.removeSeverity();
+          this.domNode.classList.add("review-" + widget.severity);
           this.close();
         }
         else {
@@ -3438,7 +3459,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       },
       edit: function () {
         let widget = reviewWidgets.get(this.widgetId);
-        let height = editor.getOption(monaco.editor.EditorOption.lineHeight) * 9 + 'px'
+        let height = getActiveEditor().getOption(monaco.editor.EditorOption.lineHeight) * 10 + 'px'
         this.domNode.classList.remove('close');
         this.domNode.getElementsByClassName("review-header")[0].style.display = 'none';
         this.domNode.getElementsByClassName("review-text")[0].style.display = 'none';
@@ -3480,14 +3501,16 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
           }
           buttons.appendChild(button);
 
-          button = document.createElement('div');
-          button.classList.add('review-delete');
-          button.setAttribute('widgetid', widgetId);
-          button.onclick = function() {
-            if (confirm("Удалить замечание?"))
-              reviewWidgets.get(this.getAttribute("widgetid")).widget.delete();
+          if (!getOption('readOnlyCodeReview')) {
+            button = document.createElement('div');
+            button.classList.add('review-delete');
+            button.setAttribute('widgetid', widgetId);
+            button.onclick = function () {
+              if (confirm("Удалить замечание?"))
+                reviewWidgets.get(this.getAttribute("widgetid")).widget.delete();
+            }
+            buttons.appendChild(button);
           }
-          buttons.appendChild(button);          
           this.domNode.appendChild(header);
 
           let text = document.createElement('div');
@@ -3558,14 +3581,16 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
           textarea.classList.add('review-message');
           editGroup.appendChild(textarea);
 
-          button = document.createElement('button');
-          button.setAttribute('widgetid', widgetId);
-          button.classList.add('review-save');
-          button.innerHTML = "Сохранить"
-          button.onclick = function() {
-            reviewWidgets.get(this.getAttribute("widgetid")).widget.save();
+          if (!getOption('readOnlyCodeReview')) {
+            button = document.createElement('button');
+            button.setAttribute('widgetid', widgetId);
+            button.classList.add('review-save');
+            button.innerHTML = "Сохранить"
+            button.onclick = function() {
+              reviewWidgets.get(this.getAttribute("widgetid")).widget.save();
+            }
+            editGroup.appendChild(button);
           }
-          editGroup.appendChild(button);                  
           
           button = document.createElement('button');
           button.setAttribute('widgetid', widgetId);
@@ -3594,13 +3619,14 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       zone_id = changeAccessor.addZone({
         afterLineNumber: lineNumber,
         afterColumn: 1,
-        heightInLines: 9,
+        heightInLines: 10,
         domNode: domNode,
         widget: reviewWidget,
         onDomNodeTop: function (top) {          
           if (this.widget.domNode) {
             let layout = getActiveEditor().getLayoutInfo();
-            let width = layout.width - layout.verticalScrollbarWidth - layout.minimapWidth;
+            let scrollWidth = editor.navi ? layout.verticalScrollbarWidth * 2 : layout.verticalScrollbarWidth;
+            let width = layout.width - scrollWidth - layout.minimapWidth;
             this.widget.domNode.style.top = top + 'px';
             this.widget.domNode.style.width = width + 'px';
             this.widget.domNode.style.height = this.domNode.getBoundingClientRect().height + 'px';

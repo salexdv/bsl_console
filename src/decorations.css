@@ -132,7 +132,10 @@ div:has(> .add-review) {
 
 .review-text {
 	padding: 0 10px;
-	overflow: hidden;
+	font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .review-header {
@@ -230,24 +233,28 @@ div:has(> .add-review) {
 	background-color: #f2dede;
 	color: #a94442;
 	border-color: #ebccd1;
+	border-left: 4px solid #a94442;
 }
 
 .close.review-warning {
 	background-color: #fdf1dd;
 	color: #8a6d3b;
-	border-color: #faebcc
+	border-color: #faebcc;
+	border-left: 4px solid #8a6d3b;
 }
 
 .close.review-info {
 	background-color: #d9edf7;
 	color: #31708f;
-	border-color: #bce8f1
+	border-color: #bce8f1;
+	border-left: 4px solid #31708f;
 }
 
 .close.review-hint {
 	background-color: #dff0d8;
 	color: #3c763d;
-	border-color: #d6e9c6
+	border-color: #d6e9c6;
+	border-left: 4px solid #3c763d;
 }
 
 .review-body textarea.required {
@@ -256,10 +263,13 @@ div:has(> .add-review) {
 
 .review-body textarea {
 	border: 1px solid #ddd;
-    border-radius: 5px;
-    padding: 10px;
+	border-radius: 5px;
+	padding: 10px;
 	width: 100%;
 	box-sizing: border-box;
+	height: 73px;
+	max-height: 73px;
+	resize: none;
 }
 
 .review-body textarea:focus {
