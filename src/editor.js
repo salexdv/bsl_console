@@ -1663,6 +1663,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
     setOption('reviewMode', true);
     setOption('readOnlyCodeReview', readOnlyCodeReview);
+    currentIssue = -1;
 
   }
 
@@ -2638,6 +2639,14 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         editor.diffEditorUpdateDecorations();
       else
         editor.updateDecorations(standaloneEditor.reviewDecorations);
+      
+      setTimeout(() => {
+        let lineElement = document.querySelector('.add-review');
+        if (lineElement) {
+          lineElement.nextSibling.style.display = 'none';
+          lineElement.parentElement.style.backgroundColor = '#ddd';
+        }
+      }, 5);
 
     }
 
@@ -3444,7 +3453,9 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     let widgetId = 'bsl.review.widget.' + startLineNumber;
     
     if (reviewWidgets.get(widgetId))
-      return;    
+      return;
+
+    let standaloneEditor = editor.navi ? editor.getModifiedEditor() : editor;
 
     let reviewWidget = {      
       widgetId: widgetId,
@@ -3459,7 +3470,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         this.domNode.classList.remove('review-hint');
       },
       close: function () {
-        let height = getActiveEditor().getOption(monaco.editor.EditorOption.lineHeight) * 4 + 'px'
+        let height = standaloneEditor.getOption(monaco.editor.EditorOption.lineHeight) * 4 + 'px'
         let widget = reviewWidgets.get(this.widgetId);
         this.domNode.classList.add('close');
         this.domNode.getElementsByClassName("review-header")[0].style.display = 'flex';
@@ -3467,7 +3478,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         this.domNode.getElementsByClassName("review-edit")[0].style.display = 'none'
         this.domNode.style.height = height;
         document.querySelector('[monaco-view-zone="' + widget.zone + '"]').style.height = height;
-        getActiveEditor().changeViewZones(function (changeAccessor) {
+        standaloneEditor.changeViewZones(function (changeAccessor) {
           changeAccessor.layoutZone(widget.zone);
         });
       },
@@ -3496,6 +3507,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
           this.removeSeverity();
           this.domNode.classList.add("review-" + widget.severity);
           this.close();
+          sendEvent("EVENT_ON_REVIEW_CHANGED", "");
         }
         else {
           textarea.classList.add('required');
@@ -3503,11 +3515,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       },
       delete: function () {
         let widget = reviewWidgets.get(this.widgetId);
-        getActiveEditor().removeOverlayWidget(widget.widget);
-        getActiveEditor().changeViewZones(function (changeAccessor) {
+        standaloneEditor.removeOverlayWidget(widget.widget);
+        standaloneEditor.changeViewZones(function (changeAccessor) {
           changeAccessor.removeZone(widget.zone);
         });
         reviewWidgets.delete(this.widgetId);
+        sendEvent("EVENT_ON_REVIEW_CHANGED", "");
       },
       cancel: function () {
         let widget = reviewWidgets.get(this.widgetId);
@@ -3518,14 +3531,14 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       },
       edit: function () {
         let widget = reviewWidgets.get(this.widgetId);
-        let height = getActiveEditor().getOption(monaco.editor.EditorOption.lineHeight) * 10 + 'px'
+        let height = standaloneEditor.getOption(monaco.editor.EditorOption.lineHeight) * 10 + 'px'
         this.domNode.classList.remove('close');
         this.domNode.getElementsByClassName("review-header")[0].style.display = 'none';
         this.domNode.getElementsByClassName("review-text")[0].style.display = 'none';
         this.domNode.getElementsByClassName("review-edit")[0].style.display = 'block';
         this.domNode.style.height = height;
         document.querySelector('[monaco-view-zone="' + widget.zone + '"]').style.height = height;
-        getActiveEditor().changeViewZones(function (changeAccessor) {
+        standaloneEditor.changeViewZones(function (changeAccessor) {
           changeAccessor.layoutZone(widget.zone);
         });
       },
@@ -3582,8 +3595,21 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
             button.classList.add('review-delete');
             button.setAttribute('widgetid', widgetId);
             button.onclick = function () {
-              if (confirm("Удалить замечание?"))
-                reviewWidgets.get(this.getAttribute("widgetid")).widget.delete();
+              let modal = new tingle.modal({
+                footer: true,
+                stickyFooter: false,
+                closeMethods: ['button'],
+                widgetid: this.getAttribute("widgetid")
+              });              
+              modal.setContent('<h3>Удалить замечание?</h3>');
+              modal.addFooterBtn('Да', 'tingle-btn tingle-btn--primary', function () {
+                reviewWidgets.get(modal.opts.widgetid).widget.delete();
+                modal.close();
+              });
+              modal.addFooterBtn('Нет', 'tingle-btn tingle-btn--danger', function () {
+                modal.close();
+              });
+              modal.open();
             }
             buttons.appendChild(button);
           }
@@ -3693,7 +3719,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       }
     };    
 
-    getActiveEditor().changeViewZones(function (changeAccessor) {
+    standaloneEditor.changeViewZones(function (changeAccessor) {
 
       let domNode = document.createElement("div");
       editor.domNode = domNode;
@@ -3708,7 +3734,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         showInHiddenAreas: false,
         onDomNodeTop: function (top) {          
           if (this.widget.domNode) {
-            let layout = getActiveEditor().getLayoutInfo();
+            let layout = standaloneEditor.getLayoutInfo();
             let scrollWidth = editor.navi ? layout.verticalScrollbarWidth * 2 : layout.verticalScrollbarWidth;
             let width = layout.width - scrollWidth - layout.minimapWidth;
             this.widget.domNode.style.top = top + 'px';
@@ -3728,12 +3754,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         widget: reviewWidget
       });
 
-      getActiveEditor().layout();
+      standaloneEditor.layout();
       setTimeout(() => {reviewWidget.load(issue)}, 10);
 
     }); 
 
-    getActiveEditor().addOverlayWidget(reviewWidget);
+    standaloneEditor.addOverlayWidget(reviewWidget);    
 
   }
 
@@ -3743,7 +3769,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       value.widget.delete();
     });
 
-    let standaloneEditor = editor.navi ? editor.getModifiedEditor() : editor;      
+    let standaloneEditor = editor.navi ? editor.getModifiedEditor() : editor;
     standaloneEditor.reviewDecorations = [];
         
     if (editor.navi)
