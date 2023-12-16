@@ -152,7 +152,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   eraseText = function () {
     
-    setText('', editor.getModel().getFullModelRange(), false);    
+    setText('', editor.getModel().getFullModelRange(), false);
+
+    if (getOption('reviewMode')) {
+      removeReviewWidgets();
+      currentIssue = -1;
+    }
 
   }
 
@@ -501,7 +506,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   getLineCount = function() {
     
-    return editor.getModel().getLineCount();
+    return getActiveEditor().getModel().getLineCount();
 
   }
 
@@ -3513,14 +3518,15 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
           textarea.classList.add('required');
         }
       },
-      delete: function () {
+      delete: function (generateEvent = true) {
         let widget = reviewWidgets.get(this.widgetId);
         standaloneEditor.removeOverlayWidget(widget.widget);
         standaloneEditor.changeViewZones(function (changeAccessor) {
           changeAccessor.removeZone(widget.zone);
         });
         reviewWidgets.delete(this.widgetId);
-        sendEvent("EVENT_ON_REVIEW_CHANGED", "");
+        if (generateEvent)
+          sendEvent("EVENT_ON_REVIEW_CHANGED", "");
       },
       cancel: function () {
         let widget = reviewWidgets.get(this.widgetId);
@@ -3548,7 +3554,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
             this.domNode.getElementsByClassName("review-title")[0].innerHTML = issue.date;
             this.domNode.getElementsByClassName('review-text')[0].innerHTML = issue.message;
             this.domNode.getElementsByTagName('textarea')[0].value = issue.message;
-            this.domNode.querySelector('.severity label .' + issue.severity).previousSibling.checked = true
+            this.domNode.querySelector('.severity label .' + issue.severity).previousSibling.checked = true;
             let widget = reviewWidgets.get(this.widgetId);
             widget.date = issue.date;
             widget.message = issue.message;
@@ -3598,7 +3604,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
               let modal = new tingle.modal({
                 footer: true,
                 stickyFooter: false,
-                closeMethods: ['button'],
+                closeMethods: [],
                 widgetid: this.getAttribute("widgetid")
               });              
               modal.setContent('<h3>Удалить замечание?</h3>');
@@ -3638,7 +3644,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
           let label = document.createElement('label');
           group.appendChild(label);
           let input = document.createElement('input');
-          input.setAttribute('name', 'radio');
+          input.setAttribute('name', 'radio.' + lineNumber);
           input.setAttribute('type', 'radio');
           input.setAttribute('checked', '');
           label.appendChild(input);
@@ -3650,7 +3656,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
           label = document.createElement('label');
           group.appendChild(label);
           input = document.createElement('input');
-          input.setAttribute('name', 'radio');
+          input.setAttribute('name', 'radio.' + lineNumber);
           input.setAttribute('type', 'radio');
           label.appendChild(input);
           span = document.createElement('span');          
@@ -3661,7 +3667,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
           label = document.createElement('label');
           group.appendChild(label);
           input = document.createElement('input');
-          input.setAttribute('name', 'radio');
+          input.setAttribute('name', 'radio.' + lineNumber);
           input.setAttribute('type', 'radio');
           label.appendChild(input);
           span = document.createElement('span');          
@@ -3672,7 +3678,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
           label = document.createElement('label');
           group.appendChild(label);
           input = document.createElement('input');
-          input.setAttribute('name', 'radio');
+          input.setAttribute('name', 'radio.' + lineNumber);
           input.setAttribute('type', 'radio');
           label.appendChild(input);
           span = document.createElement('span');          
@@ -3709,7 +3715,6 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
           }
           editGroup.appendChild(button);
           this.domNode.appendChild(editGroup);
-          this.load(issue);
 
         }
         return this.domNode;
@@ -3766,7 +3771,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   function removeReviewWidgets() {
 
     reviewWidgets.forEach((value, key, map) => {
-      value.widget.delete();
+      value.widget.delete(false);
     });
 
     let standaloneEditor = editor.navi ? editor.getModifiedEditor() : editor;
@@ -3784,11 +3789,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     if (sortedIssues.length <= currentIssue)
       return;
 
-    let lineCount = getLineCount();
+    let standaloneEditor = editor.navi ? editor.getModifiedEditor() : editor;
+    let lineCount = standaloneEditor.getModel().getLineCount();
     let issueLine = sortedIssues[currentIssue];
 
     if (issueLine <= lineCount) {
-      let standaloneEditor = editor.navi ? editor.getModifiedEditor() : editor;      
+      
       let smoothScrolling = standaloneEditor.getOption(monaco.editor.EditorOption.smoothScrolling);
       standaloneEditor.updateOptions({ smoothScrolling: true });
       standaloneEditor.revealLineInCenter(issueLine, 0);
