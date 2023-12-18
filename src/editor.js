@@ -10,6 +10,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   queryMode = false;
   DCSMode = false;
   version1C = '';
+  userName = '';
   contextActions = [];
   customHovers = {};
   customSignatures = {};
@@ -288,9 +289,10 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     return bsl.findText(string);
   }
 
-  init = function(version) {
+  init = function(version, user = '') {
 
     version1C = version;
+    userName = user;
     initContextMenuActions();
     editor.layout();
 
@@ -1724,6 +1726,29 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     sendEvent(eventName, eventParams);
 
   }
+
+  getLineNumber = function(originalLineNumber) {
+
+    if (getOption('reviewMode')) {
+      let standaloneEditor = editor;      
+      if (editor.navi)
+        standaloneEditor = editor.getModifiedEditor();
+      if (standaloneEditor.mousePosition && standaloneEditor.mousePosition.lineNumber == originalLineNumber) {
+        return '';
+      }
+      else
+        return originalLineNumber;
+    }
+    else {
+      if (originalLineNumber <= lineNumbersDedocrations.length) {
+        let str = lineNumbersDedocrations[originalLineNumber - 1].replace(/ /g, String.fromCharCode(160))
+        return str + getLineNumberMargin(originalLineNumber) + originalLineNumber;
+      }
+    }
+    
+    return originalLineNumber;
+
+  }
   // #endregion
 
   // #region init editor
@@ -2089,17 +2114,6 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       margin += nbsp;
 
     return margin;
-
-  }
-
-  function getLineNumber(originalLineNumber) {
-
-    if (originalLineNumber <= lineNumbersDedocrations.length) {
-      let str = lineNumbersDedocrations[originalLineNumber - 1].replace(/ /g, String.fromCharCode(160))
-      return str + getLineNumberMargin(originalLineNumber)  + originalLineNumber;
-    }
-    
-    return originalLineNumber;
 
   }
 
@@ -2629,6 +2643,9 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         standaloneEditor = editor.getModifiedEditor();
 
       standaloneEditor.reviewDecorations = [];
+      standaloneEditor.mousePosition = e.target.position;
+      standaloneEditor.updateOptions({ lineNumbers: undefined });
+      standaloneEditor.updateOptions({ lineNumbers: getLineNumber });
   
       let range = new monaco.Range(e.target.position.lineNumber, 1, e.target.position.lineNumber, 1);
           
@@ -2648,7 +2665,6 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       setTimeout(() => {
         let lineElement = document.querySelector('.add-review');
         if (lineElement) {
-          lineElement.nextSibling.style.display = 'none';
           lineElement.parentElement.style.backgroundColor = '#ddd';
         }
       }, 5);
