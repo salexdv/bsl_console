@@ -1632,6 +1632,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         startLineNumber: value.startLineNumber,
         endLineNumber: value.startLineNumber,
         date: value.date,
+        author: value.author,
         severity: value.severity,       
         message: value.message
       }
@@ -3520,9 +3521,13 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
               hours = addZero(date.getHours()),
               minutes = addZero(date.getMinutes());
           let issueDate = `${day}.${month}.${year} ${hours}:${minutes}`;
-          if (!reviewTitle.innerHTML)
+          if (!reviewTitle.innerHTML) {
             reviewTitle.innerHTML = issueDate;
+            if (userName)
+              reviewTitle.innerHTML += ' @' + userName;
+          }
           widget.date = issueDate;
+          widget.author = userName;
           widget.message = textarea.value;
           widget.severity = this.domNode.querySelector('input:checked').nextSibling.className;
           this.removeSeverity();
@@ -3567,12 +3572,16 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       load(issue) {
         if (issue) {
             this.domNode.classList.add('review-' + issue.severity);
-            this.domNode.getElementsByClassName("review-title")[0].innerHTML = issue.date;
+            let title = this.domNode.getElementsByClassName("review-title")[0];
+            title.innerHTML = issue.date;
+            if (issue.author)
+              title.innerHTML += ' @' + issue.author;
             this.domNode.getElementsByClassName('review-text')[0].innerHTML = issue.message;
             this.domNode.getElementsByTagName('textarea')[0].value = issue.message;
             this.domNode.querySelector('.severity label .' + issue.severity).previousSibling.checked = true;
             let widget = reviewWidgets.get(this.widgetId);
             widget.date = issue.date;
+            widget.author = issue.author;
             widget.message = issue.message;
             widget.severity = issue.severity;
             this.close();
@@ -3813,9 +3822,11 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       
       let smoothScrolling = standaloneEditor.getOption(monaco.editor.EditorOption.smoothScrolling);
       standaloneEditor.updateOptions({ smoothScrolling: true });
-      standaloneEditor.revealLineInCenter(issueLine, 0);
-      standaloneEditor.setPosition(new monaco.Position(issueLine, 1));      
-      standaloneEditor.updateOptions({ smoothScrolling: smoothScrolling });
+      standaloneEditor.revealRangeAtTop(new monaco.Range(issueLine, 1, issueLine, 1), 0);      
+      setTimeout(() => {      
+        standaloneEditor.setPosition(new monaco.Position(issueLine, 1));      
+        standaloneEditor.updateOptions({ smoothScrolling: smoothScrolling });
+      }, 50);
     }
 
   }
