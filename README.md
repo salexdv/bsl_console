@@ -81,8 +81,8 @@
 
 | Функция                        | Описание                                                                                      |
 | ------------------------------ | --------------------------------------------------------------------------------------------- |
-| `init`                         | Инициализация редактора с передачей версии платформы                                          |
-| [`setLanguageMode`](docs/set_language_mode.md) | Переключение режимов редактора (встроенный язык, язык запросов и т.п.))       |
+| [`init`](docs/init.md)         | Инициализация редактора с передачей версии платформы и имени пользователя                     |
+| [`setLanguageMode`](docs/set_language_mode.md) | Переключение режимов редактора (встроенный язык, язык запросов и т.п.)        |
 | `setTheme`                     | Установка темы редактора `bsl-white`, `bsl-white-query`, `bsl-dark`, `bsl-dark-query`         |
 | `setReadOnly`                  | Устанавливает/снимает режим *Только просмотр*                                                 |
 | `getReadOnly`                  | Возвращает значение режима *Только просмотр*                                                  |
@@ -174,12 +174,18 @@
 | `unfold`                       | Разворачивает текущий блок                                                                    |
 | `foldAll`                      | Сворачиват все блоки                                                                          |
 | `unfoldAll`                    | Разворачивает все блоки                                                                       |
-| [`showVariablesDescription`]((docs/show_var_description.md)) | Вывод окна со значениями переменных (табло)                     |
-| [`updateVariableDescription`]((docs/upd_var_drscription.md)) | Обновление значения переменной в табло                          |
+| [`showVariablesDescription`](docs/show_var_description.md) | Вывод окна со значениями переменных (табло)                       |
+| [`updateVariableDescription`](docs/upd_var_drscription.md) | Обновление значения переменной в табло                            |
 | `scale`                        | Изменение масштаба (+1 - увеличить, -1 - уменьшить, 0 - сбросить)                             |
 | `gotoLine`                     | Перейти к строке...                                                                           |
 | `setActiveSuggestionAcceptors` | Установка символов, подтверждающих выбор текущего пункта подсказки (в дополнение к Enter)     |
-| [`setLineNumbersDecorations`]((docs/set_linenum_decor.md)) | Установка текста слева от номера каждой строки                    |
+| [`setLineNumbersDecorations`](docs/set_linenum_decor.md) | Установка текста слева от номера каждой строки                      |
+| `startCodeReview`              | Активирует режим Code Review, в котором можно интерактивно добавлять замечания к коду         |
+| `stopCodeReview`               | Отключает режим Code Review                                                                   |
+| [`getReviewIssues`](docs/get_review_issues.md) | Возвращает замечания, установленные в ходе Code Review                        |
+| [`setReviewIssues`](docs/set_review_issues.md) | Устанавливает замечания в режиме Code Review                                  |
+| `goNextIssue`                  | Переход к следующему замечанию                                                                |
+| `goPreviousIssue`              | Переход к предыдущему замечанию                                                               |
 
 ## События, генерируемые редактором для 1С:Предприятия
 
