@@ -3587,6 +3587,27 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
             this.close();
         }
       },
+      createSeverityButton(className, title, lineNumber, group) {
+        let label = document.createElement('label');
+        let input = document.createElement('input');
+        input.setAttribute('name', 'radio.' + lineNumber);
+        input.setAttribute('type', 'radio');
+        if (!group.hasChildNodes())
+          input.setAttribute('checked', '');
+        label.appendChild(input);
+        let span = document.createElement('span');          
+        span.classList.add(className);
+        span.innerHTML = title;
+        span.onclick = function() {
+          let inputs = this.parentElement.parentElement.querySelectorAll('input');
+          for (let x = 0; x < inputs.length; x++) {
+            inputs[x].checked = false;
+          }
+          this.parentElement.querySelector('input').checked = true;          
+        }
+        label.appendChild(span);
+        group.appendChild(label);
+      },
       getDomNode: function () {
 
         if (!this.domNode) {
@@ -3605,7 +3626,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
           buttons.classList.add('review-buttons');
           header.appendChild(buttons);
 
-          title = document.createElement('div');
+          let title = document.createElement('div');
           title.classList.add('review-title');
           header.appendChild(title);
 
@@ -3660,57 +3681,15 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
           if (issue)
             editGroup.style.display = 'none';
 
-          div = document.createElement('div');
+          let div = document.createElement('div');
           div.classList.add('severity');
 
           let group = document.createElement('div');          
           div.appendChild(group)
-          
-          let label = document.createElement('label');
-          group.appendChild(label);
-          let input = document.createElement('input');
-          input.setAttribute('name', 'radio.' + lineNumber);
-          input.setAttribute('type', 'radio');
-          input.setAttribute('checked', '');
-          label.appendChild(input);
-          let span = document.createElement('span');          
-          span.classList.add('error');
-          span.innerHTML = 'Ошибка';
-          label.appendChild(span);
-
-          label = document.createElement('label');
-          group.appendChild(label);
-          input = document.createElement('input');
-          input.setAttribute('name', 'radio.' + lineNumber);
-          input.setAttribute('type', 'radio');
-          label.appendChild(input);
-          span = document.createElement('span');          
-          span.classList.add('warning');
-          span.innerHTML = 'Предупреждение';
-          label.appendChild(span);
-          
-          label = document.createElement('label');
-          group.appendChild(label);
-          input = document.createElement('input');
-          input.setAttribute('name', 'radio.' + lineNumber);
-          input.setAttribute('type', 'radio');
-          label.appendChild(input);
-          span = document.createElement('span');          
-          span.classList.add('info');
-          span.innerHTML = 'Информация';
-          label.appendChild(span);
-
-          label = document.createElement('label');
-          group.appendChild(label);
-          input = document.createElement('input');
-          input.setAttribute('name', 'radio.' + lineNumber);
-          input.setAttribute('type', 'radio');
-          label.appendChild(input);
-          span = document.createElement('span');          
-          span.classList.add('hint');
-          span.innerHTML = 'Подсказка';
-          label.appendChild(span);
-			
+          this.createSeverityButton('error', 'Ошибка', lineNumber, group);
+          this.createSeverityButton('warning', 'Предупреждение', lineNumber, group);
+          this.createSeverityButton('info', 'Информация', lineNumber, group);
+          this.createSeverityButton('hint', 'Подсказка', lineNumber, group);
           editGroup.appendChild(div);          
           
           let textarea = document.createElement('textarea');
@@ -3755,7 +3734,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       editor.domNode = domNode;
       domNode.classList.add('review-zone');
 
-      zone_id = changeAccessor.addZone({
+      let zone_id = changeAccessor.addZone({
         afterLineNumber: startLineNumber,
         afterColumn: 1,
         heightInLines: 10,
