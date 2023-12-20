@@ -4,6 +4,8 @@ import "@babel/polyfill";
 import languages from './bsl_language';
 import { getActions, permanentActions } from './actions';
 import './decorations.css'
+import './tingle.css'
+import tingle from './tingle.js'
 import './tree/tree.css'
 import Treeview from './tree/tree.js'
 import { setLocaleData } from 'monaco-editor-nls';
@@ -31,6 +33,7 @@ window.readOnlyMode = false;
 window.queryMode = false;
 window.DCSMode = false;
 window.version1C = '';
+window.userName = '';
 window.contextActions = [];
 window.customHovers = {};
 window.customSignatures = {};
@@ -62,6 +65,8 @@ window.bslSnippets = {};
 window.treeview = null;
 window.lineNumbersDedocrations = [];
 window.selectedQueryDelimiters = new Map();
+window.reviewWidgets = new Map();
+window.currentIssue = -1;
 // #endregion
 
 // #region public API
@@ -188,6 +193,11 @@ window.setContent = function(text) {
 window.eraseText = function () {
   
   window.setText('', window.editor.getModel().getFullModelRange(), false);    
+
+  if (window.getOption('reviewMode')) {
+    removeReviewWidgets();
+    window.currentIssue = -1;
+  }
 
 }
 
@@ -327,9 +337,10 @@ window.findText = function (string) {
   return bsl.findText(string);
 }
 
-window.init = function(version) {
+window.init = function(version, user = '') {
 
   window.version1C = version;
+  window.userName = user;
   initContextMenuActions();
   window.editor.layout();
 
@@ -545,7 +556,7 @@ window.selectedText = function(text = undefined, keepSelection = false) {
 
 window.getLineCount = function() {
   
-  return window.editor.getModel().getLineCount();
+  return getActiveEditor().getModel().getLineCount();
 
 }
 
@@ -737,6 +748,13 @@ window.compare = function (text, sideBySide, highlight, markLines = true) {
     window.editor.getOriginalEditor().onDidChangeCursorPosition(e => diffEditorOnDidChangeCursorPosition(e));
     window.editor.getModifiedEditor().onDidLayoutChange(e => diffEditorOnDidLayoutChange(e));
     window.editor.getOriginalEditor().onDidLayoutChange(e => diffEditorOnDidLayoutChange(e));
+    window.editor.getModifiedEditor().onMouseMove(e => {
+      newReviewDecoration(e);
+    });
+    window.editor.getModifiedEditor().onMouseDown(e => {
+      if (e.target.element.classList.contains('add-review'))
+        createReviewWidget(e.target.position.lineNumber);          
+    });
     window.setDefaultStyle();
   }
   else
@@ -1598,7 +1616,92 @@ window.getDifferences = function () {
 
   return diff;
 
-} 
+}
+
+window.goNextIssue = function () {
+
+  let sortedIssues = getSortedIssues();
+
+  if (sortedIssues.length - 1 <= window.currentIssue)
+  window.currentIssue = -1;
+
+  window.currentIssue++;
+  goToCurrentIssue(sortedIssues);
+
+}
+
+window.goPreviousIssue = function () {
+
+  let sortedIssues = getSortedIssues();
+
+  window.currentIssue--;
+
+  if (window.currentIssue < 0)
+    currentIssue = sortedIssues.length - 1;
+
+  goToCurrentIssue(sortedIssues);
+
+}
+
+window.getReviewIssues = function() {
+
+  let issues = [];
+
+  window.reviewWidgets.forEach((value, key, map) => {
+    let issue = {
+      startLineNumber: value.startLineNumber,
+      endLineNumber: value.startLineNumber,
+      date: value.date,
+      author: value.author,
+      severity: value.severity,       
+      message: value.message
+    }
+    issues.push(issue);
+  });
+
+  return issues;
+
+}
+
+window.setReviewIssues = function(issuesJSON) {
+
+  if (!window.getOption('reviewMode'))
+    return { errorDescription: 'Необходимо включить режим Code Review' };
+
+  try {
+
+    const issues = JSON.parse(issuesJSON);
+    removeReviewWidgets();
+
+    for (let x = 0; x < issues.length; x++) {
+      let issue = issues[x];
+      createReviewWidget(issue.startLineNumber, issue);
+    }
+
+    return true;
+
+  }
+  catch (e) {
+    return { errorDescription: e.message };
+  }
+
+}
+
+window.startCodeReview = function(readOnlyCodeReview = false) {
+
+  window.setOption('reviewMode', true);
+  window.setOption('readOnlyCodeReview', readOnlyCodeReview);
+  window.currentIssue = -1;
+
+}
+
+window.stopCodeReview = function() {
+  
+  window.setOption('reviewMode', false);
+  removeReviewWidgets();
+
+}
+
 // #endregion
 
 // #region init editor
@@ -1622,7 +1725,7 @@ function createEditor(language_id, text, theme) {
     parameterHints: {
       cycle: true
     },    
-    lineNumbers: getLineNumber,
+    lineNumbers: window.getLineNumber,
     customOptions: true
   });
 
@@ -1800,6 +1903,12 @@ function initEditorEventListenersAndProperies() {
 
   }
 
+  window.editor.onMouseMove(e => {
+      
+    newReviewDecoration(e);
+            
+  });
+
   window.editor.onKeyDown(e => editorOnKeyDown(e));
 
   window.editor.onDidChangeModelContent(e => {
@@ -1860,7 +1969,11 @@ function initEditorEventListenersAndProperies() {
 
     if (element.classList.contains('diff-navi')) {
       createDiffWidget(e);
-    }    
+    }
+
+    if (element.classList.contains('add-review')) {
+      createReviewWidget(e.target.position.lineNumber);
+    }
 
   });
 
@@ -1985,12 +2098,26 @@ function getTextInRange(model, startLineNumber, startColumn, endLineNumber, endC
 
 }
 
-function getLineNumber(originalLineNumber) {
+window.getLineNumber = function(originalLineNumber) {
 
-  if (originalLineNumber <= window.lineNumbersDedocrations.length)
-    return window.lineNumbersDedocrations[originalLineNumber - 1] + ' ' + originalLineNumber;
+  if (window.getOption('reviewMode')) {
+    let standaloneEditor = window.editor;      
+    if (window.editor.navi)
+      standaloneEditor = window.editor.getModifiedEditor();
+    if (standaloneEditor.mousePosition && standaloneEditor.mousePosition.lineNumber == originalLineNumber) {
+      return '';
+    }
+    else
+      return originalLineNumber;
+  }
+  else {
+    if (originalLineNumber <= window.lineNumbersDedocrations.length) {
+      let str = window.lineNumbersDedocrations[originalLineNumber - 1].replace(/ /g, String.fromCharCode(160))
+      return str + getLineNumberMargin(originalLineNumber) + originalLineNumber;
+    }
+  }
   
-   return originalLineNumber;
+  return originalLineNumber;
 
 }
 
@@ -2537,6 +2664,9 @@ function deltaDecorationsForDiffEditor(standalone_editor) {
   if (diffDecor.position)
     decorations.push({ range: new monaco.Range(diffDecor.position, 1, diffDecor.position), options: { isWholeLine: true, linesDecorationsClassName: 'diff-editor-position' } });
 
+  if (standalone_editor.reviewDecorations)
+    decorations = decorations.concat(standalone_editor.reviewDecorations);
+
   standalone_editor.diffDecor.decor = standalone_editor.deltaDecorations(standalone_editor.diffDecor.decor, decorations);
 
 }
@@ -2545,6 +2675,46 @@ function diffEditorUpdateDecorations() {
 
   deltaDecorationsForDiffEditor(this.getModifiedEditor());
   deltaDecorationsForDiffEditor(this.getOriginalEditor());
+
+}
+
+function newReviewDecoration(e) {
+
+  if (window.getOption('reviewMode') && !window.getOption("readOnlyCodeReview") && e.target.position) {
+
+    let standaloneEditor = window.editor;
+    
+    if (window.editor.navi)
+      standaloneEditor = window.editor.getModifiedEditor();
+
+    standaloneEditor.reviewDecorations = [];
+    standaloneEditor.mousePosition = e.target.position;
+    standaloneEditor.updateOptions({ lineNumbers: undefined });
+    standaloneEditor.updateOptions({ lineNumbers: getLineNumber });
+
+    let range = new monaco.Range(e.target.position.lineNumber, 1, e.target.position.lineNumber, 1);
+        
+    standaloneEditor.reviewDecorations.push({
+      range: range,
+      options: {
+        isWholeLine: true,
+        linesDecorationsClassName: 'add-review',
+      }
+    });
+    
+    if (window.editor.navi)
+      window.editor.diffEditorUpdateDecorations();
+    else
+      window.editor.updateDecorations(standaloneEditor.reviewDecorations);
+    
+    setTimeout(() => {
+      let lineElement = document.querySelector('.add-review');
+      if (lineElement) {
+        lineElement.parentElement.style.backgroundColor = '#ddd';
+      }
+    }, 5);
+
+  }
 
 }
 
@@ -3319,6 +3489,360 @@ function createDiffWidget(e) {
     }, 50);
 
   }
+
+}
+
+function createReviewWidget(lineNumber, issue = null) {
+      
+  let startLineNumber = lineNumber;
+  let widgetId = 'bsl.review.widget.' + startLineNumber;
+  
+  if (window.reviewWidgets.get(widgetId))
+    return;
+
+  let standaloneEditor = window.editor.navi ? window.editor.getModifiedEditor() : window.editor;
+
+  let reviewWidget = {      
+    widgetId: widgetId,
+    domNode: null,
+    getId: function () {
+      return widgetId;
+    },
+    removeSeverity() {
+      this.domNode.classList.remove('review-error');
+      this.domNode.classList.remove('review-warning');
+      this.domNode.classList.remove('review-info');
+      this.domNode.classList.remove('review-hint');
+    },
+    close: function () {
+      let height = standaloneEditor.getOption(monaco.editor.EditorOption.lineHeight) * 4 + 'px'
+      let widget = window.reviewWidgets.get(this.widgetId);
+      this.domNode.classList.add('close');
+      this.domNode.getElementsByClassName("review-header")[0].style.display = 'flex';
+      this.domNode.getElementsByClassName("review-text")[0].style.display = 'block';
+      this.domNode.getElementsByClassName("review-edit")[0].style.display = 'none'
+      this.domNode.style.height = height;
+      document.querySelector('[monaco-view-zone="' + widget.zone + '"]').style.height = height;
+      standaloneEditor.changeViewZones(function (changeAccessor) {
+        changeAccessor.layoutZone(widget.zone);
+      });
+    },
+    save: function () {
+      let textarea = this.domNode.getElementsByTagName('textarea')[0];
+      if (textarea.value) {
+        let widget = window.reviewWidgets.get(this.widgetId);
+        let reviewText = this.domNode.getElementsByClassName("review-text")[0];
+        reviewText.innerHTML = textarea.value;
+        let reviewTitle = this.domNode.getElementsByClassName("review-title")[0];
+        let date = new Date(Date.now());
+        function addZero(num) {
+            return ("0" + num).slice(-2)
+        }
+        let year = date.getFullYear(),
+            month = addZero(date.getMonth() + 1),
+            day = addZero(date.getDate()),
+            hours = addZero(date.getHours()),
+            minutes = addZero(date.getMinutes());
+        let issueDate = `${day}.${month}.${year} ${hours}:${minutes}`;
+        if (!reviewTitle.innerHTML) {
+          reviewTitle.innerHTML = issueDate;
+          if (userName)
+            reviewTitle.innerHTML += ' @' + userName;
+        }
+        widget.date = issueDate;
+        widget.author = userName;
+        widget.message = textarea.value;
+        widget.severity = this.domNode.querySelector('input:checked').nextSibling.className;
+        this.removeSeverity();
+        this.domNode.classList.add("review-" + widget.severity);
+        this.close();
+        sendEvent("EVENT_ON_REVIEW_CHANGED", "");
+      }
+      else {
+        textarea.classList.add('required');
+      }
+    },
+    delete: function (generateEvent = true) {
+      let widget = window.reviewWidgets.get(this.widgetId);
+      standaloneEditor.removeOverlayWidget(widget.widget);
+      standaloneEditor.changeViewZones(function (changeAccessor) {
+        changeAccessor.removeZone(widget.zone);
+      });
+      window.reviewWidgets.delete(this.widgetId);
+      if (generateEvent)
+        sendEvent("EVENT_ON_REVIEW_CHANGED", "");
+    },
+    cancel: function () {
+      let widget = window.reviewWidgets.get(this.widgetId);
+      if (widget.message)
+        this.close();
+      else
+        this.delete();
+    },
+    edit: function () {
+      let widget = window.reviewWidgets.get(this.widgetId);
+      let height = standaloneEditor.getOption(monaco.editor.EditorOption.lineHeight) * 10 + 'px'
+      this.domNode.classList.remove('close');
+      this.domNode.getElementsByClassName("review-header")[0].style.display = 'none';
+      this.domNode.getElementsByClassName("review-text")[0].style.display = 'none';
+      this.domNode.getElementsByClassName("review-edit")[0].style.display = 'block';
+      this.domNode.style.height = height;
+      document.querySelector('[monaco-view-zone="' + widget.zone + '"]').style.height = height;
+      standaloneEditor.changeViewZones(function (changeAccessor) {
+        changeAccessor.layoutZone(widget.zone);
+      });
+    },
+    load(issue) {
+      if (issue) {
+          this.domNode.classList.add('review-' + issue.severity);
+          let title = this.domNode.getElementsByClassName("review-title")[0];
+          title.innerHTML = issue.date;
+          if (issue.author)
+            title.innerHTML += ' @' + issue.author;
+          this.domNode.getElementsByClassName('review-text')[0].innerHTML = issue.message;
+          this.domNode.getElementsByTagName('textarea')[0].value = issue.message;
+          this.domNode.querySelector('.severity label .' + issue.severity).previousSibling.checked = true;
+          let widget = window.reviewWidgets.get(this.widgetId);
+          widget.date = issue.date;
+          widget.author = issue.author;
+          widget.message = issue.message;
+          widget.severity = issue.severity;
+          this.close();
+      }
+    },
+    createSeverityButton(className, title, lineNumber, group) {
+      let label = document.createElement('label');
+      let input = document.createElement('input');
+      input.setAttribute('name', 'radio.' + lineNumber);
+      input.setAttribute('type', 'radio');
+      if (!group.hasChildNodes())
+        input.setAttribute('checked', '');
+      label.appendChild(input);
+      let span = document.createElement('span');          
+      span.classList.add(className);
+      span.innerHTML = title;
+      span.onclick = function() {
+        let inputs = this.parentElement.parentElement.querySelectorAll('input');
+        for (let x = 0; x < inputs.length; x++) {
+          inputs[x].checked = false;
+        }
+        this.parentElement.querySelector('input').checked = true;          
+      }
+      label.appendChild(span);
+      group.appendChild(label);
+    },
+    getDomNode: function () {
+
+      if (!this.domNode) {
+        
+        this.domNode = document.createElement('div');
+        this.domNode.classList.add('review-body');
+      
+        let header = document.createElement('div');
+        header.classList.add('review-header');
+        if (issue)
+          header.style.display = 'flex';
+        else
+          header.style.display = 'none';
+
+        let buttons = document.createElement('div');
+        buttons.classList.add('review-buttons');
+        header.appendChild(buttons);
+
+        let title = document.createElement('div');
+        title.classList.add('review-title');
+        header.appendChild(title);
+
+        let button = document.createElement('div');
+        button.classList.add('review-image');
+        buttons.appendChild(button);
+
+        button = document.createElement('div');
+        button.classList.add('review-modify');
+        button.setAttribute('widgetid', widgetId);
+        button.onclick = function() {
+          reviewWidgets.get(this.getAttribute("widgetid")).widget.edit();
+        }
+        buttons.appendChild(button);
+
+        if (!getOption('readOnlyCodeReview')) {
+          button = document.createElement('div');
+          button.classList.add('review-delete');
+          button.setAttribute('widgetid', widgetId);
+          button.onclick = function () {
+            let modal = new tingle.modal({
+              footer: true,
+              stickyFooter: false,
+              closeMethods: [],
+              widgetid: this.getAttribute("widgetid")
+            });              
+            modal.setContent('<h3>Удалить замечание?</h3>');
+            modal.addFooterBtn('Да', 'tingle-btn tingle-btn--primary', function () {
+              reviewWidgets.get(modal.opts.widgetid).widget.delete();
+              modal.close();
+            });
+            modal.addFooterBtn('Нет', 'tingle-btn tingle-btn--danger', function () {
+              modal.close();
+            });
+            modal.open();
+          }
+          buttons.appendChild(button);
+        }
+        this.domNode.appendChild(header);
+
+        let text = document.createElement('div');
+        text.classList.add('review-text');
+        this.domNode.appendChild(text);
+        
+        if (issue)
+          text.style.display = 'block';
+        else
+          text.style.display = 'none';
+
+        let editGroup = document.createElement('div');
+        editGroup.classList.add('review-edit');
+        if (issue)
+          editGroup.style.display = 'none';
+
+        let div = document.createElement('div');
+        div.classList.add('severity');
+
+        let group = document.createElement('div');
+        div.appendChild(group)
+        this.createSeverityButton('error', 'Ошибка', lineNumber, group);
+        this.createSeverityButton('warning', 'Предупреждение', lineNumber, group);
+        this.createSeverityButton('info', 'Информация', lineNumber, group);
+        this.createSeverityButton('hint', 'Подсказка', lineNumber, group);
+        editGroup.appendChild(div);
+        
+        let textarea = document.createElement('textarea');
+        textarea.oninput = function() {
+          this.classList.remove('required');
+        }
+        textarea.classList.add('review-message');
+        editGroup.appendChild(textarea);
+
+        if (!getOption('readOnlyCodeReview')) {
+          button = document.createElement('button');
+          button.setAttribute('widgetid', widgetId);
+          button.classList.add('review-save');
+          button.innerHTML = "Сохранить"
+          button.onclick = function() {
+            window.reviewWidgets.get(this.getAttribute("widgetid")).widget.save();
+          }
+          editGroup.appendChild(button);
+        }
+        
+        button = document.createElement('button');
+        button.setAttribute('widgetid', widgetId);
+        button.classList.add('review-cancel');
+        button.innerHTML = "Отмена"
+        button.onclick = function() {
+          window.reviewWidgets.get(this.getAttribute("widgetid")).widget.cancel();
+        }
+        editGroup.appendChild(button);
+        this.domNode.appendChild(editGroup);
+
+      }
+      return this.domNode;
+    },
+    getPosition: function () {
+      return null;
+    }
+  };    
+
+  standaloneEditor.changeViewZones(function (changeAccessor) {
+
+    let domNode = document.createElement("div");
+    window.editor.domNode = domNode;
+    domNode.classList.add('review-zone');
+
+    let zone_id = changeAccessor.addZone({
+      afterLineNumber: startLineNumber,
+      afterColumn: 1,
+      heightInLines: 10,
+      domNode: domNode,
+      widget: reviewWidget,
+      showInHiddenAreas: false,
+      onDomNodeTop: function (top) {          
+        if (this.widget.domNode) {
+          let layout = standaloneEditor.getLayoutInfo();
+          let scrollWidth = window.editor.navi ? layout.verticalScrollbarWidth * 2 : layout.verticalScrollbarWidth;
+          let width = layout.width - scrollWidth - layout.minimapWidth;
+          this.widget.domNode.style.top = top + 'px';
+          this.widget.domNode.style.width = width + 'px';
+          this.widget.domNode.style.height = this.domNode.getBoundingClientRect().height + 'px';
+        }
+      },
+      get heightInPx() {
+        if (this.widget.domNode)
+          return this.widget.domNode.offsetHeight;
+      }        
+    });
+
+    window.reviewWidgets.set(widgetId, {
+      zone: zone_id,
+      startLineNumber: startLineNumber,
+      widget: reviewWidget
+    });
+
+    standaloneEditor.layout();
+    setTimeout(() => {reviewWidget.load(issue)}, 10);
+
+  }); 
+
+  standaloneEditor.addOverlayWidget(reviewWidget);    
+
+}
+
+function removeReviewWidgets() {
+
+  window.reviewWidgets.forEach((value, key, map) => {
+    value.widget.delete(false);
+  });
+
+  let standaloneEditor = window.editor.navi ? window.editor.getModifiedEditor() : window.editor;
+  standaloneEditor.reviewDecorations = [];
+      
+  if (window.editor.navi)
+    window.editor.diffEditorUpdateDecorations();
+  else
+    window.editor.updateDecorations(standaloneEditor.reviewDecorations);
+
+}
+
+function goToCurrentIssue(sortedIssues) {
+
+  if (sortedIssues.length <= window.currentIssue)
+    return;
+
+  let standaloneEditor = window.editor.navi ? window.editor.getModifiedEditor() : window.editor;
+  let lineCount = standaloneEditor.getModel().getLineCount();
+  let issueLine = sortedIssues[window.currentIssue];
+
+  if (issueLine <= lineCount) {
+    
+    let smoothScrolling = standaloneEditor.getOption(monaco.editor.EditorOption.smoothScrolling);
+    standaloneEditor.updateOptions({ smoothScrolling: true });
+    standaloneEditor.revealRangeAtTop(new monaco.Range(issueLine, 1, issueLine, 1), 0);      
+    setTimeout(() => {      
+      standaloneEditor.setPosition(new monaco.Position(issueLine, 1));      
+      standaloneEditor.updateOptions({ smoothScrolling: smoothScrolling });
+    }, 50);
+  }
+
+}
+
+function getSortedIssues() {
+
+  let sortedIssues = [];
+  const sortedWidgets = new Map([...window.reviewWidgets].sort());
+
+  sortedWidgets.forEach((value, key, map) => {
+    sortedIssues.push(value.startLineNumber);
+  });
+
+  return sortedIssues;
 
 }
 
