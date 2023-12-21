@@ -474,6 +474,8 @@ window.setCustomSignatures = function(sigJSON) {
 window.setCustomCodeLenses = function(lensJSON) {
 
   try {
+    if (window.editor.navi)
+      window.editor.getModifiedEditor().updateOptions({ codeLens: true });
     window.customCodeLenses = JSON.parse(lensJSON);
     window.editor.updateCodeLens();
     return true;
@@ -703,7 +705,7 @@ window.compare = function (text, sideBySide, highlight, markLines = true) {
       find: {
         addExtraSpaceOnTop: false
       }
-    });    
+    });
     if (highlight) {
       monaco.editor.setModelLanguage(originalModel, language_id);
       monaco.editor.setModelLanguage(modifiedModel, language_id);
@@ -1726,7 +1728,8 @@ function createEditor(language_id, text, theme) {
       cycle: true
     },    
     lineNumbers: window.getLineNumber,
-    customOptions: true
+    customOptions: true,
+    renderValidationDecorations: "on"
   });
 
   changeCommandKeybinding('editor.action.revealDefinition', monaco.KeyCode.F12);
