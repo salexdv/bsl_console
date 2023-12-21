@@ -426,6 +426,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   setCustomCodeLenses = function(lensJSON) {
 
     try {
+      if (editor.navi)
+        editor.getModifiedEditor().updateOptions({ codeLens: true });
 			customCodeLenses = JSON.parse(lensJSON);
       editor.updateCodeLens();
 			return true;
@@ -1774,7 +1776,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         cycle: true
       },
       customOptions: true,
-      lineNumbers: getLineNumber
+      lineNumbers: getLineNumber,
+      renderValidationDecorations: "on"
     });
 
     changeCommandKeybinding('editor.action.revealDefinition', monaco.KeyCode.F12);
