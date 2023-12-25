@@ -3590,8 +3590,8 @@ class bslHelper {
 	getLoopsVarNames(currentLine) {
 
 		let names = [];
-		let each_pattern = '(?:для каждого|for each)\\s+([a-zA-Z0-9\u0410-\u044F_,\\s=]+)\\s+(?:из|in)';
-		let for_pattern = '(?:для|for)\\s+([a-zA-Z0-9\u0410-\u044F_,\\s=]+)\\s+=.*(?:по|to)';
+		let each_pattern = '(?:для каждого|for each)\\s+([a-zA-Z0-9\u0410-\u044F_,\\s=]+?)\\s+(?:из|in)';
+		let for_pattern = '(?:для|for)\\s+([a-zA-Z0-9\u0410-\u044F_,\\s=]+?)\\s+=.*(?:по|to)';
 
 		if (currentLine == 0) {
 
