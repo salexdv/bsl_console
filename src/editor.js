@@ -658,6 +658,15 @@ window.addLine = function(text) {
 
 }
 
+window.deleteLine = function(lineNumber) {
+
+  window.editor.executeEdits('addLine', [{
+    range: new monaco.Range(lineNumber, 1, lineNumber + 1, 1),
+    text: null      
+  }]);
+
+}
+
 window.getPositionOffset = function() {
 
   let position = window.editor.getPosition();
