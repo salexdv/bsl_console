@@ -2730,11 +2730,20 @@ function diffEditorOnDidChangeCursorPosition(e) {
     getActiveDiffEditor().diffDecor.position = e.position.lineNumber;
     window.editor.diffEditorUpdateDecorations();
     window.editor.diffCount = window.editor.getLineChanges().length;
+    const line_number = e.position.lineNumber;
 
-    if (editor.getModifiedEditor().getPosition().equals(e.position))
-      editor.getOriginalEditor().setPosition(e.position);
-    else
-      editor.getModifiedEditor().setPosition(e.position);
+    if (window.editor.getModifiedEditor().getPosition().equals(e.position)) {
+      window.editor.getOriginalEditor().setPosition({
+        lineNumber: window.editor.getDiffLineInformationForModified(line_number).equivalentLineNumber,
+        column: 1
+      });
+    }
+    else {
+      window.editor.getModifiedEditor().setPosition({
+        lineNumber: window.editor.getDiffLineInformationForOriginal(line_number).equivalentLineNumber,
+        column: 1
+      });
+    }
 
     updateStatusBar();
 
