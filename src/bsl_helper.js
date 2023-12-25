@@ -8014,6 +8014,9 @@ class bslHelper {
 			}
 
 			this.generateDefinitionEvent();
+			
+			if (location && !ctrlPressed)
+				window.editor.definitionBreadcrumbs.push(this.position);
 
 		}
 

@@ -1852,6 +1852,7 @@ for (const [key, lang] of Object.entries(window.languages)) {
     createEditor(language.id, getCode(), 'bsl-white');
 
     window.contextMenuEnabled = window.editor.getRawOptions().contextmenu;
+    window.editor.definitionBreadcrumbs = [];
 
   }
 
@@ -2897,6 +2898,15 @@ function editorOnKeyDown(e) {
       if (element) {
         window.generateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', 'selection', element);
       }
+    }
+  }
+
+  if (e.ctrlKey && e.keyCode == 83) {
+    e.preventDefault();    
+    if (window.editor.definitionBreadcrumbs.length) {
+      let position  = window.editor.definitionBreadcrumbs.pop();
+      window.editor.revealLineInCenter(position.lineNumber);
+      window.editor.setPosition(position);
     }
   }
 
