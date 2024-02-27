@@ -142,6 +142,7 @@
 | `updateCustomFunctions`        | Обновляет пользовательские функции                                                            |
 | [`parseCommonModule`](docs/parse_module.md) |  Загружает структуру общего модуля                                               |
 | [`parseMetadataModule`](docs/parse_metadata_module.md) |  Загружает структуру модуля менеджера или модуля объекта              |
+| [`showImmediateHover`](docs/immediate_hover.md) | Показывает произвольную всплывающую подсказку                               |
 | [`setCustomHovers`](docs/set_custom_hovers.md) | Обновляет пользовательские подсказки, показываемые при наведении              |
 | [`setCustomSignatures`](docs/set_custom_signatures.md) | Обновляет пользовательские подсказки по вызову процедуры/метода       |
 | [`setCustomCodeLenses`](docs/custom_code_lenses.md) | Загружает подсказки для Code Lens                                        |
