@@ -7644,7 +7644,8 @@ class bslHelper {
 				column: this.column,
 				altKey: altPressed,
 				ctrlKey: ctrlPressed,
-				shiftKey: shiftPressed
+				shiftKey: shiftPressed,
+				definition: this.getDefinition()
 			}
 			sendEvent('EVENT_BEFORE_HOVER', params);
 		}
@@ -7897,13 +7898,13 @@ class bslHelper {
 	}
 
 	/**
-	 * Provide the definition of the symbol at the given position of code
+	 * Returns current word definition
 	 * 
-	 * @returns {array} Location[]
+	 * @returns {object} definition
 	 */
-	provideDefinition() {
+	getDefinition() {
 
-		let location = null;
+		let definition = null;
 
 		if (this.word) {
 
@@ -7921,13 +7922,53 @@ class bslHelper {
 				let match = Finder.findPreviousMatch(this.model, pattern, position, false);
 
 				if (match && (is_function || match.range.startLineNumber < this.lineNumber)) {
-					location = [{
-						uri: this.model.uri,
-						range: match.range
-					}];
+					definition = {
+						range: match.range,
+						code: match.matches[0],
+						iterator: null
+					}
 				}
 
-			}
+				if (!definition) {
+
+					pattern = '(?:для каждого|for each)\\s*' + this.word + '\\s*(?:из|in)\\s*(.*)\\s*(?:цикл|do)';
+					position = new monaco.Position(this.lineNumber, 999);
+					match = Finder.findPreviousMatch(this.model, pattern, position, false);
+
+					if (match && match.range.startLineNumber <= this.lineNumber) {
+						definition = {
+							range: match.range,
+							code: match.matches[0],
+							iterator: match.matches[1].trim()
+						}
+					}
+
+				}
+
+			}			
+
+		}
+
+		return definition;
+
+	}
+
+	/**
+	 * Provide the definition of the symbol at the given position of code
+	 * 
+	 * @returns {array} Location[]
+	 */
+	provideDefinition() {
+
+		let location = null;
+		let definition = this.getDefinition();
+
+		if (definition) {
+
+			location = [{
+				uri: this.model.uri,
+				range: definition.range
+			}];					
 
 			this.generateDefinitionEvent();
 
