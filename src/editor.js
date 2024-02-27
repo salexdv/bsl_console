@@ -13,6 +13,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   userName = '';
   contextActions = [];
   customHovers = {};
+  immediateHover = [];
   customSignatures = {};
   customCodeLenses = [];
   originalText = '';
@@ -757,6 +758,16 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   triggerHovers = function() {
     
     editor.trigger('', 'editor.action.showHover', {});
+
+  }
+
+  showImmediateHover = function(text, title) {
+    
+    immediateHover = [
+      { value: title },
+      { value: text }
+    ]
+    triggerHovers();
 
   }
 
