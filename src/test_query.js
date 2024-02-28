@@ -498,6 +498,31 @@ describe("Проверка автокомлита и подсказок реда
 
     });
 
+    it("проверка подсказки ГДЕ при отсутствии псевдонима источника", function () {
+      bsl = helper(`ВЫБРАТЬ
+      *
+      ИЗ      
+        Справочник.Товары
+      Г`);
+      let suggestions = bsl.getQueryCompletion();
+      expect(suggestions).to.be.an('object');
+      expect(suggestions.suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(suggestions.suggestions.some(suggest => suggest.label === "ГДЕ"), true);
+    });
+
+    it("проверка подсказки реквизитов при отсутствии псевдонима источника", function () {
+      bsl = helper(`ВЫБРАТЬ
+      *
+      ИЗ      
+        Справочник.Товары
+      ГДЕ
+        Н`);
+      let suggestions = bsl.getQueryCompletion();
+      expect(suggestions).to.be.an('object');
+      expect(suggestions.suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(suggestions.suggestions.some(suggest => suggest.label === "Наименование"), true);
+    });
+
     setLanguageMode('bsl_query');
         
     mocha.run();
