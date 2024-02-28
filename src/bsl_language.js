@@ -193,6 +193,9 @@ define([], function () {
             queryWords_8_3_16: [
                 'ГРУППИРУЮЩИМ', 'НАБОРАМ', 'GROUPING', 'SETS'
             ],
+            queryWords_8_3_25: [
+                'ДОБАВИТЬ', 'ПО НАБОРАМ', 'УНИКАЛЬНО'
+            ],
             queryExp: [
                 'АВТОНОМЕРЗАПИСИ', 'RECORDAUTONUMBER', 'В', 'IN', 'ВЫБОР', 'CASE',
                 'ВЫРАЗИТЬ', 'CAST', 'ГОД', 'YEAR', 'ДАТА', 'DATE', 'ДАТАВРЕМЯ',
@@ -420,6 +423,7 @@ define([], function () {
     query_expressions = query_expressions.concat(bsl_language.rules.queryExp_8_3_20);
     query_expressions = query_expressions.concat(bsl_language.rules.queryExp_8_3_22);
     let query_keywords = bsl_language.rules.queryWords.concat(bsl_language.rules.queryWords_8_3_16);
+    query_keywords = query_keywords.concat(bsl_language.rules.queryWords_8_3_25);
 
     let query_language = {
 
