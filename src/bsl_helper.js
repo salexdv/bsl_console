@@ -494,7 +494,7 @@ class bslHelper {
 	 * 
 	 * @param {string} func_name
 	 */
-	 getCurrentFunctionName() {
+	getCurrentFunctionName() {
 
 		let func_name = '';
 
@@ -506,13 +506,13 @@ class bslHelper {
 		if (start_prev_func && end_func) {
 
 			const start_next_func = Finder.findNextMatch(this.model, start_template, this.position, false);
-			
+
 			if (start_prev_func.range.startLineNumber < this.lineNumber &&
 				this.lineNumber < end_func.range.startLineNumber &&
 				(!start_next_func || end_func.range.startLineNumber < start_next_func.range.startLineNumber)) {
-					func_name = start_prev_func.matches[1];
-				}
-			
+				func_name = start_prev_func.matches[1];
+			}
+
 		}
 
 		return func_name;
@@ -1807,7 +1807,7 @@ class bslHelper {
 	 * @param {array} suggestions the list of suggestions
 	 * @param {object} item like catalog.Товары
 	 * @param {object} metadata object with metadata properties
-	 */	 
+	 */
 	getItemMedatadaSuggestions(suggestions, item, metadata) {
 
 		if (metadata.hasOwnProperty('methods')) {
@@ -1869,16 +1869,16 @@ class bslHelper {
 
 				let command = null;
 				let ref = null;
-				let list = [];				
+				let list = [];
 
 				if (pvalue.hasOwnProperty('ref'))
 					ref = pvalue.ref;
-					
+
 				if (pvalue.hasOwnProperty('list') && item) {
 					let list_name = pvalue.list;
 					let type = pvalue.hasOwnProperty('type') ? pvalue.type : '';
 					if (item.child.hasOwnProperty(list_name)) {
-						for (const [lkey, lvalue] of Object.entries(item.child[list_name])) {						
+						for (const [lkey, lvalue] of Object.entries(item.child[list_name])) {
 							list.push({
 								name: lkey,
 								ref: type,
@@ -1898,9 +1898,9 @@ class bslHelper {
 									"ref": ref,
 									"sig": null,
 									"list": list
-								 }
+								}
 							}
-						] 
+						]
 					};
 				}
 
@@ -2320,7 +2320,7 @@ class bslHelper {
 	fillSuggestionsForRegisterResources(suggestions, register) {
 
 		if (register.hasOwnProperty('resources')) {
-				
+
 			for (const [pkey, pvalue] of Object.entries(register.resources)) {
 
 				let postfix = '';
@@ -2586,7 +2586,7 @@ class bslHelper {
 										requestMetadata('module.' + module_type + '.' + metadataName.toLowerCase() + '.' + metadataItem.toLowerCase());
 
 									itemExists = true;
-									
+
 									if (refToItem) {
 										this.fillSuggestionsForMetadataItem(suggestions, ivalue, key, ikey);
 										this.getMetadataMethods(suggestions, value, methodsName, key, ikey);
@@ -2595,7 +2595,7 @@ class bslHelper {
 									if (0 < ref.indexOf(":resources")) {
 										this.fillSuggestionsForRegisterResources(suggestions, ivalue);
 									}
-									
+
 									this.getRefSuggestions(suggestions, methodDef);
 
 									if (isObject)
@@ -2704,7 +2704,7 @@ class bslHelper {
 
 				if (mvalue.hasOwnProperty('ref'))
 					ref = mvalue.ref;
-				
+
 				if (ref || signatures.length) {
 					postfix = '(';
 					command = {
@@ -2781,7 +2781,7 @@ class bslHelper {
 					documentation: '',
 					command: command
 				});
-			}								
+			}
 
 		}
 		else {
@@ -3813,9 +3813,9 @@ class bslHelper {
 	requireCompilerDirectives(triggerCharacter) {
 
 		if (triggerCharacter && triggerCharacter == '&' && this.column == 2) {
-			
+
 			return true;
-			
+
 		}
 		else {
 
@@ -3872,7 +3872,7 @@ class bslHelper {
 
 					this.getRefCompletion(suggestions);
 					this.getCompletionForCurrentObject(suggestions, context, token);
-					
+
 					if (!suggestions.length) {
 
 						this.getFuncCompetition(suggestions);
@@ -3986,7 +3986,7 @@ class bslHelper {
 	getCastDelimiter(suggestions) {
 
 		let exp = this.getFuncName();
-		
+
 		if (exp == 'выразить' || exp == 'cast') {
 
 			let last_expression = this.lastRawExpression;
@@ -4019,16 +4019,16 @@ class bslHelper {
 	 * @param {object} data objects from BSL-JSON dictionary
 	 * @param {CompletionItemKind} kind - monaco.languages.CompletionItemKind (class, function, constructor etc.)
 	 */
-	 getCastValuesCompletion(suggestions, data) {
-		
+	getCastValuesCompletion(suggestions, data) {
+
 		let metadataName = '';
 		let word = this.getLastSeparatedWords(1).toString().toLowerCase();
 		let exp = this.getLastNExpression(1);
 
 		if (word == 'как' || word == 'as' || exp == 'как' || exp == 'as') {
-			
+
 			metadataName = ''
-			
+
 			let label = engLang ? 'String' : 'Строка';
 			suggestions.push({
 				label: label,
@@ -4044,7 +4044,7 @@ class bslHelper {
 				insertText: label,
 				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
 			});
-			
+
 		}
 		else {
 			if (this.getLastNExpression(1) == '.')
@@ -4054,7 +4054,7 @@ class bslHelper {
 		}
 
 		if (word) {
-			
+
 			for (const [key, value] of Object.entries(data)) {
 
 				if (!metadataName && value.hasOwnProperty('ref')) {
@@ -4097,7 +4097,7 @@ class bslHelper {
 								}
 
 							}
-					
+
 						}
 
 					}
@@ -4581,11 +4581,11 @@ class bslHelper {
 					"data": {
 						"ref": ref,
 						"sig": null
-					}					
+					}
 				}
 			]
 		}
-		
+
 		suggestions.push({
 			label: label,
 			kind: monaco.languages.CompletionItemKind.Field,
@@ -4719,12 +4719,12 @@ class bslHelper {
 
 							if (ikey.toLowerCase() == metadataName) {
 
-								if (ivalue.hasOwnProperty('properties')) {									
+								if (ivalue.hasOwnProperty('properties')) {
 									if (ivalue.hasOwnProperty('tabulars') && 3 == sourceArray.length) {
 										for (const [tkey, tvalue] of Object.entries(ivalue.tabulars)) {
 											if (tkey.toLowerCase() == metadataSubtable) {
 												this.addStandardTabularAttributesToQuerySuggestions(suggestions, key + '.' + ikey);
-												this.fillSuggestionsForMetadataItemInQuery(suggestions, tvalue, '');												
+												this.fillSuggestionsForMetadataItemInQuery(suggestions, tvalue, '');
 											}
 										}
 									}
@@ -4906,6 +4906,57 @@ class bslHelper {
 	}
 
 	/**
+	 * Returns list of query sources defined until position
+	 * 
+	 * @returns {array} array of sources	 
+	 */
+	getQuerySourcesUntilPosition() {
+
+		let sources = [];
+		let keywords = this.getQueryKeywords(languages.bsl.languageDef.rules);
+		
+		// Let's find start of current query
+		let startMatch = Finder.findPreviousMatch(this.model, '(?:выбрать|select)', this.position);
+
+		if (startMatch) {
+
+			let template = '(?:из|from)\\s+(?:[\\s\\S]*?)(?:сгруппировать|объединить|упорядочить|имеющие|где|индексировать|havin|where|index|group|union|order|;)'
+			let position = new monaco.Position(startMatch.range.startLineNumber, startMatch.range.startColumn);
+			let fromMatch = Finder.findNextMatch(this.model, template, position);
+
+			if (!fromMatch) {
+				template = '(?:из|from)\\s+(?:[\\s\\S]*?)$';
+				fromMatch = Finder.findNextMatch(this.model, template, position);
+			}
+
+			if (fromMatch && fromMatch.range.startLineNumber < startMatch.range.startLineNumber) {
+				// This is loops to the beginning. Trying another template
+				fromMatch = Finder.findNextMatch(this.model, '(?:из|from)\\s+(?:[\\s\\S]+)$', position);
+			}
+
+			if (fromMatch) {
+				let list = fromMatch.matches[0].split('\n');
+				list.forEach((item) => {
+					item = item.replace(/(как|as)\s+([\s\S]*?)$/gi, '');
+					item = item.replace(/\t/gi, '');
+					keywords.forEach((keyword) => {
+						item = item.replace(new RegExp('(^|\\s)' + keyword + '(\\s|$)', "gi"), '');
+					})
+					item = item.trim();
+					if (item)
+						sources.push(item)
+
+				});
+
+			}
+
+		}
+
+		return sources;
+
+	}
+
+	/**
 	 * Fills array of completion for fields of querie's table
 	 * 
 	 * @param {array} suggestions array of suggestions for provideCompletionItems
@@ -4921,6 +4972,19 @@ class bslHelper {
 		else if (last_expression && this.getLastNExpression(1) == '.') {
 			position = new monaco.Position(this.lineNumber, this.column - last_expression.length);
 			last_expression = this.getLastNExpression(2);
+		}
+		else {
+			
+			let lastWord = this.getLastSeparatedWord();
+			if (this.isKeyword(lastWord) && !this.isFromTrigger(lastWord)) {
+
+				let sources = this.getQuerySourcesUntilPosition();
+
+				sources.forEach((source) => {
+					this.getQueryFieldsCompletionForMetadata(suggestions, source);
+				});
+				
+			}
 		}
 
 		if (position) {
@@ -4951,7 +5015,7 @@ class bslHelper {
 					if (match) {
 
 						// Searching the source
-						position = new monaco.Position(match.range.endLineNumber, match.range.endColumn);						
+						position = new monaco.Position(match.range.endLineNumber, match.range.endColumn);
 						let bracket_match = this.model.findPrevBracket(position);
 
 						if (bracket_match && match.range.startLineNumber < bracket_match.range.startLineNumber) {
@@ -4968,7 +5032,7 @@ class bslHelper {
 								const model_position = new monaco.Position(model_range.endLineNumber, model_range.endColumn);
 								match = Finder.findPreviousMatch(source_model, '[a-zA-Z0-9\u0410-\u044F]+\\.[a-zA-Z0-9\u0410-\u044F_]+(?:\\.[a-zA-Z0-9\u0410-\u044F_]+)?(?:\\.[a-zA-Z0-9\u0410-\u044F_]+)?', model_position);
 							}
-							else 
+							else
 								match = null;
 						}
 						else
@@ -5109,7 +5173,7 @@ class bslHelper {
 		for (const [ikey, ivalue] of Object.entries(data.items)) {
 
 			if (ikey.toLowerCase() == metadataItem.toLowerCase()) {
-			
+
 				if (ivalue.hasOwnProperty('type')) {
 
 					let tables = this.getRegisterVirtualTables(ivalue.type);
@@ -5129,16 +5193,16 @@ class bslHelper {
 				else if (ivalue.hasOwnProperty('tabulars')) {
 
 					for (const [tkey, tvalue] of Object.entries(ivalue.tabulars)) {
-	
+
 						suggestions.push({
 							label: tkey,
 							kind: monaco.languages.CompletionItemKind.Unit,
 							insertText: tkey,
 							insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
 						});
-	
+
 					}
-	
+
 				}
 
 			}
@@ -5299,6 +5363,12 @@ class bslHelper {
 
 	}
 
+	/**
+	 * Fills array of completion for source like (catalog, document, etc.)
+	 * 
+	 * @param {array} suggestions array of suggestions for provideCompletionItems	 
+	 * @param {CompletionItemKind} kind - monaco.languages.CompletionItemKind (class, function, constructor etc.)
+	 */
 	getQueryMetadataSources(suggestions, kind) {
 
 		let sourceExist = false;
@@ -5327,6 +5397,40 @@ class bslHelper {
 	}
 
 	/**
+	 * Determines if the word is a from query trigger or not
+	 * 
+	 * @param {bool} word the  word
+	 * 
+	 * @returns {bool}
+	 */
+	isFromTrigger(word) {
+
+		let isFromTrigger = false;
+		let fromTriggers = ['из', 'соединение', 'from', 'join'];		
+
+		if (word)
+			isFromTrigger = (0 <= fromTriggers.indexOf(word.toLowerCase()));
+
+		return isFromTrigger;
+
+	}
+
+	/**
+	 * Determines if the word is keyword or not
+	 * 
+	 * @param {bool} word the word
+	 * 
+	 * @returns {bool}
+	 */
+	isKeyword(word) {
+
+		let keywords = this.getQueryKeywords(languages.bsl.languageDef.rules);
+			
+		return keywords.includes(word.toUpperCase());
+
+	}
+
+	/**
 	 * Fills array of completion for source of table
 	 * 
 	 * @param {array} suggestions array of suggestions for provideCompletionItems	 
@@ -5336,13 +5440,12 @@ class bslHelper {
 
 		let sourceExist = false;
 
-		let fromTriggers = ['из', 'соединение', 'from', 'join'];
-		let lastWord = this.getLastSeparatedWord()
+		let lastWord = this.getLastSeparatedWord();
 
 		if (lastWord) {
 
-			if (fromTriggers.indexOf(lastWord.toLowerCase()) == -1) {
-
+			if (!this.isFromTrigger(lastWord)) {
+				
 				let char = this.getLastCharInLine(this.lineNumber - 1);
 
 				if (char == ',') {
@@ -5357,7 +5460,7 @@ class bslHelper {
 
 			}
 
-			if (0 <= fromTriggers.indexOf(lastWord.toLowerCase())) {
+			if (this.isFromTrigger(lastWord)) {
 
 				let pattern = /(.+?)(?:\.(.*?))?\.?(?:\.(.*?))?$/;
 				let unclosed = this.unclosedString(this.textBeforePosition);
@@ -5603,11 +5706,11 @@ class bslHelper {
 		let trigger_char = (context && context.triggerCharacter) ? context.triggerCharacter : '';
 
 		if (trigger_char == ' ') {
-			
+
 			this.getQueryAliasCompletion(suggestions);
-			
+
 			if (!suggestions.length);
-				this.getCastDelimiter(suggestions);
+			this.getCastDelimiter(suggestions);
 		}
 		else {
 
@@ -5637,7 +5740,7 @@ class bslHelper {
 				}
 
 				if (!interrupt && !this.getQuerySourceCompletion(suggestions, monaco.languages.CompletionItemKind.Enum)) {
-					
+
 					let functions = null;
 
 					if (this.lastOperator != '"') {
@@ -5660,6 +5763,13 @@ class bslHelper {
 
 					this.getSnippets(suggestions, querySnippets, false);
 					this.getQueryAliasCompletion(suggestions);
+
+				}
+				else {
+					
+					if (!interrupt && this.lastExpression.indexOf('.') < 0) {
+						this.getQueryCommonCompletion(suggestions, monaco.languages.CompletionItemKind.Module);
+					}
 
 				}
 
@@ -6268,7 +6378,7 @@ class bslHelper {
 	 * @returns {bool}
 	 */
 	isSuitablePlaceForSigHelp() {
-		
+
 		if (isQueryMode())
 			return !this.requireQueryValue()
 		else if (isDCSMode())
@@ -7159,7 +7269,7 @@ class bslHelper {
 			return hover;
 
 		}
-		
+
 		return null;
 
 	}
@@ -7945,7 +8055,7 @@ class bslHelper {
 
 				}
 
-			}			
+			}
 
 		}
 
@@ -7968,7 +8078,7 @@ class bslHelper {
 			location = [{
 				uri: this.model.uri,
 				range: definition.range
-			}];					
+			}];
 
 			this.generateDefinitionEvent();
 
@@ -7994,10 +8104,10 @@ class bslHelper {
 		let match = Finder.findPreviousMatch(this.model, pattern, position, false);
 
 		if (match && match.range.startLineNumber < this.lineNumber) {
-			
+
 			let match_position = new monaco.Position(match.range.startLineNumber, match.range.startColumn);
 			let match_comma = Finder.findPreviousMatch(this.model, ',', match_position, false);
-			
+
 			if (match_comma) {
 				match.range.startLineNumber = match_comma.range.startLineNumber + 1;
 				match.range.startColumn;
