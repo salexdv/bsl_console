@@ -1210,6 +1210,53 @@ describe("Проверка автокомлита и подсказок реда
         assert.equal(suggestions.some(suggest => suggest.label === "Номенклатура"), false);
 
       });
+
+      it("проверка подсказки для элемнтов массива определеннного типа", function () {              	                        
+        
+        let strJSON = `{
+          "customObjects":{
+             "Параметры":{
+                "ref": "classes.Структура",
+                "properties":{
+                   "Товары":{
+                      "name":"Товары",
+                      "ref":"classes.Массив",
+                      "item_ref":"catalogs.Товары"
+                   }                   
+                }
+             }
+          }
+        }`;                
+        let res = updateMetadata(strJSON);
+        assert.equal(res, true);
+        
+        bsl = helper(`Для Каждого Товар Из Параметры.Т`);
+        let suggestions = bsl.getCodeCompletion({triggerCharacter: '.'});
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "Товары"), true);
+        
+        bsl = helper(`Для Каждого Товар Из Параметры.Товары Цикл
+        Товар.`);
+        suggestions = [];
+        bsl.getStackCompletion(suggestions);
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "Наименование"), true);
+
+        bsl = helper(`Товары = Параметры.Товары;
+        Товары.`);
+        suggestions = [];
+        bsl.getStackCompletion(suggestions);
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "Добавить"), true);
+
+        bsl = helper(`Товар = Параметры.Товары[0];
+        Товар.`);
+        suggestions = [];
+        bsl.getStackCompletion(suggestions);
+        expect(suggestions).to.be.an('array').that.not.is.empty;
+        assert.equal(suggestions.some(suggest => suggest.label === "Наименование"), true);
+
+      });
       
     }
 
