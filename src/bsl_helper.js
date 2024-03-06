@@ -3048,6 +3048,12 @@ class bslHelper {
 					column: column
 				});
 
+				let var_match = Finder.findPreviousMatch(this.model, '\\s+' + source_var + '\\s+(?:из|in)\\s+(.+?)\\s+(?:цикл|do)', position, false);
+		
+				if (var_match) {
+					this.getStackCompletionForLoopsVar([], source_var, new monaco.Position(match.range.startLineNumber, match.range.startColumn));
+				}
+
 				let source_exp = match.matches[3];
 				let source_arr = source_exp.split('(');				
 				let exp_arr = source_arr[0].split('.');
@@ -3066,13 +3072,15 @@ class bslHelper {
 								var: index_read[1].toLowerCase(),
 								line: match.range.startLineNumber,
 								previous_ref: false,
-								column: column - index_read[2].length
+								column: column - index_read[2].length,
+								isCollectionItem: true
 							},
 							{
 								var: engLang ? 'get' : 'получить',
 								line: match.range.startLineNumber,
 								previous_ref: false,
-								column: column
+								column: column,
+								isCollectionItem: true
 							}
 						);
 					}
@@ -3112,11 +3120,14 @@ class bslHelper {
 						column: var_match.range.startColumn + varName.length
 					});
 					if (var_match.matches[1] && var_match.matches[1].indexOf('[') == 0)
+					if (stack.length)
+							stack[stack.length - 1]['isCollectionItem'] = true
 						stack.push({
 							var: engLang ? 'get' : 'получить',
 							line: position.lineNumber,
 							previous_ref: false,
-							column: position.column - 1
+							column: position.column - 1,
+							isCollectionItem: true
 						});
 					let prev_position = new monaco.Position(position.lineNumber, offset + 1);
 					let prev_stack = this.getMetadataStackForVar(prev_var.word.toLowerCase(), prev_position);
@@ -3203,8 +3214,9 @@ class bslHelper {
 	 * @param {array} stack call stack array
 	 * @param {object} item item item of stack
 	 * @param {int} index current index of item in stack
+	 * @param {bool} isCollectionItem whether the item is a collection object
 	 */
-	setContextDataForCustomObjectFromStack(stack, item, index) {
+	setContextDataForCustomObjectFromStack(stack, item, index, isCollectionItem) {
 
 		for (const [key, value] of Object.entries(window.bslMetadata.customObjects.items)) {
 
@@ -3213,8 +3225,16 @@ class bslHelper {
 				for (const [pkey, pvalue] of Object.entries(value.properties)) {
 
 					let property = pvalue.name.toLowerCase();
+
 					if (property == stack[index + 1].var && pvalue.hasOwnProperty('ref'))
 						this.setContextDataForRefExpression(property, pvalue.ref, item.line);
+
+					if (stack[index + 1].hasOwnProperty('isCollectionItem') &&
+						pvalue.hasOwnProperty('item_ref') &&
+						stack[index + 1].isCollectionItem &&
+					 	(stack[index + 2].var == 'получить' || stack[index + 2].var == 'get')) {
+						this.setContextDataForRefExpression(engLang ? 'get' : 'получить', pvalue.item_ref, item.line);
+					}
 
 				}
 
@@ -3325,14 +3345,18 @@ class bslHelper {
 				}
 				if (i == 0) {
 					prev_ref = this.getRefCompletionFromPosition(metadata_suggestions, position, false);
-					if (!prev_ref && i + 1 < stack.length && window.bslMetadata.customObjects.hasOwnProperty('items'))
-						this.setContextDataForCustomObjectFromStack(stack, stack_item, i);
+					if (!prev_ref && i + 1 < stack.length && bslMetadata.customObjects.hasOwnProperty('items')) {
+						let isCollectionItem = stack_item.hasOwnProperty('isCollectionItem') && stack_item.isCollectionItem;
+						this.setContextDataForCustomObjectFromStack(stack, stack_item, i, isCollectionItem);
+					}
 				}
 				else {					
-					this.getRefCompletionFromPosition(metadata_suggestions, position, false);
-					if (!metadata_suggestions.length && i == 1)
-						this.getClassCompletionByName(metadata_suggestions, bslGlobals.classes, stack[i - 1].var);
-					prev_ref = this.setContextDataForStackItem(stack_item, metadata_suggestions);
+					if (!stack_item.isCollectionItem) {
+						this.getRefCompletionFromPosition(metadata_suggestions, position, false);
+						if (!metadata_suggestions.length && i == 1)
+							this.getClassCompletionByName(metadata_suggestions, bslGlobals.classes, stack[i - 1].var);
+						prev_ref = this.setContextDataForStackItem(stack_item, metadata_suggestions);
+					}
 				}
 			}
 												
@@ -3345,6 +3369,80 @@ class bslHelper {
 	}
 
 	/**
+	 * Saves context data for item of custom object
+	 * 
+	 * @param {object} item item of custom object
+	 * @param {string} varName name of variable
+	 * @param {int} lineNumber line
+	 * @param {bool} isCollectionItem whether the item is a collection object
+	 * 
+	 * @returns {bool} context had been saved or not
+	 */
+	setContextForCustomItem(item, varName, lineNumber, isCollectionItem) {
+	
+		let refExists = false;
+
+		if (item) {
+
+			if (item.hasOwnProperty('ref')) {
+				this.setContextDataForRefExpression(varName.toLowerCase(), item.ref, lineNumber);
+				refExists = true;
+			}
+
+			if (isCollectionItem && item.hasOwnProperty('item_ref')) {
+				this.setContextDataForRefExpression(varName.toLowerCase(), item.item_ref, lineNumber);
+				refExists = true;
+			}
+
+		}
+
+		return refExists;
+
+	}
+
+	/**
+	 * Fill suggestions from call stack when variable
+	 * define like ref (for each var from array do)
+	 * 
+	 * @param {array} suggestions array of suggestions for provideCompletionItems	 
+	 * @param {array} stack call stack array
+	 * 	 
+	 */
+	getStackCompletionForLoopsVar(suggestions, varName, position) {
+
+		let var_match = Finder.findPreviousMatch(this.model, '\\s+' + varName + '\\s+(?:из|in)\\s+(.+?)\\s+(?:цикл|do)', position, false);
+		
+		if (var_match) {
+			
+			let source = var_match.matches[1];
+			let sources = source.split('.');
+			let refExists = false;
+
+			if (sources.length == 1) {
+
+				if (bslMetadata.customObjects.items.hasOwnProperty(source)) {
+					let item = bslMetadata.customObjects.items[source]
+					refExists = this.setContextForCustomItem(item, varName, position.lineNumber, true);
+				}
+
+			}
+			else {
+
+				let paths = sources.join('.properties.').split('.');
+				let item = bslHelper.getObjectByPath(bslMetadata.customObjects.items, paths);
+				refExists = this.setContextForCustomItem(item, varName, position.lineNumber, true);
+			
+			}
+
+			if (refExists) {
+				this.getRefCompletion(suggestions);
+			}
+			
+		}
+
+	}
+
+	/**
 	 * Constructs completion using stack of all variables,
 	 * methods and properties that preceded the object
 	 * 
@@ -3352,12 +3450,13 @@ class bslHelper {
 	 */
 	 getStackCompletion(suggestions) {
 
-		let exp = this.lastRawExpression;		
-		let stack = this.getMetadataStackForVar(exp, this.position);
-		let itemExists = this.getMetadataStackCompletionFromFullDefinition(suggestions, stack);		
-
-		if (!itemExists) {
-			this.getStackCompletionFromRefs(suggestions, stack);
+		let exp = this.lastRawExpression;
+		let stack = this.getMetadataStackForVar(exp, this.position, false);
+		this.getMetadataStackCompletionFromFullDefinition(suggestions, stack);
+		this.getStackCompletionFromRefs(suggestions, stack);
+		
+		if (!stack.length) {
+			this.getStackCompletionForLoopsVar(suggestions, exp, this.position);
 		}
 
 	}
