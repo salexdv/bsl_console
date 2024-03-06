@@ -52,12 +52,16 @@ let themes = {
             { token: 'delimiter.squarebsl', foreground: 'ff0000' },
             { token: 'delimiter.parenthesisbsl', foreground: 'ff0000' },
             { token: 'identifierbsl', foreground: '0000ff' },
+            { token: 'funcbsl', foreground: '0000ff' },
+            { token: 'funcdefbsl', foreground: '0000ff' },
+            { token: 'constructbsl', foreground: '0000ff' },
             { token: 'stringbsl', foreground: '000000' },
             { token: 'string.quotebsl', foreground: '000000' },
             { token: 'string.invalidbsl', foreground: '000000' },
             { token: 'numberbsl', foreground: '000000' },
             { token: 'number.floatbsl', foreground: '000000' },
             { token: 'preprocbsl', foreground: '963200' },
+            { token: 'compilebsl', foreground: '963200' },
             { token: 'gotomarkbsl', foreground: '3a3a3a' }
         ],
         whiteQueryOn: [
@@ -81,12 +85,16 @@ let themes = {
             { token: 'delimiter.squarebsl', foreground: 'd4d4d4' },
             { token: 'delimiter.parenthesisbsl', foreground: 'd4d4d4' },
             { token: 'identifierbsl', foreground: 'd4d4d4' },
+            { token: 'funcbsl', foreground: 'd4d4d4' },
+            { token: 'funcdefbsl', foreground: 'd4d4d4' },
+            { token: 'constructbsl', foreground: 'd4d4d4' },
             { token: 'stringbsl', foreground: 'c3602c' },
             { token: 'string.quotebsl', foreground: 'c3602c' },
             { token: 'string.invalidbsl', foreground: 'c3602c' },
             { token: 'numberbsl', foreground: 'b5cea8' },
             { token: 'number.floatbsl', foreground: 'b5cea8' },
             { token: 'preprocbsl', foreground: '963200' },
+            { token: 'compilebsl', foreground: '963200' },
             { token: 'gotomarkbsl', foreground: 'ff9000' }
         ],
         darkQueryOff: [
@@ -114,6 +122,66 @@ let themes = {
             { token: 'query.floatbsl', foreground: 'ff00ff' },
             { token: 'query.intbsl', foreground: 'ff00ff' },
             { token: 'query.commentbsl', foreground: '6a9955' }
+        ],
+        edtWhite: [
+            { token: 'commentbsl', foreground: '3f7f5f' },
+            { token: 'keywordbsl', foreground: '7f0055', fontStyle: "bold" },
+            { token: 'delimiterbsl', foreground: '000000' },
+            { token: 'delimiter.squarebsl', foreground: '000000' },
+            { token: 'delimiter.parenthesisbsl', foreground: '000000' },
+            { token: 'identifierbsl', foreground: '000000' },
+            { token: 'funcbsl', foreground: '7f0055' },
+            { token: 'funcdefbsl', foreground: '000000' },
+            { token: 'constructbsl', foreground: '000000' },
+            { token: 'stringbsl', foreground: '0000ff' },
+            { token: 'string.quotebsl', foreground: '0000ff' },
+            { token: 'string.invalidbsl', foreground: '0000ff' },
+            { token: 'numberbsl', foreground: '000000' },
+            { token: 'number.floatbsl', foreground: '000000' },
+            { token: 'preprocbsl', foreground: '0000cd', fontStyle: "bold" },
+            { token: 'compilebsl', foreground: '7d7d7d' },
+            { token: 'gotomarkbsl', foreground: '7f0055' },
+            { token: 'querybsl', foreground: '0000ff' },                    
+            { token: 'query.quotebsl', foreground: '0000ff' },
+            { token: 'query.stringbsl', foreground: '0000ff' },
+            { token: 'query.keywordbsl', foreground: '0000ff' },
+            { token: 'query.expbsl', foreground: '0000ff' },
+            { token: 'query.parambsl', foreground: '0000ff' },                    
+            { token: 'query.bracketsbsl', foreground: '0000ff' },
+            { token: 'query.operatorbsl', foreground: '0000ff' },
+            { token: 'query.floatbsl', foreground: '0000ff' },
+            { token: 'query.intbsl', foreground: '0000ff' },
+            { token: 'query.commentbsl', foreground: '0000ff' }
+        ],
+        edtDark: [
+            { token: 'commentbsl', foreground: '96a6b2' },
+            { token: 'keywordbsl', foreground: 'ff7853', fontStyle: "bold" },
+            { token: 'delimiterbsl', foreground: '839496' },
+            { token: 'delimiter.squarebsl', foreground: '839496' },
+            { token: 'delimiter.parenthesisbsl', foreground: '839496' },
+            { token: 'identifierbsl', foreground: '839496' },
+            { token: 'funcbsl', foreground: '721b36' },
+            { token: 'funcdefbsl', foreground: '839496' },
+            { token: 'constructbsl', foreground: '839496' },
+            { token: 'stringbsl', foreground: 'f0ff71' },
+            { token: 'string.quotebsl', foreground: 'f0ff71' },
+            { token: 'string.invalidbsl', foreground: 'f0ff71' },
+            { token: 'numberbsl', foreground: '839496' },
+            { token: 'number.floatbsl', foreground: '839496' },
+            { token: 'preprocbsl', foreground: 'a0caf4', fontStyle: "bold" },
+            { token: 'compilebsl', foreground: '839496' },
+            { token: 'gotomarkbsl', foreground: 'ff7853' },
+            { token: 'querybsl', foreground: 'f0ff71' },                    
+            { token: 'query.quotebsl', foreground: 'f0ff71' },
+            { token: 'query.stringbsl', foreground: 'f0ff71' },
+            { token: 'query.keywordbsl', foreground: 'f0ff71' },
+            { token: 'query.expbsl', foreground: 'f0ff71' },
+            { token: 'query.parambsl', foreground: 'f0ff71' },                    
+            { token: 'query.bracketsbsl', foreground: 'f0ff71' },
+            { token: 'query.operatorbsl', foreground: 'f0ff71' },
+            { token: 'query.floatbsl', foreground: 'f0ff71' },
+            { token: 'query.intbsl', foreground: 'f0ff71' },
+            { token: 'query.commentbsl', foreground: 'f0ff71' }
         ]
     },
     colors: {
@@ -139,6 +207,31 @@ let themes = {
             'editor.selectionBackground': '#ffe877',
             'editor.selectionHighlightBackground': '#fef6d0',
             'editor.inactiveSelectionBackground': '#fef6d0'
+        },
+        edtWhite: {
+            'editor.selectionBackground': '#0078d7',
+            'editor.selectionForeground': '#ffffff',
+            'editor.selectionHighlightBackground': '#d4d4d4',
+            'editor.inactiveSelectionBackground': '#0078d7'
+        },
+        edtDark: {
+            'foreground': '#d4d4d4',
+            'editor.background': '#2f2f2f',
+            'editor.selectionBackground': '#062f4a',
+            'editor.selectionHighlightBackground': '#495662',
+            'editor.inactiveSelectionBackground': '#495662',
+            'editorCursor.foreground': '#d4d4d4',
+            'editorSuggestWidget.background': '#252526',
+            'editorSuggestWidget.foreground': '#d4d4d4',
+            'editorSuggestWidget.selectedBackground': '#094771',
+            'editorSuggestWidget.highlightForeground': '#18a3ff',
+            'editorWidget.background': '#252526',
+            'editorWidget.foreground': '#d4d4d4',
+            'editorWidget.border': '#d4d4d4',
+            'list.hoverBackground': '#2a2d2e',
+            'editor.lineHighlightBorder': '#282828',                
+            'editorWidget.border': '#454545',
+            'editorLineNumber.foreground': '#779189'
         }
     }
 }
@@ -183,7 +276,7 @@ let bsl_language = {
             'ГДЕ', 'СГРУППИРОВАТЬ', 'ПО', 'ИМЕЮЩИЕ', 'ОБЪЕДИНИТЬ', 'ВСЕ', 'УПОРЯДОЧИТЬ',
             'АВТОУПОРЯДОЧИВАНИЕ', 'ИТОГИ', 'ОБЩИЕ', 'ТОЛЬКО', 'ИЕРАРХИЯ', 'ПЕРИОДАМИ', 'ДЛЯ',
             'ИЗМЕНЕНИЯ', 'SELECT', 'ALLOWED', 'DISTINCT', 'TOP', 'AS', 'EMPTYTABLE',
-            'INTO', 'FROM', 'INNER', 'LEFT', ' OUTER', 'RIGHT', 'FULL',
+            'INTO', 'FROM', 'INNER', 'LEFT', 'OUTER', 'RIGHT', 'FULL',
             'JOIN', 'ON', 'WHERE', 'GROUP', 'BY', 'HAVING', 'UNION',
             'ALL', 'ORDER', 'AUTOORDER', 'TOTALS', 'OVERALL', 'ONLY', 'HIERARCHY',
             'СГРУППИРОВАНОПО', 'GROUPEDBY', 'БУЛЕВО', 'BOOLEAN', 'ВОЗР', 'ASC',
@@ -246,13 +339,34 @@ let bsl_language = {
         ],
         tokenizer: {
             root: [
+                [/^\s*(процедура|функция|procedure|function)(\s*[a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]+\s*)(\()/, [
+                    {token: 'keyword'},
+                    {token: 'funcdef'},
+                    {token: 'delimiter.square'},
+                ]],
+                [/(\s+)(новый|new)(\s*[a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]+\s*)(\()/, [
+                    {token: ''},
+                    {token: 'keyword'},
+                    {token: 'construct'},
+                    {token: 'delimiter.square'},
+                ]],
+                [/(\s+)([a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]+)(\s*)(\()/, [
+                    {token: ''},
+                    { cases: {
+                        '@keywords': 'keyword',                            
+                        '@default': 'func'
+                    }},
+                    {token: ''},
+                    {token: 'delimiter.square'},
+                ]],
                 [/(перейти|goto)(\s+)(~[a-zA-Z\u0410-\u044F_0-9]*)/, ['keyword', '', 'gotomark']],
                 [/(~[a-zA-Z\u0410-\u044F_0-9]*)(:)/, ['gotomark', 'delimiter']],
                 [/(\.)(выполнить)(\(?)/, ['delimiter', 'identifier', 'delimiter.parenthesis']],
                 [/[a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]*/, { cases: { '@keywords': 'keyword', '@default': 'identifier' } }],
                 // whitespace
                 { include: '@whitespace' },                    
-                [/^\s*[#&].*$/, 'preproc'],
+                [/^\s*[&].*$/, 'compile'],
+                [/^\s*[#].*$/, 'preproc'],
                 [/[()\[\]]/, '@brackets'],
                 [/@symbols/, {
                     cases: {
@@ -405,6 +519,20 @@ let bsl_language = {
             inherit: true,
             colors: themes.colors.dark,
             rules: themes.rules.dark.concat(themes.rules.darkQueryOn)
+        },
+        edtWhiteTheme: {
+            base: 'vs',
+            name: 'bsl-edt-white',
+            inherit: true,
+            colors: themes.colors.edtWhite,
+            rules: themes.rules.edtWhite
+        },
+        edtDarkTheme: {
+            base: 'vs',
+            name: 'bsl-edt-dark',
+            inherit: true,
+            colors: themes.colors.edtDark,
+            rules: themes.rules.edtDark
         }
     }        
 }

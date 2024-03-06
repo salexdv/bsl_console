@@ -113,7 +113,7 @@ npm run build  -- --customOptions "automaticLayout: true, someOption: false"
 | ------------------------------ | --------------------------------------------------------------------------------------------- |
 | [`init`](docs/init.md)         | Инициализация редактора с передачей версии платформы и имени пользователя                     |
 | [`setLanguageMode`](docs/set_language_mode.md) | Переключение режимов редактора (встроенный язык, язык запросов и т.п.)        |
-| `setTheme`                     | Установка темы редактора `bsl-white`, `bsl-white-query`, `bsl-dark`, `bsl-dark-query`         |
+| `setTheme`                     | Установка темы редактора `bsl-white`, `bsl-white-query`, `bsl-dark`, `bsl-dark-query`, `bsl-edt-white`, `bsl-edt-dark`|
 | `setReadOnly`                  | Устанавливает/снимает режим *Только просмотр*                                                 |
 | `getReadOnly`                  | Возвращает значение режима *Только просмотр*                                                  |
 | [`switchLang`](docs/switch_lang.md)| Переключает язык подсказок с английского на русский и обратно                             |
