@@ -152,6 +152,36 @@ define([], function () {
                 { token: 'query.floatbsl', foreground: '0000ff' },
                 { token: 'query.intbsl', foreground: '0000ff' },
                 { token: 'query.commentbsl', foreground: '0000ff' }
+            ],
+            edtDark: [
+                { token: 'commentbsl', foreground: '96a6b2' },
+                { token: 'keywordbsl', foreground: 'ff7853', fontStyle: "bold" },
+                { token: 'delimiterbsl', foreground: '839496' },
+                { token: 'delimiter.squarebsl', foreground: '839496' },
+                { token: 'delimiter.parenthesisbsl', foreground: '839496' },
+                { token: 'identifierbsl', foreground: '839496' },
+                { token: 'funcbsl', foreground: '721b36' },
+                { token: 'funcdefbsl', foreground: '839496' },
+                { token: 'constructbsl', foreground: '839496' },
+                { token: 'stringbsl', foreground: 'f0ff71' },
+                { token: 'string.quotebsl', foreground: 'f0ff71' },
+                { token: 'string.invalidbsl', foreground: 'f0ff71' },
+                { token: 'numberbsl', foreground: '839496' },
+                { token: 'number.floatbsl', foreground: '839496' },
+                { token: 'preprocbsl', foreground: 'a0caf4', fontStyle: "bold" },
+                { token: 'compilebsl', foreground: '839496' },
+                { token: 'gotomarkbsl', foreground: 'ff7853' },
+                { token: 'querybsl', foreground: 'f0ff71' },                    
+                { token: 'query.quotebsl', foreground: 'f0ff71' },
+                { token: 'query.stringbsl', foreground: 'f0ff71' },
+                { token: 'query.keywordbsl', foreground: 'f0ff71' },
+                { token: 'query.expbsl', foreground: 'f0ff71' },
+                { token: 'query.parambsl', foreground: 'f0ff71' },                    
+                { token: 'query.bracketsbsl', foreground: 'f0ff71' },
+                { token: 'query.operatorbsl', foreground: 'f0ff71' },
+                { token: 'query.floatbsl', foreground: 'f0ff71' },
+                { token: 'query.intbsl', foreground: 'f0ff71' },
+                { token: 'query.commentbsl', foreground: 'f0ff71' }
             ]
         },
         colors: {
@@ -183,6 +213,24 @@ define([], function () {
                 'editor.selectionForeground': '#ffffff',
                 'editor.selectionHighlightBackground': '#d4d4d4',
                 'editor.inactiveSelectionBackground': '#0078d7'
+            },
+            edtDark: {
+                'foreground': '#d4d4d4',
+                'editor.background': '#2f2f2f',
+                'editor.selectionBackground': '#062f4a',
+                'editor.selectionHighlightBackground': '#495662',
+                'editor.inactiveSelectionBackground': '#495662',
+                'editorCursor.foreground': '#d4d4d4',
+                'editorSuggestWidget.background': '#252526',
+                'editorSuggestWidget.foreground': '#d4d4d4',
+                'editorSuggestWidget.selectedBackground': '#094771',
+                'editorSuggestWidget.highlightForeground': '#18a3ff',
+                'editorWidget.background': '#252526',
+                'editorWidget.foreground': '#d4d4d4',
+                'editorWidget.border': '#d4d4d4',
+                'list.hoverBackground': '#2a2d2e',
+                'editor.lineHighlightBorder': '#282828',
+                'editorWidget.border': '#454545'                
             }
         }
     }
@@ -487,6 +535,13 @@ define([], function () {
                 inherit: true,
                 colors: themes.colors.edtWhite,
                 rules: themes.rules.edtWhite
+            },
+            edtDarkTheme: {
+                base: 'vs',
+                name: 'bsl-edt-dark',
+                inherit: true,
+                colors: themes.colors.edtDark,
+                rules: themes.rules.edtDark
             }
         }        
     }
