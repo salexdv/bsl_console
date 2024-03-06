@@ -7239,6 +7239,30 @@ class bslHelper {
 	}
 
 	/**
+	 * Provider for immediate hover popoup
+	 * 
+	 * @returns {object} - hover object or null
+	 */
+	getImmediateHover() {
+
+		if (window.immediateHover.length) {
+
+			let hover = {
+				range: new monaco.Range(this.lineNumber, this.column, this.lineNumber, this.model.getLineMaxColumn(this.lineNumber)),
+				contents: window.immediateHover
+			};
+
+			window.immediateHover = [];
+
+			return hover;
+
+		}
+
+		return null;
+
+	}
+
+	/**
 	 * Provider for hover popoup
 	 * 
 	 * @returns {object} - hover object or null
@@ -7246,6 +7270,9 @@ class bslHelper {
 	getHover() {
 
 		let hover = this.getCustomHover();
+
+		if (!hover)
+			hover = this.getImmediateHover();
 
 		if (!hover && !window.editor.disableNativeHovers) {
 

@@ -36,6 +36,7 @@ window.version1C = '';
 window.userName = '';
 window.contextActions = [];
 window.customHovers = {};
+window.immediateHover = [];
 window.customSignatures = {};
 window.customCodeLenses = [];
 window.originalText = '';
@@ -806,6 +807,16 @@ window.triggerSuggestions = function() {
 window.triggerHovers = function() {
   
   window.editor.trigger('', 'editor.action.showHover', {});
+
+}
+
+window.showImmediateHover = function(text, title) {
+    
+  window.immediateHover = [
+    { value: title },
+    { value: text }
+  ]
+  window.triggerHovers();
 
 }
 
