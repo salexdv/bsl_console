@@ -5000,6 +5000,57 @@ class bslHelper {
 		}		
 
 	}
+	
+	/**
+	* Returns list of query sources defined until position
+	* 
+	* @returns {array} array of sources	 
+	*/
+	getQuerySourcesUntilPosition() {
+
+		let sources = [];
+		let keywords = this.getQueryKeywords(languages.bsl.languageDef.rules);
+
+		// Let's find start of current query
+		let startMatch = Finder.findPreviousMatch(this.model, '(?:выбрать|select)', this.position);
+
+		if (startMatch) {
+
+			let template = '(?:из|from)\\s+(?:[\\s\\S]*?)(?:сгруппировать|объединить|упорядочить|имеющие|где|индексировать|havin|where|index|group|union|order|;)'
+			let position = new monaco.Position(startMatch.range.startLineNumber, startMatch.range.startColumn);
+			let fromMatch = Finder.findNextMatch(this.model, template, position);
+
+			if (!fromMatch) {
+				template = '(?:из|from)\\s+(?:[\\s\\S]*?)$';
+				fromMatch = Finder.findNextMatch(this.model, template, position);
+			}
+
+			if (fromMatch && fromMatch.range.startLineNumber < startMatch.range.startLineNumber) {
+				// This is loops to the beginning. Trying another template
+				fromMatch = Finder.findNextMatch(this.model, '(?:из|from)\\s+(?:[\\s\\S]+)$', position);
+			}
+
+			if (fromMatch) {
+				let list = fromMatch.matches[0].split('\n');
+				list.forEach((item) => {
+					item = item.replace(/(как|as)\s+([\s\S]*?)$/gi, '');
+					item = item.replace(/\t/gi, '');
+					keywords.forEach((keyword) => {
+						item = item.replace(new RegExp('(^|\\s)' + keyword + '(\\s|$)', "gi"), '');
+					})
+					item = item.trim();
+					if (item)
+						sources.push(item)
+
+				});
+
+			}
+
+		}
+
+		return sources;
+
+	}
 
 	/**
 	 * Fills array of completion for fields of querie's table
@@ -5017,6 +5068,19 @@ class bslHelper {
 		else if (last_expression && this.getLastNExpression(1) == '.') {
 			position = new monaco.Position(this.lineNumber, this.column - last_expression.length);
 			last_expression = this.getLastNExpression(2);
+		}
+		else {
+			
+			let lastWord = this.getLastSeparatedWord();
+			if (this.isKeyword(lastWord) && !this.isFromTrigger(lastWord)) {
+
+				let sources = this.getQuerySourcesUntilPosition();
+
+				sources.forEach((source) => {
+					this.getQueryFieldsCompletionForMetadata(suggestions, source);
+				});
+				
+			}
 		}
 			
 		if (position) {
@@ -5396,6 +5460,12 @@ class bslHelper {
 
 	}
 
+	/**
+	 * Fills array of completion for source like (catalog, document, etc.)
+	 * 
+	 * @param {array} suggestions array of suggestions for provideCompletionItems	 
+	 * @param {CompletionItemKind} kind - monaco.languages.CompletionItemKind (class, function, constructor etc.)
+	 */
 	getQueryMetadataSources(suggestions, kind) {
 
 		let sourceExist = false;
@@ -5424,6 +5494,40 @@ class bslHelper {
 	}
 
 	/**
+	 * Determines if the word is a from query trigger or not
+	 * 
+	 * @param {bool} word the  word
+	 * 
+	 * @returns {bool}
+	 */
+	isFromTrigger(word) {
+
+		let isFromTrigger = false;
+		let fromTriggers = ['из', 'соединение', 'from', 'join'];		
+
+		if (word)
+			isFromTrigger = (0 <= fromTriggers.indexOf(word.toLowerCase()));
+
+		return isFromTrigger;
+
+	}
+
+	/**
+	 * Determines if the word is keyword or not
+	 * 
+	 * @param {bool} word the word
+	 * 
+	 * @returns {bool}
+	 */
+	isKeyword(word) {
+
+		let keywords = this.getQueryKeywords(languages.bsl.languageDef.rules);
+			
+		return keywords.includes(word.toUpperCase());
+
+	}
+
+	/**
 	 * Fills array of completion for source of table
 	 * 
 	 * @param {array} suggestions array of suggestions for provideCompletionItems	 
@@ -5433,53 +5537,52 @@ class bslHelper {
 
 		let sourceExist = false;
 
-		let fromTriggers = ['из', 'соединение', 'from', 'join'];
-		let lastWord = this.getLastSeparatedWord()
-		
+		let lastWord = this.getLastSeparatedWord();
+
 		if (lastWord) {
-			
-			if (fromTriggers.indexOf(lastWord.toLowerCase()) == -1) {
+
+			if (!this.isFromTrigger(lastWord)) {
 				
 				let char = this.getLastCharInLine(this.lineNumber - 1);
-				
+
 				if (char == ',') {
-				
+
 					let fromMatch = Finder.findPreviousMatch(this.model, '(?:из|from)', this.position);
-				
-					if (fromMatch && fromMatch.range.startLineNumber < this.lineNumber) {					
+
+					if (fromMatch && fromMatch.range.startLineNumber < this.lineNumber) {
 						let ignore_keywords = ['как', 'as', 'по', 'on'];
 						lastWord = this.getLastWordWithTokenInRange('keyword', fromMatch.range.startLineNumber, 1, this.lineNumber, this.column - 1, ignore_keywords);
 					}
 				}
 
 			}
-			
-			if (0 <= fromTriggers.indexOf(lastWord.toLowerCase())) {
+
+			if (this.isFromTrigger(lastWord)) {
 
 				let pattern = /(.+?)(?:\.(.*?))?\.?(?:\.(.*?))?$/;
-				let unclosed = this.unclosedString(this.textBeforePosition);						
-				let regex = pattern.exec(unclosed.string ? unclosed.string.slice(1) : this.lastExpression);			
-				
+				let unclosed = this.unclosedString(this.textBeforePosition);
+				let regex = pattern.exec(unclosed.string ? unclosed.string.slice(1) : this.lastExpression);
+
 				let metadataName = regex && 1 < regex.length ? regex[1] : '';
 				let metadataItem = regex && 2 < regex.length ? regex[2] : '';
 				let metadataFunc = regex && 3 < regex.length ? regex[3] : '';
-				
+
 				if (metadataName != '.') {
-				
+
 					sourceExist = this.getQuerySourceMetadataCompletion(metadataName, metadataItem, metadataFunc, suggestions, kind, 3);
 
 					if (!sourceExist) {
-					
+
 						// suggestion for metadata sources like (catalog, document, etc.)
 						sourceExist = this.getQueryMetadataSources(suggestions, kind);
 						// suggestion for temporary tables
 						sourceExist = Math.max(sourceExist, this.getQuerySourceTempraryTablesCompletion(suggestions));
-					
+
 					}
 
 				}
-												
-			}			
+
+			}
 
 		}
 
@@ -5757,6 +5860,13 @@ class bslHelper {
 
 					this.getSnippets(suggestions, querySnippets, false);
 					this.getQueryAliasCompletion(suggestions);
+
+				}
+				else {
+					
+					if (!interrupt && this.lastExpression.indexOf('.') < 0) {
+						this.getQueryCommonCompletion(suggestions, monaco.languages.CompletionItemKind.Module);
+					}
 
 				}
 

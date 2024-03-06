@@ -483,7 +483,7 @@ setTimeout(() => {
         Справочник.Товары КАК Товары
       ГДЕ
         Т`, 6, 10);
-      suggestions = bsl.getQueryCompletion();
+      let suggestions = bsl.getQueryCompletion();
       expect(suggestions).to.be.an('object');
       expect(suggestions.suggestions).to.be.an('array').that.is.not.empty;
       assert.equal(suggestions.suggestions.some(suggest => suggest.label === "Товары"), true);
@@ -499,6 +499,31 @@ setTimeout(() => {
       expect(suggestions.suggestions).to.be.an('array').that.is.not.empty;
       assert.equal(suggestions.suggestions.some(suggest => suggest.label === "Товары"), true);      
 
+    });
+
+    it("проверка подсказки ГДЕ при отсутствии псевдонима источника", function () {
+      bsl = helper(`ВЫБРАТЬ
+      *
+      ИЗ      
+        Справочник.Товары
+      Г`);
+      let suggestions = bsl.getQueryCompletion();
+      expect(suggestions).to.be.an('object');
+      expect(suggestions.suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(suggestions.suggestions.some(suggest => suggest.label === "ГДЕ"), true);
+    });
+
+    it("проверка подсказки реквизитов при отсутствии псевдонима источника", function () {
+      bsl = helper(`ВЫБРАТЬ
+      *
+      ИЗ      
+        Справочник.Товары
+      ГДЕ
+        Н`);
+      let suggestions = bsl.getQueryCompletion();
+      expect(suggestions).to.be.an('object');
+      expect(suggestions.suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(suggestions.suggestions.some(suggest => suggest.label === "Наименование"), true);
     });
 
     window.setLanguageMode('bsl_query');
