@@ -52,12 +52,16 @@ define([], function () {
                 { token: 'delimiter.squarebsl', foreground: 'ff0000' },
                 { token: 'delimiter.parenthesisbsl', foreground: 'ff0000' },
                 { token: 'identifierbsl', foreground: '0000ff' },
+                { token: 'funcbsl', foreground: '0000ff' },
+                { token: 'funcdefbsl', foreground: '0000ff' },
+                { token: 'constructbsl', foreground: '0000ff' },
                 { token: 'stringbsl', foreground: '000000' },
                 { token: 'string.quotebsl', foreground: '000000' },
                 { token: 'string.invalidbsl', foreground: '000000' },
                 { token: 'numberbsl', foreground: '000000' },
                 { token: 'number.floatbsl', foreground: '000000' },
                 { token: 'preprocbsl', foreground: '963200' },
+                { token: 'compilebsl', foreground: '963200' },
                 { token: 'gotomarkbsl', foreground: '3a3a3a' }
             ],
             whiteQueryOn: [
@@ -81,12 +85,16 @@ define([], function () {
                 { token: 'delimiter.squarebsl', foreground: 'd4d4d4' },
                 { token: 'delimiter.parenthesisbsl', foreground: 'd4d4d4' },
                 { token: 'identifierbsl', foreground: 'd4d4d4' },
+                { token: 'funcbsl', foreground: 'd4d4d4' },
+                { token: 'funcdefbsl', foreground: 'd4d4d4' },
+                { token: 'constructbsl', foreground: 'd4d4d4' },
                 { token: 'stringbsl', foreground: 'c3602c' },
                 { token: 'string.quotebsl', foreground: 'c3602c' },
                 { token: 'string.invalidbsl', foreground: 'c3602c' },
                 { token: 'numberbsl', foreground: 'b5cea8' },
                 { token: 'number.floatbsl', foreground: 'b5cea8' },
                 { token: 'preprocbsl', foreground: '963200' },
+                { token: 'compilebsl', foreground: '963200' },
                 { token: 'gotomarkbsl', foreground: 'ff9000' }
             ],
             darkQueryOff: [
@@ -114,6 +122,36 @@ define([], function () {
                 { token: 'query.floatbsl', foreground: 'ff00ff' },
                 { token: 'query.intbsl', foreground: 'ff00ff' },
                 { token: 'query.commentbsl', foreground: '6a9955' }
+            ],
+            edtWhite: [
+                { token: 'commentbsl', foreground: '3f7f5f' },
+                { token: 'keywordbsl', foreground: '7f0055', fontStyle: "bold" },
+                { token: 'delimiterbsl', foreground: '000000' },
+                { token: 'delimiter.squarebsl', foreground: '000000' },
+                { token: 'delimiter.parenthesisbsl', foreground: '000000' },
+                { token: 'identifierbsl', foreground: '000000' },
+                { token: 'funcbsl', foreground: '7f0055' },
+                { token: 'funcdefbsl', foreground: '000000' },
+                { token: 'constructbsl', foreground: '000000' },
+                { token: 'stringbsl', foreground: '0000ff' },
+                { token: 'string.quotebsl', foreground: '0000ff' },
+                { token: 'string.invalidbsl', foreground: '0000ff' },
+                { token: 'numberbsl', foreground: '000000' },
+                { token: 'number.floatbsl', foreground: '000000' },
+                { token: 'preprocbsl', foreground: '0000cd', fontStyle: "bold" },
+                { token: 'compilebsl', foreground: '7d7d7d' },
+                { token: 'gotomarkbsl', foreground: '7f0055' },
+                { token: 'querybsl', foreground: '0000ff' },                    
+                { token: 'query.quotebsl', foreground: '0000ff' },
+                { token: 'query.stringbsl', foreground: '0000ff' },
+                { token: 'query.keywordbsl', foreground: '0000ff' },
+                { token: 'query.expbsl', foreground: '0000ff' },
+                { token: 'query.parambsl', foreground: '0000ff' },                    
+                { token: 'query.bracketsbsl', foreground: '0000ff' },
+                { token: 'query.operatorbsl', foreground: '0000ff' },
+                { token: 'query.floatbsl', foreground: '0000ff' },
+                { token: 'query.intbsl', foreground: '0000ff' },
+                { token: 'query.commentbsl', foreground: '0000ff' }
             ]
         },
         colors: {
@@ -139,6 +177,12 @@ define([], function () {
                 'editor.selectionBackground': '#ffe877',
                 'editor.selectionHighlightBackground': '#fef6d0',
                 'editor.inactiveSelectionBackground': '#fef6d0'
+            },
+            edtWhite: {
+                'editor.selectionBackground': '#0078d7',
+                'editor.selectionForeground': '#ffffff',
+                'editor.selectionHighlightBackground': '#d4d4d4',
+                'editor.inactiveSelectionBackground': '#0078d7'
             }
         }
     }
@@ -256,13 +300,34 @@ define([], function () {
             ],
             tokenizer: {
                 root: [
+                    [/^\s*(процедура|функция|procedure|function)(\s*[a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]+\s*)(\()/, [
+                        {token: 'keyword'},
+                        {token: 'funcdef'},
+                        {token: 'delimiter.square'},
+                    ]],
+                    [/(\s+)(новый|new)(\s*[a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]+\s*)(\()/, [
+                        {token: ''},
+                        {token: 'keyword'},
+                        {token: 'construct'},
+                        {token: 'delimiter.square'},
+                    ]],
+                    [/(\s+)([a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]+)(\s*)(\()/, [
+                        {token: ''},
+                        { cases: {
+                            '@keywords': 'keyword',                            
+                            '@default': 'func'
+                        }},
+                        {token: ''},
+                        {token: 'delimiter.square'},
+                    ]],
                     [/(перейти|goto)(\s+)(~[a-zA-Z\u0410-\u044F_0-9]*)/, ['keyword', '', 'gotomark']],
                     [/(~[a-zA-Z\u0410-\u044F_0-9]*)(:)/, ['gotomark', 'delimiter']],
                     [/(\.)(выполнить)(\(?)/, ['delimiter', 'identifier', 'delimiter.parenthesis']],
                     [/[a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]*/, { cases: { '@keywords': 'keyword', '@default': 'identifier' } }],
                     // whitespace
                     { include: '@whitespace' },                    
-                    [/^\s*[#&].*$/, 'preproc'],
+                    [/^\s*[&].*$/, 'compile'],
+                    [/^\s*[#].*$/, 'preproc'],
                     [/[()\[\]]/, '@brackets'],
                     [/@symbols/, {
                         cases: {
@@ -401,7 +466,7 @@ define([], function () {
                 inherit: true,
                 colors: themes.colors.white,
                 rules: themes.rules.white.concat(themes.rules.whiteQueryOn)
-            },            
+            },
             darkTheme: {
                 base: 'vs',
                 name: 'bsl-dark',
@@ -415,6 +480,13 @@ define([], function () {
                 inherit: true,
                 colors: themes.colors.dark,
                 rules: themes.rules.dark.concat(themes.rules.darkQueryOn)
+            },
+            edtWhiteTheme: {
+                base: 'vs',
+                name: 'bsl-edt-white',
+                inherit: true,
+                colors: themes.colors.edtWhite,
+                rules: themes.rules.edtWhite
             }
         }        
     }
