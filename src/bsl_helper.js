@@ -2953,6 +2953,12 @@ class bslHelper {
 					column: column
 				});
 
+				let var_match = Finder.findPreviousMatch(this.model, '\\s+' + source_var + '\\s+(?:из|in)\\s+(.+?)\\s+(?:цикл|do)', position, false);
+		
+				if (var_match) {
+					this.getStackCompletionForLoopsVar([], source_var, new monaco.Position(match.range.startLineNumber, match.range.startColumn));
+				}
+
 				let source_exp = match.matches[3];
 				let source_arr = source_exp.split('(');
 				let exp_arr = source_arr[0].split('.');
@@ -3307,9 +3313,9 @@ class bslHelper {
 	 * @param {array} stack call stack array
 	 * 	 
 	 */
-	getStackCompletionForLoopsVar(suggestions, varName) {
+	getStackCompletionForLoopsVar(suggestions, varName, position) {
 
-		let var_match = Finder.findPreviousMatch(this.model, '\\s+' + varName + '\\s+(?:из|in)\\s+(.+?)\\s+(?:цикл|do)', this.position, false);
+		let var_match = Finder.findPreviousMatch(this.model, '\\s+' + varName + '\\s+(?:из|in)\\s+(.+?)\\s+(?:цикл|do)', position, false);
 		
 		if (var_match) {
 			
@@ -3321,7 +3327,7 @@ class bslHelper {
 
 				if (bslMetadata.customObjects.items.hasOwnProperty(source)) {
 					let item = bslMetadata.customObjects.items[source]
-					refExists = this.setContextForCustomItem(item, varName, this.lineNumber, true);
+					refExists = this.setContextForCustomItem(item, varName, position.lineNumber, true);
 				}
 
 			}
@@ -3329,7 +3335,7 @@ class bslHelper {
 
 				let paths = sources.join('.properties.').split('.');
 				let item = bslHelper.getObjectByPath(bslMetadata.customObjects.items, paths);
-				refExists = this.setContextForCustomItem(item, varName, this.lineNumber, true);
+				refExists = this.setContextForCustomItem(item, varName, position.lineNumber, true);
 			
 			}
 
@@ -3351,14 +3357,11 @@ class bslHelper {
 
 		let exp = this.lastRawExpression;
 		let stack = this.getMetadataStackForVar(exp, this.position, false);
-		let itemExists = this.getMetadataStackCompletionFromFullDefinition(suggestions, stack);
-
-		if (!itemExists) {
-			this.getStackCompletionFromRefs(suggestions, stack);
-		}
-
+		this.getMetadataStackCompletionFromFullDefinition(suggestions, stack);
+		this.getStackCompletionFromRefs(suggestions, stack);
+		
 		if (!stack.length) {
-			this.getStackCompletionForLoopsVar(suggestions, exp);
+			this.getStackCompletionForLoopsVar(suggestions, exp, this.position);
 		}
 
 	}
