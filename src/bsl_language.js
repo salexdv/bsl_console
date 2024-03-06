@@ -229,8 +229,9 @@ define([], function () {
                 'editorWidget.foreground': '#d4d4d4',
                 'editorWidget.border': '#d4d4d4',
                 'list.hoverBackground': '#2a2d2e',
-                'editor.lineHighlightBorder': '#282828',
-                'editorWidget.border': '#454545'                
+                'editor.lineHighlightBorder': '#282828',                
+                'editorWidget.border': '#454545',
+                'editorLineNumber.foreground': '#779189'
             }
         }
     }
