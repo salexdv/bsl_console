@@ -3452,7 +3452,7 @@ function createDiffWidget(e) {
             let diff_zone = document.getElementById('diff-zone');
             let rect = diff_zone.getBoundingClientRect();
 
-            this.domNode.style.left = (rect.left - 1) + 'px';
+            this.domNode.style.left = layout.decorationsLeft  + layout.decorationsWidth + 'px';
             this.domNode.style.top = rect.top + 'px';
             this.domNode.style.height = rect.height + 'px';
             this.domNode.style.width = (layout.contentWidth - layout.verticalScrollbarWidth) + 'px';
