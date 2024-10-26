@@ -40,3 +40,4 @@ setOption("skipInsertSuggestionAcceptor", true);
 * `autoResizeEditorLayout` - *boolean*, включает перерисовку редактора при изменении размеров окна
 * `renderQueryDelimiters` - *boolean*, включает выделение цветом разделителей запросов
 * `disableDefinitionMessage` - *boolean*, отключает показ сообщения `Определение для ххх не найдено` при переходе к определению по F12 или CTRL+F12
+* `disableFolding` - *boolean*, отключает сворачивание блоков кода

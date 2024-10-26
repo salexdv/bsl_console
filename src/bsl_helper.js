@@ -7219,13 +7219,17 @@ class bslHelper {
 	 */
 	static getFoldingRanges(model) {
 		
-		let ranges = this.getRangesForRegexp(model, "\"(?:\\n|\\r|\\|)*(?:выбрать|select)(?:(?:\\s|\\S|\"\")*?)?\"");
-		ranges = ranges.concat(this.getRangesForRegexp(model, "(?:^|\\b)(?:функция|процедура).*\\([\\s\\S]*?(?:конецпроцедуры|конецфункции)"));
-		ranges = ranges.concat(this.getRangesForConstruction(model, "пока|while", "конеццикла|enddo", true));
-		ranges = ranges.concat(this.getRangesForConstruction(model, "для .*(?:по|из) .*|for .* (?:to|each) .*", "конеццикла|enddo", true));
-		ranges = ranges.concat(this.getRangesForConstruction(model, "если|if", "конецесли|endif", true));
-		ranges = ranges.concat(this.getRangesForConstruction(model, "#область|#region", "#конецобласти|#endregion", false));
-		ranges = ranges.concat(this.getRangesForConstruction(model, "#если|#if", "#конецесли|#endif", false));
+		let ranges = [];
+
+		if (!window.getOption('disableFolding')) {
+			ranges = this.getRangesForRegexp(model, "\"(?:\\n|\\r|\\|)*(?:выбрать|select)(?:(?:\\s|\\S|\"\")*?)?\"");
+			ranges = ranges.concat(this.getRangesForRegexp(model, "(?:^|\\b)(?:функция|процедура).*\\([\\s\\S]*?(?:конецпроцедуры|конецфункции)"));
+			ranges = ranges.concat(this.getRangesForConstruction(model, "пока|while", "конеццикла|enddo", true));
+			ranges = ranges.concat(this.getRangesForConstruction(model, "для .*(?:по|из) .*|for .* (?:to|each) .*", "конеццикла|enddo", true));
+			ranges = ranges.concat(this.getRangesForConstruction(model, "если|if", "конецесли|endif", true));
+			ranges = ranges.concat(this.getRangesForConstruction(model, "#область|#region", "#конецобласти|#endregion", false));
+			ranges = ranges.concat(this.getRangesForConstruction(model, "#если|#if", "#конецесли|#endif", false));
+		}
 		
 		return ranges;
 
