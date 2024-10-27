@@ -2137,6 +2137,10 @@ function initEditorEventListenersAndProperies() {
 
   })
 
+  window.editor.onDidPaste(e => {
+    onDidPaste(e);
+  });
+
 }
 // #endregion
   
@@ -2305,6 +2309,53 @@ function generateSnippetEvent(e) {
 
       }
 
+    }
+
+  }
+
+}
+
+function removeQueryStringDelimiter(string) {
+
+  let text = string;
+
+  while (/^\s*\|/.test(text))
+    text = text.substr(1);
+
+  return text;
+
+}
+
+function onDidPaste(e) {
+
+  if (window.isQueryMode() && !window.readOnlyMode) {
+    
+    let text = window.editor.getModel().getValueInRange(e.range).trim();
+    let text_changed = false;
+
+    if (text.startsWith('"')) {
+      text = text.substr(1);
+      text_changed = true;
+    }
+
+    if (text.endsWith('"')) {
+      text = text.substr(0, text.length - 1);
+      text_changed = true;
+    }
+
+    let strings = text.split('\n');
+    let query = [];
+
+    strings.forEach(string => {
+      const formated_string = removeQueryStringDelimiter(string);
+      if (formated_string != string)
+        text_changed = true
+      query.push(formated_string);
+    });
+
+    if (text_changed && text) {
+      window.setText(query.join('\n'), e.range, true);
+      window.editor._modelData.model._commandManager.currentOpenStackElement.editOperations.pop();
     }
 
   }
