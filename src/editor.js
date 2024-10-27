@@ -4061,20 +4061,27 @@ function createReviewWidget(lineNumber, issue = null) {
       domNode: domNode,
       widget: reviewWidget,
       showInHiddenAreas: false,
-      onDomNodeTop: function (top) {          
+      onComputedHeight: function(height) {
+        if (this.widget.domNode) {
+          if (height == 0)
+            this.widget.domNode.classList.add('invisible');
+          else
+            this.widget.domNode.classList.remove('invisible');
+        }
+      },
+      onDomNodeTop: function (top) {
         if (this.widget.domNode) {
           let layout = standaloneEditor.getLayoutInfo();
           let scrollWidth = window.editor.navi ? layout.verticalScrollbarWidth * 2 : layout.verticalScrollbarWidth;
           let width = layout.width - scrollWidth - layout.minimapWidth;
           this.widget.domNode.style.top = top + 'px';
           this.widget.domNode.style.width = width + 'px';
-          this.widget.domNode.style.height = this.domNode.getBoundingClientRect().height + 'px';
         }
       },
       get heightInPx() {
         if (this.widget.domNode)
           return this.widget.domNode.offsetHeight;
-      }        
+      }
     });
 
     window.reviewWidgets.set(widgetId, {

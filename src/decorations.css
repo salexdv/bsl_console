@@ -155,6 +155,10 @@ div:has(> .add-review) {
 	overflow: hidden;
 }
 
+.review-body.invisible {
+	opacity: 0 !important;
+}
+
 .review-text {
 	padding: 0 10px;
 	font-size: 14px;
