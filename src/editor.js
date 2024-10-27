@@ -716,7 +716,7 @@ window.getPositionOffset = function() {
 
 }
 
-window.compare = function (text, sideBySide, highlight, markLines = true) {
+window.compare = function (text, sideBySide, highlight, markLines = true, ignoreWhitespace = true) {
   
   let language_id = window.getCurrentLanguageId();
   let currentTheme = getCurrentThemeName();
@@ -748,6 +748,7 @@ window.compare = function (text, sideBySide, highlight, markLines = true) {
       automaticLayout: true,
       scrollBeyondLastLine: false,
       renderSideBySide: sideBySide,
+      ignoreTrimWhitespace: ignoreWhitespace,
       find: {
         addExtraSpaceOnTop: false
       }
