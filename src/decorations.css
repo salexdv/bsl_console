@@ -244,6 +244,7 @@ div:has(> .add-review) {
 	border-radius: 5px;
 	border: 1px solid #9b9b9b;
 	opacity: 0.9;
+	line-height: 16px;
 }
 
 .review-edit button:hover {
@@ -259,6 +260,7 @@ div:has(> .add-review) {
 	color: #a94442;
 	border-color: #ebccd1;
 	border-left: 4px solid #a94442;
+	opacity: 1;
 }
 
 .close.review-warning {
@@ -266,6 +268,7 @@ div:has(> .add-review) {
 	color: #8a6d3b;
 	border-color: #faebcc;
 	border-left: 4px solid #8a6d3b;
+	opacity: 1;
 }
 
 .close.review-info {
@@ -273,6 +276,7 @@ div:has(> .add-review) {
 	color: #31708f;
 	border-color: #bce8f1;
 	border-left: 4px solid #31708f;
+	opacity: 1;
 }
 
 .close.review-hint {
@@ -280,6 +284,7 @@ div:has(> .add-review) {
 	color: #3c763d;
 	border-color: #d6e9c6;
 	border-left: 4px solid #3c763d;
+	opacity: 1;
 }
 
 .review-body textarea.required {
@@ -307,6 +312,7 @@ div:has(> .add-review) {
 	flex-wrap: wrap;
 	margin-bottom: 0.5rem;
 	justify-content: left;
+	line-height: 17px;
 }
 
 .severity .error {
