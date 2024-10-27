@@ -3394,7 +3394,7 @@ function checkBreakpointsAfterRemoveLine(contentChangeEvent) {
 
       if (prev_breakpoint) {
 
-        for (l = line; l <= range.endLineNumber; l++) {
+        for (let l = line; l <= range.endLineNumber; l++) {
           window.editor.breakpoints.delete(l);
         }
 
@@ -3404,7 +3404,7 @@ function checkBreakpointsAfterRemoveLine(contentChangeEvent) {
 
       }
 
-      for (l = line + 1; l <= range.endLineNumber; l++) {
+      for (let l = line + 1; l <= range.endLineNumber; l++) {
         window.editor.breakpoints.delete(l);
       }
 
