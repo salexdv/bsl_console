@@ -339,7 +339,8 @@ let bsl_language = {
         ],
         tokenizer: {
             root: [
-                [/^\s*(процедура|функция|procedure|function)(\s*[a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]+\s*)(\()/, [
+                [/(^\s*)(процедура|функция|procedure|function)(\s*[a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]+\s*)(\()/, [
+                    {token: ''},
                     {token: 'keyword'},
                     {token: 'funcdef'},
                     {token: 'delimiter.square'},
