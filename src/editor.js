@@ -1814,7 +1814,7 @@ window.stopCodeReview = function() {
 // #region init editor
 window.editor = undefined;
 
-createEditor = function(language_id, text, theme) {
+window.createEditor = function(language_id, text, theme) {
 
   const container = document.getElementById("container");
 
@@ -2256,7 +2256,7 @@ window.getLineNumber = function(originalLineNumber) {
 
 }
 
-disposeEditor = function() {
+window.disposeEditor = function() {
 
   if (window.editor) {
 
