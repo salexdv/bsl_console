@@ -205,10 +205,8 @@ window.eraseText = function () {
   
   window.setText('', window.editor.getModel().getFullModelRange(), false);    
 
-  if (window.getOption('reviewMode')) {
-    removeReviewWidgets();
-    window.currentIssue = -1;
-  }
+  removeReviewWidgets();
+  window.currentIssue = -1;
 
 }
 
@@ -802,7 +800,7 @@ window.compare = function (text, sideBySide, highlight, markLines = true, ignore
     });
     window.editor.getModifiedEditor().onMouseDown(e => {
       if (e.target.element.classList.contains('add-review'))
-        createReviewWidget(e.target.position.lineNumber);          
+        createReviewWidget(e.target.position.lineNumber);
     });
     window.setDefaultStyle();
   }
@@ -810,7 +808,6 @@ window.compare = function (text, sideBySide, highlight, markLines = true, ignore
   {
     disposeEditor();
     createEditor(language_id, originalText, currentTheme);
-    initEditorEventListenersAndProperies();
     window.originalText = '';
     window.editor.diffCount = 0;
   }
@@ -1778,9 +1775,6 @@ window.getReviewIssues = function() {
 
 window.setReviewIssues = function(issuesJSON) {
 
-  if (!window.getOption('reviewMode'))
-    return { errorDescription: 'Необходимо включить режим Code Review' };
-
   try {
 
     const issues = JSON.parse(issuesJSON);
@@ -1820,9 +1814,14 @@ window.stopCodeReview = function() {
 // #region init editor
 window.editor = undefined;
 
-function createEditor(language_id, text, theme) {
+createEditor = function(language_id, text, theme) {
 
-  window.editor = monaco.editor.create(document.getElementById("container"), {
+  const container = document.getElementById("container");
+
+  if (!container)
+    return;
+
+  window.editor = monaco.editor.create(container, {
     theme: theme,
     value: text,
     language: language_id,
@@ -1850,6 +1849,7 @@ function createEditor(language_id, text, theme) {
 
   window.lineNumbersDedocrations = [];
   window.setDefaultStyle();
+  initEditorEventListenersAndProperies();
 
 }
 
@@ -1953,8 +1953,10 @@ for (const [key, lang] of Object.entries(window.languages)) {
 
     createEditor(language.id, getCode(), 'bsl-white');
 
-    window.contextMenuEnabled = window.editor.getRawOptions().contextmenu;
-    window.editor.definitionBreadcrumbs = [];
+    if (window.editor) {
+      window.contextMenuEnabled = window.editor.getRawOptions().contextmenu;
+      window.editor.definitionBreadcrumbs = [];
+    }
 
   }
 
@@ -1974,7 +1976,6 @@ for (const [action_id, action] of Object.entries(permanentActions)) {
 
 }
 
-initEditorEventListenersAndProperies();
 // #endregion
 
 // #region editor events
@@ -2255,7 +2256,7 @@ window.getLineNumber = function(originalLineNumber) {
 
 }
 
-function disposeEditor() {
+disposeEditor = function() {
 
   if (window.editor) {
 
@@ -3789,16 +3790,16 @@ function createDiffWidget(e) {
 }
 
 function createReviewWidget(lineNumber, issue = null) {
-      
+
   let startLineNumber = lineNumber;
   let widgetId = 'bsl.review.widget.' + startLineNumber;
-  
+
   if (window.reviewWidgets.get(widgetId))
     return;
 
   let standaloneEditor = window.editor.navi ? window.editor.getModifiedEditor() : window.editor;
 
-  let reviewWidget = {      
+  let reviewWidget = {
     widgetId: widgetId,
     domNode: null,
     getId: function () {
@@ -3961,7 +3962,7 @@ function createReviewWidget(lineNumber, issue = null) {
         }
         buttons.appendChild(button);
 
-        if (!getOption('readOnlyCodeReview')) {
+        if (getOption('reviewMode') && !getOption('readOnlyCodeReview')) {
           button = document.createElement('div');
           button.classList.add('review-delete');
           button.setAttribute('widgetid', widgetId);
@@ -4018,7 +4019,7 @@ function createReviewWidget(lineNumber, issue = null) {
         textarea.classList.add('review-message');
         editGroup.appendChild(textarea);
 
-        if (!getOption('readOnlyCodeReview')) {
+        if (getOption('reviewMode') && !getOption('readOnlyCodeReview')) {
           button = document.createElement('button');
           button.setAttribute('widgetid', widgetId);
           button.classList.add('review-save');
