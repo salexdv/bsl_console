@@ -3678,10 +3678,18 @@ function createDiffWidget(e) {
         afterColumn: 1,
         heightInLines: 10,
         domNode: domNode,
+        onComputedHeight: function(height) {
+          if (window.inlineDiffWidget) {
+            if (height == 0)
+              window.inlineDiffWidget.domNode.classList.add('invisible');
+            else
+              window.inlineDiffWidget.domNode.classList.remove('invisible');
+          }
+        },
         onDomNodeTop: function (top) {
           if (window.inlineDiffWidget) {
             let layout = window.editor.getLayoutInfo();
-            window.inlineDiffWidget.domNode.style.top = top + 'px';          
+            window.inlineDiffWidget.domNode.style.top = top + 'px';
             window.inlineDiffWidget.domNode.style.width = (layout.contentWidth - layout.verticalScrollbarWidth) + 'px';
           }
         }

@@ -159,6 +159,10 @@ div:has(> .add-review) {
 	opacity: 0 !important;
 }
 
+#diff-widget.invisible {
+	opacity: 0;
+}
+
 .review-text {
 	padding: 0 10px;
 	font-size: 14px;
