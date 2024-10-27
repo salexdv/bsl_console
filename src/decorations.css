@@ -52,6 +52,29 @@
     border-radius: 20%;
 }
 
+.breakpoint {
+	background: #ff0000;
+    width: 10px !important;
+    height: 10px !important;
+    left: 4px !important;
+    top: 3px !important;
+    border-radius: 50%;
+}
+
+.debug-line {
+	background: #8abfe2;
+}
+
+.debug-line-pointer {
+	width: 0 !important;
+	height: 0 !important;
+    top: 5px !important;
+	left: 4px !important;
+	border-top: 5px solid transparent;
+	border-left: 10px solid #8abfe2;
+	border-bottom: 5px solid transparent;
+}
+
 .statusbar-widget {
 	background: #028fef;
 	color: #fff;

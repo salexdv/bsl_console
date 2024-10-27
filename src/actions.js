@@ -25,7 +25,7 @@ window.updateBookmarks = function (line) {
                     overviewRuler: {
                         color: color,
                         darkColor: color,
-                        position: 1
+                        position: 2
                     }
                 }
             };
@@ -75,6 +75,44 @@ window.goPreviousBookmark = function () {
         window.currentBookmark = sorted_bookmarks.size - 1;
 
     goToCurrentBookmark(sorted_bookmarks);
+
+}
+
+window.getSortedBreakpoints = function () {
+
+    return new Map([...window.editor.breakpoints.entries()].sort((a, b) => a[0] - b[0]));
+
+}
+
+window.updateBreakpoints = function (line) {
+
+    if (line != undefined) {
+
+        let breakpoint = window.editor.breakpoints.get(line);
+
+        if (breakpoint) {
+            window.editor.breakpoints.delete(line);
+        }
+        else {
+            let color = '#7e96a8';
+            breakpoint = {
+                range: new monaco.Range(line, 1, line),
+                options: {
+                    isWholeLine: true,
+                    linesDecorationsClassName: 'breakpoint',
+                    overviewRuler: {
+                        color: color,
+                        darkColor: color,
+                        position: 1
+                    }
+                }
+            };
+            window.editor.breakpoints.set(line, breakpoint);
+        }
+
+    }
+
+    window.editor.updateDecorations([]);        
 
 }
 
@@ -197,6 +235,47 @@ let getActions = function(version1C) {
                 }
             };
 
+            if (window.isUsingDebugger()) {
+
+                actions.add_breakpoint_bsl = {
+                    label: 'Установить/удалить точку останова',
+                    key: monaco.KeyCode.F9,
+                    cmd: monaco.KeyMod.chord(monaco.KeyCode.F9),
+                    order: 1.9,
+                    callback: function (ed) {
+                        window.updateBreakpoints(window.getCurrentLine());
+                        window.sendEvent('EVENT_UPDATE_BREAKPOINTS', getBreakpoints());
+                        return null;
+                    }
+                };
+
+                actions.remove_all_breakpoints_bsl = {
+                    label: 'Удалить все точки останова',
+                    order: 1.9,
+                    callback: function (ed) {
+                        window.removeAllBreakpoints();
+                        window.sendEvent('EVENT_REMOVE_ALL_BREAKPOINTS');
+                        return null;
+                    }
+                };
+
+            }
+
+            if (window.isDebugMode()) {
+
+                actions.evaluate_expression_bsl = {
+                    label: 'Вычислить выражение',
+                    key: monaco.KeyMod.Shift | monaco.KeyCode.F9,
+                    cmd: monaco.KeyMod.chord(monaco.KeyMod.Shift | monaco.KeyCode.F9),
+                    order: 1.9,
+                    callback: function (ed) {
+                        window.sendEvent('EVENT_EVALUATE_EXPRESSION', selectedText());
+                        return null;
+                    }
+                };
+
+            }
+
         }
 
         if (!window.isDCSMode()) {
@@ -205,7 +284,7 @@ let getActions = function(version1C) {
                 label: 'Установить/удалить закладку',
                 key: monaco.KeyMod.Alt | monaco.KeyCode.F2,
                 cmd: monaco.KeyMod.chord(monaco.KeyMod.Alt | monaco.KeyCode.F2),
-                order: 1.9,
+                order: 1.10,
                 callback: function (ed) {
                     let line = window.getCurrentLine();
                     window.updateBookmarks(line);

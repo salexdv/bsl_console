@@ -32,6 +32,8 @@ window.contextData = new Map();
 window.readOnlyMode = false;
 window.queryMode = false;
 window.DCSMode = false;
+window.debugMode = false;
+window.usingDebugger = false;
 window.version1C = '';
 window.userName = '';
 window.contextActions = [];
@@ -125,10 +127,14 @@ window.setText = function(txt, range, usePadding) {
   window.reserMark();    
   bslHelper.setText(txt, range, usePadding);
   
-  if (window.getText())
+  if (window.getText()) {
     checkBookmarksCount();
-  else
+    checkBreakpointsCount();
+  }
+  else {
     window.removeAllBookmarks();
+    window.removeAllBreakpoints();
+  }
   
   window.editor.checkBookmarks = true;
 
@@ -155,10 +161,14 @@ window.updateText = function(txt, clearUndoHistory = true) {
   else
     window.setText(txt);
 
-  if (window.getText())
+  if (window.getText()) {
     checkBookmarksCount();
-  else
+    checkBreakpointsCount();
+  }
+  else {
     window.removeAllBookmarks();
+    window.revomeAllBreakpoints();
+  }
 
   if (mod_event)    
     window.setOption('generateModificationEvent', true);
@@ -412,6 +422,32 @@ window.setLanguageMode = function(mode) {
   window.setTheme(currentTheme);
 
   initContextMenuActions();
+
+}
+
+window.setDebugMode = function(mode) {
+
+  window.debugMode = mode;
+  initContextMenuActions();
+
+}
+
+window.isDebugMode = function() {
+
+  return window.debugMode;
+
+}
+
+window.setUsingDebugger = function(mode) {
+
+  window.usingDebugger = mode;
+  initContextMenuActions();
+
+}
+
+window.isUsingDebugger = function() {
+
+  return window.usingDebugger;
 
 }
 
@@ -1132,6 +1168,60 @@ window.getBookmarks = function () {
 
   let sorted_bookmarks = getSortedBookmarks();
   return Array.from(sorted_bookmarks.keys());
+
+}
+
+window.removeAllBreakpoints = function() {
+
+  window.editor.breakpoints.clear();
+  window.editor.updateDecorations([]);
+
+}  
+
+window.getBreakpoints = function () {
+
+  let sorted_breakpoints = window.getSortedBreakpoints();
+  return JSON.stringify(Array.from(sorted_breakpoints.keys()));
+
+}
+
+window.setCurrentDebugLine = function (line) {
+  
+  window.editor.currentDebugLine.clear();
+
+  debugLine = {
+      range: new monaco.Range(line, 1, line),
+      options: {
+          isWholeLine: true,
+          className: 'debug-line',
+        }
+  }
+  
+  pointer = {
+    range: new monaco.Range(line, 1, line),
+    options: {
+        isWholeLine: true,
+        linesDecorationsClassName: 'debug-line-pointer',
+        overviewRuler: {
+            position: 1
+        }
+    }
+  }
+
+  DebugLineSet = {
+    line: debugLine,
+    pointer: pointer
+  }
+
+  window.editor.currentDebugLine.set(line, DebugLineSet);
+  window.editor.updateDecorations([]);
+
+}
+
+window.deleteCurrentDebugLine = function () {
+
+  window.editor.currentDebugLine.clear();
+  window.editor.updateDecorations([]);
 
 }
 
@@ -1892,6 +1982,8 @@ function initEditorEventListenersAndProperies() {
   window.editor.sendEvent = sendEvent;
   window.editor.decorations = [];
   window.editor.bookmarks = new Map();
+  window.editor.breakpoints = new Map();
+  window.editor.currentDebugLine = new Map();
   window.editor.checkBookmarks = true;
   window.editor.diff_decorations = [];
 
@@ -1901,6 +1993,15 @@ function initEditorEventListenersAndProperies() {
 
     window.editor.bookmarks.forEach(function (value) {
       permanent_decor.push(value);
+    });
+
+    window.editor.breakpoints.forEach(function (value) {
+      permanent_decor.push(value);
+    });
+
+    window.editor.currentDebugLine.forEach(function (value) {
+      permanent_decor.push(value.line);
+      permanent_decor.push(value.pointer);
     });
 
     permanent_decor = permanent_decor.concat(window.editor.diff_decorations);
@@ -1943,7 +2044,9 @@ function initEditorEventListenersAndProperies() {
       window.sendEvent('EVENT_CONTENT_CHANGED', '');
 
     checkBookmarksAfterRemoveLine(e);
+    checkBreakpointsAfterRemoveLine(e);
     window.updateBookmarks(undefined);
+    window.updateBreakpoints(undefined);
 
     setOption('lastContentChanges', e);
         
@@ -1989,6 +2092,7 @@ function initEditorEventListenersAndProperies() {
     if (e.event.detail == 2 && element.classList.contains('line-numbers')) {
       let line = e.target.position.lineNumber;
       window.updateBookmarks(line);
+      window.updateBreakpoints(line);
     }
 
     if (element.classList.contains('diff-navi')) {
@@ -2014,6 +2118,7 @@ function initEditorEventListenersAndProperies() {
     if (text === '\n') {
       checkNewStringLine();
       checkBookmarksAfterNewLine();
+      checkBreakpointsAfterNewLine();
     }
 
   });
@@ -3141,6 +3246,35 @@ function checkBookmarksAfterNewLine() {
 
 }
 
+function checkBreakpointsAfterNewLine() {
+
+  let line = window.getCurrentLine();
+  let content = window.getLineContent(line);
+
+  if (content)
+    line--;
+
+  let line_check = window.getLineCount();
+
+  while (line <= line_check) {
+
+    let breakpoint = window.editor.breakpoints.get(line_check);
+
+    if (breakpoint) {
+      breakpoint.range.startLineNumber = line_check + 1;
+      breakpoint.range.endLineNumber = line_check + 1;
+      window.editor.breakpoints.set(line_check + 1, breakpoint);
+      window.editor.breakpoints.delete(line_check);
+    }
+
+    line_check--;
+
+  }
+
+  window.updateBreakpoints(undefined);
+
+}
+
 function checkBookmarksAfterRemoveLine(contentChangeEvent) {
 
   if (contentChangeEvent.changes.length && window.editor.checkBookmarks) {
@@ -3193,6 +3327,58 @@ function checkBookmarksAfterRemoveLine(contentChangeEvent) {
 
 }
 
+function checkBreakpointsAfterRemoveLine(contentChangeEvent) {
+
+  if (contentChangeEvent.changes.length && window.editor.checkBookmarks) {
+
+    let changes = contentChangeEvent.changes[0];
+    let range = changes.range;
+
+    if (!changes.text && range.startLineNumber != range.endLineNumber) {
+
+      let line = range.startLineNumber;
+      let prev_breakpoint = window.editor.breakpoints.get(range.endLineNumber);
+
+      if (prev_breakpoint) {
+
+        for (l = line; l <= range.endLineNumber; l++) {
+          window.editor.breakpoints.delete(l);
+        }
+
+        prev_breakpoint.range.startLineNumber = line;
+        prev_breakpoint.range.endLineNumber = line;
+        window.editor.breakpoints.set(line, prev_breakpoint);
+
+      }
+
+      for (l = line + 1; l <= range.endLineNumber; l++) {
+        window.editor.breakpoints.delete(l);
+      }
+
+      let line_check = range.endLineNumber;
+      let diff = range.endLineNumber - line;
+
+      while (line_check < window.getLineCount()) {
+
+        let breakpoint = window.editor.breakpoints.get(line_check);
+
+        if (breakpoint) {
+          breakpoint.range.startLineNumber = line_check - diff;
+          breakpoint.range.endLineNumber = line_check - diff;
+          window.editor.breakpoints.set(line_check - diff, breakpoint);
+          window.editor.breakpoints.delete(line_check);
+        }
+
+        line_check++;
+
+      }
+
+    }
+
+  }
+
+}
+
 function checkBookmarksCount() {
 
   let count = window.getLineCount();
@@ -3205,6 +3391,22 @@ function checkBookmarksCount() {
 
   keys.forEach(function (key) {
     window.editor.bookmarks.delete(key);
+  });
+
+}
+
+function checkBreakpointsCount() {
+
+  let count = window.getLineCount();
+  let keys = [];
+
+  window.editor.breakpoints.forEach(function (value, key) {
+    if (count < key)
+      keys.push(key);
+  });
+
+  keys.forEach(function (key) {
+    window.editor.breakpoints.delete(key);
   });
 
 }

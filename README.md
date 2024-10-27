@@ -157,6 +157,10 @@ npm run build  -- --customOptions "automaticLayout: true, someOption: false"
 | `isDCSMode`                    | Возвращает `true`, если редактор находится в режиме СКД и `false` в любом другом случае       |
 | `isSuggestWidgetVisible`       | Возвращает видимость стандартного списка подсказок                                            |
 | `isParameterHintsWidgetVisible`| Возвращает видимость списка подсказок для параметров функции/метода                           |
+| `setDebugMode`                 | Включает/выключает режим отладки (влияет на возможность использования команды "Вычислить выражение") |
+| `isDebugMode`                  | Возвращает `true`, если редактор находится в режиме отладки и `false` в другом случае         |
+| `setUsingDebugger`             | Включает/выключает возможность интерактивного управления точками останова                     |
+| `isUsingDebugger`              | Возвращает `true`, возможность интерактивного управления точками останова включена и `false` в другом случае |
 
 ### Взаимодействие
 
@@ -217,6 +221,11 @@ npm run build  -- --customOptions "automaticLayout: true, someOption: false"
 | [`setReviewIssues`](docs/set_review_issues.md) | Устанавливает замечания в режиме Code Review                                  |
 | `goNextIssue`                  | Переход к следующему замечанию                                                                |
 | `goPreviousIssue`              | Переход к предыдущему замечанию                                                               |
+| `getBreakpoints`               | Возвращает сериализованный в JSON массив номеров строк точек останова                         |
+| `updateBreakpoints`            | Устанавливает/удаляет точку останова в строке по её номеру                                    |
+| `removeAllBreakpoints`         | Удаляет все установленные точки останова                                                      |
+| `setCurrentDebugLine`          | Устанавливает цветовое выделение строки отладки по её номеру                                  |
+| `deleteCurrentDebugLine`       | Удаляет цветовое выделение существующей строки отладки                                        |
 
 ## События, генерируемые редактором для 1С:Предприятия
 
@@ -242,6 +251,9 @@ npm run build  -- --customOptions "automaticLayout: true, someOption: false"
 | `EVENT_ON_INSERT_SNIPPET`      | При вставке сниппета (шаблона) [(подробнее)](docs/insert_snippet_event.md)                    |
 | `EVENT_GET_VARIABLE_DATA`      | При расшифровке значения переменной в табло [(подробнее)](docs/get_var_data_event.md)         |
 | `EVENT_ON_KEY_ESC`             | При нажатии ESC [(подробнее)](docs/key_esc_event.md)                                          |
+| `EVENT_EVALUATE_EXPRESSION`    | При выборе пункта меню "Вычислить выражение". Возвращает выделенный в редакторе текст         |
+| `EVENT_UPDATE_BREAKPOINTS`     | При интерактивном добавлении/удалении точки останова в редакторе. Возвращает сериализованный в JSON массив номеров строк точек останова |
+| `EVENT_REMOVE_ALL_BREAKPOINTS` | При интерактивном удалении всех точек останова в редакторе                                    |
 
 *Перед началом работы с редактором из 1С Предприятия желательно вызвать функцию инициализации и передать в нее текущую версию платформы.*
 Пример:
@@ -277,6 +289,7 @@ setLanguageMode('bsl');
 ## Продукты, использующие консоль
 
 * [Infostart Toolkit](https://infostart.ru/journal/news/news/infostart-toolkit-1-3-teper-s-novym-redaktorom-koda-na-baze-monaco-editor_1303095/)
+* [OneDebugger](https://infostart.ru/public/2095430/)
 * [Конвертация данных 3 расширение](https://infostart.ru/public/1289837/)
 * [Контекстная подсказка в 1С КД3](https://github.com/GenVP/TipsInCD3)
 * [Подсистема "Инструменты разработчика"](https://infostart.ru/public/15126/)
