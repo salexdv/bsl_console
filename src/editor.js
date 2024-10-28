@@ -3689,8 +3689,9 @@ function createDiffWidget(e) {
         onDomNodeTop: function (top) {
           if (window.inlineDiffWidget) {
             let layout = window.editor.getLayoutInfo();
+            const width = (layout.contentWidth + layout.decorationsWidth + layout.lineNumbersWidth - layout.verticalScrollbarWidth);
             window.inlineDiffWidget.domNode.style.top = top + 'px';
-            window.inlineDiffWidget.domNode.style.width = (layout.contentWidth - layout.verticalScrollbarWidth) + 'px';
+            window.inlineDiffWidget.domNode.style.width = width + 'px';
           }
         }
       });
@@ -3714,11 +3715,11 @@ function createDiffWidget(e) {
             let layout = window.editor.getLayoutInfo();
             let diff_zone = document.getElementById('diff-zone');
             let rect = diff_zone.getBoundingClientRect();
+            const width = (layout.contentWidth + layout.decorationsWidth + layout.lineNumbersWidth - layout.verticalScrollbarWidth);
 
-            this.domNode.style.left = layout.decorationsLeft  + layout.decorationsWidth + 'px';
             this.domNode.style.top = rect.top + 'px';
             this.domNode.style.height = rect.height + 'px';
-            this.domNode.style.width = (layout.contentWidth - layout.verticalScrollbarWidth) + 'px';
+            this.domNode.style.width = width + 'px';
 
             let currentTheme = getCurrentThemeName();
 
