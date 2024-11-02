@@ -8465,6 +8465,58 @@ class bslHelper {
 
 	}
 
+	/**
+	 * A simple edit for code action	 
+	 * 
+	 * @returns {WorkspaceEdit} edit
+	 */
+	getSimpleCodeActionEdit(range, text) {
+
+		return {
+			edits: [
+				{
+					resource: this.model.uri,
+					edit: {
+						range: range,
+						text: text
+					}
+				}
+			]
+		}
+
+	}
+
+	/**
+	 * Provide the code action
+	 * @param {IRange} range for action
+	 * 
+	 * @returns {array} actions[]
+	 */
+	provideCodeActions(range) {
+
+		let actions = [];
+
+		if (window.editor.disableNativeCodeAction)
+			return actions;
+
+		const text = this.model.getValueInRange(range);
+
+		actions.push({
+			title: 'Обернуть: Если (Истина) Тогда',
+			kind: 'refactor',
+			edit: this.getSimpleCodeActionEdit(range, 'Если Истина Тогда\n' + text + '\nКонецЕсли;')
+		});
+
+		actions.push({
+			title: 'Обернуть: Если (' + text + ') Тогда',
+			kind: 'refactor',
+			edit: this.getSimpleCodeActionEdit(range, 'Если ' + text + ' Тогда\n\tКонецЕсли;')
+		});
+
+		return actions;
+
+	}
+
 }
 
 export default bslHelper;

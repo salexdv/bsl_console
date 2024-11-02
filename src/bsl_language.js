@@ -717,6 +717,20 @@ let languages = {
                 return bsl.provideDefinition();
             }
         },
+        codeActionProvider: {
+            provideCodeActions: (model, range, context, token) => {
+                let actions = [];
+                if (!range.isEmpty()) {
+                    const position = new monaco.Position(range.startLineNumber, range.startColumn);
+                    const bsl = new bslHelper(model, position);
+                    actions = bsl.provideCodeActions(range);
+                }
+                return {
+                    actions: actions,
+                    dispose: () => {}
+                };
+            }
+        },
         autoIndentation: true,
         indentationRules: {
             increaseIndentPattern: /^\s*(функция|function|процедура|procedure|если|if|#если|#if|пока|while|для|for|попытка|try|исключение|except).*$/i,
@@ -804,6 +818,14 @@ let languages = {
                 return bsl.provideQueryDefinition();
             }
         },
+        codeActionProvider: {
+            provideCodeActions: (model, range, context, token) => {
+                return {
+                    actions: [],
+                    dispose: () => {}
+                };
+            }
+        },
         autoIndentation: false,
         indentationRules: {
             increaseIndentPattern: /^\s*(выбрать|из|выбор|когда).*$/i,
@@ -872,6 +894,14 @@ let languages = {
         },
         definitionProvider: {
             provideDefinition: () => {}
+        },
+        codeActionProvider: {
+            provideCodeActions: (model, range, context, token) => {
+                return {
+                    actions: [],
+                    dispose: () => {}
+                };
+            }
         },
         autoIndentation: false,
         indentationRules: null,

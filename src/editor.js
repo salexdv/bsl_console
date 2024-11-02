@@ -1891,6 +1891,7 @@ for (const [key, lang] of Object.entries(window.languages)) {
   monaco.languages.registerDocumentFormattingEditProvider(language.id, lang.formatProvider);
   monaco.languages.registerColorProvider(language.id, lang.colorProvider);
   monaco.languages.registerDefinitionProvider(language.id, lang.definitionProvider);
+  monaco.languages.registerCodeActionProvider(language.id, lang.codeActionProvider);  
 
   if (lang.autoIndentation && lang.indentationRules)
     monaco.languages.setLanguageConfiguration(language.id, { indentationRules: lang.indentationRules });
