@@ -4148,10 +4148,7 @@ class bslHelper {
 
 		}
 
-		if (suggestions.length)
-			return { suggestions: suggestions }
-		else
-			return [];
+		return { suggestions: suggestions };
 
 	}
 
@@ -5213,11 +5210,11 @@ class bslHelper {
 											
 						// Searching the source
 						position = new monaco.Position(match.range.endLineNumber, match.range.endColumn);
-						let bracket_match = this.model.findPrevBracket(position);
+						let bracket_match = this.model.bracketPairs.findPrevBracket(position);
 
 						if (bracket_match && match.range.startLineNumber < bracket_match.range.startLineNumber) {
 							position = new monaco.Position(bracket_match.range.startLineNumber, bracket_match.range.startColumn);
-							let brackets = editor.getModel().matchBracket(position);
+							let brackets = editor.getModel().bracketPairs.matchBracket(position);
 							if (brackets) {
 								brackets = brackets.sort();
 								const open = brackets[0], close = brackets[1];
@@ -6604,7 +6601,7 @@ class bslHelper {
 	getLastSigMethod(context) {
 
 		let method = '';
-		let bracket = this.model.findMatchingBracketUp('(', this.position);
+		let bracket = this.model.bracketPairs.findMatchingBracketUp(')', this.position);
 
 		if (bracket && this.isSuitablePlaceForSigHelp()) {
 
@@ -7266,7 +7263,7 @@ class bslHelper {
 	 * @returns {array} - array of folding ranges 
 	 */
 	static getFoldingRanges(model) {
-		
+
 		let ranges = [];
 
 		if (!window.getOption('disableFolding')) {
@@ -7279,7 +7276,7 @@ class bslHelper {
 			ranges = ranges.concat(this.getRangesForConstruction(model, "#область|#region", "#конецобласти|#endregion", false));
 			ranges = ranges.concat(this.getRangesForConstruction(model, "#если|#if", "#конецесли|#endif", false));
 		}
-		
+
 		return ranges;
 
 	}

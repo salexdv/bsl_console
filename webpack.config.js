@@ -1,11 +1,11 @@
-const MonacoWebpackPlugin = require('monaco-editor-esm-webpack-plugin');
+const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
-const ScriptExtHtmlWebpackPlugin = require('script-ext-html-webpack-plugin');
 const { CleanWebpackPlugin } = require("clean-webpack-plugin");
 const RemovePlugin = require('remove-files-webpack-plugin');
 const webpack = require('webpack');
 const path = require('path');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
+const nls = require.resolve('./src/nls.ru');
 
 module.exports = (env, args) => {
 
@@ -16,11 +16,11 @@ module.exports = (env, args) => {
         console: './editor'
       },
       args.mode == 'development' ?
-      {
-        test: './test',
-        test_query: './test_query'
-      }
-      : {}
+        {
+          test: './test',
+          test_query: './test_query'
+        }
+        : {}
     ),
     output: {
       path: path.resolve(__dirname, 'dist'),
@@ -53,99 +53,34 @@ module.exports = (env, args) => {
           }
         },
         {
-          test: /node_modules[\\/]monaco-editor[\\/].+standaloneEnums\.js$/,
-          loader: 'string-replace-loader',
-          options: {
-            search: '108] = "NUMPAD_DIVIDE"',
-            replace: '108] = "/"'
-          }
-        },
-        {
-          test: /node_modules[\\/]monaco-editor[\\/].+parameterHintsWidget\.js$/,
-          loader: 'string-replace-loader',
-          options: {
-            multiple: [{
-              search: 'var $ = dom.$;',
-              replace: "import { escapeRegExpCharacters } from '../../../base/common/strings.js'; var $ = dom.$;"
-            },
-            {
-              search: /var idx = signature\.label\.[\s\S.]*];/im,
-              replace: 'if (!param.label.length) { return [0, 0]; } else { var regex = new RegExp("(\\\\p{L}\\\\p{N}_]|^)${escapeRegExpCharacters(param.label)}(?=\\\\p{L}\\\\p{N}_]|$)", "g"); regex.test(signature.label); var idx = regex.lastIndex - param.label.length; return idx >= 0 ? [idx, regex.lastIndex] : [0, 0]; }'
-            }]
-
-          }
-        },
-        {
           test: /node_modules[\\/]monaco-editor[\\/].+parameterHints\.js$/,
           loader: 'string-replace-loader',
           options: {
             multiple: [{
-              search: '[512 /* Alt */ | 16 /* UpArrow */',
-              replace: '[2048 /* CtrlCmd */ | 16 /* UpArrow */'
+              search: '[512 /* KeyMod.Alt */ | 16 /* KeyCode.UpArrow */',
+              replace: '[2048 /* KeyMod.CtrlCmd */ | 16 /* KeyCode.UpArrow */'
             },
             {
-              search: '[512 /* Alt */ | 18 /* DownArrow */',
-              replace: '[2048 /* CtrlCmd */ | 18 /* DownArrow */'
+              search: '[512 /* KeyMod.Alt */ | 18 /* KeyCode.DownArrow */',
+              replace: '[2048 /* KeyMod.CtrlCmd */ | 18 /* KeyCode.DownArrow */'
             }]
 
           }
         },
         {
-          test: /node_modules[\\/]monaco-editor-nls[\\/].+\.js$/,
-          loader: 'string-replace-loader',
-          options: {
-            multiple: [{
-              search: 'let CURRENT_LOCALE_DATA = null;',
-              replace: 'var CURRENT_LOCALE_DATA = null;'
-            }]
-          }
-        },
-        {
-          test: /node_modules[\\/]monaco-editor[\\/]esm[\\/].+\.js$/,
-          loader: 'string-replace-loader',
-          options: {
-            multiple: [{
-              search: 'let __insane_func;',
-              replace: 'var __insane_func;'
-            },
-            {
-              search: '0x2192',
-              replace: '0xBB'
-            }
-          ]
-          }
-        },
-        {
-          test: /\.ttf$/,
-          use: 'base64-inline-loader?limit=1000&name=[name].[ext]'
-        },
-        {
-          test: /\.js/,
-          enforce: 'pre',
-          include: /node_modules[\\\/]monaco-editor[\\\/]esm/,
-          use: MonacoWebpackPlugin.loader
-        },
-        {
           test: /\.js$/,
-          exclude: /node_modules/,
+          exclude: /node_modules\/(?!monaco-editor)/,
           use: {
             loader: 'babel-loader',
             options: {
               cacheDirectory: true,
-              presets: ['@babel/env']
+              presets: ["@babel/preset-env"]
             }
           }
         },
         {
           test: /\.(png|jpg|gif|svg)$/i,
-          use: [
-            {
-              loader: 'url-loader',
-              options: {
-                limit: 8192,
-              },
-            },
-          ],
+          type: 'asset/resource'
         },
         {
           test: /\.css$/,
@@ -154,6 +89,10 @@ module.exports = (env, args) => {
             'css-loader',
             'postcss-loader'
           ]
+        },
+        {
+          test: /\.wasm$/,
+          type: "asset/inline",
         },
       ]
     },
@@ -164,12 +103,23 @@ module.exports = (env, args) => {
       }
     },
     plugins: [
+      env.lang == 'ru' ? new webpack.NormalModuleReplacementPlugin(/\/(vscode-)?nls\.js$/, function (resource) {
+        resource.request = nls
+        resource.resource = nls
+      }) : false,
+      args.mode == 'development' ? new CopyWebpackPlugin({
+        patterns: [
+          { from: path.join(__dirname, 'node_modules/mocha/mocha.js'), to: 'mocha.js' },
+          { from: path.join(__dirname, 'node_modules/mocha/mocha.css'), to: 'mocha.css' },
+          { from: path.join(__dirname, 'node_modules/chai/chai.js'), to: 'chai.js' },
+        ]
+      }) : false,
       new MonacoWebpackPlugin({
         languages: ['xml'],
       }),
       new CopyWebpackPlugin({
         patterns: [
-          { from: './tree/icons', to: 'tree/icons'}
+          { from: './tree/icons', to: 'tree/icons' }
         ]
       }),
       args.mode == 'production' ? new webpack.optimize.LimitChunkCountPlugin({
@@ -183,9 +133,6 @@ module.exports = (env, args) => {
         filename: 'index.html',
         cache: false
       }),
-      args.mode == 'production' ? new ScriptExtHtmlWebpackPlugin({
-        inline: ['console.js']
-      }) : false,
       args.mode == 'development' ? new HtmlWebpackPlugin({
         inject: 'body',
         chunks: ['console', 'test'],

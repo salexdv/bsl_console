@@ -343,13 +343,13 @@ let bsl_language = {
                     {token: ''},
                     {token: 'keyword'},
                     {token: 'funcdef'},
-                    {token: 'delimiter.square'},
+                    {token: 'delimiter.parenthesis'},
                 ]],
                 [/(\s+)(новый|new)(\s*[a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]+\s*)(\()/, [
                     {token: ''},
                     {token: 'keyword'},
                     {token: 'construct'},
-                    {token: 'delimiter.square'},
+                    {token: 'delimiter.parenthesis'},
                 ]],
                 [/(\s+)([a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]+)(\s*)(\()/, [
                     {token: ''},
@@ -358,7 +358,7 @@ let bsl_language = {
                         '@default': 'func'
                     }},
                     {token: ''},
-                    {token: 'delimiter.square'},
+                    {token: 'delimiter.parenthesis'},
                 ]],
                 [/(перейти|goto)(\s+)(~[a-zA-Z\u0410-\u044F_0-9]*)/, ['keyword', '', 'gotomark']],
                 [/(~[a-zA-Z\u0410-\u044F_0-9]*)(:)/, ['gotomark', 'delimiter']],
@@ -649,8 +649,10 @@ let languages = {
                 bsl.onProvideCompletion(context, completion);
                 return completion;
             },
-            resolveCompletionItem: function (model, position, item) {
-                let bsl = new bslHelper(model, position);
+            resolveCompletionItem: function (item, token) {
+                const model = monaco.editor.createModel(item.insertText);
+                const position = new monaco.Position(1, 1);
+                const bsl = new bslHelper(model, position);
                 item = bsl.resolveCompletionItem(item);
                 return model;
             }

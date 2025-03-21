@@ -1,27 +1,16 @@
-//require.config( { 'vs/nls': { availableLanguages: { '*': "ru" } } } );
-
-import "@babel/polyfill";
+import './nls.ru';
+import './polyfill .js';
+import "regenerator-runtime/runtime";
 import languages from './bsl_language';
-import { getActions, permanentActions } from './actions';
 import './decorations.css'
 import './tingle.css'
 import tingle from './tingle.js'
 import './tree/tree.css'
 import Treeview from './tree/tree.js'
-import { setLocaleData } from 'monaco-editor-nls';
-import ruLocale from 'monaco-editor-nls/locale/ru';
 import Finder from "./finder";
 import SnippetsParser from "./parsers";
-
-const monaco = require('monaco-editor/esm/vs/editor/editor.api');
-
-setLocaleData(ruLocale);
-
-window.MonacoEnvironment = {
-  getWorkerUrl: function (moduleId, label) {
-    return require("blob-url-loader?type=application/javascript!compile-loader?target=worker&emit=false!monaco-editor/esm/vs/editor/editor.worker");
-  }
-};
+import { getActions, permanentActions } from './actions';
+import * as monaco from 'monaco-editor/esm/vs/editor/editor.api';
 
 // #region global vars 
 window.languages = languages;
@@ -451,8 +440,7 @@ window.isUsingDebugger = function() {
 
 window.getCurrentLanguageId = function() {
 
-  let identifier = getActiveEditor().getModel().getLanguageIdentifier();
-  return identifier.language;
+  return getActiveEditor().getModel().getLanguageId();
 
 }
 
@@ -1444,7 +1432,7 @@ window.isParameterHintsWidgetVisible = function () {
 
 window.isSuggestWidgetVisible = function() {
   
-  return getSuggestWidget().widget.suggestWidgetVisible.get();
+  return getSuggestWidget().widget._widget._ctxSuggestWidgetVisible.get();
 
 }
 
@@ -1821,9 +1809,11 @@ window.createEditor = function(language_id, text, theme) {
   if (!container)
     return;
 
+  const model = monaco.editor.createModel(text, language_id);
+
   window.editor = monaco.editor.create(container, {
     theme: theme,
-    value: text,
+    model: model,
     language: language_id,
     contextmenu: true,
     wordBasedSuggestions: false,
@@ -1839,16 +1829,17 @@ window.createEditor = function(language_id, text, theme) {
     },    
     lineNumbers: window.getLineNumber,
     customOptions: true,
-    renderValidationDecorations: "on"
+    renderValidationDecorations: "on",
   });
 
-  changeCommandKeybinding('editor.action.revealDefinition', monaco.KeyCode.F12);
-  changeCommandKeybinding('editor.action.peekDefinition', monaco.KeyMod.CtrlCmd | monaco.KeyCode.F12);
-  changeCommandKeybinding('editor.action.deleteLines',  monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_L);
-  changeCommandKeybinding('editor.action.selectToBracket',  monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.KEY_B);
+  // changeCommandKeybinding('editor.action.revealDefinition', monaco.KeyCode.F12);
+  // changeCommandKeybinding('editor.action.peekDefinition', monaco.KeyMod.CtrlCmd | monaco.KeyCode.F12);
+  // changeCommandKeybinding('editor.action.deleteLines',  monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_L);
+  // changeCommandKeybinding('editor.action.selectToBracket',  monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.KEY_B);
 
   window.lineNumbersDedocrations = [];
   window.setDefaultStyle();
+
   initEditorEventListenersAndProperies();
 
 }
@@ -1873,6 +1864,8 @@ function registerCodeLensProviders() {
 
 }
 
+window.monaco = monaco;
+
 // Register languages
 for (const [key, lang] of Object.entries(window.languages)) {
 
@@ -1885,6 +1878,7 @@ for (const [key, lang] of Object.entries(window.languages)) {
 
   // Register providers for the new language
   monaco.languages.registerCompletionItemProvider(language.id, lang.completionProvider);
+  
   monaco.languages.registerFoldingRangeProvider(language.id, lang.foldingProvider);
   monaco.languages.registerSignatureHelpProvider(language.id, lang.signatureProvider);
   monaco.languages.registerHoverProvider(language.id, lang.hoverProvider);
@@ -1894,11 +1888,37 @@ for (const [key, lang] of Object.entries(window.languages)) {
   monaco.languages.registerCodeActionProvider(language.id, lang.codeActionProvider);  
 
   if (lang.autoIndentation && lang.indentationRules)
-    monaco.languages.setLanguageConfiguration(language.id, { indentationRules: lang.indentationRules });
+   monaco.languages.setLanguageConfiguration(language.id, { indentationRules: lang.indentationRules });
 
-  monaco.languages.setLanguageConfiguration(language.id, { brackets: lang.brackets, autoClosingPairs: lang.autoClosingPairs });
+  monaco.languages.setLanguageConfiguration(language.id, {
+    brackets: lang.brackets,
+    colorizedBracketPairs: [],
+    autoClosingPairs: lang.autoClosingPairs 
+  });
 
   if (!window.editor) {
+
+    // Пример CompletionsProvider
+    // monaco.languages.registerInlineCompletionsProvider("bsl", {
+    //   freeInlineCompletions: (completions) => {},
+    //   provideInlineCompletions(model, position, context, token) {
+    //     return {
+    //       enableForwardStability: true,
+    //       suppressSuggestions: true,
+    //       items: [
+    //         {
+    //           insertText: 'Если Истина Тогда',
+    //           range: new monaco.Range(
+    //             position.lineNumber,
+    //             position.column,
+    //             position.lineNumber,
+    //             position.column,
+    //           )
+    //         }
+    //       ]
+    //     };
+    //   },
+    // });
 
     monaco.editor.onDidCreateEditor(e => {
 
@@ -1952,7 +1972,7 @@ for (const [key, lang] of Object.entries(window.languages)) {
       monaco.editor.setTheme(value.name);
     }
 
-    createEditor(language.id, getCode(), 'bsl-white');
+    createEditor('bsl', getCode(), 'bsl-white');
 
     if (window.editor) {
       window.contextMenuEnabled = window.editor.getRawOptions().contextmenu;
@@ -2190,7 +2210,7 @@ window.generateEscapeEvent = function() {
   let position = window.editor.getPosition();
   let bsl = new bslHelper(window.editor.getModel(), position);
 
-  eventParams = {
+  const eventParams = {
     current_word: bsl.word,
     last_word: bsl.lastRawExpression,
     last_expression: bsl.lastExpression,
@@ -3108,17 +3128,18 @@ function  initContextMenuActions() {
   const actions = getActions(window.version1C);
 
   for (const [action_id, action] of Object.entries(actions)) {
-    
-    let menuAction = window.editor.addAction({
+    const descriptor = {
       id: action_id,
       label: action.label,
-      keybindings: [action.key, action.cmd],
       precondition: null,
       keybindingContext: null,
       contextMenuGroupId: 'navigation',
       contextMenuOrder: action.order,
       run: action.callback
-    });      
+    };
+    if (action.key && action.cmd)
+      descriptor.keybindings = [action.key, action.cmd];
+    let menuAction = window.editor.addAction(descriptor);
 
     window.contextActions.push(menuAction)
   }
@@ -3487,7 +3508,7 @@ function checkEmptySuggestions() {
 function getCurrentThemeName() {
 
   let queryPostfix = '-query';
-  let currentTheme = window.editor._themeService.getTheme().themeName;
+  let currentTheme = window.editor._themeService.getColorTheme().themeName;
   let is_query = (queryMode || DCSMode);
 
   if (is_query && currentTheme.indexOf(queryPostfix) == -1)

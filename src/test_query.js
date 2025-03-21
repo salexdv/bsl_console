@@ -1,4 +1,5 @@
 import bslHelper from './bsl_helper';
+import { assert, expect } from 'chai';
 
 setTimeout(() => {
 
@@ -13,12 +14,8 @@ setTimeout(() => {
     window.init('8.3.18.1');
     window.showStatusBar(true);
 
-    var assert = chai.assert;
-    var expect = chai.expect;
-    chai.should();
-
     function getPosition(line, column) {
-      
+
       return new monaco.Position(line, column);
 
     }
