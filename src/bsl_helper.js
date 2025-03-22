@@ -27,7 +27,7 @@ class bslHelper {
 		if (!model) {
 			console.log('model is not defined');
 		}
-		console.log('position', position);
+		//console.log('position', position);
 		//console.log('model версия', model.getVersionId());
 		//this.wordData = model.getWordAtPosition(position);
 		//this.wordData = model.getWordUntilPosition(position);
@@ -6706,6 +6706,7 @@ class bslHelper {
 
 		let lenses = [];
 
+		console.log("[CodeLens] Запрошены линзы для модели:", model.uri.toString());
 		customCodeLenses.forEach(function (value) {
 			lenses.push({
 				range: {
@@ -6716,15 +6717,17 @@ class bslHelper {
 				},
 				command: {
 					title: value.text
-				}
+				},
+				id: value.id || 'codelens_' + Math.random().toString(36).substr(2, 9)
 			});
 		});
-
+	
+		// Возвращаем просто массив линз, а не объект
+		console.log("[CodeLens] Возвращено линз:", lenses.length);
 		return {
 			lenses: lenses,
 			dispose: () => { }
 		};
-
 	}
 
 	/**

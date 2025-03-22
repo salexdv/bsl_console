@@ -1918,11 +1918,17 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         
         let language = lang.languageDef;
   
+        // Изменить на более простую регистрацию
         monaco.languages.registerCodeLensProvider(language.id, {
-          onDidChange: lang.codeLenses.onDidChange, 
-          provideCodeLenses: lang.codeLenses.provider, 
-          resolveCodeLens: lang.codeLenses.resolver
-        });
+          provideCodeLenses: function(model, token) {
+            return lang.codeLenses.provider(model, token);
+          }
+        });        
+        //monaco.languages.registerCodeLensProvider(language.id, {
+        //  onDidChange: lang.codeLenses.onDidChange, 
+        //  provideCodeLenses: lang.codeLenses.provider, 
+        //  resolveCodeLens: lang.codeLenses.resolver
+        //});
   
       }
   
@@ -1979,7 +1985,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     editor.addAction({
       id: action_id,
       label: action.label,
-      keybindings: [action.key, action.cmd],
+      keybindings: action.key && action.cmd ? [action.key, action.cmd] : (action.key ? [action.key] : []),
       precondition: null,
       keybindingContext: null,
       contextMenuGroupId: 'navigation',
@@ -3085,7 +3091,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       let menuAction = editor.addAction({
         id: action_id,
         label: action.label,
-        keybindings: [action.key, action.cmd],
+        keybindings: action.key && action.cmd ? [action.key, action.cmd] : (action.key ? [action.key] : []),
         precondition: null,
         keybindingContext: null,
         contextMenuGroupId: 'navigation',

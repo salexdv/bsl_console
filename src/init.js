@@ -1,12 +1,14 @@
 // Настраиваем окружение Monaco Editor
 window.MonacoEnvironment = {
     getWorkerUrl: function (moduleId, label) {
-        // Используем Blob URL вместо физических путей к файлам
+        // Создаем Blob URL для каждого worker типа
+        let workerUrl = './vs/editor/editor.worker.js';
+        
+        // В Monaco 0.52.0 используется другой подход к загрузке worker файлов
+        // Используем технику с Blob URL для надежной работы
         return URL.createObjectURL(new Blob([
-            'self.MonacoEnvironment = {' +
-            '    baseUrl: "https://unpkg.com/monaco-editor@0.52.0/min"' +
-            '};' +
-            'importScripts("https://unpkg.com/monaco-editor@0.52.0/min/vs/base/worker/workerMain.js");'
+            'self.MonacoEnvironment = { baseUrl: "." };\n' +
+            'importScripts("./vs/base/worker/workerMain.js");'
         ], { type: 'text/javascript' }));
     },
     createTrustedTypesPolicy: function(policyName, policyOptions) {
