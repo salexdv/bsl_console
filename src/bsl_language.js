@@ -1,5 +1,39 @@
 define([], function () {
 
+    // Функция для отладки токенизации
+    function debugTokenization(content, languageId) {
+        console.log("[DEBUG] Отладка токенизации для языка:", languageId);
+        try {
+            const tokens = monaco.editor.tokenize(content, languageId);
+            console.log("[DEBUG] Получены токены:", tokens.length, "строк");
+            for (let i = 0; i < Math.min(tokens.length, 3); i++) {
+                console.log(`[DEBUG] Пример токенов строки ${i}:`, JSON.stringify(tokens[i].slice(0, 3)));
+            }
+            return tokens;
+        } catch (error) {
+            console.error("[DEBUG] Ошибка при токенизации:", error);
+            return null;
+        }
+    }
+
+    // Функция для отладки API методов
+    function debugMonacoVersion() {
+        console.log("[DEBUG] Версия Monaco Editor:", monaco.version);
+        console.log("[DEBUG] Проверка наличия API методов:");
+        try {
+            const model = editor.getModel();
+            if (model) {
+                console.log("[DEBUG] model.getWordUntilPosition:", typeof model.getWordUntilPosition === 'function' ? "доступен" : "недоступен");
+                console.log("[DEBUG] model.getWordAtPosition:", typeof model.getWordAtPosition === 'function' ? "доступен" : "недоступен");
+                console.log("[DEBUG] model.findMatchingBracketUp:", typeof model.findMatchingBracketUp === 'function' ? "доступен" : "недоступен");
+            } else {
+                console.log("[DEBUG] Модель недоступна для проверки API методов");
+            }
+        } catch (error) {
+            console.error("[DEBUG] Ошибка при проверке API методов Monaco:", error);
+        }
+    }
+
     function deepCopyArray(sourceArray, destinationArray) {
 
         sourceArray.forEach(value => {
@@ -432,7 +466,7 @@ define([], function () {
                         {token: 'query'},
                         {token: 'query'}                        
                     ]],
-                    [/([a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]+)(\.)([a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]+)/, 'query'],
+                    [/([a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]+)(\.)([a-zA-Z\u0410-\u044F_0-9]+)/, 'query'],
                     [/[a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]*/, {
                         cases: {
                             '@queryWords': 'query.keyword',
@@ -653,11 +687,26 @@ define([], function () {
             completionProvider: {
                 triggerCharacters: ['.', '"', ' ', '&'],
                 provideCompletionItems: function (model, position, context, token) {
-                    resetSuggestWidgetDisplay();
-                    let bsl = new bslHelper(model, position);
-                    let completion = bsl.getCompletion(context, token);
-                    bsl.onProvideCompletion(context, completion);
-                    return completion;
+                    try {
+                        console.log("[DEBUG] provideCompletionItems в bsl_language.js вызвана", { position, context, token });
+                        resetSuggestWidgetDisplay();
+                        
+                        // Создаем экземпляр bslHelper и проверяем, что создание прошло успешно
+                        let bsl = new bslHelper(model, position);
+                        console.log("[DEBUG] bslHelper создан успешно");
+                        
+                        // Вызываем метод получения подсказок и передаем context и token
+                        let completion = bsl.getCompletion(context, token);
+                        console.log("[DEBUG] getCompletion выполнен", completion);
+                        
+                        bsl.onProvideCompletion(context, completion);
+                        console.log("[DEBUG] onProvideCompletion выполнен успешно");
+                        
+                        return completion;
+                    } catch (error) {
+                        console.log("[DEBUG] Ошибка в provideCompletionItems:", error);
+                        return { suggestions: [] };
+                    }
                 },
                 resolveCompletionItem: function (model, position, item) {
                     let bsl = new bslHelper(model, position);
