@@ -12,7 +12,6 @@ class SignatureHelpResult {
 	}
 
 }
-
 /**
  * Main helper for BSL
  */
@@ -25,7 +24,14 @@ class bslHelper {
 		this.lineNumber = position.lineNumber;
 		this.column = position.column;
 
-		this.wordData = model.getWordAtPosition(position);
+		if (!model) {
+			console.log('model is not defined');
+		}
+		console.log('position', position);
+		//console.log('model версия', model.getVersionId());
+		//this.wordData = model.getWordAtPosition(position);
+		//this.wordData = model.getWordUntilPosition(position);
+		//this.wordData = getWordAtPositionAdapter(model, position);
 		this.word = this.wordData ? this.wordData.word.toLowerCase() : '';
 
 		this.lastOperator = '';
@@ -4057,10 +4063,11 @@ class bslHelper {
 
 		}
 
-		if (suggestions.length)
-			return { suggestions: suggestions }
-		else
-			return [];
+		return { suggestions: suggestions }
+		//if (suggestions.length)
+		//	return { suggestions: suggestions }
+		//else
+		//	return [];
 
 	}
 
@@ -5820,6 +5827,7 @@ class bslHelper {
 		else {
 
 			suggestions = this.getCustomSuggestions(true);
+			console.log('suggestions', suggestions);
 
 			if (!suggestions.length && !editor.disableNativeSuggestions) {
 
@@ -6504,7 +6512,47 @@ class bslHelper {
 	getLastSigMethod(context) {
 
 		let method = '';
-		let bracket = this.model.findMatchingBracketUp('(', this.position);
+		//let bracket = this.model.findMatchingBracketUp('(', this.position);
+		let bracket = null;
+		try {
+			// В Monaco 0.52.0 работаем с Range и TextModel
+			const lineContent = this.model.getLineContent(this.position.lineNumber);
+			let col = this.position.column;
+			
+			// Ищем открывающую скобку в текущей строке до позиции курсора
+			while (col > 0) {
+				col--;
+				if (lineContent.charAt(col - 1) === '(') {
+					bracket = {
+						startLineNumber: this.position.lineNumber,
+						startColumn: col
+					};
+					break;
+				}
+			}
+			
+			// Если не нашли в текущей строке, можно продолжить поиск в предыдущих строках
+			let lineNumber = this.position.lineNumber;
+			while (!bracket && lineNumber > 1) {
+				lineNumber--;
+				const prevLineContent = this.model.getLineContent(lineNumber);
+				col = prevLineContent.length + 1;
+				
+				while (col > 0) {
+					col--;
+					if (prevLineContent.charAt(col - 1) === '(') {
+						bracket = {
+							startLineNumber: lineNumber,
+							startColumn: col
+						};
+						break;
+					}
+				}
+			}
+		} catch (error) {
+			console.error("[ERROR] Custom findMatchingBracketUp:", error);
+		}		
+
 
 		if (bracket && this.isSuitablePlaceForSigHelp()) {
 

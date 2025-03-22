@@ -674,14 +674,30 @@ define([], function () {
                 signatureHelpTriggerCharacters: ['(', ','],
                 signatureHelpRetriggerCharacters: [')'],
                 provideSignatureHelp: (model, position, token, context) => {
-                    let helper = null;
-                    if (!window.isSuggestWidgetVisible()) {
+                    try {
+                        console.log("[DEBUG] provideSignatureHelp в bsl_language.js вызвана", { position, context, token });
                         resetSignatureWidgetDisplay();
+                        
+                        // Создаем экземпляр bslHelper и проверяем, что создание прошло успешно
                         let bsl = new bslHelper(model, position);
-                        helper = bsl.getSigHelp(context);
-                        onProvideSignature(bsl, context, position);
+                        console.log("[DEBUG] bslHelper создан успешно");
+                        
+                        // Вызываем метод получения подсказки сигнатуры и передаем context
+                        let helper = bsl.getSigHelp(context);
+                        console.log("[DEBUG] getSigHelp выполнен", helper);
+                        
+                        if (helper) {
+                            onProvideSignature(bsl, context, position);
+                            console.log("[DEBUG] onProvideSignature выполнен успешно");
+                        } else {
+                            console.log("[WARNING] getSigHelp вернул пустой результат");
+                        }
+                        
+                        return helper;
+                    } catch (error) {
+                        console.log("[DEBUG] Ошибка в provideSignatureHelp:", error);
+                        return null;
                     }
-                    return helper;
                 }
             },
             hoverProvider: {
@@ -770,11 +786,30 @@ define([], function () {
                 signatureHelpTriggerCharacters: ['(', ','],
                 signatureHelpRetriggerCharacters: [')'],
                 provideSignatureHelp: (model, position, token, context) => {
-                    resetSignatureWidgetDisplay();
-                    let bsl = new bslHelper(model, position);
-                    let helper = bsl.getQuerySigHelp(context);
-                    onProvideSignature(bsl, context, position);
-                    return helper;
+                    try {
+                        console.log("[DEBUG] provideSignatureHelp в query_language.js вызвана", { position, context, token });
+                        resetSignatureWidgetDisplay();
+                        
+                        // Создаем экземпляр bslHelper и проверяем, что создание прошло успешно
+                        let bsl = new bslHelper(model, position);
+                        console.log("[DEBUG] bslHelper создан успешно");
+                        
+                        // Вызываем метод получения подсказки сигнатуры и передаем context
+                        let helper = bsl.getQuerySigHelp(context);
+                        console.log("[DEBUG] getQuerySigHelp выполнен", helper);
+                        
+                        if (helper) {
+                            onProvideSignature(bsl, context, position);
+                            console.log("[DEBUG] onProvideSignature выполнен успешно");
+                        } else {
+                            console.log("[WARNING] getQuerySigHelp вернул пустой результат");
+                        }
+                        
+                        return helper;
+                    } catch (error) {
+                        console.log("[DEBUG] Ошибка в provideSignatureHelp:", error);
+                        return null;
+                    }
                 }
             },
             hoverProvider: {
@@ -842,11 +877,30 @@ define([], function () {
                 signatureHelpTriggerCharacters: ['(', ','],
                 signatureHelpRetriggerCharacters: [')'],
                 provideSignatureHelp: (model, position, token, context) => {
-                    resetSignatureWidgetDisplay();
-                    let bsl = new bslHelper(model, position);
-                    let helper = bsl.getDCSSigHelp(context);
-                    onProvideSignature(bsl, context, position);
-                    return helper;
+                    try {
+                        console.log("[DEBUG] provideSignatureHelp в dcs_language.js вызвана", { position, context, token });
+                        resetSignatureWidgetDisplay();
+                        
+                        // Создаем экземпляр bslHelper и проверяем, что создание прошло успешно
+                        let bsl = new bslHelper(model, position);
+                        console.log("[DEBUG] bslHelper создан успешно");
+                        
+                        // Вызываем метод получения подсказки сигнатуры и передаем context
+                        let helper = bsl.getDCSSigHelp(context);
+                        console.log("[DEBUG] getDCSSigHelp выполнен", helper);
+                        
+                        if (helper) {
+                            onProvideSignature(bsl, context, position);
+                            console.log("[DEBUG] onProvideSignature выполнен успешно");
+                        } else {
+                            console.log("[WARNING] getDCSSigHelp вернул пустой результат");
+                        }
+                        
+                        return helper;
+                    } catch (error) {
+                        console.log("[DEBUG] Ошибка в provideSignatureHelp:", error);
+                        return null;
+                    }
                 }
             },
             hoverProvider: {
