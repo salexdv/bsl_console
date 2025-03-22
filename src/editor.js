@@ -1869,7 +1869,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       scrollBeyondLastLine: false,
       insertSpaces: false,
       trimAutoWhitespace: false,
-      autoIndent: true,
+      autoIndent: 'advanced', // Изменено с булева значения на строковое перечисление
       find: {
         addExtraSpaceOnTop: false
       },
@@ -1878,7 +1878,16 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       },
       customOptions: true,
       lineNumbers: getLineNumber,
-      renderValidationDecorations: "on"
+      renderValidationDecorations: "on",
+      // Добавлены новые опции из версии 0.52.0
+      minimap: {
+        enabled: true
+      },
+      wordWrap: 'off',
+      // Добавлена поддержка placeholder для пустого редактора
+      placeholder: 'Введите текст модуля на языке 1С monaco Editor 0.52.0...',
+      // Компактный режим для экономии места
+      compactMode: false
     });
 
     changeCommandKeybinding('editor.action.revealDefinition', monaco.KeyCode.F12);
@@ -3668,7 +3677,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
               header.classList.add('diff-header');
               header.classList.add(class_name);
 
-              if (0 <= currentTheme.indexOf('dark'))
+              if (0 < currentTheme.indexOf('dark'))
                 header.classList.add('dark');
 
               header.innerText = engLang ? 'changes': 'изменения';
@@ -4033,12 +4042,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         widget: reviewWidget
       });
 
-      standaloneEditor.layout();
-      setTimeout(() => {reviewWidget.load(issue)}, 10);
+      standaloneEditor.addOverlayWidget(reviewWidget);    
 
     }); 
 
-    standaloneEditor.addOverlayWidget(reviewWidget);    
+    standaloneEditor.layout();
+    setTimeout(() => {reviewWidget.load(issue)}, 10);
 
   }
 
@@ -4260,4 +4269,3 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   // #endregion
 
 });
-
