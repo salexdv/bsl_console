@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Monaco Editor Test</title>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8">  
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+    #container {
+      height: 100%;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div id="container"></div>
+
+  <script src="./vs/loader.js"></script>
+  <script>
+    require.config({ 'vs/nls': { availableLanguages: { '*': 'ru' } } });
+    
+    require(['vs/editor/editor.main'], function() {
+      var editor = monaco.editor.create(document.getElementById('container'), {
+        value: '// Пример кода на JavaScript\nfunction hello() {\n\tconsole.log("Привет, мир!");\n}\n',
+        language: 'javascript',
+        theme: 'vs-dark'
+      });
+      
+      // Выводим информацию о версии Monaco в консоль
+      console.log('Monaco Editor version:', monaco.version);
+    });
+  </script>
+</body>
+</html>
