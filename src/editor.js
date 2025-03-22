@@ -1865,7 +1865,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       value: text,
       language: language_id,
       contextmenu: true,
-      wordBasedSuggestions: false,
+      wordBasedSuggestions: 'currentDocument',
       scrollBeyondLastLine: false,
       insertSpaces: false,
       trimAutoWhitespace: false,
