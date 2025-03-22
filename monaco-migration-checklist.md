@@ -3,10 +3,10 @@
 ## Чекпоинт 1: Подготовка и анализ
 - [ ] 1.1. Создать полную резервную копию проекта
 - [ ] 1.2. Зафиксировать текущее состояние в системе контроля версий
-- [ ] 1.3. Определить текущую версию Monaco (0.20.0) и целевую версию (0.45.0+)
-- [ ] 1.4. Изучить changelog Monaco Editor между версиями
-- [ ] 1.5. Выявить потенциальные breaking changes в API
-- [ ] 1.6. Составить список используемых в проекте API Monaco
+- [x] 1.3. Определить текущую версию Monaco (0.20.0) и целевую версию (0.45.0+)
+- [x] 1.4. Изучить changelog Monaco Editor между версиями
+- [x] 1.5. Выявить потенциальные breaking changes в API
+- [x] 1.6. Составить список используемых в проекте API Monaco
 
 ## Чекпоинт 2: Обновление библиотеки
 - [ ] 2.1. Скачать последнюю версию Monaco Editor
@@ -78,3 +78,28 @@
 - [ ] 10.3. Планировать регулярные обновления Monaco в будущем
 - [ ] 10.4. Создать автоматизированные тесты для упрощения будущих обновлений
 - [ ] 10.5. Документировать процесс миграции для будущих обновлений
+
+## Ссылки на ресурсы миграции
+
+### Документация
+- [Официальная документация Monaco Editor](https://microsoft.github.io/monaco-editor/)
+- [API Reference](https://microsoft.github.io/monaco-editor/api/index.html)
+- [Примеры использования](https://microsoft.github.io/monaco-editor/playground.html)
+
+### Файлы миграции
+- Директория миграции: `src/migration/`
+- Скрипты миграции: `src/migration/scripts/`
+- Отчеты о совместимости: `src/migration/compatibility-reports/`
+- Резервные копии: `src/backup/monaco-0.20.0/`
+- Документация по миграции: `docs/monaco-migration/`
+  - [Использование API Monaco](docs/monaco-migration/monaco-api-usage.md)
+  - [Детальный changelog](docs/monaco-migration/monaco-changelog.md)
+
+### Тестовые примеры
+- Тестовые сценарии: `tests/migration-tests/`
+- Примеры использования API: `examples/api-migration/`
+
+### Инструменты миграции
+- Скрипт проверки API: `tools/api-checker.js`
+- Утилита сравнения версий: `tools/version-diff.js`
+- Автоматизированные тесты: `tools/automated-tests/`
