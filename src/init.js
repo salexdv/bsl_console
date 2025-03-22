@@ -1,30 +1,26 @@
 // Настраиваем окружение Monaco Editor
 window.MonacoEnvironment = {
     getWorkerUrl: function (moduleId, label) {
-        // Создаем Blob URL для каждого worker типа
-        let workerUrl = './vs/editor/editor.worker.js';
-        
-        // В Monaco 0.52.0 используется другой подход к загрузке worker файлов
-        // Используем технику с Blob URL для надежной работы
-        return URL.createObjectURL(new Blob([
-            'self.MonacoEnvironment = { baseUrl: "." };\n' +
-            'importScripts("./vs/base/worker/workerMain.js");'
-        ], { type: 'text/javascript' }));
-    },
-    createTrustedTypesPolicy: function(policyName, policyOptions) {
-        // Этот метод вызывается, когда Monaco пытается создать политику доверенных типов
-        // Если TrustedTypes API доступен, создаем политику
-        if (window.trustedTypes) {
-            return window.trustedTypes.createPolicy(policyName, policyOptions);
+        if (label === 'json') {
+            return './vs/language/json/json.worker.js';
         }
-        // Иначе возвращаем простой объект, который позволяет Monaco продолжить работу
-        return {
-            createHTML: function(html) { return html; },
-            createScript: function(script) { return script; },
-            createScriptURL: function(scriptUrl) { return scriptUrl; }
-        };
+        if (label === 'css' || label === 'scss' || label === 'less') {
+            return './vs/language/css/css.worker.js';
+        }
+        if (label === 'html' || label === 'handlebars' || label === 'razor') {
+            return './vs/language/html/html.worker.js';
+        }
+        if (label === 'typescript' || label === 'javascript') {
+            return './vs/language/typescript/ts.worker.js';
+        }
+        return './vs/editor/editor.worker.js';
     }
 };
 
 // Загружаем редактор
-require(['editor'], {});
+require(['vs/editor/editor.main'], function() {
+    // Monaco editor is now loaded
+    console.log('Monaco editor loaded successfully');
+    // Now load the editor implementation
+    require(['editor'], {});
+});

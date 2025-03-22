@@ -1,0 +1,239 @@
+#display {
+  height: 0;
+  display: none;
+  font-family: "Courier new";
+}
+
+#display.dark {
+  background-color: #1e1e1e;
+}
+
+#display-header {
+  position: relative;
+  height: 22px;
+  width: 100%;
+  border-top: solid 1px #ddd;
+  border-bottom: solid 1px #ddd;
+  background-color: #fff;
+}
+
+#display.dark > #display-header {
+  background-color: #1e1e1e;  
+  border-color: #000;
+}
+
+#display-title {
+  font-size: 12px;
+  color: #161616;
+  margin-left: 10px;
+  line-height: 22px;
+  cursor: pointer;
+}
+
+#display.dark #display-title {
+  color: #d4d4d4;
+}
+
+#variables-display {
+  overflow: auto;
+  height: 100%;
+}
+
+#variables-display::-webkit-scrollbar {
+  width: 13px;
+}
+
+#variables-display::-webkit-scrollbar-thumb {
+  border-radius: 100px;
+  background-color: #aaa;
+  border: 4px solid rgba(0, 0, 0, 0);
+  background-clip: padding-box;
+}
+
+#variables-tree {
+  padding: 15px;
+  width: 100%;
+  font-size: 10pt;
+  overflow: auto;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+#variables-tree details > summary {
+  list-style: none;
+  padding: 3px;
+  margin: 2px 0;
+  color: #720501;
+}
+
+#display.dark #variables-tree details > summary {
+  color: #c3602c;
+}
+
+#variables-tree details > summary:hover {
+  background-color: #b8d9ff;
+  transition: all .1s
+}
+
+#display.dark #variables-tree details > summary:hover {
+  background-color: #424242;
+}
+
+#variables-tree details > summary::marker, #variables-tree details > summary::-webkit-details-marker {
+  display: none;
+}
+
+#variables-tree summary::marker, #variables-tree summary::-webkit-details-marker {
+  width: 16px;
+  height: 16px;
+  color: transparent;  
+}
+
+#variables-tree summary.final:before {
+  background-image: url('./icons/empty.png');
+}
+
+#variables-tree details[open] > summary.final:before {
+  background-image: url('./icons/empty.png');    
+}
+
+#variables-tree summary:before {    
+  content: '.';
+  padding-left: 7px;
+  background-image: url('./icons/close.png');  
+  background-repeat: no-repeat;
+  width: 16px;
+  height: 16px;
+  color: transparent;
+  margin: 0 5px 0 5px;
+}
+
+#variables-tree summary.final:hover:before {
+  background-image: url('./icons/empty.png');
+}
+
+#variables-tree summary:hover:before {
+  background-image: url('./icons/close_hover.png');
+}
+
+#variables-tree details > summary.loading:before {
+  background-image: url("./loading.gif") !important;
+}
+
+#variables-tree details[open] > summary:before {
+  background-image: url('./icons/open.png');    
+}
+
+#variables-tree details[open] > summary:hover:before {
+  background-image: url('./icons/open_hover.png');    
+}
+
+#variables-tree summary .icon {
+  width: 16px;
+  height: 16px;
+  vertical-align: middle;
+}
+
+#variables-tree summary:only-child::-webkit-details-marker {
+  color: transparent;
+}
+
+#variables-tree details details {
+  margin-left: 20px;
+  display: block;
+}  
+
+#variables-tree .label {
+  font-size: 14pt;
+  font-weight:bold;
+}
+
+#variables-tree a {
+  color: #0000ee;
+  text-decoration: none;
+  padding: 3px;
+}
+
+#variables-tree a:hover, #variables-tree a:visited:hover {
+  color: #ad0404;
+}
+
+#variables-tree a:visited {
+  color: #0000ee;
+  text-decoration: none;
+}
+
+#display.dark #variables-tree a {
+  color: #9acd32;
+}
+
+#display.dark #variables-tree a:visited {
+  color: #9acd32;
+}
+
+#display.dark #variables-tree a:hover, #display.dark #variables-tree a:visited:hover {
+  color: #ff2c2c;
+}
+
+#variables-tree .value, .equal {
+  color: black;
+}
+
+#variables-tree .value, .equal {  
+  color: black;
+}
+
+#display.dark #variables-tree .value {
+  color: #b8d9ff;
+}
+
+#display.dark #variables-tree .equal {
+  color: #959595;
+}
+
+#variables-tree .type {
+  color: #959595;
+}
+
+#variables-tree .type:before {
+  content: '{';  
+}
+
+#variables-tree .type:after {
+  content: '}';
+}
+
+#display-close {
+	position: absolute;
+	right: 0;
+	top: 3px;
+	width: 15px;
+	height: 20px;
+	opacity: 0.3;
+	cursor: pointer;
+}
+
+#display-close:hover {
+	opacity: 1;
+}
+
+#display-close:before, #display-close:after {
+	position: absolute;
+	content: ' ';
+	height: 12px;
+	width: 2px;
+	top: 2px;
+	background-color: #333;
+}
+
+.dark #display-close:before, .dark #display-close:after {
+	background-color: #fff;
+}
+
+#display-close:before {
+	transform: rotate(45deg);
+}
+
+#display-close:after {
+	transform: rotate(-45deg);
+}
