@@ -383,6 +383,9 @@ define([], function () {
             ],
             tokenizer: {
                 root: [
+                    // Комментарии должны обрабатываться первыми
+                    [/\/\/.*$/, { token: 'comment.bsl' }],
+                    { include: '@whitespace' },
                     [/(^\s*)(процедура|функция|procedure|function)(\s*[a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]+\s*)(\()/, [
                         {token: ''},
                         {token: 'keyword'},
@@ -532,7 +535,11 @@ define([], function () {
                     [/"/, { token: 'string.quote', next: '@pop' }]
                 ],
                 whitespace: [
-                    [/\/\/.*$/, 'comment'],
+                    [/\/\/.*$/, 'comment']
+                    //[/[ \t\r\n]+/, 'white'],
+                    //[/\/\/.*$/, 'comment'],
+                    //[/^\s*[&].*$/, 'compile'],
+                    //[/^\s*[#].*$/, 'preproc'],
                 ],
             },
         },        
