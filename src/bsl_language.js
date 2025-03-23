@@ -783,11 +783,11 @@ define([], function () {
                 resolver: () => {}
             },
             colorProvider: {
-                provideColorPresentations: (model, colorInfo) => {
-                    return bslHelper.provideColorPresentations(model, colorInfo);
+                provideColorPresentations: (model, colorInfo, token) => {
+                    return bslHelper.provideColorPresentations(model, colorInfo, token);
                 },
-                provideDocumentColors: (model) => {
-                    return bslHelper.getDocumentColors(model);
+                provideDocumentColors: (model, token) => {
+                    return bslHelper.getDocumentColors(model, token);
                 }
             },
             definitionProvider: {
@@ -819,7 +819,11 @@ define([], function () {
                 ['procedure', 'endprocedure'],
                 ['#область', '#конецобласти']
             ],
-            autoClosingPairs: []
+            autoClosingPairs: [
+                { open: '[', close: ']', notIn: ['string', 'comment'] },
+                { open: '(', close: ')', notIn: ['string', 'comment'] },
+                { open: '{', close: '}', notIn: ['string', 'comment'] },
+            ]
         },
         query: {
             languageDef: query_language,
@@ -912,7 +916,11 @@ define([], function () {
                 ['[', ']'],
                 ['{', '}']
             ],
-            autoClosingPairs: []
+            autoClosingPairs: [
+                { open: '[', close: ']' },
+                { open: '(', close: ')' },
+                { open: '{', close: '}' }
+            ]
         },
         dcs: {
             languageDef: dcs_language,
@@ -996,7 +1004,11 @@ define([], function () {
                 ['(', ')'],
                 ['[', ']']                
             ],
-            autoClosingPairs: []
+            autoClosingPairs: [
+                { open: '[', close: ']' },
+                { open: '(', close: ')' },
+                { open: '{', close: '}' }
+            ]
         }
 
     };

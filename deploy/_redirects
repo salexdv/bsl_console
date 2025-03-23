@@ -1,4 +1,0 @@
-# Redirect rules for Cloudflare Pages
-# Ensure SPA-like behavior if needed
-
-/*    /index.html   200

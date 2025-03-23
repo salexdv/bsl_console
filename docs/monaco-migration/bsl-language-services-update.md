@@ -235,7 +235,7 @@
 
 ### 6. Обновление провайдера форматирования и других провайдеров
 - [ ] 6.1. Обновить метод `provideDocumentFormattingEdits`
-- [ ] 6.2. Обновить провайдеры цветов (`provideDocumentColors` и `provideColorPresentations`)
+- [x] 6.2. Обновить провайдеры цветов (`provideDocumentColors` и `provideColorPresentations`)
 - [ ] 6.3. Обновить провайдер определений (`provideDefinition`)
 - [ ] 6.4. Обновить провайдер CodeLens
 

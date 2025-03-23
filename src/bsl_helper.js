@@ -8060,7 +8060,12 @@ class bslHelper {
 	 * 
 	 * @returns {array} ColorInformation[]
 	 */
-	static getDocumentColors(model) {
+	static getDocumentColors(model, token) {
+
+		console.log('getDocumentColors');
+		if (token.isCancellationRequested) {
+			return [];
+		}
 
 		let document_colors = [];
 
@@ -8068,6 +8073,10 @@ class bslHelper {
 		let matches = Finder.findMatches(model, pattern);
 
 		for (let idx = 0; idx < matches.length; idx++) {
+
+			if (token.isCancellationRequested) {
+				break; // Прерываем обработку, если операция была отменена
+			}			
 
 			let match = matches[idx];
 
@@ -8084,7 +8093,7 @@ class bslHelper {
 							startLineNumber: match.range.startLineNumber,
 							startColumn: match.range.startColumn,
 							endLineNumber: match.range.startLineNumber,
-							endColumn: match.range.startColumn
+							endColumn: match.range.startColumn + match.matches[0].length
 						}
 					});
 				}
@@ -8101,7 +8110,7 @@ class bslHelper {
 							startLineNumber: match.range.startLineNumber,
 							startColumn: match.range.startColumn,
 							endLineNumber: match.range.startLineNumber,
-							endColumn: match.range.startColumn
+							endColumn: match.range.startColumn + match.matches[0].length
 						}
 					});
 				}
@@ -8110,7 +8119,16 @@ class bslHelper {
 
 		}
 
-		return document_colors;
+		console.log('document_colors', document_colors);
+		console.log('matches', matches);
+		console.log('model', model);
+		console.log('token', token);
+		console.log('document_colors[0]', document_colors[0]);
+
+		return document_colors.map(color => ({
+			color: color.color,
+			range: color.range
+		}));
 
 	}
 
@@ -8121,9 +8139,14 @@ class bslHelper {
 	 * 
 	 * @returns {array} ColorPresentation[]
 	 */
-	static provideColorPresentations(model, colorInfo) {
+	static provideColorPresentations(model, colorInfo, token) {
 
-		let textEdit = null;
+		console.log('provideColorPresentations');
+		if (token.isCancellationRequested) {
+			return [];
+		}
+
+		//let textEdit = null;
 		let pattern = 'WebЦвета\.([a-zA-Z\u0410-\u044F]+)|WebColors\.([a-zA-Z\u0410-\u044F]+)|Новый Цвет\\s*\\((.*?)\\)|New Color\\s*\\((.*?)\\)';
 		let range = colorInfo.range;
 
@@ -8134,16 +8157,31 @@ class bslHelper {
 		let green = Math.round(color.green * 255);
 		let blue = Math.round(color.blue * 255);
 
+		let presentations = [];
+		
 		if (match && match.range.startLineNumber == range.startLineNumber) {
-			let value = window.engLang ? 'New Color' : 'Новый Цвет';
-			value = value + "(" + red + ", " + green + ", " + blue + ")";
-			textEdit = { range: match.range, text: value };
+			//let value = window.engLang ? 'New Color' : 'Новый Цвет';
+			//value = value + "(" + red + ", " + green + ", " + blue + ")";
+			//textEdit = { range: match.range, text: value };
+			let rgbValue = window.engLang ? 'New! Color' : 'Новый! Цвет';
+			rgbValue = rgbValue + "(" + red + ", " + green + ", " + blue + ")";
+
+			let hexValue = "#" + ((1 << 24) + (red << 16) + (green << 8) + blue).toString(16).slice(1).toUpperCase();
+
+			console.log(hexValue, rgbValue);
+			console.log(textEdit, match.range);
+			presentations.push({
+				label: hexValue,
+				//textEdit: { range: match.range, text: window.engLang ? `New Color("${hexValue}")` : `Новый Цвет("${hexValue}")` }
+				textEdit: { range: match.range, text: rgbValue }
+			});			
 		}
 
-		return [{
-			label: '',
-			textEdit: textEdit
-		}];
+		return presentations;
+		//return [{
+		//	label: '',
+		//	textEdit: textEdit
+		//}];
 	}
 
 	/**
