@@ -7842,9 +7842,16 @@ class bslHelper {
 	 * 
 	 * @returns {string} formated text
 	 */
-	static formatCode(model) {
+	static formatCode(model, options, token) {
+
+		if (token && token.isCancellationRequested) {
+			return [];
+		}
 
 		let result = '';
+
+		let indent = '\t';
+		//const indent = options && options.insertSpaces ? ' '.repeat(options.tabSize || 4) : '\t';
 
 		const startWords = [
 			'если', '#если', 'для', 'пока', 'функция', 'процедура', 'попытка',
@@ -7942,6 +7949,7 @@ class bslHelper {
 
 		return [{
 			text: result,
+			//eol: model.getEOL() === '\r\n' ? monaco.editor.EndOfLineSequence.CRLF : monaco.editor.EndOfLineSequence.LF,
 			range: format_range
 		}];
 	}
