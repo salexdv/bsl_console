@@ -3470,7 +3470,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   function getCurrentThemeName() {
 
     let queryPostfix = '-query';
-    let currentTheme = editor._themeService.getTheme().themeName;
+    let currentTheme = editor._themeService.getColorTheme().themeName;
     let is_query = (queryMode || DCSMode);
 
     if (is_query && currentTheme.indexOf(queryPostfix) == -1)

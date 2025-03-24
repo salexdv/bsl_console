@@ -27,11 +27,8 @@ class bslHelper {
 		if (!model) {
 			console.log('model is not defined');
 		}
-		//console.log('position', position);
-		//console.log('model версия', model.getVersionId());
-		//this.wordData = model.getWordAtPosition(position);
-		//this.wordData = model.getWordUntilPosition(position);
-		//this.wordData = getWordAtPositionAdapter(model, position);
+
+		this.wordData = model.getWordAtPosition(position);
 		this.word = this.wordData ? this.wordData.word.toLowerCase() : '';
 
 		this.lastOperator = '';
@@ -5128,11 +5125,11 @@ class bslHelper {
 
 						// Searching the source
 						position = new monaco.Position(match.range.endLineNumber, match.range.endColumn);
-						let bracket_match = this.model.findPrevBracket(position);
+						let bracket_match = this.model.bracketPairs.findPrevBracket(position);
 
 						if (bracket_match && match.range.startLineNumber < bracket_match.range.startLineNumber) {
 							position = new monaco.Position(bracket_match.range.startLineNumber, bracket_match.range.startColumn);
-							let brackets = editor.getModel().matchBracket(position);
+							let brackets = editor.getModel().bracketPairs.matchBracket(position);
 							if (brackets) {
 								brackets = brackets.sort();
 								const open = brackets[0], close = brackets[1];
@@ -6512,47 +6509,7 @@ class bslHelper {
 	getLastSigMethod(context) {
 
 		let method = '';
-		//let bracket = this.model.findMatchingBracketUp('(', this.position);
-		let bracket = null;
-		try {
-			// В Monaco 0.52.0 работаем с Range и TextModel
-			const lineContent = this.model.getLineContent(this.position.lineNumber);
-			let col = this.position.column;
-			
-			// Ищем открывающую скобку в текущей строке до позиции курсора
-			while (col > 0) {
-				col--;
-				if (lineContent.charAt(col - 1) === '(') {
-					bracket = {
-						startLineNumber: this.position.lineNumber,
-						startColumn: col
-					};
-					break;
-				}
-			}
-			
-			// Если не нашли в текущей строке, можно продолжить поиск в предыдущих строках
-			let lineNumber = this.position.lineNumber;
-			while (!bracket && lineNumber > 1) {
-				lineNumber--;
-				const prevLineContent = this.model.getLineContent(lineNumber);
-				col = prevLineContent.length + 1;
-				
-				while (col > 0) {
-					col--;
-					if (prevLineContent.charAt(col - 1) === '(') {
-						bracket = {
-							startLineNumber: lineNumber,
-							startColumn: col
-						};
-						break;
-					}
-				}
-			}
-		} catch (error) {
-			console.error("[ERROR] Custom findMatchingBracketUp:", error);
-		}		
-
+		let bracket = this.model.bracketPairs.findMatchingBracketUp(')', this.position);
 
 		if (bracket && this.isSuitablePlaceForSigHelp()) {
 
@@ -6571,13 +6528,13 @@ class bslHelper {
 				else {
 					data.word = '';
 				}
-			}
+			}	
 
 			context.methodPosition = position;
 
 			let range = new monaco.Range(bracket.startLineNumber, bracket.startColumn + 1, this.lineNumber, this.column);
 			let params_text = this.model.getValueInRange(range);
-			context.activeParameter = this.getActiveParameterFromSignatureString(params_text);
+			context.activeParameter = this.getActiveParameterFromSignatureString(params_text);	
 		}
 
 		context.methodName = method;

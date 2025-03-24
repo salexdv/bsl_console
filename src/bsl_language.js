@@ -715,8 +715,10 @@ define([], function () {
                         return { suggestions: [] };
                     }
                 },
-                resolveCompletionItem: function (model, position, item) {
-                    let bsl = new bslHelper(model, position);
+                resolveCompletionItem: function (item, token) {
+                    const model = monaco.editor.createModel(item.insertText);
+                    const position = new monaco.Position(1, 1);
+                    const bsl = new bslHelper(model, position);
                     item = bsl.resolveCompletionItem(item);
                     return model;
                 }
