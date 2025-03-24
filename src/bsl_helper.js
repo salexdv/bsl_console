@@ -12,7 +12,6 @@ class SignatureHelpResult {
 	}
 
 }
-
 /**
  * Main helper for BSL
  */
@@ -25,7 +24,14 @@ class bslHelper {
 		this.lineNumber = position.lineNumber;
 		this.column = position.column;
 
-		this.wordData = model.getWordAtPosition(position);
+		if (!model) {
+			console.log('model is not defined');
+		}
+		//console.log('position', position);
+		//console.log('model версия', model.getVersionId());
+		//this.wordData = model.getWordAtPosition(position);
+		//this.wordData = model.getWordUntilPosition(position);
+		//this.wordData = getWordAtPositionAdapter(model, position);
 		this.word = this.wordData ? this.wordData.word.toLowerCase() : '';
 
 		this.lastOperator = '';
@@ -4057,10 +4063,11 @@ class bslHelper {
 
 		}
 
-		if (suggestions.length)
-			return { suggestions: suggestions }
-		else
-			return [];
+		return { suggestions: suggestions }
+		//if (suggestions.length)
+		//	return { suggestions: suggestions }
+		//else
+		//	return [];
 
 	}
 
@@ -5820,6 +5827,7 @@ class bslHelper {
 		else {
 
 			suggestions = this.getCustomSuggestions(true);
+			console.log('suggestions', suggestions);
 
 			if (!suggestions.length && !editor.disableNativeSuggestions) {
 
@@ -6504,7 +6512,47 @@ class bslHelper {
 	getLastSigMethod(context) {
 
 		let method = '';
-		let bracket = this.model.findMatchingBracketUp('(', this.position);
+		//let bracket = this.model.findMatchingBracketUp('(', this.position);
+		let bracket = null;
+		try {
+			// В Monaco 0.52.0 работаем с Range и TextModel
+			const lineContent = this.model.getLineContent(this.position.lineNumber);
+			let col = this.position.column;
+			
+			// Ищем открывающую скобку в текущей строке до позиции курсора
+			while (col > 0) {
+				col--;
+				if (lineContent.charAt(col - 1) === '(') {
+					bracket = {
+						startLineNumber: this.position.lineNumber,
+						startColumn: col
+					};
+					break;
+				}
+			}
+			
+			// Если не нашли в текущей строке, можно продолжить поиск в предыдущих строках
+			let lineNumber = this.position.lineNumber;
+			while (!bracket && lineNumber > 1) {
+				lineNumber--;
+				const prevLineContent = this.model.getLineContent(lineNumber);
+				col = prevLineContent.length + 1;
+				
+				while (col > 0) {
+					col--;
+					if (prevLineContent.charAt(col - 1) === '(') {
+						bracket = {
+							startLineNumber: lineNumber,
+							startColumn: col
+						};
+						break;
+					}
+				}
+			}
+		} catch (error) {
+			console.error("[ERROR] Custom findMatchingBracketUp:", error);
+		}		
+
 
 		if (bracket && this.isSuitablePlaceForSigHelp()) {
 
@@ -6658,6 +6706,7 @@ class bslHelper {
 
 		let lenses = [];
 
+		console.log("[CodeLens] Запрошены линзы для модели:", model.uri.toString());
 		customCodeLenses.forEach(function (value) {
 			lenses.push({
 				range: {
@@ -6668,15 +6717,17 @@ class bslHelper {
 				},
 				command: {
 					title: value.text
-				}
+				},
+				id: value.id || 'codelens_' + Math.random().toString(36).substr(2, 9)
 			});
 		});
-
+	
+		// Возвращаем просто массив линз, а не объект
+		console.log("[CodeLens] Возвращено линз:", lenses.length);
 		return {
 			lenses: lenses,
 			dispose: () => { }
 		};
-
 	}
 
 	/**
@@ -7791,9 +7842,16 @@ class bslHelper {
 	 * 
 	 * @returns {string} formated text
 	 */
-	static formatCode(model) {
+	static formatCode(model, options, token) {
+
+		if (token && token.isCancellationRequested) {
+			return [];
+		}
 
 		let result = '';
+
+		let indent = '\t';
+		//const indent = options && options.insertSpaces ? ' '.repeat(options.tabSize || 4) : '\t';
 
 		const startWords = [
 			'если', '#если', 'для', 'пока', 'функция', 'процедура', 'попытка',
@@ -7891,6 +7949,7 @@ class bslHelper {
 
 		return [{
 			text: result,
+			//eol: model.getEOL() === '\r\n' ? monaco.editor.EndOfLineSequence.CRLF : monaco.editor.EndOfLineSequence.LF,
 			range: format_range
 		}];
 	}
@@ -8009,7 +8068,12 @@ class bslHelper {
 	 * 
 	 * @returns {array} ColorInformation[]
 	 */
-	static getDocumentColors(model) {
+	static getDocumentColors(model, token) {
+
+		console.log('getDocumentColors');
+		if (token.isCancellationRequested) {
+			return [];
+		}
 
 		let document_colors = [];
 
@@ -8017,6 +8081,10 @@ class bslHelper {
 		let matches = Finder.findMatches(model, pattern);
 
 		for (let idx = 0; idx < matches.length; idx++) {
+
+			if (token.isCancellationRequested) {
+				break; // Прерываем обработку, если операция была отменена
+			}			
 
 			let match = matches[idx];
 
@@ -8033,7 +8101,7 @@ class bslHelper {
 							startLineNumber: match.range.startLineNumber,
 							startColumn: match.range.startColumn,
 							endLineNumber: match.range.startLineNumber,
-							endColumn: match.range.startColumn
+							endColumn: match.range.startColumn + match.matches[0].length
 						}
 					});
 				}
@@ -8050,7 +8118,7 @@ class bslHelper {
 							startLineNumber: match.range.startLineNumber,
 							startColumn: match.range.startColumn,
 							endLineNumber: match.range.startLineNumber,
-							endColumn: match.range.startColumn
+							endColumn: match.range.startColumn + match.matches[0].length
 						}
 					});
 				}
@@ -8059,7 +8127,16 @@ class bslHelper {
 
 		}
 
-		return document_colors;
+		console.log('document_colors', document_colors);
+		console.log('matches', matches);
+		console.log('model', model);
+		console.log('token', token);
+		console.log('document_colors[0]', document_colors[0]);
+
+		return document_colors.map(color => ({
+			color: color.color,
+			range: color.range
+		}));
 
 	}
 
@@ -8070,9 +8147,14 @@ class bslHelper {
 	 * 
 	 * @returns {array} ColorPresentation[]
 	 */
-	static provideColorPresentations(model, colorInfo) {
+	static provideColorPresentations(model, colorInfo, token) {
 
-		let textEdit = null;
+		console.log('provideColorPresentations');
+		if (token.isCancellationRequested) {
+			return [];
+		}
+
+		//let textEdit = null;
 		let pattern = 'WebЦвета\.([a-zA-Z\u0410-\u044F]+)|WebColors\.([a-zA-Z\u0410-\u044F]+)|Новый Цвет\\s*\\((.*?)\\)|New Color\\s*\\((.*?)\\)';
 		let range = colorInfo.range;
 
@@ -8083,16 +8165,31 @@ class bslHelper {
 		let green = Math.round(color.green * 255);
 		let blue = Math.round(color.blue * 255);
 
+		let presentations = [];
+		
 		if (match && match.range.startLineNumber == range.startLineNumber) {
-			let value = window.engLang ? 'New Color' : 'Новый Цвет';
-			value = value + "(" + red + ", " + green + ", " + blue + ")";
-			textEdit = { range: match.range, text: value };
+			//let value = window.engLang ? 'New Color' : 'Новый Цвет';
+			//value = value + "(" + red + ", " + green + ", " + blue + ")";
+			//textEdit = { range: match.range, text: value };
+			let rgbValue = window.engLang ? 'New! Color' : 'Новый! Цвет';
+			rgbValue = rgbValue + "(" + red + ", " + green + ", " + blue + ")";
+
+			let hexValue = "#" + ((1 << 24) + (red << 16) + (green << 8) + blue).toString(16).slice(1).toUpperCase();
+
+			console.log(hexValue, rgbValue);
+			console.log(textEdit, match.range);
+			presentations.push({
+				label: hexValue,
+				//textEdit: { range: match.range, text: window.engLang ? `New Color("${hexValue}")` : `Новый Цвет("${hexValue}")` }
+				textEdit: { range: match.range, text: rgbValue }
+			});			
 		}
 
-		return [{
-			label: '',
-			textEdit: textEdit
-		}];
+		return presentations;
+		//return [{
+		//	label: '',
+		//	textEdit: textEdit
+		//}];
 	}
 
 	/**

@@ -1,5 +1,39 @@
 define([], function () {
 
+    // Функция для отладки токенизации
+    function debugTokenization(content, languageId) {
+        console.log("[DEBUG] Отладка токенизации для языка:", languageId);
+        try {
+            const tokens = monaco.editor.tokenize(content, languageId);
+            console.log("[DEBUG] Получены токены:", tokens.length, "строк");
+            for (let i = 0; i < Math.min(tokens.length, 3); i++) {
+                console.log(`[DEBUG] Пример токенов строки ${i}:`, JSON.stringify(tokens[i].slice(0, 3)));
+            }
+            return tokens;
+        } catch (error) {
+            console.error("[DEBUG] Ошибка при токенизации:", error);
+            return null;
+        }
+    }
+
+    // Функция для отладки API методов
+    function debugMonacoVersion() {
+        console.log("[DEBUG] Версия Monaco Editor:", monaco.version);
+        console.log("[DEBUG] Проверка наличия API методов:");
+        try {
+            const model = editor.getModel();
+            if (model) {
+                console.log("[DEBUG] model.getWordUntilPosition:", typeof model.getWordUntilPosition === 'function' ? "доступен" : "недоступен");
+                console.log("[DEBUG] model.getWordAtPosition:", typeof model.getWordAtPosition === 'function' ? "доступен" : "недоступен");
+                console.log("[DEBUG] model.findMatchingBracketUp:", typeof model.findMatchingBracketUp === 'function' ? "доступен" : "недоступен");
+            } else {
+                console.log("[DEBUG] Модель недоступна для проверки API методов");
+            }
+        } catch (error) {
+            console.error("[DEBUG] Ошибка при проверке API методов Monaco:", error);
+        }
+    }
+
     function deepCopyArray(sourceArray, destinationArray) {
 
         sourceArray.forEach(value => {
@@ -349,6 +383,9 @@ define([], function () {
             ],
             tokenizer: {
                 root: [
+                    // Комментарии должны обрабатываться первыми
+                    [/\/\/.*$/, { token: 'comment.bsl' }],
+                    { include: '@whitespace' },
                     [/(^\s*)(процедура|функция|procedure|function)(\s*[a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]+\s*)(\()/, [
                         {token: ''},
                         {token: 'keyword'},
@@ -432,7 +469,7 @@ define([], function () {
                         {token: 'query'},
                         {token: 'query'}                        
                     ]],
-                    [/([a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]+)(\.)([a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]+)/, 'query'],
+                    [/([a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]+)(\.)([a-zA-Z\u0410-\u044F_0-9]+)/, 'query'],
                     [/[a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]*/, {
                         cases: {
                             '@queryWords': 'query.keyword',
@@ -498,7 +535,11 @@ define([], function () {
                     [/"/, { token: 'string.quote', next: '@pop' }]
                 ],
                 whitespace: [
-                    [/\/\/.*$/, 'comment'],
+                    [/\/\/.*$/, 'comment']
+                    //[/[ \t\r\n]+/, 'white'],
+                    //[/\/\/.*$/, 'comment'],
+                    //[/^\s*[&].*$/, 'compile'],
+                    //[/^\s*[#].*$/, 'preproc'],
                 ],
             },
         },        
@@ -653,11 +694,26 @@ define([], function () {
             completionProvider: {
                 triggerCharacters: ['.', '"', ' ', '&'],
                 provideCompletionItems: function (model, position, context, token) {
-                    resetSuggestWidgetDisplay();
-                    let bsl = new bslHelper(model, position);
-                    let completion = bsl.getCompletion(context, token);
-                    bsl.onProvideCompletion(context, completion);
-                    return completion;
+                    try {
+                        console.log("[DEBUG] provideCompletionItems в bsl_language.js вызвана", { position, context, token });
+                        resetSuggestWidgetDisplay();
+                        
+                        // Создаем экземпляр bslHelper и проверяем, что создание прошло успешно
+                        let bsl = new bslHelper(model, position);
+                        console.log("[DEBUG] bslHelper создан успешно");
+                        
+                        // Вызываем метод получения подсказок и передаем context и token
+                        let completion = bsl.getCompletion(context, token);
+                        console.log("[DEBUG] getCompletion выполнен", completion);
+                        
+                        bsl.onProvideCompletion(context, completion);
+                        console.log("[DEBUG] onProvideCompletion выполнен успешно");
+                        
+                        return completion;
+                    } catch (error) {
+                        console.log("[DEBUG] Ошибка в provideCompletionItems:", error);
+                        return { suggestions: [] };
+                    }
                 },
                 resolveCompletionItem: function (model, position, item) {
                     let bsl = new bslHelper(model, position);
@@ -674,14 +730,30 @@ define([], function () {
                 signatureHelpTriggerCharacters: ['(', ','],
                 signatureHelpRetriggerCharacters: [')'],
                 provideSignatureHelp: (model, position, token, context) => {
-                    let helper = null;
-                    if (!window.isSuggestWidgetVisible()) {
+                    try {
+                        console.log("[DEBUG] provideSignatureHelp в bsl_language.js вызвана", { position, context, token });
                         resetSignatureWidgetDisplay();
+                        
+                        // Создаем экземпляр bslHelper и проверяем, что создание прошло успешно
                         let bsl = new bslHelper(model, position);
-                        helper = bsl.getSigHelp(context);
-                        onProvideSignature(bsl, context, position);
+                        console.log("[DEBUG] bslHelper создан успешно");
+                        
+                        // Вызываем метод получения подсказки сигнатуры и передаем context
+                        let helper = bsl.getSigHelp(context);
+                        console.log("[DEBUG] getSigHelp выполнен", helper);
+                        
+                        if (helper) {
+                            onProvideSignature(bsl, context, position);
+                            console.log("[DEBUG] onProvideSignature выполнен успешно");
+                        } else {
+                            console.log("[WARNING] getSigHelp вернул пустой результат");
+                        }
+                        
+                        return helper;
+                    } catch (error) {
+                        console.log("[DEBUG] Ошибка в provideSignatureHelp:", error);
+                        return null;
                     }
-                    return helper;
                 }
             },
             hoverProvider: {
@@ -711,11 +783,11 @@ define([], function () {
                 resolver: () => {}
             },
             colorProvider: {
-                provideColorPresentations: (model, colorInfo) => {
-                    return bslHelper.provideColorPresentations(model, colorInfo);
+                provideColorPresentations: (model, colorInfo, token) => {
+                    return bslHelper.provideColorPresentations(model, colorInfo, token);
                 },
-                provideDocumentColors: (model) => {
-                    return bslHelper.getDocumentColors(model);
+                provideDocumentColors: (model, token) => {
+                    return bslHelper.getDocumentColors(model, token);
                 }
             },
             definitionProvider: {
@@ -747,7 +819,11 @@ define([], function () {
                 ['procedure', 'endprocedure'],
                 ['#область', '#конецобласти']
             ],
-            autoClosingPairs: []
+            autoClosingPairs: [
+                { open: '[', close: ']', notIn: ['string', 'comment'] },
+                { open: '(', close: ')', notIn: ['string', 'comment'] },
+                { open: '{', close: '}', notIn: ['string', 'comment'] },
+            ]
         },
         query: {
             languageDef: query_language,
@@ -770,11 +846,30 @@ define([], function () {
                 signatureHelpTriggerCharacters: ['(', ','],
                 signatureHelpRetriggerCharacters: [')'],
                 provideSignatureHelp: (model, position, token, context) => {
-                    resetSignatureWidgetDisplay();
-                    let bsl = new bslHelper(model, position);
-                    let helper = bsl.getQuerySigHelp(context);
-                    onProvideSignature(bsl, context, position);
-                    return helper;
+                    try {
+                        console.log("[DEBUG] provideSignatureHelp в query_language.js вызвана", { position, context, token });
+                        resetSignatureWidgetDisplay();
+                        
+                        // Создаем экземпляр bslHelper и проверяем, что создание прошло успешно
+                        let bsl = new bslHelper(model, position);
+                        console.log("[DEBUG] bslHelper создан успешно");
+                        
+                        // Вызываем метод получения подсказки сигнатуры и передаем context
+                        let helper = bsl.getQuerySigHelp(context);
+                        console.log("[DEBUG] getQuerySigHelp выполнен", helper);
+                        
+                        if (helper) {
+                            onProvideSignature(bsl, context, position);
+                            console.log("[DEBUG] onProvideSignature выполнен успешно");
+                        } else {
+                            console.log("[WARNING] getQuerySigHelp вернул пустой результат");
+                        }
+                        
+                        return helper;
+                    } catch (error) {
+                        console.log("[DEBUG] Ошибка в provideSignatureHelp:", error);
+                        return null;
+                    }
                 }
             },
             hoverProvider: {
@@ -821,7 +916,11 @@ define([], function () {
                 ['[', ']'],
                 ['{', '}']
             ],
-            autoClosingPairs: []
+            autoClosingPairs: [
+                { open: '[', close: ']' },
+                { open: '(', close: ')' },
+                { open: '{', close: '}' }
+            ]
         },
         dcs: {
             languageDef: dcs_language,
@@ -842,11 +941,30 @@ define([], function () {
                 signatureHelpTriggerCharacters: ['(', ','],
                 signatureHelpRetriggerCharacters: [')'],
                 provideSignatureHelp: (model, position, token, context) => {
-                    resetSignatureWidgetDisplay();
-                    let bsl = new bslHelper(model, position);
-                    let helper = bsl.getDCSSigHelp(context);
-                    onProvideSignature(bsl, context, position);
-                    return helper;
+                    try {
+                        console.log("[DEBUG] provideSignatureHelp в dcs_language.js вызвана", { position, context, token });
+                        resetSignatureWidgetDisplay();
+                        
+                        // Создаем экземпляр bslHelper и проверяем, что создание прошло успешно
+                        let bsl = new bslHelper(model, position);
+                        console.log("[DEBUG] bslHelper создан успешно");
+                        
+                        // Вызываем метод получения подсказки сигнатуры и передаем context
+                        let helper = bsl.getDCSSigHelp(context);
+                        console.log("[DEBUG] getDCSSigHelp выполнен", helper);
+                        
+                        if (helper) {
+                            onProvideSignature(bsl, context, position);
+                            console.log("[DEBUG] onProvideSignature выполнен успешно");
+                        } else {
+                            console.log("[WARNING] getDCSSigHelp вернул пустой результат");
+                        }
+                        
+                        return helper;
+                    } catch (error) {
+                        console.log("[DEBUG] Ошибка в provideSignatureHelp:", error);
+                        return null;
+                    }
                 }
             },
             hoverProvider: {
@@ -886,7 +1004,11 @@ define([], function () {
                 ['(', ')'],
                 ['[', ']']                
             ],
-            autoClosingPairs: []
+            autoClosingPairs: [
+                { open: '[', close: ']' },
+                { open: '(', close: ')' },
+                { open: '{', close: '}' }
+            ]
         }
 
     };

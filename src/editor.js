@@ -402,10 +402,14 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   }
 
   getCurrentLanguageId = function() {
-
-    let identifier = getActiveEditor().getModel().getLanguageIdentifier();
-    return identifier.language;
-
+    try {
+      // В Monaco 0.52.0 метод getLanguageIdentifier() был заменен на getLanguageId()
+      const model = getActiveEditor().getModel();
+      return model.getLanguageId();
+    } catch (error) {
+      console.error("[ERROR] getCurrentLanguageId:", error);
+      return "bsl"; // Возвращаем bsl по умолчанию в случае ошибки
+    }
   }
 
   getSelectedText = function() {
@@ -1641,7 +1645,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         length = Math.max(length, value.length)
       });
 
-      const max_length = lineNumbersDedocrations.length.toString().length + 3
+      const max_length =  lineNumbersDedocrations.length.toString().length + 3
       editor.updateOptions({ lineNumbersMinChars: 0 });
       editor.updateOptions({ lineNumbersMinChars: length + max_length });
       editor.layout();
@@ -1865,11 +1869,11 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       value: text,
       language: language_id,
       contextmenu: true,
-      wordBasedSuggestions: false,
+      wordBasedSuggestions: 'currentDocument',
       scrollBeyondLastLine: false,
       insertSpaces: false,
       trimAutoWhitespace: false,
-      autoIndent: true,
+      autoIndent: 'advanced', // Изменено с булева значения на строковое перечисление
       find: {
         addExtraSpaceOnTop: false
       },
@@ -1878,8 +1882,21 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       },
       customOptions: true,
       lineNumbers: getLineNumber,
-      renderValidationDecorations: "on"
+      renderValidationDecorations: "on",
+      // Добавлены новые опции из версии 0.52.0
+      minimap: {
+        enabled: true
+      },
+      wordWrap: 'off',
+      // Добавлена поддержка placeholder для пустого редактора
+      //IModel.VersionId()
+      placeholder: 'Введите текст модуля на языке 1С monaco Editor 0.52.0...',
+      // Компактный режим для экономии места
+      compactMode: false
     });
+
+    //console.log('model версия: ', editor.IModel.getVersionId());
+    console.log('model версия: ', editor.getModel().getVersionId());
 
     changeCommandKeybinding('editor.action.revealDefinition', monaco.KeyCode.F12);
     changeCommandKeybinding('editor.action.peekDefinition', monaco.KeyMod.CtrlCmd | monaco.KeyCode.F12);
@@ -1901,11 +1918,17 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         
         let language = lang.languageDef;
   
+        // Изменить на более простую регистрацию
         monaco.languages.registerCodeLensProvider(language.id, {
-          onDidChange: lang.codeLenses.onDidChange, 
-          provideCodeLenses: lang.codeLenses.provider, 
-          resolveCodeLens: lang.codeLenses.resolver
-        });
+          provideCodeLenses: function(model, token) {
+            return lang.codeLenses.provider(model, token);
+          }
+        });        
+        //monaco.languages.registerCodeLensProvider(language.id, {
+        //  onDidChange: lang.codeLenses.onDidChange, 
+        //  provideCodeLenses: lang.codeLenses.provider, 
+        //  resolveCodeLens: lang.codeLenses.resolver
+        //});
   
       }
   
@@ -1962,10 +1985,10 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     editor.addAction({
       id: action_id,
       label: action.label,
-      keybindings: [action.key, action.cmd],
+      keybindings: action.key && action.cmd ? [action.key, action.cmd] : (action.key ? [action.key] : []),
       precondition: null,
       keybindingContext: null,
-      contextMenuGroupId: null,
+      contextMenuGroupId: 'navigation',
       contextMenuOrder: action.order,
       run: action.callback
     });
@@ -2169,6 +2192,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       let prevSelectedDelimiters = new Map(selectedQueryDelimiters);
       selectedQueryDelimiters = new Map();
       const matches = editor.getModel().findMatches('^\\s*;\\s*$', e.selection, true, false, null, true);
+      const current_theme = getCurrentThemeName();
+      const is_dark_theme = (0 <= current_theme.indexOf('dark'));
       
       for (let idx = 0; idx < matches.length; idx++)
         selectedQueryDelimiters.set(matches[idx].range.toString(), true);          
@@ -2184,7 +2209,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   generateEscapeEvent = function() {
 
     let position = editor.getPosition();
-    let bsl = new bslHelper(editor.getModel(), position);
+    let bsl = new bslHelper(editor.getModel('node_modules/monaco-editor/dev/vs/loader.js'), position);
 
     eventParams = {
       current_word: bsl.word,
@@ -2283,7 +2308,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
           let target_range = new monaco.Range(
             change_range.startLineNumber,
             change_range.startColumn,
-            change_range.startLineNumber + content_range.endLineNumber - 1,
+            change_range.startLineNumber + content_range.endLineNumber - content_range.startLineNumber,
             content_range.endColumn
           );
 
@@ -2665,10 +2690,15 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   }
 
   function changeCommandKeybinding(command, keybinding) {
-  
-    editor._standaloneKeybindingService.addDynamicKeybinding('-' + command);
-    editor._standaloneKeybindingService.addDynamicKeybinding(command, keybinding);
-
+    // В Monaco 0.52.0 используем EditorAction API вместо standaloneKeybindingService
+    monaco.editor.addEditorAction({
+      id: 'override-' + command,
+      label: 'Override ' + command,
+      keybindings: [keybinding],
+      run: function() {
+        editor.trigger('keyboard', command, null);
+      }
+    });
   }
 
   function getQueryDelimiterDecorations(decorations) {
@@ -2811,9 +2841,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
     if (getOption('reviewMode') && !getOption("readOnlyCodeReview") && e.target.position) {
   
-      let standaloneEditor = editor;
-      
-      if (editor.navi)
+      let standaloneEditor = editor;      
+            if (editor.navi)
         standaloneEditor = editor.getModifiedEditor();
 
       standaloneEditor.reviewDecorations = [];
@@ -3062,7 +3091,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       let menuAction = editor.addAction({
         id: action_id,
         label: action.label,
-        keybindings: [action.key, action.cmd],
+        keybindings: action.key && action.cmd ? [action.key, action.cmd] : (action.key ? [action.key] : []),
         precondition: null,
         keybindingContext: null,
         contextMenuGroupId: 'navigation',
@@ -3668,7 +3697,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
               header.classList.add('diff-header');
               header.classList.add(class_name);
 
-              if (0 <= currentTheme.indexOf('dark'))
+              if (0 < currentTheme.indexOf('dark'))
                 header.classList.add('dark');
 
               header.innerText = engLang ? 'changes': 'изменения';
@@ -3992,6 +4021,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
         }
         return this.domNode;
+
       },
       getPosition: function () {
         return null;
@@ -4033,12 +4063,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         widget: reviewWidget
       });
 
-      standaloneEditor.layout();
-      setTimeout(() => {reviewWidget.load(issue)}, 10);
+      standaloneEditor.addOverlayWidget(reviewWidget);    
 
     }); 
 
-    standaloneEditor.addOverlayWidget(reviewWidget);    
+    standaloneEditor.layout();
+    setTimeout(() => {reviewWidget.load(issue)}, 10);
 
   }
 
@@ -4261,3 +4291,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
 });
 
+window.isSuggestWidgetVisible = function() {
+  try {
+    const suggestController = editor.getContribution('editor.contrib.suggestController');
+    return suggestController?.model?.state > 0;
+  } catch (error) {
+    console.error("[ERROR] isSuggestWidgetVisible:", error);
+    return false;
+  }
+};
