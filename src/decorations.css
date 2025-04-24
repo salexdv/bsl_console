@@ -112,6 +112,34 @@ div:has(> .add-review) {
 	background-color: #ddd;
 }
 
+.expand-widget {
+	background-color: #eee;
+	transition: transform .1s ease-in-out;
+	z-index: 1;
+}
+
+.expand-widget a {
+	width: 18px;
+	display: block;
+}
+
+.expand-widget a::after {
+	content: ' ';
+	background: url("media/expand.svg");
+	background-size: contain;
+    background-repeat: no-repeat;	
+	line-height: 18px;
+	width: 18px;
+    height: 18px;
+    display: block;
+	cursor: pointer;
+	opacity: 0.6;
+}
+
+.expand-widget a:hover::after {
+	opacity: 1;
+}
+
 .add-review {
 	margin-left: 2px;
 	margin-top: -1px;

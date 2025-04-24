@@ -59,6 +59,7 @@ window.lineNumbersDedocrations = [];
 window.selectedQueryDelimiters = new Map();
 window.reviewWidgets = new Map();
 window.currentIssue = -1;
+window.hiddenBlocks = new Map();
 // #endregion
 
 // #region public API
@@ -1797,6 +1798,34 @@ window.stopCodeReview = function() {
 
 }
 
+window.hideBlocks = function(blocks) {
+  
+  blocks.forEach(function (block) {
+
+    if (!window.hiddenBlocks.get(block.startLineNumber)) {
+      let hiddenBlock = new monaco.Range(block.startLineNumber, 1, block.endLineNumber, 10);
+      window.editor.changeViewZones(function (changeAccessor) {
+        var domNode = document.createElement("div");
+        domNode.appendChild(document.createElement("a"));
+        domNode.classList.add('expand-widget');
+        const zone = {
+          afterLineNumber: block.endLineNumber,
+          heightInLines: 1,
+          domNode: domNode,
+        };
+        let viewZoneId = changeAccessor.addZone(zone);
+        window.hiddenBlocks.set(block.startLineNumber, {
+          zoneId: viewZoneId,
+          block: hiddenBlock
+        });
+        setHiddenAreas();
+      });
+    }
+
+  });
+
+}
+
 // #endregion
 
 // #region init editor
@@ -2831,14 +2860,39 @@ function getNativeLinkHref(element, isForwardDirection) {
 
 }
 
+function setHiddenAreas() {
+  
+  let hiddenAreas = [];
+  window.hiddenBlocks.forEach((value, key, map) => {
+    hiddenAreas.push(value.block);
+  });
+  window.editor.setHiddenAreas(hiddenAreas);
+
+}
+
 function checkOnLinkClick(element) {
 
   if (element.tagName.toLowerCase() == 'a') {
 
-    window.sendEvent("EVENT_ON_LINK_CLICK", { label: element.innerText, href: element.dataset.href });
-    setTimeout(() => {
-      window.editor.focus();
-    }, 100);
+    if (element.parentElement.classList.contains('expand-widget')) {
+      let zoneId = element.parentElement.getAttribute("monaco-view-zone");
+      let hiddenArea = null;
+      window.hiddenBlocks.forEach((value, key, map) => {
+        if (value.zoneId == zoneId)
+          hiddenArea = value;
+      });
+      window.editor.changeViewZones(function (changeAccessor) {
+        changeAccessor.removeZone(hiddenArea.zoneId);
+        window.hiddenBlocks.delete(hiddenArea.block.startLineNumber);
+        setHiddenAreas();
+      });
+    }
+    else {
+      window.sendEvent("EVENT_ON_LINK_CLICK", { label: element.innerText, href: element.dataset.href });
+      setTimeout(() => {
+        window.editor.focus();
+      }, 100);
+    }
 
   }
   else if (element.classList.contains('detected-link-active')) {
