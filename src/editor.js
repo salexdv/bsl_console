@@ -711,14 +711,14 @@ window.compare = function (text, sideBySide, highlight, markLines = true, ignore
 
   let status_bar = window.statusBarWidget ? true : false;
   let overlapScroll = true
-    
+
   if (status_bar) {
     overlapScroll = window.statusBarWidget.overlapScroll;
     hideStatusBar();
   }
 
-  if (text) {      
-    
+  if (text) {
+
     if (language_id == 'xml') {
       language_id = 'xml';
       currentTheme = 'vs';
@@ -736,6 +736,15 @@ window.compare = function (text, sideBySide, highlight, markLines = true, ignore
       scrollBeyondLastLine: false,
       renderSideBySide: sideBySide,
       ignoreTrimWhitespace: ignoreWhitespace,
+      renderMarginRevertIcon: false,
+      originalEditable: false,
+      readOnly: true,
+      hideUnchangedRegions: {
+        enabled: true,
+        contextLineCount: 3,
+        minimumLineCount: 3,
+        revealLineCount: 20,
+      },
       find: {
         addExtraSpaceOnTop: false
       }
@@ -762,12 +771,12 @@ window.compare = function (text, sideBySide, highlight, markLines = true, ignore
       decor: [],
       line: 0,
       position: 0
-    };      
+    };
     window.editor.diffEditorUpdateDecorations = diffEditorUpdateDecorations;
     window.editor.markDiffLines = function () {
       setTimeout(() => {
         const modified_line = this.getPosition().lineNumber;
-        const diff_info = this.getDiffLineInformationForModified(modified_line);
+        const diff_info = getDiffLineInformationForModified(modified_line);
         const original_line = diff_info ? diff_info.equivalentLineNumber : modified_line;
         if (this.markLines) {
           this.getModifiedEditor().diffDecor.line = modified_line;
@@ -800,9 +809,9 @@ window.compare = function (text, sideBySide, highlight, markLines = true, ignore
     window.originalText = '';
     window.editor.diffCount = 0;
   }
-  
+
   window.editor.updateOptions({ readOnly: window.readOnlyMode });
-  
+
   if (status_bar)
     window.showStatusBar(overlapScroll);
 
@@ -2988,13 +2997,13 @@ function diffEditorOnDidChangeCursorPosition(e) {
 
     if (window.editor.getModifiedEditor().getPosition().equals(e.position)) {
       window.editor.getOriginalEditor().setPosition({
-        lineNumber: window.editor.getDiffLineInformationForModified(line_number).equivalentLineNumber,
+        lineNumber: getDiffLineInformationForModified(line_number).equivalentLineNumber,
         column: 1
       });
     }
     else {
       window.editor.getModifiedEditor().setPosition({
-        lineNumber: window.editor.getDiffLineInformationForOriginal(line_number).equivalentLineNumber,
+        lineNumber: getDiffLineInformationForOriginal(line_number).equivalentLineNumber,
         column: 1
       });
     }
@@ -3335,11 +3344,11 @@ function resizeStatusBar() {
     let element = window.statusBarWidget.domNode;
 
     if (window.statusBarWidget.overlapScroll) {
-      element.style.top = window.editor.getDomNode().clientHeight - 20 + 'px';
+      element.style.top = getActiveEditor().clientHeight - 20 + 'px';
     }
     else {
       let layout = getActiveEditor().getLayoutInfo();      
-      element.style.top = (window.editor.getDomNode().offsetHeight - 20 - layout.horizontalScrollbarHeight) + 'px';
+      element.style.top = (getActiveEditor().getDomNode().offsetHeight - 20 - layout.horizontalScrollbarHeight) + 'px';
     }
 
   }
@@ -3676,12 +3685,12 @@ function createStatusBarWidget(overlapScroll) {
         this.domNode.classList.add('statusbar-widget');
         if (this.overlapScroll) {
           this.domNode.style.right = '0';
-          this.domNode.style.top = window.editor.getDomNode().offsetHeight - 20 + 'px';
+          this.domNode.style.top = getActiveEditor().offsetHeight - 20 + 'px';
         }
         else {
           let layout = getActiveEditor().getLayoutInfo();
           this.domNode.style.right = layout.verticalScrollbarWidth + 'px';
-          this.domNode.style.top = (window.editor.getDomNode().offsetHeight - 20 - layout.horizontalScrollbarHeight) + 'px';
+          this.domNode.style.top = (getActiveEditor().getDomNode().offsetHeight - 20 - layout.horizontalScrollbarHeight) + 'px';
         }
         this.domNode.style.height = '20px';
         this.domNode.style.minWidth = '125px';
@@ -4335,6 +4344,84 @@ function setThemeVariablesDisplay(theme) {
   else
     document.getElementById("display").classList.remove('dark');
 
+}
+
+function _getLineChangeAtOrBeforeLineNumber(lineNumber, startLineNumberExtractor) {
+  const lineChanges = editor.getLineChanges();
+  if (lineChanges.length === 0 || lineNumber < startLineNumberExtractor(lineChanges[0])) {
+      // There are no changes or `lineNumber` is before the first change
+      return null;
+  }
+  let min = 0, max = lineChanges.length - 1;
+  while (min < max) {
+      let mid = Math.floor((min + max) / 2);
+      let midStart = startLineNumberExtractor(lineChanges[mid]);
+      let midEnd = (mid + 1 <= max ? startLineNumberExtractor(lineChanges[mid + 1]) : 1073741824 /* MAX_SAFE_SMALL_INTEGER */);
+      if (lineNumber < midStart) {
+          max = mid - 1;
+      }
+      else if (lineNumber >= midEnd) {
+          min = mid + 1;
+      }
+      else {
+          // HIT!
+          min = mid;
+          max = mid;
+      }
+  }
+  return lineChanges[min];
+}
+
+function _getEquivalentLineForOriginalLineNumber(lineNumber) {
+  let lineChange = _getLineChangeAtOrBeforeLineNumber(lineNumber, (lineChange) => lineChange.originalStartLineNumber);
+  if (!lineChange) {
+      return lineNumber;
+  }
+  let originalEquivalentLineNumber = lineChange.originalStartLineNumber + (lineChange.originalEndLineNumber > 0 ? -1 : 0);
+  let modifiedEquivalentLineNumber = lineChange.modifiedStartLineNumber + (lineChange.modifiedEndLineNumber > 0 ? -1 : 0);
+  let lineChangeOriginalLength = (lineChange.originalEndLineNumber > 0 ? (lineChange.originalEndLineNumber - lineChange.originalStartLineNumber + 1) : 0);
+  let lineChangeModifiedLength = (lineChange.modifiedEndLineNumber > 0 ? (lineChange.modifiedEndLineNumber - lineChange.modifiedStartLineNumber + 1) : 0);
+  let delta = lineNumber - originalEquivalentLineNumber;
+  if (delta <= lineChangeOriginalLength) {
+      return modifiedEquivalentLineNumber + Math.min(delta, lineChangeModifiedLength);
+  }
+  return modifiedEquivalentLineNumber + lineChangeModifiedLength - lineChangeOriginalLength + delta;
+}
+
+function _getEquivalentLineForModifiedLineNumber(lineNumber) {
+  let lineChange = _getLineChangeAtOrBeforeLineNumber(lineNumber, (lineChange) => lineChange.modifiedStartLineNumber);
+  if (!lineChange) {
+      return lineNumber;
+  }
+  let originalEquivalentLineNumber = lineChange.originalStartLineNumber + (lineChange.originalEndLineNumber > 0 ? -1 : 0);
+  let modifiedEquivalentLineNumber = lineChange.modifiedStartLineNumber + (lineChange.modifiedEndLineNumber > 0 ? -1 : 0);
+  let lineChangeOriginalLength = (lineChange.originalEndLineNumber > 0 ? (lineChange.originalEndLineNumber - lineChange.originalStartLineNumber + 1) : 0);
+  let lineChangeModifiedLength = (lineChange.modifiedEndLineNumber > 0 ? (lineChange.modifiedEndLineNumber - lineChange.modifiedStartLineNumber + 1) : 0);
+  let delta = lineNumber - modifiedEquivalentLineNumber;
+  if (delta <= lineChangeModifiedLength) {
+      return originalEquivalentLineNumber + Math.min(delta, lineChangeOriginalLength);
+  }
+  return originalEquivalentLineNumber + lineChangeOriginalLength - lineChangeModifiedLength + delta;
+}
+
+function getDiffLineInformationForOriginal(lineNumber) {
+  if (!editor.navi) {
+      // Cannot answer that which I don't know
+      return null;
+  }
+  return {
+      equivalentLineNumber: _getEquivalentLineForOriginalLineNumber(lineNumber)
+  };
+}
+
+function getDiffLineInformationForModified(lineNumber) {
+  if (!editor.navi) {
+      // Cannot answer that which I don't know
+      return null;
+  }
+  return {
+      equivalentLineNumber: _getEquivalentLineForModifiedLineNumber(lineNumber)
+  };
 }
 // #endregion
 
