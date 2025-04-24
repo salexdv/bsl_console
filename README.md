@@ -226,6 +226,8 @@ npm run build  -- --customOptions "automaticLayout: true, someOption: false"
 | `removeAllBreakpoints`         | Удаляет все установленные точки останова                                                      |
 | `setCurrentDebugLine`          | Устанавливает цветовое выделение строки отладки по её номеру                                  |
 | `deleteCurrentDebugLine`       | Удаляет цветовое выделение существующей строки отладки                                        |
+| `showAllUnchangedRegions`      | Показать все неизмененные области в режиме сравнения                                          |
+| `collapseAllUnchangedRegions`  | Скрыть все неизмененные области в режиме сравнения                                            |
 
 ## События, генерируемые редактором для 1С:Предприятия
 

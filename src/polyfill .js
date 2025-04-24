@@ -3,6 +3,77 @@ import '@ungap/global-this';
 import ResizeObserver from 'resize-observer-polyfill';
 import 'performance-polyfill'
 
+if (typeof WeakRef === 'undefined') {
+    globalThis.WeakRef = class {
+        constructor(value) {
+            this._value = value;
+        }
+        deref() {
+            return this._value;
+        }
+    };
+}
+
+if (!Array.prototype.flat) {
+    Array.prototype.flat = function (depth = 1) {
+        const flatten = (arr, d) => {
+            if (d < 1) return arr.slice();
+            return arr.reduce((acc, val) => {
+                if (Array.isArray(val)) {
+                    acc.push(...flatten(val, d - 1));
+                } else {
+                    acc.push(val);
+                }
+                return acc;
+            }, []);
+        };
+        return flatten(this, depth);
+    };
+}
+
+if (!Array.prototype.flatMap) {
+    Array.prototype.flatMap = function (callback, thisArg) {
+        return this.map(callback, thisArg).flat();
+    };
+}
+
+if (typeof navigator.clipboard === "undefined") {
+
+    window.ClipboardItem = function (items) {
+        this.types = Object.keys(items);
+        this._items = items;
+        this.getType = function (type) {
+            return Promise.resolve(this._items[type]);
+        };
+    };
+
+    navigator.clipboard = {};
+    navigator.clipboard.write = async function (items) {
+        const textItem = items.find(item => item.types.includes("text/plain"));
+        if (!textItem) {
+            throw new Error("Only text/plain ClipboardItems are supported in this polyfill.");
+        }
+
+        const blob = await textItem.getType("text/plain");
+        const text = await blob.text();
+
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.style.position = "fixed";
+        textarea.style.opacity = 0;
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+
+        try {
+            const success = document.execCommand("copy");
+            if (!success) throw new Error("Copy failed");
+        } finally {
+            document.body.removeChild(textarea);
+        }
+    };
+}
+
 if (!window.ResizeObserver) {
     window.ResizeObserver = ResizeObserver
 }

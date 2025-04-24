@@ -59,7 +59,6 @@ window.lineNumbersDedocrations = [];
 window.selectedQueryDelimiters = new Map();
 window.reviewWidgets = new Map();
 window.currentIssue = -1;
-window.hiddenBlocks = new Map();
 // #endregion
 
 // #region public API
@@ -388,8 +387,6 @@ window.isDCSMode = function() {
 
 window.setLanguageMode = function(mode) {
 
-  let isCompareMode = (window.editor.navi != undefined);
-
   window.queryMode = (mode == 'bsl_query');
   window.DCSMode = (mode == 'dcs_query');
 
@@ -398,7 +395,7 @@ window.setLanguageMode = function(mode) {
   else
     window.editor.updateOptions({ foldingStrategy: "auto" });
 
-  if (isCompareMode) {
+  if (window.editor.navi) {
     monaco.editor.setModelLanguage(window.editor.getModifiedEditor().getModel(), mode);
     monaco.editor.setModelLanguage(window.editor.getOriginalEditor().getModel(), mode);
   }
@@ -749,6 +746,7 @@ window.compare = function (text, sideBySide, highlight, markLines = true, ignore
         addExtraSpaceOnTop: false
       }
     });
+    editor.navi = true;
     if (highlight) {
       monaco.editor.setModelLanguage(originalModel, language_id);
       monaco.editor.setModelLanguage(modifiedModel, language_id);
@@ -756,10 +754,6 @@ window.compare = function (text, sideBySide, highlight, markLines = true, ignore
     window.editor.setModel({
       original: originalModel,
       modified: modifiedModel
-    });
-    window.editor.navi = monaco.editor.createDiffNavigator(editor, {
-      followsCaret: true,
-      ignoreCharChanges: true
     });
     window.editor.markLines = markLines;
     window.editor.getModifiedEditor().diffDecor = {
@@ -932,7 +926,7 @@ window.showPreviousCustomSuggestions = function () {
 window.nextDiff = function() {
 
   if (window.editor.navi) {
-    window.editor.navi.next();
+    window.editor.goToDiff('next');
     window.editor.markDiffLines();
   }
 
@@ -941,7 +935,7 @@ window.nextDiff = function() {
 window.previousDiff = function() {
 
   if (window.editor.navi) {
-    window.editor.navi.previous();
+    window.editor.goToDiff('previous');
     window.editor.markDiffLines();
   }
 
@@ -1807,34 +1801,19 @@ window.stopCodeReview = function() {
 
 }
 
-window.hideBlocks = function(blocks) {
-  
-  blocks.forEach(function (block) {
+window.showAllUnchangedRegions = function() {
 
-    if (!window.hiddenBlocks.get(block.startLineNumber)) {
-      let hiddenBlock = new monaco.Range(block.startLineNumber, 1, block.endLineNumber, 10);
-      window.editor.changeViewZones(function (changeAccessor) {
-        var domNode = document.createElement("div");
-        domNode.appendChild(document.createElement("a"));
-        domNode.classList.add('expand-widget');
-        const zone = {
-          afterLineNumber: block.endLineNumber,
-          heightInLines: 1,
-          domNode: domNode,
-        };
-        let viewZoneId = changeAccessor.addZone(zone);
-        window.hiddenBlocks.set(block.startLineNumber, {
-          zoneId: viewZoneId,
-          block: hiddenBlock
-        });
-        setHiddenAreas();
-      });
-    }
-
-  });
+  if (window.editor.navi)
+    window.editor.showAllUnchangedRegions();
 
 }
 
+window.collapseAllUnchangedRegions = function() {
+
+  if (window.editor.navi)
+    window.editor.collapseAllUnchangedRegions();
+
+}
 // #endregion
 
 // #region init editor
@@ -1869,11 +1848,12 @@ window.createEditor = function(language_id, text, theme) {
     customOptions: true,
     renderValidationDecorations: "on",
   });
+  editor.navi = false;
 
-  // changeCommandKeybinding('editor.action.revealDefinition', monaco.KeyCode.F12);
-  // changeCommandKeybinding('editor.action.peekDefinition', monaco.KeyMod.CtrlCmd | monaco.KeyCode.F12);
-  // changeCommandKeybinding('editor.action.deleteLines',  monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_L);
-  // changeCommandKeybinding('editor.action.selectToBracket',  monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.KEY_B);
+  changeCommandKeybinding('editor.action.revealDefinition', monaco.KeyCode.F12);
+  changeCommandKeybinding('editor.action.peekDefinition', monaco.KeyMod.CtrlCmd | monaco.KeyCode.F12);
+  changeCommandKeybinding('editor.action.deleteLines',  monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyL);
+  changeCommandKeybinding('editor.action.selectToBracket',  monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.KeyB);
 
   window.lineNumbersDedocrations = [];
   window.setDefaultStyle();
@@ -2716,8 +2696,12 @@ function startStopSignatureObserver() {
 
 function changeCommandKeybinding(command, keybinding) {
   
-  window.editor._standaloneKeybindingService.addDynamicKeybinding('-' + command);
-  window.editor._standaloneKeybindingService.addDynamicKeybinding(command, keybinding);
+  monaco.editor.addKeybindingRules([
+    {
+      command: command,
+      keybinding: keybinding
+    },
+  ]);
 
 }
 
@@ -2869,39 +2853,14 @@ function getNativeLinkHref(element, isForwardDirection) {
 
 }
 
-function setHiddenAreas() {
-  
-  let hiddenAreas = [];
-  window.hiddenBlocks.forEach((value, key, map) => {
-    hiddenAreas.push(value.block);
-  });
-  window.editor.setHiddenAreas(hiddenAreas);
-
-}
-
 function checkOnLinkClick(element) {
 
   if (element.tagName.toLowerCase() == 'a') {
 
-    if (element.parentElement.classList.contains('expand-widget')) {
-      let zoneId = element.parentElement.getAttribute("monaco-view-zone");
-      let hiddenArea = null;
-      window.hiddenBlocks.forEach((value, key, map) => {
-        if (value.zoneId == zoneId)
-          hiddenArea = value;
-      });
-      window.editor.changeViewZones(function (changeAccessor) {
-        changeAccessor.removeZone(hiddenArea.zoneId);
-        window.hiddenBlocks.delete(hiddenArea.block.startLineNumber);
-        setHiddenAreas();
-      });
-    }
-    else {
-      window.sendEvent("EVENT_ON_LINK_CLICK", { label: element.innerText, href: element.dataset.href });
-      setTimeout(() => {
-        window.editor.focus();
-      }, 100);
-    }
+    window.sendEvent("EVENT_ON_LINK_CLICK", { label: element.innerText, href: element.dataset.href });
+    setTimeout(() => {
+      window.editor.focus();
+    }, 100);
 
   }
   else if (element.classList.contains('detected-link-active')) {
@@ -3344,12 +3303,13 @@ function resizeStatusBar() {
     let element = window.statusBarWidget.domNode;
 
     if (window.statusBarWidget.overlapScroll) {
-      element.style.top = getActiveEditor().clientHeight - 20 + 'px';
+      element.style.top = getActiveEditor().getDomNode().clientHeight - 20 + 'px';
     }
     else {
       let layout = getActiveEditor().getLayoutInfo();      
       element.style.top = (getActiveEditor().getDomNode().offsetHeight - 20 - layout.horizontalScrollbarHeight) + 'px';
     }
+    console.log(element.style.top);
 
   }
 
@@ -3571,7 +3531,7 @@ function checkEmptySuggestions() {
 function getCurrentThemeName() {
 
   let queryPostfix = '-query';
-  let currentTheme = window.editor._themeService.getColorTheme().themeName;
+  let currentTheme = window.editor._standaloneThemeService._theme.themeName;
   let is_query = (queryMode || DCSMode);
 
   if (is_query && currentTheme.indexOf(queryPostfix) == -1)
@@ -3685,7 +3645,7 @@ function createStatusBarWidget(overlapScroll) {
         this.domNode.classList.add('statusbar-widget');
         if (this.overlapScroll) {
           this.domNode.style.right = '0';
-          this.domNode.style.top = getActiveEditor().offsetHeight - 20 + 'px';
+          this.domNode.style.top = getActiveEditor().getDomNode().offsetHeight - 20 + 'px';
         }
         else {
           let layout = getActiveEditor().getLayoutInfo();
@@ -3695,7 +3655,7 @@ function createStatusBarWidget(overlapScroll) {
         this.domNode.style.height = '20px';
         this.domNode.style.minWidth = '125px';
         this.domNode.style.textAlign = 'center';
-        this.domNode.style.zIndex = 1;
+        this.domNode.style.zIndex = 10;
         this.domNode.style.fontSize = '12px';
 
         let pos = document.createElement('div');

@@ -49,6 +49,14 @@ export function localize(data, message, ...args) {
     return _formatMessage(_getTranslation(message), a);
 }
 
+export function localize2(data, message, ...args) {
+    const original = _formatMessage(_getTranslation(message), args);
+    return {
+        value: original,
+        original
+    };
+}
+
 export function setLocaleData(locale) {
     CURRENT_LOCALE_DATA = {};
     for (const [key, value] of Object.entries(nlsMetadata.keys)) {

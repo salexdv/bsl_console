@@ -68,6 +68,14 @@ module.exports = (env, args) => {
           }
         },
         {
+          test: /node_modules[\\/]monaco-editor[\\/].+tfIdf\.js$/,
+          loader: 'string-replace-loader',
+          options: {
+            search: "word.split(/(?<=[a-z])(?=[A-Z])/g)",
+            replace: "word.replace(/([a-z])([A-Z])/g, '$1 $2').split(' ')"
+          }
+        },
+        {
           test: /\.js$/,
           exclude: /node_modules\/(?!monaco-editor)/,
           use: {

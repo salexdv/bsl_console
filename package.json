@@ -44,7 +44,7 @@
   },
   "dependencies": {
     "big-integer": "^1.6.52",
-    "monaco-editor": "^0.43.0",
+    "monaco-editor": "^0.47.0",
     "monaco-editor-webpack-plugin": "^7.1.0"
   }
 }

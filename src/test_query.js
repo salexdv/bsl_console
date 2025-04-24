@@ -524,7 +524,7 @@ setTimeout(() => {
     });
 
     window.setLanguageMode('bsl_query');
-        
+
     mocha.run();
 
   })

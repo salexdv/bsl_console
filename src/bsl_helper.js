@@ -5972,10 +5972,7 @@ class bslHelper {
 
 		}
 
-		if (suggestions.length)
-			return { suggestions: suggestions }
-		else
-			return [];
+		return { suggestions: suggestions };
 
 	}
 
@@ -6011,10 +6008,7 @@ class bslHelper {
 			}
 		}
 
-		if (suggestions.length)
-			return { suggestions: suggestions }
-		else
-			return [];
+		return { suggestions: suggestions }
 
 	}
 
@@ -7266,7 +7260,7 @@ class bslHelper {
 
 		let ranges = [];
 
-		if (!window.getOption('disableFolding')) {
+		if (!window.getOption('disableFolding') && !window.editor.navi) {
 			ranges = this.getRangesForRegexp(model, "\"(?:\\n|\\r|\\|)*(?:выбрать|select)(?:(?:\\s|\\S|\"\")*?)?\"");
 			ranges = ranges.concat(this.getRangesForProcedureDescription(model));
 			ranges = ranges.concat(this.getRangesForRegexp(model, "(?:^|\\b)(?:функция|процедура).*\\([\\s\\S]*?(?:конецпроцедуры|конецфункции)"));
