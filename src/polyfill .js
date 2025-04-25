@@ -14,6 +14,20 @@ if (typeof WeakRef === 'undefined') {
     };
 }
 
+if (!Element.prototype.replaceChildren) {
+    Element.prototype.replaceChildren = function (...nodes) {
+        while (this.firstChild) {
+            this.removeChild(this.firstChild);
+        }
+        for (let node of nodes) {
+            if (typeof node === 'string') {
+                node = document.createTextNode(node);
+            }
+            this.appendChild(node);
+        }
+    };
+}
+
 if (!Array.prototype.flat) {
     Array.prototype.flat = function (depth = 1) {
         const flatten = (arr, d) => {
@@ -36,6 +50,17 @@ if (!Array.prototype.flatMap) {
         return this.map(callback, thisArg).flat();
     };
 }
+
+if (!String.prototype.trimStart) {
+    String.prototype.trimStart = function () {
+      return this.replace(/^\s+/, '');
+    };
+  }
+  if (!String.prototype.trimEnd) {
+    String.prototype.trimEnd = function () {
+      return this.replace(/\s+$/, '');
+    };
+  }
 
 if (typeof navigator.clipboard === "undefined") {
 

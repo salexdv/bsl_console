@@ -734,8 +734,9 @@ window.compare = function (text, sideBySide, highlight, markLines = true, ignore
       renderSideBySide: sideBySide,
       ignoreTrimWhitespace: ignoreWhitespace,
       renderMarginRevertIcon: false,
-      originalEditable: false,
-      readOnly: true,
+      unicodeHighlight: {
+        ambiguousCharacters: false
+      },
       hideUnchangedRegions: {
         enabled: true,
         contextLineCount: 3,
@@ -1847,6 +1848,9 @@ window.createEditor = function(language_id, text, theme) {
     lineNumbers: window.getLineNumber,
     customOptions: true,
     renderValidationDecorations: "on",
+    unicodeHighlight: {
+      ambiguousCharacters: false
+    }
   });
   editor.navi = false;
 
