@@ -778,7 +778,8 @@ window.compare = function (text, sideBySide, highlight, markLines = true, ignore
           this.getOriginalEditor().diffDecor.line = original_line;
         }
         this.diffEditorUpdateDecorations();
-        window.editor.diffCount = window.editor.getLineChanges().length;
+        const changes = window.editor.getLineChanges();
+        window.editor.diffCount = changes ? changes.length : 0;
       }, 50);
     };
     window.editor.markDiffLines();
@@ -3981,7 +3982,7 @@ function createReviewWidget(lineNumber, issue = null) {
         for (let x = 0; x < inputs.length; x++) {
           inputs[x].checked = false;
         }
-        this.parentElement.querySelector('input').checked = true;          
+        this.parentElement.querySelector('input').checked = true;
       }
       label.appendChild(span);
       group.appendChild(label);
@@ -3989,10 +3990,10 @@ function createReviewWidget(lineNumber, issue = null) {
     getDomNode: function () {
 
       if (!this.domNode) {
-        
+
         this.domNode = document.createElement('div');
         this.domNode.classList.add('review-body');
-      
+
         let header = document.createElement('div');
         header.classList.add('review-header');
         if (issue)
@@ -4030,7 +4031,7 @@ function createReviewWidget(lineNumber, issue = null) {
               stickyFooter: false,
               closeMethods: [],
               widgetid: this.getAttribute("widgetid")
-            });              
+            });
             modal.setContent('<h3>Удалить замечание?</h3>');
             modal.addFooterBtn('Да', 'tingle-btn tingle-btn--primary', function () {
               reviewWidgets.get(modal.opts.widgetid).widget.delete();
@@ -4048,7 +4049,7 @@ function createReviewWidget(lineNumber, issue = null) {
         let text = document.createElement('div');
         text.classList.add('review-text');
         this.domNode.appendChild(text);
-        
+
         if (issue)
           text.style.display = 'block';
         else
@@ -4131,7 +4132,7 @@ function createReviewWidget(lineNumber, issue = null) {
         if (this.widget.domNode) {
           let layout = standaloneEditor.getLayoutInfo();
           let scrollWidth = window.editor.navi ? layout.verticalScrollbarWidth * 2 : layout.verticalScrollbarWidth;
-          let width = layout.width - scrollWidth - layout.minimapWidth;
+          let width = layout.width - scrollWidth - layout.minimap.minimapWidth;
           this.widget.domNode.style.top = top + 'px';
           this.widget.domNode.style.width = width + 'px';
         }
@@ -4312,6 +4313,9 @@ function setThemeVariablesDisplay(theme) {
 
 function _getLineChangeAtOrBeforeLineNumber(lineNumber, startLineNumberExtractor) {
   const lineChanges = editor.getLineChanges();
+  if (!lineChanges) {
+    return null;
+  }
   if (lineChanges.length === 0 || lineNumber < startLineNumberExtractor(lineChanges[0])) {
       // There are no changes or `lineNumber` is before the first change
       return null;
