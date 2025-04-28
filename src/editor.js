@@ -352,7 +352,12 @@ window.enableQuickSuggestions = function (enabled) {
 
 window.minimap = function (enabled) {
 
-  window.editor.updateOptions({ minimap: { enabled: enabled } });
+  if (window.editor.navi) {
+    window.editor.getOriginalEditor().updateOptions({ minimap: { enabled: enabled } });
+    window.editor.getModifiedEditor().updateOptions({ minimap: { enabled: enabled } });
+  }
+  else
+    window.editor.updateOptions({ minimap: { enabled: enabled } });
   
 }
 
@@ -4130,9 +4135,11 @@ function createReviewWidget(lineNumber, issue = null) {
       },
       onDomNodeTop: function (top) {
         if (this.widget.domNode) {
-          let layout = standaloneEditor.getLayoutInfo();
-          let scrollWidth = window.editor.navi ? layout.verticalScrollbarWidth * 2 : layout.verticalScrollbarWidth;
-          let width = layout.width - scrollWidth - layout.minimap.minimapWidth;
+          const layout = standaloneEditor.getLayoutInfo();
+          const modifiedLayer = window.editor.getModifiedEditor().getLayoutInfo();
+          const originalLayer = window.editor.getOriginalEditor().getLayoutInfo();
+          const minimapWidth = Math.max(modifiedLayer.minimap.minimapWidth, originalLayer.minimap.minimapWidth);
+          const width = layout.width - layout.verticalScrollbarWidth - minimapWidth;
           this.widget.domNode.style.top = top + 'px';
           this.widget.domNode.style.width = width + 'px';
         }
