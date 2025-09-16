@@ -738,7 +738,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
           }
           this.diffEditorUpdateDecorations();
           editor.diffCount = editor.getLineChanges().length;
-        }, 10);
+        }, 50);
       };
       editor.markDiffLines();
       editor.getModifiedEditor().onKeyDown(e => diffEditorOnKeyDown(e));
@@ -755,12 +755,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
           createReviewWidget(e.target.position.lineNumber);          
       });
       setDefaultStyle();
-      setTimeout(() => {
-        if (typeof onComplete === 'function') {
-          onComplete();
-        }
-        sendEvent("EVENT_COMPARE_COMPLETE", {});
-      }, 10); // Небольшая задержка для гарантии завершения рендеринга
+      // setTimeout(() => {
+      //   if (typeof onComplete === 'function') {
+      //     onComplete();
+      //   }
+      //   sendEvent("EVENT_COMPARE_COMPLETE", {}); // В момент прихода этого события getDifferences() выдает пустой результат, т.е. по сути сравнение еще не завершено
+      // }, 100); // Небольшая задержка для гарантии завершения рендеринга
     }
     else
     {
