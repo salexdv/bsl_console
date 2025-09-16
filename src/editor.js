@@ -738,7 +738,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
           }
           this.diffEditorUpdateDecorations();
           editor.diffCount = editor.getLineChanges().length;
-        }, 50);
+        }, 10);
       };
       editor.markDiffLines();
       editor.getModifiedEditor().onKeyDown(e => diffEditorOnKeyDown(e));
@@ -755,6 +755,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
           createReviewWidget(e.target.position.lineNumber);          
       });
       setDefaultStyle();
+      setTimeout(() => {
+        if (typeof onComplete === 'function') {
+          onComplete();
+        }
+        sendEvent("EVENT_COMPARE_COMPLETE", {});
+      }, 10); // Небольшая задержка для гарантии завершения рендеринга
     }
     else
     {
