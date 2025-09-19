@@ -665,6 +665,13 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  setDiffSideBySideMode = function(sideBySide) {
+    editor.updateOptions({
+      renderSideBySide: sideBySide
+    });
+    return true;
+  }
+
   compare = function (text, sideBySide, highlight, markLines = true, ignoreWhitespace = true, newOriginalText = "") {
     
     let language_id = getCurrentLanguageId();
