@@ -683,7 +683,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     
     if (status_bar) {
       overlapScroll = statusBarWidget.overlapScroll;
-      hideStatusBar();      
+      hideStatusBar();
     }
 
     if (text) {      
@@ -709,7 +709,13 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         find: {
           addExtraSpaceOnTop: false
         }
-      });    
+      });
+      editor.countDiffEvents = 0; 
+      editor.onDidUpdateDiff(e => {
+        editor.countDiffEvents++;
+        if (editor.countDiffEvents == 1 && getOption('generateCompareCompleteEvent'))
+          sendEvent("EVENT_COMPARE_COMPLETE", {});
+      });
       if (highlight) {
         monaco.editor.setModelLanguage(originalModel, language_id);
         monaco.editor.setModelLanguage(modifiedModel, language_id);
@@ -759,15 +765,9 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       });
       editor.getModifiedEditor().onMouseDown(e => {
         if (e.target.element.classList.contains('add-review'))
-          createReviewWidget(e.target.position.lineNumber);          
+          createReviewWidget(e.target.position.lineNumber);
       });
       setDefaultStyle();
-      // setTimeout(() => {
-      //   if (typeof onComplete === 'function') {
-      //     onComplete();
-      //   }
-      //   sendEvent("EVENT_COMPARE_COMPLETE", {}); // В момент прихода этого события getDifferences() выдает пустой результат, т.е. по сути сравнение еще не завершено
-      // }, 100); // Небольшая задержка для гарантии завершения рендеринга
     }
     else
     {
