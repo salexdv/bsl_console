@@ -665,6 +665,13 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  setDiffSideBySideMode = function(sideBySide) {
+    editor.updateOptions({
+      renderSideBySide: sideBySide
+    });
+    return true;
+  }
+
   compare = function (text, sideBySide, highlight, markLines = true, ignoreWhitespace = true, newOriginalText = "") {
     
     let language_id = getCurrentLanguageId();
@@ -755,6 +762,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
           createReviewWidget(e.target.position.lineNumber);          
       });
       setDefaultStyle();
+      // setTimeout(() => {
+      //   if (typeof onComplete === 'function') {
+      //     onComplete();
+      //   }
+      //   sendEvent("EVENT_COMPARE_COMPLETE", {}); // В момент прихода этого события getDifferences() выдает пустой результат, т.е. по сути сравнение еще не завершено
+      // }, 100); // Небольшая задержка для гарантии завершения рендеринга
     }
     else
     {
