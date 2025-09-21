@@ -2217,7 +2217,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
     let text = '';
 
-    if (endLineNumber >= startLineNumber) {
+    if (0 < startLineNumber && endLineNumber >= startLineNumber) {
       let range = {
         startLineNumber: startLineNumber,
         startColumn: 1,
