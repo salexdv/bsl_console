@@ -672,7 +672,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     return true;
   }
 
-  compare = function (text, sideBySide, highlight, markLines = true, ignoreWhitespace = true, newOriginalText = "") {
+  compare = function (text="", sideBySide=true, highlight=true, markLines = true, ignoreWhitespace = true, newOriginalText = "") {
     
     let language_id = getCurrentLanguageId();
     let currentTheme = getCurrentThemeName();
@@ -686,7 +686,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       hideStatusBar();
     }
 
-    if (text) {      
+    if (!text || !newOriginalText) {      
       
       if (language_id == 'xml') {
         language_id = 'xml';
