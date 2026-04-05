@@ -3016,9 +3016,17 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
       line_changes.forEach((line_change, change_index) => {
         const line_numbers = getDiffRevertLineTargets(diff_editor, line_change);
+        let last_line = -1;
 
         line_numbers.forEach(line_number => {
           const top = modified_rect.top - diff_rect.top + modified_editor.getTopForLineNumber(line_number) - modified_editor.getScrollTop();
+
+          if (last_line + 1 == line_number) {
+            last_line = line_number;
+            return;
+          }
+
+          last_line = line_number;
 
           if (top < -20 || diff_dom_node.clientHeight < top)
             return;
