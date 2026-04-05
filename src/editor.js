@@ -223,7 +223,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   }
 
   setTheme = function (theme) {
-        
+
     monaco.editor.setTheme(theme);
     setThemeVariablesDisplay(theme);
 
@@ -233,6 +233,9 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
     readOnlyMode = readOnly;
     editor.updateOptions({ readOnly: readOnly });
+
+    if (editor.navi)
+      applyDiffOriginalEditableOptions(editor);
 
     if (contextMenuEnabled)
       editor.updateOptions({ contextmenu: !readOnly });
@@ -694,6 +697,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       }
       if (newOriginalText)
         originalText = newOriginalText;
+      const originalEditable = typeof getOption('originalEditable') == 'boolean' ? getOption('originalEditable') : false;
       let originalModel = originalText ? monaco.editor.createModel(originalText) : monaco.editor.createModel(editor.getModel().getValue());
       let modifiedModel = monaco.editor.createModel(text);
       originalText = originalModel.getValue();
@@ -705,6 +709,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         automaticLayout: true,
         scrollBeyondLastLine: false,
         renderSideBySide: sideBySide,
+        originalEditable: originalEditable,
         ignoreTrimWhitespace: ignoreWhitespace,
         find: {
           addExtraSpaceOnTop: false
@@ -724,6 +729,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         original: originalModel,
         modified: modifiedModel
       });
+      editor.originalEditable = originalEditable;
       editor.navi = monaco.editor.createDiffNavigator(editor, {
         followsCaret: true,
         ignoreCharChanges: true
@@ -767,6 +773,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         if (e.target.element.classList.contains('add-review'))
           createReviewWidget(e.target.position.lineNumber);
       });
+      createDiffRevertButtons(editor);
+      applyDiffOriginalEditableOptions(editor);
       setDefaultStyle();
     }
     else
@@ -1289,7 +1297,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
       if (optionName == 'generateSuggestActivationEvent')
         startStopSuggestActivationObserver();
-        
+
+      if (optionName == 'originalEditable' && editor.navi) {
+        editor.originalEditable = Boolean(optionValue);
+        applyDiffOriginalEditableOptions(editor);
+      }
+
     // }, 10);
 
   }
@@ -2261,6 +2274,9 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
     if (editor) {
 
+      if (editor.diffRevertButtons)
+          editor.diffRevertButtons.dispose();
+
       if (editor.navi) {
         editor.getOriginalEditor().getModel().dispose();
         editor.getOriginalEditor().dispose();
@@ -2810,6 +2826,245 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       decorations = decorations.concat(standalone_editor.reviewDecorations);
 
     standalone_editor.diffDecor.decor = standalone_editor.deltaDecorations(standalone_editor.diffDecor.decor, decorations);
+
+  }
+
+  function getDiffOriginalEditable(diff_editor) {
+
+    if (!diff_editor || !diff_editor.navi)
+      return false;
+
+    if (typeof diff_editor.originalEditable == 'boolean')
+      return diff_editor.originalEditable;
+
+    if (diff_editor.getRawOptions) {
+      const raw_options = diff_editor.getRawOptions();
+      if (raw_options && typeof raw_options.originalEditable != 'undefined')
+        return Boolean(raw_options.originalEditable);
+    }
+
+    return false;
+
+  }
+
+  function applyDiffOriginalEditableOptions(diff_editor) {
+
+    if (!diff_editor || !diff_editor.navi)
+      return;
+
+    const original_editable = getDiffOriginalEditable(diff_editor);
+    const modified_editor = diff_editor.getModifiedEditor();
+    const original_editor = diff_editor.getOriginalEditor();
+    const context_menu = contextMenuEnabled && !readOnlyMode;
+
+    modified_editor.updateOptions({
+      readOnly: readOnlyMode,
+      contextmenu: context_menu
+    });
+
+    original_editor.updateOptions({
+      readOnly: readOnlyMode || !original_editable,
+      contextmenu: context_menu && original_editable
+    });
+
+    if (diff_editor.updateDiffRevertButtons)
+      diff_editor.updateDiffRevertButtons();
+
+  }
+
+  function getDiffRevertLineTargets(diff_editor, line_change) {
+
+    const modified_model = diff_editor.getModifiedEditor().getModel();
+
+    if (!modified_model)
+      return [];
+
+    if (line_change.modifiedEndLineNumber === 0) {
+      const line_number = Math.max(1, Math.min(line_change.modifiedStartLineNumber, modified_model.getLineCount()));
+      return [line_number];
+    }
+
+    let targets = [];
+    const start = Math.max(1, line_change.modifiedStartLineNumber);
+    const end = Math.max(start, line_change.modifiedEndLineNumber || start);
+
+    for (let line_number = start; line_number <= end; line_number++)
+      targets.push(line_number);
+
+    return targets;
+
+  }
+
+  function getDiffRevertTextModelLines(model, startLineNumber, endLineNumber) {
+
+    if (!model || !startLineNumber || !endLineNumber || endLineNumber < startLineNumber)
+      return [];
+
+    return model.getLinesContent().slice(startLineNumber - 1, endLineNumber);
+
+  }
+
+  function getDiffRevertSpliceData(line_change, modified_model) {
+
+    const modified_line_count = modified_model ? modified_model.getLineCount() : 0;
+
+    if (line_change.modifiedEndLineNumber === 0) {
+      const start_index = Math.max(0, Math.min(line_change.modifiedStartLineNumber, modified_line_count));
+      const target_line = Math.max(1, Math.min(start_index + 1, modified_line_count + 1));
+
+      return {
+        startIndex: start_index,
+        deleteCount: 0,
+        targetLine: target_line
+      };
+    }
+
+    const start_index = Math.max(0, line_change.modifiedStartLineNumber - 1);
+    const delete_count = line_change.modifiedEndLineNumber >= line_change.modifiedStartLineNumber
+      ? line_change.modifiedEndLineNumber - line_change.modifiedStartLineNumber + 1
+      : 0;
+    const target_line = Math.max(1, Math.min(line_change.modifiedStartLineNumber, modified_line_count));
+
+    return {
+      startIndex: start_index,
+      deleteCount: delete_count,
+      targetLine: target_line
+    };
+
+  }
+
+  function revertDiffChange(diff_editor, change_index) {
+
+    const line_changes = diff_editor.getLineChanges();
+
+    if (!Array.isArray(line_changes) || !line_changes[change_index])
+      return;
+
+    const line_change = line_changes[change_index];
+    const modified_editor = diff_editor.getModifiedEditor();
+    const modified_model = modified_editor.getModel();
+    const original_model = diff_editor.getOriginalEditor().getModel();
+
+    if (!modified_model || !original_model)
+      return;
+
+    const modified_lines = modified_model.getLinesContent().slice();
+    const replacement_lines = getDiffRevertTextModelLines(original_model, line_change.originalStartLineNumber, line_change.originalEndLineNumber);
+    const splice_data = getDiffRevertSpliceData(line_change, modified_model);
+
+    modified_lines.splice(splice_data.startIndex, splice_data.deleteCount, ...replacement_lines);
+
+    modified_editor.pushUndoStop();
+    modified_editor.executeEdits('diff-revert', [{
+      range: modified_model.getFullModelRange(),
+      text: modified_lines.length ? modified_lines.join(modified_model.getEOL()) : '',
+      forceMoveMarkers: true
+    }]);
+    modified_editor.pushUndoStop();
+
+    const target_line = Math.max(1, Math.min(splice_data.targetLine, modified_editor.getModel().getLineCount()));
+    modified_editor.setPosition({ lineNumber: target_line, column: 1 });
+    modified_editor.revealLineInCenter(target_line);
+    modified_editor.focus();
+
+    editor.diffCount--;
+
+  }
+
+  function createDiffRevertButtons(diff_editor) {
+
+    if (!diff_editor || !diff_editor.navi || diff_editor.diffRevertButtons)
+      return;
+
+    const diff_dom_node = diff_editor.getDomNode();
+    const button_layer = document.createElement('div');
+    let layout_timer = 0;
+
+    button_layer.className = 'diff-revert-layer';
+    diff_dom_node.appendChild(button_layer);
+
+    function getSeparatorLeft() {
+
+      const diff_rect = diff_dom_node.getBoundingClientRect();
+      const original_rect = diff_editor.getOriginalEditor().getDomNode().getBoundingClientRect();
+      const modified_rect = diff_editor.getModifiedEditor().getDomNode().getBoundingClientRect();
+      const side_by_side = diff_editor.getRawOptions && diff_editor.getRawOptions().renderSideBySide !== false;
+
+      if (side_by_side)
+        return Math.round(((original_rect.right - diff_rect.left) + (modified_rect.left - diff_rect.left)) / 2);
+
+      return Math.round(modified_rect.left - diff_rect.left + 6);
+
+    }
+
+    function renderButtons() {
+
+      button_layer.innerHTML = '';
+
+      if (!getDiffOriginalEditable(diff_editor) || readOnlyMode)
+        return;
+
+      const line_changes = diff_editor.getLineChanges();
+
+      if (!Array.isArray(line_changes) || !line_changes.length)
+        return;
+
+      const diff_rect = diff_dom_node.getBoundingClientRect();
+      const modified_editor = diff_editor.getModifiedEditor();
+      const modified_rect = modified_editor.getDomNode().getBoundingClientRect();
+      const separator_left = getSeparatorLeft();
+
+      line_changes.forEach((line_change, change_index) => {
+        const line_numbers = getDiffRevertLineTargets(diff_editor, line_change);
+
+        line_numbers.forEach(line_number => {
+          const top = modified_rect.top - diff_rect.top + modified_editor.getTopForLineNumber(line_number) - modified_editor.getScrollTop();
+
+          if (top < -20 || diff_dom_node.clientHeight < top)
+            return;
+
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'diff-revert-button';
+          button.title = engLang ? 'Revert change' : 'Откатить изменение';
+          button.style.left = separator_left + 'px';
+          button.style.top = top + 'px';
+          button.onclick = function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+            revertDiffChange(diff_editor, change_index);
+          };
+          button_layer.appendChild(button);
+        });
+      });
+
+    }
+
+    function scheduleRenderButtons() {
+
+      clearTimeout(layout_timer);
+      layout_timer = setTimeout(renderButtons, 10);
+
+    }
+
+    diff_editor.diffRevertButtons = {
+      buttonLayer: button_layer,
+      dispose: function () {
+        clearTimeout(layout_timer);
+        if (button_layer.parentElement)
+          button_layer.parentElement.removeChild(button_layer);
+      }
+    };
+
+    diff_editor.updateDiffRevertButtons = scheduleRenderButtons;
+
+    diff_editor.onDidUpdateDiff(() => scheduleRenderButtons());
+    diff_editor.getModifiedEditor().onDidScrollChange(() => scheduleRenderButtons());
+    diff_editor.getOriginalEditor().onDidScrollChange(() => scheduleRenderButtons());
+    diff_editor.getModifiedEditor().onDidLayoutChange(() => scheduleRenderButtons());
+    diff_editor.getOriginalEditor().onDidLayoutChange(() => scheduleRenderButtons());
+
+    scheduleRenderButtons();
 
   }
 
@@ -4201,10 +4456,14 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   function setThemeVariablesDisplay(theme) {
 
-    if (0 < theme.indexOf('dark'))
+    if (0 < theme.indexOf('dark')) {
       document.getElementById("display").classList.add('dark');
-    else
+      document.getElementById("container").classList.add('dark');
+    }
+    else {
       document.getElementById("display").classList.remove('dark');
+      document.getElementById("container").classList.remove('dark');
+    }
 
   }
   // #endregion
