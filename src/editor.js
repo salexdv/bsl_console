@@ -235,7 +235,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     editor.updateOptions({ readOnly: readOnly });
 
     if (editor.navi)
-      applyDiffOriginalEditableOptions(editor);
+      applyDiffAllowRevertBackOptions(editor);
 
     if (contextMenuEnabled)
       editor.updateOptions({ contextmenu: !readOnly });
@@ -697,7 +697,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       }
       if (newOriginalText)
         originalText = newOriginalText;
-      const originalEditable = typeof getOption('originalEditable') == 'boolean' ? getOption('originalEditable') : false;
+      const allowRevertBack = typeof getOption('allowRevertBack') == 'boolean' ? getOption('allowRevertBack') : false;
       let originalModel = originalText ? monaco.editor.createModel(originalText) : monaco.editor.createModel(editor.getModel().getValue());
       let modifiedModel = monaco.editor.createModel(text);
       originalText = originalModel.getValue();
@@ -709,7 +709,6 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         automaticLayout: true,
         scrollBeyondLastLine: false,
         renderSideBySide: sideBySide,
-        originalEditable: originalEditable,
         ignoreTrimWhitespace: ignoreWhitespace,
         find: {
           addExtraSpaceOnTop: false
@@ -729,7 +728,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         original: originalModel,
         modified: modifiedModel
       });
-      editor.originalEditable = originalEditable;
+      editor.allowRevertBack = allowRevertBack;
       editor.navi = monaco.editor.createDiffNavigator(editor, {
         followsCaret: true,
         ignoreCharChanges: true
@@ -774,7 +773,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
           createReviewWidget(e.target.position.lineNumber);
       });
       createDiffRevertButtons(editor);
-      applyDiffOriginalEditableOptions(editor);
+      applyDiffAllowRevertBackOptions(editor);
       setDefaultStyle();
     }
     else
@@ -1298,9 +1297,9 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       if (optionName == 'generateSuggestActivationEvent')
         startStopSuggestActivationObserver();
 
-      if (optionName == 'originalEditable' && editor.navi) {
-        editor.originalEditable = Boolean(optionValue);
-        applyDiffOriginalEditableOptions(editor);
+      if (optionName == 'allowRevertBack' && editor.navi) {
+        editor.allowRevertBack = Boolean(optionValue);
+        applyDiffAllowRevertBackOptions(editor);
       }
 
     // }, 10);
@@ -2829,30 +2828,30 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
-  function getDiffOriginalEditable(diff_editor) {
+  function getDiffAllowRevertBack(diff_editor) {
 
     if (!diff_editor || !diff_editor.navi)
       return false;
 
-    if (typeof diff_editor.originalEditable == 'boolean')
-      return diff_editor.originalEditable;
+    if (typeof diff_editor.allowRevertBack == 'boolean')
+      return diff_editor.allowRevertBack;
 
     if (diff_editor.getRawOptions) {
       const raw_options = diff_editor.getRawOptions();
-      if (raw_options && typeof raw_options.originalEditable != 'undefined')
-        return Boolean(raw_options.originalEditable);
+      if (raw_options && typeof raw_options.allowRevertBack != 'undefined')
+        return Boolean(raw_options.allowRevertBack);
     }
 
     return false;
 
   }
 
-  function applyDiffOriginalEditableOptions(diff_editor) {
+  function applyDiffAllowRevertBackOptions(diff_editor) {
 
     if (!diff_editor || !diff_editor.navi)
       return;
 
-    const original_editable = getDiffOriginalEditable(diff_editor);
+    const original_editable = getDiffAllowRevertBack(diff_editor);
     const modified_editor = diff_editor.getModifiedEditor();
     const original_editor = diff_editor.getOriginalEditor();
     const context_menu = contextMenuEnabled && !readOnlyMode;
@@ -3001,7 +3000,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
       button_layer.innerHTML = '';
 
-      if (!getDiffOriginalEditable(diff_editor) || readOnlyMode)
+      if (!getDiffAllowRevertBack(diff_editor) || readOnlyMode)
         return;
 
       const line_changes = diff_editor.getLineChanges();
