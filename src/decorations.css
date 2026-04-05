@@ -386,10 +386,13 @@ div:has(> .add-review) {
 }
 
 .diff-revert-layer {
-	position: absolute;
-	inset: 0;
-	pointer-events: none;
-	z-index: 6;
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    pointer-events: none;
+    z-index: 6;
 }
 
 .diff-revert-button {
