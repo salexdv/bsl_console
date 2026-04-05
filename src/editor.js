@@ -2968,7 +2968,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     modified_editor.focus();
 
     editor.diffCount--;
-
+    if (getOption('generateModificationEvent'))
+      sendEvent('EVENT_CONTENT_CHANGED', '');
   }
 
   function createDiffRevertButtons(diff_editor) {
