@@ -2352,8 +2352,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   function onDidPaste(e) {
 
     if (isQueryMode() && !readOnlyMode) {
-      
+
       let text = editor.getModel().getValueInRange(e.range).trim();
+
+      if (text.toLowerCase().indexOf('выбрать') < 0 && text.toLowerCase().indexOf('select') < 0)
+        return;
+
       let text_changed = false;
 
       if (text.startsWith('"')) {
