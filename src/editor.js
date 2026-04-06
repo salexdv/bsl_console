@@ -2361,6 +2361,11 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         text_changed = true;
       }
 
+      if (text.endsWith(';')) {
+        text = text.substr(0, text.length - 1);
+        text_changed = true;
+      }
+
       if (text.endsWith('"')) {
         text = text.substr(0, text.length - 1);
         text_changed = true;
