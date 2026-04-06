@@ -43,6 +43,37 @@ define([], function () {
         }
     }
 
+    let highlightInnerQuotes = false;
+
+    function updateThemeRuleColor(rules, token, foreground) {
+
+        let themeRule = rules.find(rule => rule.token == token);
+        if (themeRule)
+            themeRule.foreground = foreground;
+
+    }
+
+    function applyInnerQuotesThemeRules() {
+
+        updateThemeRuleColor(themes.rules.white, 'innerquotesbsl', highlightInnerQuotes ? 'd38949' : '000000');
+        updateThemeRuleColor(themes.rules.white, 'query.innerquotesbsl', highlightInnerQuotes ? 'd38949' : '000000');
+
+        updateThemeRuleColor(themes.rules.whiteQueryOn, 'query.innerquotesbsl', highlightInnerQuotes ? 'd38949' : 'df0000');
+
+        updateThemeRuleColor(themes.rules.dark, 'innerquotesbsl', highlightInnerQuotes ? 'd7ba62' : 'c3602c');
+        updateThemeRuleColor(themes.rules.dark, 'query.innerquotesbsl', highlightInnerQuotes ? 'd7ba62' : 'c3602c');
+
+        updateThemeRuleColor(themes.rules.darkQueryOff, 'query.innerquotesbsl', 'c3602c');
+        updateThemeRuleColor(themes.rules.darkQueryOn, 'query.innerquotesbsl', highlightInnerQuotes ? 'c3602c' : 'ff4242');
+
+        updateThemeRuleColor(themes.rules.edtWhite, 'innerquotesbsl', highlightInnerQuotes ? 'a35b00' : '0000ff');
+        updateThemeRuleColor(themes.rules.edtWhite, 'query.innerquotesbsl', highlightInnerQuotes ? 'a35b00' : '0000ff');
+
+        updateThemeRuleColor(themes.rules.edtDark, 'innerquotesbsl', highlightInnerQuotes ? 'd7ba62' : 'f0ff71');
+        updateThemeRuleColor(themes.rules.edtDark, 'query.innerquotesbsl', highlightInnerQuotes ? 'd7ba62' : 'f0ff71');
+
+    }
+
     let themes = {
         rules: {
             white: [
@@ -56,6 +87,8 @@ define([], function () {
                 { token: 'funcdefbsl', foreground: '0000ff' },
                 { token: 'constructbsl', foreground: '0000ff' },
                 { token: 'stringbsl', foreground: '000000' },
+                { token: 'innerquotesbsl', foreground: 'd38949' },
+                { token: 'query.innerquotesbsl', foreground: 'd38949' },
                 { token: 'string.quotebsl', foreground: '000000' },
                 { token: 'string.invalidbsl', foreground: '000000' },
                 { token: 'numberbsl', foreground: '000000' },
@@ -67,6 +100,7 @@ define([], function () {
             whiteQueryOn: [
                 { token: 'querybsl', foreground: '000000' },                    
                 { token: 'query.quotebsl', foreground: '000000' },
+                { token: 'query.innerquotesbsl', foreground: 'd38949' },
                 { token: 'query.stringbsl', foreground: 'df0000' },
                 { token: 'query.keywordbsl', foreground: '0000ff' },
                 { token: 'query.expbsl', foreground: 'a50000' },
@@ -89,6 +123,8 @@ define([], function () {
                 { token: 'funcdefbsl', foreground: 'd4d4d4' },
                 { token: 'constructbsl', foreground: 'd4d4d4' },
                 { token: 'stringbsl', foreground: 'c3602c' },
+                { token: 'innerquotesbsl', foreground: 'd7ba62' },
+                { token: 'query.innerquotesbsl', foreground: 'd7ba62' },
                 { token: 'string.quotebsl', foreground: 'c3602c' },
                 { token: 'string.invalidbsl', foreground: 'c3602c' },
                 { token: 'numberbsl', foreground: 'b5cea8' },
@@ -105,6 +141,7 @@ define([], function () {
             darkQueryOff: [
                 { token: 'querybsl', foreground: 'c3602c' },                    
                 { token: 'query.quotebsl', foreground: 'c3602c' },
+                { token: 'query.innerquotesbsl', foreground: 'c3602c' },
                 { token: 'query.stringbsl', foreground: 'c3602c' },
                 { token: 'query.keywordbsl', foreground: 'c3602c' },
                 { token: 'query.expbsl', foreground: 'c3602c' },
@@ -118,6 +155,7 @@ define([], function () {
             darkQueryOn: [
                 { token: 'querybsl', foreground: 'e7db6a' },                    
                 { token: 'query.quotebsl', foreground: 'e7db6a' },
+                { token: 'query.innerquotesbsl', foreground: 'd7ba62' },
                 { token: 'query.stringbsl', foreground: 'ff4242' },
                 { token: 'query.keywordbsl', foreground: 'f92472' },
                 { token: 'query.expbsl', foreground: 'a50000' },
@@ -139,6 +177,7 @@ define([], function () {
                 { token: 'funcdefbsl', foreground: '000000' },
                 { token: 'constructbsl', foreground: '000000' },
                 { token: 'stringbsl', foreground: '0000ff' },
+                { token: 'innerquotesbsl', foreground: 'a35b00' },
                 { token: 'string.quotebsl', foreground: '0000ff' },
                 { token: 'string.invalidbsl', foreground: '0000ff' },
                 { token: 'numberbsl', foreground: '000000' },
@@ -148,6 +187,7 @@ define([], function () {
                 { token: 'gotomarkbsl', foreground: '7f0055' },
                 { token: 'querybsl', foreground: '0000ff' },                    
                 { token: 'query.quotebsl', foreground: '0000ff' },
+                { token: 'query.innerquotesbsl', foreground: 'a35b00' },
                 { token: 'query.stringbsl', foreground: '0000ff' },
                 { token: 'query.keywordbsl', foreground: '0000ff' },
                 { token: 'query.expbsl', foreground: '0000ff' },
@@ -169,6 +209,7 @@ define([], function () {
                 { token: 'funcdefbsl', foreground: '839496' },
                 { token: 'constructbsl', foreground: '839496' },
                 { token: 'stringbsl', foreground: 'f0ff71' },
+                { token: 'innerquotesbsl', foreground: 'd7ba62' },
                 { token: 'string.quotebsl', foreground: 'f0ff71' },
                 { token: 'string.invalidbsl', foreground: 'f0ff71' },
                 { token: 'numberbsl', foreground: '839496' },
@@ -178,6 +219,7 @@ define([], function () {
                 { token: 'gotomarkbsl', foreground: 'ff7853' },
                 { token: 'querybsl', foreground: 'f0ff71' },                    
                 { token: 'query.quotebsl', foreground: 'f0ff71' },
+                { token: 'query.innerquotesbsl', foreground: 'd7ba62' },
                 { token: 'query.stringbsl', foreground: 'f0ff71' },
                 { token: 'query.keywordbsl', foreground: 'f0ff71' },
                 { token: 'query.expbsl', foreground: 'f0ff71' },
@@ -240,6 +282,20 @@ define([], function () {
                 'editorLineNumber.foreground': '#779189'
             }
         }
+    }
+
+    applyInnerQuotesThemeRules();
+
+    setHighlightInnerQuotes = function(enabled) {
+
+        highlightInnerQuotes = Boolean(enabled);
+        applyInnerQuotesThemeRules();
+
+        if (typeof monaco != 'undefined' && bsl_language && bsl_language.themes) {
+            for (const [key, value] of Object.entries(bsl_language.themes))
+                monaco.editor.defineTheme(value.name, value);
+        }
+
     }
 
     let bsl_language = {
@@ -451,6 +507,7 @@ define([], function () {
                     }],
                     [/&[a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]*/, 'query.param'],
                     [/&/, 'query.param'],
+                    [/("")+/, 'query.innerquotes'],
                     [/("".*"")(")/, [
                         { token: 'query.string' },
                         { token: 'query.quote', next: '@pop' }
@@ -477,6 +534,7 @@ define([], function () {
                 string: [
                     [/^\s*\/\/.*$/, 'comment'],
                     [/[^"]+/, 'string'],
+                    [/("")+/, 'innerquotes'],
                     [/@escapes/, 'string.escape'],
                     [/"/, { token: 'string.quote', next: '@pop' }],
                     [/\|.*"/, { token: 'string.quote', next: '@pop' }],

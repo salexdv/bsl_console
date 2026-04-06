@@ -1302,6 +1302,11 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         applyDiffAllowRevertBackOptions(editor);
       }
 
+      if (optionName == 'highlightInnerQuotes' && typeof setHighlightInnerQuotes == 'function') {
+        setHighlightInnerQuotes(optionValue);
+        setTheme(getCurrentThemeFullName());
+      }
+
     // }, 10);
 
   }
@@ -3714,10 +3719,16 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
+  function getCurrentThemeFullName() {
+
+    return editor._themeService.getTheme().themeName;
+
+  }
+
   function getCurrentThemeName() {
 
     let queryPostfix = '-query';
-    let currentTheme = editor._themeService.getTheme().themeName;
+    let currentTheme = getCurrentThemeFullName();
     let is_query = (queryMode || DCSMode);
 
     if (is_query && currentTheme.indexOf(queryPostfix) == -1)
