@@ -76,6 +76,9 @@
 | `revealDefinition`             | Переход к определению переменной, функции или поля запроса `F12`                              |
 | `peekDefinition`               | Быстрый просмотр определения переменной, функции или поля запроса `CTRL+F12`                  |
 | [`getDifferences`](docs/get_differences.md) | Возвращает список различий в режиме сравнения                                    |
+| [`hideBlocks`](docs/hide_blocks.md) | Сворачивает переданные диапазоны строк                                                   |
+| [`hideUnchangedBlocks`](docs/hide_unchanged_blocks.md) | Сворачивает неизмененные блоки строк в режиме сравнения               |
+| [`showHiddenBlocks`](docs/show_hidden_blocks.md) | Раскрывает все свернутые области                                            |
 
 ### Управление режимом работы / настройками
 

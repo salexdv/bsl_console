@@ -45,6 +45,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
   selectedQueryDelimiters = new Map();
   reviewWidgets = new Map();
   currentIssue = -1;
+  hiddenBlocks = new Map();
   // #endregion
 
   // #region public API
@@ -769,8 +770,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         newReviewDecoration(e);
       });
       editor.getModifiedEditor().onMouseDown(e => {
+        checkOnLinkClick(e.target.element, editor.getModifiedEditor(), e.target.position);
         if (e.target.element.classList.contains('add-review'))
           createReviewWidget(e.target.position.lineNumber);
+      });
+      editor.getOriginalEditor().onMouseDown(e => {
+        checkOnLinkClick(e.target.element, editor.getOriginalEditor(), e.target.position);
       });
       createDiffRevertButtons(editor);
       applyDiffAllowRevertBackOptions(editor);
@@ -1878,6 +1883,77 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     return originalLineNumber;
 
   }
+
+  hideBlocks = function(blocks) {
+
+    hideBlocksForEditor(editor, hiddenBlocks, blocks);
+
+  }
+
+  showHiddenBlocks = function() {
+
+    if (editor.navi) {
+      showHiddenBlocksForDiffEditor();
+      return;
+    }
+
+    showHiddenBlocksForEditor(hiddenBlocks);
+
+  }
+
+  hideUnchangedBlocks = function(retryCount = 10) {
+
+    if (!editor.navi)
+      return { original: [], modified: [] };
+
+    let lineChanges = editor.getLineChanges();
+
+    if (!lineChanges) {
+      if (retryCount > 0)
+        setTimeout(() => hideUnchangedBlocks(retryCount - 1), 50);
+
+      return { original: [], modified: [] };
+    }
+
+    if (!lineChanges.length)
+      return { original: [], modified: [] };
+
+    let originalEditor = editor.getOriginalEditor();
+    let modifiedEditor = editor.getModifiedEditor();
+
+    if (!editor.originalHiddenBlocks)
+      editor.originalHiddenBlocks = new Map();
+
+    if (!editor.modifiedHiddenBlocks)
+      editor.modifiedHiddenBlocks = new Map();
+
+    removeHiddenBlocksForEditor(originalEditor, editor.originalHiddenBlocks);
+    removeHiddenBlocksForEditor(modifiedEditor, editor.modifiedHiddenBlocks);
+
+    let blocks = getUnchangedBlockPairs(
+      lineChanges,
+      originalEditor.getModel().getLineCount(),
+      modifiedEditor.getModel().getLineCount()
+    );
+
+    hideBlocksForEditor(
+      originalEditor,
+      editor.originalHiddenBlocks,
+      blocks.original
+    );
+    hideBlocksForEditor(
+      modifiedEditor,
+      editor.modifiedHiddenBlocks,
+      blocks.modified
+    );
+    linkHiddenBlockPairs(editor.originalHiddenBlocks, editor.modifiedHiddenBlocks);
+
+    return {
+      original: getHiddenBlocksResult(blocks.original),
+      modified: getHiddenBlocksResult(blocks.modified)
+    };
+
+  }
   // #endregion
 
   // #region init editor
@@ -2116,7 +2192,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       }
 
       let element = e.target.element;
-      checkOnLinkClick(element);
+      checkOnLinkClick(element, editor, e.target.position);
 
       if (e.event.detail == 2 && element.classList.contains('line-numbers')) {
         let line = e.target.position.lineNumber;
@@ -2800,9 +2876,34 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   }
 
-  function checkOnLinkClick(element) {
+  function checkOnLinkClick(element, standaloneEditor, position) {
 
-    if (element.tagName.toLowerCase() == 'a') {
+    if (!element)
+      return;
+
+    if (element.classList && element.classList.contains('collapse-hidden-block') && position) {
+      let expandedBlock = getExpandedBlockByLineNumber(standaloneEditor, position.lineNumber);
+      collapseExpandedBlockWithPair(expandedBlock);
+      return;
+    }
+
+    let expandWidgetElement = null;
+
+    if (element.classList && element.classList.contains('expand-widget'))
+      expandWidgetElement = element;
+    else if (element.parentElement && element.parentElement.classList.contains('expand-widget'))
+      expandWidgetElement = element.parentElement;
+
+    if (expandWidgetElement) {
+      let hiddenArea = getHiddenAreaByDomNode(expandWidgetElement);
+      if (!hiddenArea)
+        return;
+
+      removeHiddenAreaWithPair(hiddenArea);
+      return;
+    }
+
+    if (element.tagName && element.tagName.toLowerCase() == 'a') {
 
       sendEvent("EVENT_ON_LINK_CLICK", { label: element.innerText, href: element.dataset.href });
       setTimeout(() => {
@@ -2813,6 +2914,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     else if (element.classList.contains('detected-link-active')) {
 
       let href = getNativeLinkHref(element, null);
+
       if (href) {
         sendEvent("EVENT_ON_LINK_CLICK", { label: href, href: href });
         setTimeout(() => {
@@ -2821,6 +2923,492 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       }
 
     }
+
+  }
+
+  function createExpandContentWidget(standaloneEditor, startLineNumber, lineNumber, domNode) {
+
+    let widgetId = 'bsl.expand.widget.' + startLineNumber;
+    domNode.setAttribute('hidden-start-line', startLineNumber);
+    domNode.style.width = standaloneEditor.getLayoutInfo().contentWidth + 'px';
+
+    return {
+      getId: function () {
+        return widgetId;
+      },
+      getDomNode: function () {
+        return domNode;
+      },
+      getPosition: function () {
+        return {
+          position: {
+            lineNumber: lineNumber,
+            column: 1
+          },
+          preference: [monaco.editor.ContentWidgetPositionPreference.EXACT]
+        };
+      }
+    };
+
+  }
+
+  function setHiddenAreasForEditor(standaloneEditor, hiddenBlocks) {
+
+    let hiddenAreas = [];
+    hiddenBlocks.forEach((value, key, map) => {
+      hiddenAreas.push(value.block);
+    });
+    standaloneEditor.setHiddenAreas(hiddenAreas);
+
+  }
+
+  function getExpandedHiddenBlocksForEditor(standaloneEditor) {
+
+    if (!standaloneEditor.expandedHiddenBlocks)
+      standaloneEditor.expandedHiddenBlocks = new Map();
+
+    return standaloneEditor.expandedHiddenBlocks;
+
+  }
+
+  function createCollapseDecoration(expandedBlock) {
+
+    let range = new monaco.Range(expandedBlock.block.startLineNumber, 1, expandedBlock.block.startLineNumber, 1);
+    let decoration = {
+      range: range,
+      options: {
+        isWholeLine: true,
+        glyphMarginClassName: 'collapse-hidden-block'
+      }
+    };
+
+    expandedBlock.editor.updateOptions({ glyphMargin: true });
+    expandedBlock.decorationIds = expandedBlock.editor.deltaDecorations(expandedBlock.decorationIds || [], [decoration]);
+
+  }
+
+  function removeExpandedBlockDecoration(expandedBlock) {
+
+    expandedBlock.editor.deltaDecorations(expandedBlock.decorationIds || [], []);
+    expandedBlock.decorationIds = [];
+
+  }
+
+  function removeExpandedBlock(expandedBlock) {
+
+    if (!expandedBlock)
+      return;
+
+    removeExpandedBlockDecoration(expandedBlock);
+    expandedBlock.expandedBlocks.delete(expandedBlock.block.startLineNumber);
+
+  }
+
+  function removeExpandedBlockForEditor(standaloneEditor, startLineNumber) {
+
+    removeExpandedBlock(getExpandedHiddenBlocksForEditor(standaloneEditor).get(startLineNumber));
+
+  }
+
+  function removeExpandedBlocksForEditor(standaloneEditor) {
+
+    let expandedBlocks = getExpandedHiddenBlocksForEditor(standaloneEditor);
+
+    expandedBlocks.forEach((value, key, map) => {
+      removeExpandedBlockDecoration(value);
+    });
+
+    expandedBlocks.clear();
+
+  }
+
+  function createExpandedBlockFromHiddenArea(hiddenArea) {
+
+    let expandedBlocks = getExpandedHiddenBlocksForEditor(hiddenArea.editor);
+    removeExpandedBlock(expandedBlocks.get(hiddenArea.block.startLineNumber));
+
+    let expandedBlock = {
+      editor: hiddenArea.editor,
+      hiddenBlocks: hiddenArea.hiddenBlocks,
+      expandedBlocks: expandedBlocks,
+      block: hiddenArea.block,
+      pairId: hiddenArea.pairId,
+      decorationIds: []
+    };
+
+    expandedBlocks.set(hiddenArea.block.startLineNumber, expandedBlock);
+    createCollapseDecoration(expandedBlock);
+
+    return expandedBlock;
+
+  }
+
+  function getExpandedBlockByLineNumber(standaloneEditor, lineNumber) {
+
+    let expandedBlocks = getExpandedHiddenBlocksForEditor(standaloneEditor);
+    let result = null;
+
+    expandedBlocks.forEach((value, key, map) => {
+      if (!result && value.block.startLineNumber == lineNumber)
+        result = value;
+    });
+
+    return result;
+
+  }
+
+  function getHiddenLinesLabel(startLineNumber, endLineNumber) {
+
+    let hiddenLinesCount = endLineNumber - startLineNumber + 1;
+
+    if (engLang)
+      return hiddenLinesCount + (hiddenLinesCount == 1 ? ' hidden line' : ' hidden lines');
+
+    let lastDigit = hiddenLinesCount % 10;
+    let lastTwoDigits = hiddenLinesCount % 100;
+
+    if (lastDigit == 1 && lastTwoDigits != 11)
+      return hiddenLinesCount + ' скрытая строка';
+
+    if (lastDigit >= 2 && lastDigit <= 4 && (lastTwoDigits < 12 || lastTwoDigits > 14))
+      return hiddenLinesCount + ' скрытые строки';
+
+    return hiddenLinesCount + ' скрытых строк';
+
+  }
+
+  function getEditorLineHeight(standaloneEditor) {
+
+    if (monaco.editor.EditorOption && monaco.editor.EditorOption.lineHeight !== undefined)
+      return standaloneEditor.getOption(monaco.editor.EditorOption.lineHeight);
+
+    return standaloneEditor.getRawOptions().lineHeight || 19;
+
+  }
+
+  function createExpandWidgetDomNode(standaloneEditor, startLineNumber, endLineNumber) {
+
+    let domNode = document.createElement("div");
+    let iconNode = document.createElement("a");
+    let labelNode = document.createElement("span");
+    let lineHeight = getEditorLineHeight(standaloneEditor);
+
+    labelNode.classList.add('expand-widget-label');
+    labelNode.textContent = getHiddenLinesLabel(startLineNumber, endLineNumber);
+
+    domNode.appendChild(iconNode);
+    domNode.appendChild(labelNode);
+    domNode.classList.add('expand-widget');
+    domNode.setAttribute('hidden-start-line', startLineNumber);
+    domNode.style.height = lineHeight + 'px';
+    domNode.style.lineHeight = lineHeight + 'px';
+    domNode.style.width = standaloneEditor.getLayoutInfo().contentWidth + 'px';
+
+    return domNode;
+
+  }
+
+  function hideBlocksForEditor(standaloneEditor, hiddenBlocks, blocks) {
+
+    let model = standaloneEditor.getModel();
+    let lineCount = model.getLineCount();
+    let hiddenAreasChanged = false;
+
+    standaloneEditor.changeViewZones(function (changeAccessor) {
+
+      blocks.forEach(function (block) {
+
+        let startLineNumber = Math.max(1, block.startLineNumber);
+        let endLineNumber = Math.min(lineCount, block.endLineNumber);
+
+        if (startLineNumber > lineCount || endLineNumber < startLineNumber)
+          return;
+
+        if (!hiddenBlocks.get(startLineNumber)) {
+          removeExpandedBlockForEditor(standaloneEditor, startLineNumber);
+          let hiddenBlock = new monaco.Range(startLineNumber, 1, endLineNumber, 1);
+          let afterLineNumber = startLineNumber - 1;
+          let domNode = createExpandWidgetDomNode(standaloneEditor, startLineNumber, endLineNumber);
+          let hiddenArea = {
+            editor: standaloneEditor,
+            hiddenBlocks: hiddenBlocks,
+            block: hiddenBlock,
+            pairId: block.pairId
+          };
+          domNode.hiddenArea = hiddenArea;
+
+          if (afterLineNumber > 0 && model.getLineMaxColumn(afterLineNumber) == 1) {
+            let widget = createExpandContentWidget(standaloneEditor, startLineNumber, afterLineNumber, domNode);
+            standaloneEditor.addContentWidget(widget);
+            hiddenArea.widget = widget;
+            hiddenBlocks.set(startLineNumber, hiddenArea);
+          }
+          else {
+            let viewZone = {
+              afterLineNumber: afterLineNumber,
+              heightInLines: 1,
+              domNode: domNode,
+            };
+
+            if (afterLineNumber > 0)
+              viewZone.afterColumn = 1;
+
+            let viewZoneId = changeAccessor.addZone(viewZone);
+            hiddenArea.zoneId = viewZoneId;
+            hiddenBlocks.set(startLineNumber, hiddenArea);
+          }
+
+          hiddenAreasChanged = true;
+        }
+
+      });
+
+    });
+
+    if (hiddenAreasChanged)
+      setHiddenAreasForEditor(standaloneEditor, hiddenBlocks);
+
+  }
+
+  function removeHiddenBlocksForEditor(standaloneEditor, hiddenBlocks) {
+
+    removeExpandedBlocksForEditor(standaloneEditor);
+
+    standaloneEditor.changeViewZones(function (changeAccessor) {
+
+      hiddenBlocks.forEach((value, key, map) => {
+        if (value.zoneId)
+          changeAccessor.removeZone(value.zoneId);
+        else if (value.widget)
+          standaloneEditor.removeContentWidget(value.widget);
+      });
+
+    });
+
+    hiddenBlocks.clear();
+    setHiddenAreasForEditor(standaloneEditor, hiddenBlocks);
+
+  }
+
+  function showHiddenBlocksForEditor(hiddenBlocks) {
+
+    let hiddenAreas = [];
+
+    hiddenBlocks.forEach((value, key, map) => {
+      hiddenAreas.push(value);
+    });
+
+    hiddenAreas.forEach(function (hiddenArea) {
+      if (hiddenBlocks.get(hiddenArea.block.startLineNumber)) {
+        if (hiddenArea.pairedHiddenArea)
+          removeHiddenAreaWithPair(hiddenArea);
+        else
+          removeHiddenArea(hiddenArea);
+      }
+    });
+
+  }
+
+  function showHiddenBlocksForDiffEditor() {
+
+    if (editor.originalHiddenBlocks)
+      showHiddenBlocksForEditor(editor.originalHiddenBlocks);
+
+    if (editor.modifiedHiddenBlocks)
+      showHiddenBlocksForEditor(editor.modifiedHiddenBlocks);
+
+  }
+
+  function removeHiddenArea(hiddenArea) {
+
+    hiddenArea.editor.changeViewZones(function (changeAccessor) {
+      if (hiddenArea.zoneId)
+        changeAccessor.removeZone(hiddenArea.zoneId);
+      else if (hiddenArea.widget)
+        hiddenArea.editor.removeContentWidget(hiddenArea.widget);
+    });
+
+    hiddenArea.hiddenBlocks.delete(hiddenArea.block.startLineNumber);
+    setHiddenAreasForEditor(hiddenArea.editor, hiddenArea.hiddenBlocks);
+
+    return createExpandedBlockFromHiddenArea(hiddenArea);
+
+  }
+
+  function removeHiddenAreaWithPair(hiddenArea) {
+
+    let pairedHiddenArea = hiddenArea.pairedHiddenArea;
+
+    let expandedBlock = removeHiddenArea(hiddenArea);
+
+    if (pairedHiddenArea) {
+      let pairedExpandedBlock = removeHiddenArea(pairedHiddenArea);
+      expandedBlock.pairedExpandedBlock = pairedExpandedBlock;
+      pairedExpandedBlock.pairedExpandedBlock = expandedBlock;
+    }
+
+  }
+
+  function collapseExpandedBlock(expandedBlock) {
+
+    if (!expandedBlock)
+      return null;
+
+    let block = {
+      startLineNumber: expandedBlock.block.startLineNumber,
+      endLineNumber: expandedBlock.block.endLineNumber,
+      pairId: expandedBlock.pairId
+    };
+
+    removeExpandedBlock(expandedBlock);
+    hideBlocksForEditor(expandedBlock.editor, expandedBlock.hiddenBlocks, [block]);
+
+    return expandedBlock.hiddenBlocks.get(block.startLineNumber);
+
+  }
+
+  function collapseExpandedBlockWithPair(expandedBlock) {
+
+    if (!expandedBlock)
+      return;
+
+    let pairedExpandedBlock = expandedBlock.pairedExpandedBlock;
+    let hiddenArea = collapseExpandedBlock(expandedBlock);
+
+    if (pairedExpandedBlock) {
+      let pairedHiddenArea = collapseExpandedBlock(pairedExpandedBlock);
+
+      if (hiddenArea && pairedHiddenArea) {
+        hiddenArea.pairedHiddenArea = pairedHiddenArea;
+        pairedHiddenArea.pairedHiddenArea = hiddenArea;
+      }
+    }
+
+  }
+
+  function getHiddenAreaByDomNode(domNode) {
+
+    if (domNode.hiddenArea)
+      return domNode.hiddenArea;
+
+    let startLineNumber = Number(domNode.getAttribute('hidden-start-line'));
+
+    if (hiddenBlocks.get(startLineNumber))
+      return hiddenBlocks.get(startLineNumber);
+
+    if (editor.originalHiddenBlocks && editor.originalHiddenBlocks.get(startLineNumber))
+      return editor.originalHiddenBlocks.get(startLineNumber);
+
+    if (editor.modifiedHiddenBlocks && editor.modifiedHiddenBlocks.get(startLineNumber))
+      return editor.modifiedHiddenBlocks.get(startLineNumber);
+
+  }
+
+  function getUnchangedBlockEndLineNumber(startLineNumber, endLineNumber) {
+
+    return endLineNumber === 0 ? startLineNumber : startLineNumber - 1;
+
+  }
+
+  function getNextLineNumberAfterChange(startLineNumber, endLineNumber) {
+
+    return endLineNumber === 0 ? startLineNumber + 1 : endLineNumber + 1;
+
+  }
+
+  function pushUnchangedBlock(blocks, pairId, startLineNumber, endLineNumber) {
+
+    let hiddenStartLineNumber = startLineNumber + 1;
+    let hiddenEndLineNumber = endLineNumber - 1;
+
+    if (hiddenStartLineNumber <= hiddenEndLineNumber) {
+      blocks.push({
+        pairId: pairId,
+        startLineNumber: hiddenStartLineNumber,
+        endLineNumber: hiddenEndLineNumber
+      });
+    }
+
+  }
+
+  function getUnchangedBlockPairs(lineChanges, originalLineCount, modifiedLineCount) {
+
+    let originalBlocks = [];
+    let modifiedBlocks = [];
+    let nextOriginalLineNumber = 1;
+    let nextModifiedLineNumber = 1;
+    let pairId = 0;
+
+    lineChanges.forEach(function (change) {
+
+      pairId++;
+      pushUnchangedBlock(
+        originalBlocks,
+        pairId,
+        nextOriginalLineNumber,
+        getUnchangedBlockEndLineNumber(change.originalStartLineNumber, change.originalEndLineNumber)
+      );
+      pushUnchangedBlock(
+        modifiedBlocks,
+        pairId,
+        nextModifiedLineNumber,
+        getUnchangedBlockEndLineNumber(change.modifiedStartLineNumber, change.modifiedEndLineNumber)
+      );
+      nextOriginalLineNumber = Math.max(
+        nextOriginalLineNumber,
+        getNextLineNumberAfterChange(change.originalStartLineNumber, change.originalEndLineNumber)
+      );
+      nextModifiedLineNumber = Math.max(
+        nextModifiedLineNumber,
+        getNextLineNumberAfterChange(change.modifiedStartLineNumber, change.modifiedEndLineNumber)
+      );
+
+    });
+
+    pairId++;
+    pushUnchangedBlock(originalBlocks, pairId, nextOriginalLineNumber, originalLineCount);
+    pushUnchangedBlock(modifiedBlocks, pairId, nextModifiedLineNumber, modifiedLineCount);
+
+    return {
+      original: originalBlocks,
+      modified: modifiedBlocks
+    };
+
+  }
+
+  function linkHiddenBlockPairs(originalHiddenBlocks, modifiedHiddenBlocks) {
+
+    let pairs = new Map();
+
+    originalHiddenBlocks.forEach((value, key, map) => {
+      if (value.pairId)
+        pairs.set(value.pairId, value);
+    });
+
+    modifiedHiddenBlocks.forEach((value, key, map) => {
+      let originalHiddenArea = pairs.get(value.pairId);
+      if (originalHiddenArea) {
+        originalHiddenArea.pairedHiddenArea = value;
+        value.pairedHiddenArea = originalHiddenArea;
+      }
+    });
+
+  }
+
+  function getHiddenBlocksResult(blocks) {
+
+    return blocks.map(function (block) {
+      return {
+        startLineNumber: block.startLineNumber,
+        endLineNumber: block.endLineNumber
+      };
+    });
+
+  }
+
+  function setHiddenAreas() {
+
+    setHiddenAreasForEditor(editor, hiddenBlocks);
 
   }
 
