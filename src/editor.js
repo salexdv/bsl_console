@@ -1312,6 +1312,16 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         setTheme(getCurrentThemeFullName());
       }
 
+      if (optionName == 'showDiffDecorations') {
+        if (isShowDiffDecorationsEnabled() && editor.calculateDiff)
+          calculateDiff();
+        else {
+          editor.removeDiffWidget();
+          editor.diff_decorations = [];
+          editor.updateDecorations([]);
+        }
+      }
+
     // }, 10);
 
   }
@@ -1380,8 +1390,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       editor.removeDiffWidget();
       editor.diff_decorations = [];
     }
-    else
+    else if (isShowDiffDecorationsEnabled())
       calculateDiff();
+    else {
+      editor.removeDiffWidget();
+      editor.diff_decorations = [];
+    }
 
     editor.updateDecorations([]);
 
@@ -4345,6 +4359,13 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   function getDiffChanges() {
 
+    if (!isShowDiffDecorationsEnabled()) {
+      editor.removeDiffWidget();
+      editor.diff_decorations = [];
+      editor.updateDecorations([]);
+      return;
+    }
+
     const changes = diffEditor.getLineChanges();
   
     if (Array.isArray(changes)) {
@@ -4397,7 +4418,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   function calculateDiff() {
 
-    if (editor.calculateDiff) {
+    if (editor.calculateDiff && isShowDiffDecorationsEnabled()) {
 
       if (editor.diffTimer)
         clearTimeout(editor.diffTimer);
@@ -4419,6 +4440,12 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       }, 50);
 
     }
+
+  }
+
+  function isShowDiffDecorationsEnabled() {
+
+    return getOption('showDiffDecorations') !== false;
 
   }
 
