@@ -1312,6 +1312,9 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         setTheme(getCurrentThemeFullName());
       }
 
+      if (optionName == 'disableFolding')
+        refreshFoldingState();
+
       if (optionName == 'showDiffDecorations') {
         if (isShowDiffDecorationsEnabled() && editor.calculateDiff)
           calculateDiff();
@@ -4440,6 +4443,18 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       }, 50);
 
     }
+
+  }
+
+  function refreshFoldingState() {
+
+    const folding_enabled = !getOption('disableFolding');
+    const editors = editor.navi ? [editor.getModifiedEditor(), editor.getOriginalEditor()] : [editor];
+
+    editors.forEach((standalone_editor) => {
+      standalone_editor.updateOptions({ folding: folding_enabled });
+      standalone_editor.trigger('', 'editor.unfoldAll');
+    });
 
   }
 
