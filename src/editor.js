@@ -1361,13 +1361,15 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
 
   jumpToBracket = function () {
 
-    editor.trigger('', 'editor.action.jumpToBracket');
+    if (!jumpToIfBracket())
+      editor.trigger('', 'editor.action.jumpToBracket');
 
   }
 
   selectToBracket = function () {
 
-    editor.trigger('', 'editor.action.selectToBracket');
+    if (!selectToIfBracket())
+      editor.trigger('', 'editor.action.selectToBracket');
 
   }
 
@@ -2107,6 +2109,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     editor.currentDebugLine = new Map();
     editor.checkBookmarks = true;
     editor.diff_decorations = [];
+    editor.ifDecorations = [];
 
     editor.updateDecorations = function (new_decorations) {
 
@@ -2250,6 +2253,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
       updateStatusBar();
       onChangeSnippetSelection(e);
       updateSelectedQueryDelimiters(e);
+      updateIfHighlights();
 
     });
 
@@ -2282,6 +2286,342 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
     }
 
     return true;
+
+  }
+
+  function getIfChainKeywordType(keyword) {
+
+    if (!keyword)
+      return null;
+
+    switch (keyword.toLowerCase()) {
+      case 'если':
+      case 'if':
+        return 'if';
+      case 'иначеесли':
+      case 'elsif':
+        return 'elseif';
+      case 'иначе':
+      case 'else':
+        return 'else';
+      case 'конецесли':
+      case 'endif':
+        return 'endif';
+    }
+
+    return null;
+
+  }
+
+  function getIfChainKeywordInfo(model, lineNumber) {
+
+    const lineContent = model.getLineContent(lineNumber);
+    const match = lineContent.match(/^\s*(иначеесли|конецесли|если|иначе|elsif|endif|if|else)(?=[\s;]|$)/i);
+
+    if (!match)
+      return null;
+
+    const type = getIfChainKeywordType(match[1]);
+
+    if (!type)
+      return null;
+
+    const startColumn = match[0].length - match[1].length + 1;
+    const endColumn = startColumn + match[1].length;
+
+    return {
+      type: type,
+      range: new monaco.Range(lineNumber, startColumn, lineNumber, endColumn)
+    };
+
+  }
+
+  function getIfChainBlock(model, activeRange) {
+
+    const stack = [];
+
+    for (let lineNumber = 1; lineNumber <= model.getLineCount(); lineNumber++) {
+      const keywordInfo = getIfChainKeywordInfo(model, lineNumber);
+
+      if (!keywordInfo)
+        continue;
+
+      if (keywordInfo.type == 'if') {
+        stack.push({
+          start: keywordInfo.range,
+          elseifs: [],
+          elseRange: null,
+          end: null
+        });
+        continue;
+      }
+
+      const currentBlock = stack[stack.length - 1];
+
+      if (!currentBlock)
+        continue;
+
+      if (keywordInfo.type == 'elseif') {
+        currentBlock.elseifs.push(keywordInfo.range);
+        continue;
+      }
+
+      if (keywordInfo.type == 'else') {
+        currentBlock.elseRange = keywordInfo.range;
+        continue;
+      }
+
+      if (keywordInfo.type == 'endif') {
+        currentBlock.end = keywordInfo.range;
+        stack.pop();
+
+        const ranges = [currentBlock.start].concat(currentBlock.elseifs);
+
+        if (currentBlock.elseRange)
+          ranges.push(currentBlock.elseRange);
+
+        ranges.push(currentBlock.end);
+
+        if (ranges.some(range => range.equalsRange(activeRange)))
+          return currentBlock;
+      }
+    }
+
+    return null;
+
+  }
+
+  function positionIsBeforeOrEqual(left, right) {
+
+    if (left.lineNumber != right.lineNumber)
+      return left.lineNumber < right.lineNumber;
+
+    return left.column <= right.column;
+
+  }
+
+  function rangeContainsPosition(range, position) {
+
+    const start = range.getStartPosition();
+    const end = range.getEndPosition();
+    return positionIsBeforeOrEqual(start, position) && positionIsBeforeOrEqual(position, end);
+
+  }
+
+  function getContainingIfChainBlock(model, position) {
+
+    const stack = [];
+
+    for (let lineNumber = 1; lineNumber <= model.getLineCount(); lineNumber++) {
+      const keywordInfo = getIfChainKeywordInfo(model, lineNumber);
+
+      if (!keywordInfo)
+        continue;
+
+      if (keywordInfo.type == 'if') {
+        stack.push({
+          start: keywordInfo.range,
+          elseifs: [],
+          elseRange: null,
+          end: null
+        });
+        continue;
+      }
+
+      const currentBlock = stack[stack.length - 1];
+
+      if (!currentBlock)
+        continue;
+
+      if (keywordInfo.type == 'elseif') {
+        currentBlock.elseifs.push(keywordInfo.range);
+        continue;
+      }
+
+      if (keywordInfo.type == 'else') {
+        currentBlock.elseRange = keywordInfo.range;
+        continue;
+      }
+
+      if (keywordInfo.type == 'endif') {
+        currentBlock.end = keywordInfo.range;
+        stack.pop();
+
+        const fullRange = new monaco.Range(
+          currentBlock.start.startLineNumber,
+          currentBlock.start.startColumn,
+          currentBlock.end.endLineNumber,
+          currentBlock.end.endColumn
+        );
+
+        if (rangeContainsPosition(fullRange, position))
+          return currentBlock;
+      }
+    }
+
+    return null;
+
+  }
+
+  function getIfChainRangesFromBlock(block) {
+
+    if (!block || !block.end)
+      return null;
+
+    let ranges = [block.start].concat(block.elseifs);
+
+    if (block.elseRange)
+      ranges.push(block.elseRange);
+
+    ranges.push(block.end);
+    return ranges;
+
+  }
+
+  function getIfBlockContext(active_editor = getActiveEditor()) {
+
+    if (!active_editor || !active_editor.getModel)
+      return null;
+
+    const model = active_editor.getModel();
+
+    if (!model || model.getLanguageIdentifier().language != 'bsl')
+      return null;
+
+    const position = active_editor.getPosition();
+    const keywordInfo = getIfChainKeywordInfo(model, position.lineNumber);
+
+    if (keywordInfo && keywordInfo.range.containsPosition(position)) {
+      const keywordBlock = getIfChainBlock(model, keywordInfo.range);
+
+      if (keywordBlock && keywordBlock.end) {
+        return {
+          editor: active_editor,
+          position: position,
+          keywordInfo: keywordInfo,
+          block: keywordBlock,
+          ranges: getIfChainRangesFromBlock(keywordBlock),
+          fromKeyword: true
+        };
+      }
+    }
+
+    const containingBlock = getContainingIfChainBlock(model, position);
+
+    if (!containingBlock || !containingBlock.end)
+      return null;
+
+    return {
+      editor: active_editor,
+      position: position,
+      keywordInfo: null,
+      block: containingBlock,
+      ranges: getIfChainRangesFromBlock(containingBlock),
+      fromKeyword: false
+    };
+
+  }
+
+  function getIfContext(active_editor = getActiveEditor()) {
+
+    return getIfBlockContext(active_editor);
+
+  }
+
+  function jumpToIfBracket(active_editor = getActiveEditor()) {
+
+    const context = getIfContext(active_editor);
+
+    if (!context)
+      return false;
+
+    let target = null;
+
+    if (context.fromKeyword) {
+      target = context.keywordInfo.type == 'endif'
+        ? context.block.start.getStartPosition()
+        : context.block.end.getStartPosition();
+    }
+    else {
+      const position = context.position;
+      const start = context.block.start.getStartPosition();
+      const end = context.block.end.getStartPosition();
+      const startDistance = Math.abs(position.lineNumber - start.lineNumber) * 1000 + Math.abs(position.column - start.column);
+      const endDistance = Math.abs(position.lineNumber - end.lineNumber) * 1000 + Math.abs(position.column - end.column);
+      target = startDistance <= endDistance ? start : end;
+    }
+
+    context.editor.setPosition(target);
+    context.editor.revealPositionInCenterIfOutsideViewport(target);
+    return true;
+
+  }
+
+  function selectToIfBracket(active_editor = getActiveEditor()) {
+
+    const context = getIfContext(active_editor);
+
+    if (!context)
+      return false;
+
+    const range = new monaco.Range(
+      context.block.start.startLineNumber,
+      context.block.start.startColumn,
+      context.block.end.endLineNumber,
+      context.block.end.endColumn
+    );
+
+    context.editor.setSelection(range);
+    context.editor.revealPositionInCenterIfOutsideViewport(range.getEndPosition());
+    return true;
+
+  }
+
+  function clearIfHighlights(active_editor = getActiveEditor()) {
+
+    if (!active_editor)
+      return;
+
+    active_editor.ifDecorations = active_editor.deltaDecorations(active_editor.ifDecorations || [], []);
+
+  }
+
+  function updateIfHighlights(active_editor = getActiveEditor()) {
+
+    if (!active_editor || !active_editor.getModel)
+      return;
+
+    const model = active_editor.getModel();
+    const selection = active_editor.getSelection();
+
+    if (!model || !selection || !selection.isEmpty() || model.getLanguageIdentifier().language != 'bsl') {
+      clearIfHighlights(active_editor);
+      return;
+    }
+
+    const context = getIfBlockContext(active_editor);
+
+    if (!context) {
+      clearIfHighlights(active_editor);
+      return;
+    }
+
+    const ranges = context.ranges;
+
+    if (!ranges || ranges.length == 0) {
+      clearIfHighlights(active_editor);
+      return;
+    }
+
+    active_editor.ifDecorations = active_editor.deltaDecorations(
+      active_editor.ifDecorations || [],
+      ranges.map(range => ({
+        range: range,
+        options: {
+          inlineClassName: 'bracket-match'
+        }
+      }))
+    );
 
   }
 
@@ -3770,6 +4110,7 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
         });
       }
 
+      updateIfHighlights(getActiveDiffEditor());
       updateStatusBar();
 
     }
