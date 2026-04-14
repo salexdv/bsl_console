@@ -159,6 +159,7 @@
 | [`triggerHovers`](docs/trigger_hovers.md) | Принудительный вызов всплывающей подсказки для текущего слов                       |
 | [`triggerSigHelp`](docs/trigger_signature_help.md) | Принудительный вызов подсказки по вызову процедуры/метода                 |
 | [`showCustomSuggestions`](docs/custom_suggestions.md) | Показ пользовательских подсказок                                       |
+| [`showInlineSuggestion`](docs/show_inline_suggestion.md) | Показ inline-подсказки в указанной позиции редактора                |
 | `showPreviousCustomSuggestions`| Вывод списка пользовательских подсказок, ранее показанных через `showCustomSuggestions`       |
 | `hideSuggestionsList`          | Скрывает текущий список подсказок                                                             |
 | `hideHoverList`                | Скрывает активную всплывающую подсказку для слова                                             |
