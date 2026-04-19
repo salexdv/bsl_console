@@ -35,7 +35,8 @@ module.exports = (env, argv) => {
     context: path.resolve(__dirname, 'src'),
     entry: isTest ? {
       test: ['./editor', './test'],
-      test_query: ['./editor', './test_query']
+      test_query: ['./editor', './test_query'],
+      test_query_model: ['./editor', './test_query_model']
     } : withTests ? {
       // Реальный редактор bsl_console (Этап 3+). Обёрнут теми же слоями совместимости, что и
       // смоук-каркас: polyfills → monaco-environment → product-service → expose-monaco.
@@ -43,7 +44,8 @@ module.exports = (env, argv) => {
       console: './editor',
       // + страницы тестов для dev-сервера (см. withTests).
       test: ['./editor', './test'],
-      test_query: ['./editor', './test_query']
+      test_query: ['./editor', './test_query'],
+      test_query_model: ['./editor', './test_query_model']
     } : {
       console: './editor'
     },
@@ -193,6 +195,7 @@ module.exports = (env, argv) => {
       // Собираются и в чистом тест-таргете (--env test), и в dev-сборке (npm run debug) — см. withTests.
       withTests ? new HtmlWebpackPlugin({ inject: 'body', chunks: ['test'], template: './test.html', filename: 'test.html', cache: false }) : false,
       withTests ? new HtmlWebpackPlugin({ inject: 'body', chunks: ['test_query'], template: './test_query.html', filename: 'test_query.html', cache: false }) : false,
+      withTests ? new HtmlWebpackPlugin({ inject: 'body', chunks: ['test_query_model'], template: './test_query_model.html', filename: 'test_query_model.html', cache: false }) : false,
       isTest ? false : new HtmlWebpackPlugin({
         inject: 'body',
         chunks: ['console'],

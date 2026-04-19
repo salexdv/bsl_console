@@ -1,4 +1,5 @@
 import Finder from "./finder";
+import queryModel from "./query_model";
 
 /**
  * Class for provideSignatureHelp
@@ -7501,6 +7502,771 @@ class bslHelper {
 		}
 
 		return null;
+
+	}
+
+	/**
+	 * Creates hover object for query mode
+	 * 
+	 * @param {string|array} value markdown value or list of markdown values
+	 * @returns {object} hover object
+	 */
+	getQueryHoverObject(value) {
+
+		let contents = [];
+		let values = Array.isArray(value) ? value : [value];
+
+		values.forEach(function (item) {
+			contents.push({ value: item });
+		});
+
+		let range = null;
+
+		if (this.wordData)
+			range = new monaco.Range(this.lineNumber, this.wordData.startColumn, this.lineNumber, this.wordData.endColumn);
+		else
+			range = new monaco.Range(this.lineNumber, this.column, this.lineNumber, this.column);
+
+		return {
+			range: range,
+			contents: contents
+		};
+
+	}
+
+	/**
+	 * Tokenizes query text for UNION-related analysis
+	 * 
+	 * @returns {array} tokens
+	 */
+	getQueryStructureTokens() {
+
+		let code = this.model.getValue();
+		let tokens = [];
+		let depth = 0;
+		let idx = 0;
+
+		function isWordChar(char) {
+			return /[A-Za-z0-9_\u0410-\u044F\u0401\u0451]/.test(char);
+		}
+
+		while (idx < code.length) {
+
+			let char = code[idx];
+			let nextChar = idx + 1 < code.length ? code[idx + 1] : '';
+
+			if (char == '/' && nextChar == '/') {
+				idx += 2;
+				while (idx < code.length && code[idx] != '\n')
+					idx++;
+				continue;
+			}
+
+			if (char == '\'' || char == '"') {
+				let quote = char;
+				idx++;
+
+				while (idx < code.length) {
+					if (code[idx] == quote) {
+						if (idx + 1 < code.length && code[idx + 1] == quote)
+							idx += 2;
+						else {
+							idx++;
+							break;
+						}
+					}
+					else
+						idx++;
+				}
+
+				continue;
+			}
+
+			if (char == '(') {
+				depth++;
+				idx++;
+				continue;
+			}
+
+			if (char == ')') {
+				tokens.push({ type: 'closeParen', depth: depth, start: idx, end: idx + 1 });
+				depth = Math.max(0, depth - 1);
+				idx++;
+				continue;
+			}
+
+			if (char == ',') {
+				tokens.push({ type: 'comma', depth: depth, start: idx, end: idx + 1 });
+				idx++;
+				continue;
+			}
+
+			if (char == ';') {
+				tokens.push({ type: 'semicolon', depth: depth, start: idx, end: idx + 1 });
+				idx++;
+				continue;
+			}
+
+			if (isWordChar(char)) {
+
+				let start = idx;
+				idx++;
+
+				while (idx < code.length && isWordChar(code[idx]))
+					idx++;
+
+				let word = code.substring(start, idx).toLowerCase();
+				let type = '';
+
+				if (word == 'выбрать' || word == 'select')
+					type = 'select';
+				else if (word == 'из' || word == 'from')
+					type = 'from';
+				else if (word == 'объединить' || word == 'union')
+					type = 'union';
+				else if (word == 'все' || word == 'all')
+					type = 'unionAll';
+
+				if (type)
+					tokens.push({ type: type, depth: depth, start: start, end: idx });
+
+				continue;
+
+			}
+
+			idx++;
+
+		}
+
+		return tokens;
+
+	}
+
+	/**
+	 * Builds list of query SELECT branches
+	 * 
+	 * @returns {array} branch definitions
+	 */
+	getQuerySelectBranches() {
+
+		let tokens = this.getQueryStructureTokens();
+		let branches = [];
+		let codeLength = this.model.getValueLength();
+
+		for (let idx = 0; idx < tokens.length; idx++) {
+
+			let token = tokens[idx];
+
+			if (token.type != 'select')
+				continue;
+
+			let depth = token.depth;
+			let fromToken = null;
+			let boundaryToken = null;
+
+			for (let tokenIdx = idx + 1; tokenIdx < tokens.length; tokenIdx++) {
+
+				let nextToken = tokens[tokenIdx];
+
+				if (nextToken.depth != depth)
+					continue;
+
+				if ((nextToken.type == 'union' || nextToken.type == 'semicolon' || nextToken.type == 'closeParen')) {
+					boundaryToken = nextToken;
+					break;
+				}
+
+				if (nextToken.type == 'from') {
+					fromToken = nextToken;
+					break;
+				}
+
+			}
+
+			if (!fromToken)
+				continue;
+
+			for (let tokenIdx = idx + 1; tokenIdx < tokens.length; tokenIdx++) {
+
+				let nextToken = tokens[tokenIdx];
+
+				if (nextToken.start <= fromToken.start || nextToken.depth != depth)
+					continue;
+
+				if (nextToken.type == 'union' || nextToken.type == 'semicolon' || nextToken.type == 'closeParen') {
+					boundaryToken = nextToken;
+					break;
+				}
+
+			}
+
+			branches.push({
+				depth: depth,
+				selectToken: token,
+				fromToken: fromToken,
+				boundaryToken: boundaryToken,
+				selectStart: token.start,
+				selectEnd: token.end,
+				fromStart: fromToken.start,
+				end: boundaryToken ? boundaryToken.start : codeLength
+			});
+
+		}
+
+		return {
+			tokens: tokens,
+			branches: branches
+		};
+
+	}
+
+	/**
+	 * Returns zero-based field index inside SELECT list
+	 * 
+	 * @param {object} branch branch definition
+	 * @param {array} tokens structure tokens
+	 * @param {int} offset current offset
+	 * @returns {int} item index
+	 */
+	getQueryBranchFieldIndex(branch, tokens, offset) {
+
+		let index = 0;
+
+		for (let tokenIdx = 0; tokenIdx < tokens.length; tokenIdx++) {
+			let token = tokens[tokenIdx];
+
+			if (token.type == 'comma' &&
+				token.depth == branch.depth &&
+				branch.selectEnd <= token.start &&
+				token.start < branch.fromStart &&
+				token.start < offset) {
+				index++;
+			}
+		}
+
+		return index;
+
+	}
+
+	/**
+	 * Returns text of SELECT item by index
+	 * 
+	 * @param {object} branch branch definition
+	 * @param {array} tokens structure tokens
+	 * @param {int} itemIndex zero-based item index
+	 * @returns {string} item text
+	 */
+	getQueryBranchFieldText(branch, tokens, itemIndex) {
+
+		let commaOffsets = [];
+
+		for (let tokenIdx = 0; tokenIdx < tokens.length; tokenIdx++) {
+			let token = tokens[tokenIdx];
+
+			if (token.type == 'comma' &&
+				token.depth == branch.depth &&
+				branch.selectEnd <= token.start &&
+				token.start < branch.fromStart) {
+				commaOffsets.push(token.start);
+			}
+		}
+
+		let itemStart = branch.selectEnd;
+		let itemEnd = branch.fromStart;
+
+		if (0 < itemIndex) {
+			if (itemIndex - 1 < commaOffsets.length)
+				itemStart = commaOffsets[itemIndex - 1] + 1;
+			else
+				return '';
+		}
+
+		if (itemIndex < commaOffsets.length)
+			itemEnd = commaOffsets[itemIndex];
+
+		return this.model.getValueInRange(new monaco.Range(
+			this.model.getPositionAt(itemStart).lineNumber,
+			this.model.getPositionAt(itemStart).column,
+			this.model.getPositionAt(itemEnd).lineNumber,
+			this.model.getPositionAt(itemEnd).column
+		)).trim();
+
+	}
+
+	/**
+	 * Extracts alias from SELECT item text
+	 * 
+	 * @param {string} fieldText text of SELECT item
+	 * @returns {string} alias or empty string
+	 */
+	getQueryFieldAlias(fieldText) {
+
+		let match = fieldText.match(/(?:\s|^)(?:как|as)\s+([a-zA-Z0-9_\u0410-\u044F\u0401\u0451]+)\s*$/i);
+		return match ? match[1] : '';
+
+	}
+
+	/**
+	 * Escapes string for RegExp
+	 * 
+	 * @param {string} value raw string
+	 * @returns {string} escaped string
+	 */
+	escapeRegExp(value) {
+
+		return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+	}
+
+	/**
+	 * Returns query field name for hover lookup
+	 * 
+	 * @returns {string} field name or current word
+	 */
+	getQueryHoverLookupWord() {
+
+		let lineText = this.model.getLineContent(this.lineNumber);
+		let columnIndex = Math.max(0, this.column - 1);
+		let pattern = /[a-zA-Z0-9_\u0410-\u044F\u0401\u0451&]+(?:\.[a-zA-Z0-9_\u0410-\u044F\u0401\u0451]+)+/g;
+		let match = null;
+
+		while ((match = pattern.exec(lineText)) !== null) {
+			if (match.index <= columnIndex && columnIndex <= match.index + match[0].length) {
+				let parts = match[0].split('.');
+				return parts[parts.length - 1];
+			}
+		}
+
+		return this.wordData ? this.wordData.word : '';
+
+	}
+
+	/**
+	 * Tries to find alias by hovered word in SELECT branch
+	 * 
+	 * @param {object} branch branch definition
+	 * @param {array} tokens structure tokens
+	 * @returns {string} alias or empty string
+	 */
+	getQueryBranchAliasByWord(branch, tokens) {
+
+		let word = this.getQueryHoverLookupWord();
+
+		if (!word)
+			return '';
+
+		let escapedWord = this.escapeRegExp(word);
+		let fieldPattern = RegExp('(?:^|[^a-zA-Z0-9_\u0410-\u044F\u0401\u0451])(?:&|[a-zA-Z0-9_\u0410-\u044F\u0401\u0451]+\\.)?' + escapedWord + '(?=[^a-zA-Z0-9_\u0410-\u044F\u0401\u0451]|$)', 'i');
+
+		let itemIndex = 0;
+		let fieldText = this.getQueryBranchFieldText(branch, tokens, itemIndex);
+
+		while (fieldText) {
+
+			let alias = this.getQueryFieldAlias(fieldText);
+
+			if (alias && fieldPattern.test(fieldText))
+				return alias;
+
+			itemIndex++;
+			fieldText = this.getQueryBranchFieldText(branch, tokens, itemIndex);
+
+		}
+
+		return '';
+
+	}
+
+	/**
+	 * Returns parsed query model for current editor model
+	 * 
+	 * @returns {object|null} parsed query document
+	 */
+	getParsedQueryModel() {
+
+		if (!queryModel || !queryModel.parse)
+			return null;
+
+		let version = this.model.getVersionId ? this.model.getVersionId() : this.model.getValue().length;
+
+		if (!this.model._queryModelCache || this.model._queryModelCache.version != version) {
+			this.model._queryModelCache = {
+				version: version,
+				document: queryModel.parse(this.model.getValue())
+			};
+		}
+
+		return this.model._queryModelCache.document;
+
+	}
+
+	/**
+	 * Returns current query context from parsed model
+	 * 
+	 * @returns {object|null} query context
+	 */
+	getParsedQueryContext() {
+
+		let document = this.getParsedQueryModel();
+
+		if (!document || !document.getContextAt)
+			return null;
+
+		return document.getContextAt(this.lineNumber, this.column);
+
+	}
+
+	/**
+	 * Returns display name of select item
+	 * 
+	 * @param {object} item select item
+	 * @returns {string} display name
+	 */
+	getQueryModelSelectItemName(item) {
+
+		if (!item)
+			return '';
+
+		if (item.alias && item.alias.name)
+			return item.alias.name;
+
+		if (item.name)
+			return item.name;
+
+		return '';
+
+	}
+
+	/**
+	 * Returns normalized query hover lookup word
+	 * 
+	 * @returns {string} normalized word
+	 */
+	getQueryHoverLookupWordNormalized() {
+
+		let word = this.getQueryHoverLookupWord() || '';
+		return word.replace(/^&/, '').toLowerCase();
+
+	}
+
+	/**
+	 * Determines whether reference matches lookup word
+	 * 
+	 * @param {object} reference query reference
+	 * @param {string} lookupWord normalized word
+	 * @returns {boolean}
+	 */
+	isQueryReferenceMatched(reference, lookupWord) {
+
+		if (!reference || !lookupWord)
+			return false;
+
+		if (reference.kind == 'parameter') {
+			let name = (reference.name || '').replace(/^&/, '').toLowerCase();
+			let path = (reference.path || '').replace(/^&/, '').toLowerCase();
+			return name == lookupWord || path == lookupWord;
+		}
+
+		let fieldName = (reference.fieldName || '').toLowerCase();
+		let path = (reference.path || '').toLowerCase();
+
+		return fieldName == lookupWord || path == lookupWord || path.endsWith('.' + lookupWord);
+
+	}
+
+	/**
+	 * Returns select item matched by hovered word
+	 * 
+	 * @param {object} branch query branch
+	 * @param {string} lookupWord normalized lookup word
+	 * @returns {object|null} select item
+	 */
+	getQueryModelSelectItemByWord(branch, lookupWord) {
+
+		if (!branch || !branch.select || !branch.select.items || !lookupWord)
+			return null;
+
+		let result = null;
+
+		branch.select.items.forEach(item => {
+			if (result)
+				return;
+
+			let itemName = this.getQueryModelSelectItemName(item).toLowerCase();
+
+			if (itemName == lookupWord) {
+				result = item;
+				return;
+			}
+
+			if (item.references) {
+				for (let idx = 0; idx < item.references.length && !result; idx++) {
+					if (this.isQueryReferenceMatched(item.references[idx], lookupWord))
+						result = item;
+				}
+			}
+		});
+
+		return result;
+
+	}
+
+	/**
+	 * Returns current select item by cursor position
+	 * 
+	 * @param {object} branch query branch
+	 * @param {int} offset current offset
+	 * @returns {object|null} select item
+	 */
+	getQueryModelSelectItemAtOffset(branch, offset) {
+
+		if (!branch || !branch.select || !branch.select.items)
+			return null;
+
+		for (let idx = 0; idx < branch.select.items.length; idx++) {
+			let item = branch.select.items[idx];
+			if (item.start <= offset && offset <= item.end)
+				return item;
+		}
+
+		return null;
+
+	}
+
+	/**
+	 * Returns whether query model range contains current offset
+	 * 
+	 * @param {object} range model range
+	 * @param {int} offset current offset
+	 * @returns {boolean}
+	 */
+	isQueryModelRangeContainsOffset(range, offset) {
+
+		if (!range)
+			return false;
+
+		let start = this.model.getOffsetAt(new monaco.Position(range.startLineNumber, range.startColumn));
+		let end = this.model.getOffsetAt(new monaco.Position(range.endLineNumber, range.endColumn));
+
+		return start <= offset && offset <= end;
+
+	}
+
+	/**
+	 * Returns select item matched by reference
+	 * 
+	 * @param {object} branch query branch
+	 * @param {object} reference query reference
+	 * @returns {object|null} select item
+	 */
+	getQueryModelSelectItemByReference(branch, reference) {
+
+		if (!branch || !branch.select || !branch.select.items || !reference)
+			return null;
+
+		let referencePath = (reference.path || '').toLowerCase();
+		let referenceFieldName = (reference.fieldName || reference.name || '').replace(/^&/, '').toLowerCase();
+		let result = null;
+
+		branch.select.items.forEach(item => {
+			if (result || !item.references)
+				return;
+
+			for (let idx = 0; idx < item.references.length && !result; idx++) {
+				let itemReference = item.references[idx];
+				let itemPath = (itemReference.path || '').toLowerCase();
+				let itemFieldName = (itemReference.fieldName || itemReference.name || '').replace(/^&/, '').toLowerCase();
+
+				if ((referencePath && itemPath == referencePath) ||
+					(referenceFieldName && itemFieldName == referenceFieldName))
+					result = item;
+			}
+		});
+
+		return result;
+
+	}
+
+	/**
+	 * Returns reference under current cursor from parsed query model
+	 * 
+	 * @param {object} context query context
+	 * @returns {object|null} matched reference info
+	 */
+	getQueryModelReferenceAtOffset(context) {
+
+		if (!context || !context.branch)
+			return null;
+
+		let offset = context.offset;
+		let result = null;
+		let references = [];
+
+		if (context.clause && context.clause.references)
+			references = references.concat(context.clause.references);
+
+		if (context.clause && context.clause.expression && context.clause.expression.references)
+			references = references.concat(context.clause.expression.references);
+
+		if (context.clause && context.clause.kind == 'selectList' && context.branch.select && context.branch.select.items) {
+			context.branch.select.items.forEach(item => {
+				if (item.references) {
+					item.references.forEach(reference => {
+						references.push({
+							reference: reference,
+							item: item
+						});
+					});
+				}
+			});
+		}
+		else {
+			references = references.map(reference => ({
+				reference: reference,
+				item: null
+			}));
+		}
+
+		references.forEach(entry => {
+			if (!result && entry.reference && this.isQueryModelRangeContainsOffset(entry.reference.range, offset))
+				result = entry;
+		});
+
+		return result;
+
+	}
+
+	/**
+	 * Returns hover via parsed query model
+	 * 
+	 * @returns {object|null} hover object
+	 */
+	getQueryModelHover() {
+
+		let context = this.getParsedQueryContext();
+
+		if (!context || !context.statement || !context.branch)
+			return null;
+
+		let statement = context.statement;
+		let branch = context.branch;
+		let mainBranch = statement.branches && statement.branches.length ? statement.branches[0] : branch;
+		let lookupWord = this.getQueryHoverLookupWordNormalized();
+		let alias = '';
+		let referenceEntry = this.getQueryModelReferenceAtOffset(context);
+
+		if (referenceEntry && referenceEntry.reference) {
+			let item = referenceEntry.item || this.getQueryModelSelectItemByReference(branch, referenceEntry.reference);
+
+			if (item) {
+				let sourceItem = (branch != mainBranch && mainBranch.select && mainBranch.select.items && item.index < mainBranch.select.items.length) ?
+					mainBranch.select.items[item.index] : item;
+				alias = this.getQueryModelSelectItemName(sourceItem);
+			}
+		}
+
+		if (!alias && context.clause && context.clause.kind == 'selectList') {
+			let item = this.getQueryModelSelectItemAtOffset(branch, context.offset);
+
+			if (item) {
+				let sourceItem = (branch != mainBranch && mainBranch.select && mainBranch.select.items && item.index < mainBranch.select.items.length) ?
+					mainBranch.select.items[item.index] : item;
+				alias = this.getQueryModelSelectItemName(sourceItem);
+			}
+		}
+
+		if (!alias && lookupWord) {
+			let item = this.getQueryModelSelectItemByWord(branch, lookupWord);
+
+			if (item) {
+				let sourceItem = (branch != mainBranch && mainBranch.select && mainBranch.select.items && item.index < mainBranch.select.items.length) ?
+					mainBranch.select.items[item.index] : item;
+				alias = this.getQueryModelSelectItemName(sourceItem);
+			}
+		}
+
+		if (!alias && lookupWord && branch != mainBranch) {
+			let item = this.getQueryModelSelectItemByWord(mainBranch, lookupWord);
+			if (item)
+				alias = this.getQueryModelSelectItemName(item);
+		}
+
+		return alias ? this.getQueryHoverObject(alias) : null;
+
+	}
+
+	/**
+	 * Provider for query hover popoup
+	 * 
+	 * @returns {object} hover object or null
+	 */
+	getQueryHover() {
+
+		let hover = this.getCustomHover();
+
+		if (!hover)
+			hover = this.getImmediateHover();
+
+		if (!hover && this.wordData && !this.isItStringLiteral()) {
+
+			hover = this.getQueryModelHover();
+
+		}
+
+		if (!hover && this.wordData && !this.isItStringLiteral()) {
+
+			let positionOffset = this.model.getOffsetAt(this.position);
+			let structure = this.getQuerySelectBranches();
+			let branches = structure.branches;
+			let tokens = structure.tokens;
+			let currentBranchIndex = -1;
+
+			for (let idx = 0; idx < branches.length; idx++) {
+				let branch = branches[idx];
+				if (branch.selectStart <= positionOffset && positionOffset < branch.end) {
+					currentBranchIndex = idx;
+				}
+			}
+
+			if (currentBranchIndex != -1) {
+
+				let currentBranch = branches[currentBranchIndex];
+				let mainBranchIndex = currentBranchIndex;
+
+				while (0 < mainBranchIndex) {
+					let previousBranch = branches[mainBranchIndex - 1];
+					if (previousBranch.depth == currentBranch.depth &&
+						previousBranch.boundaryToken &&
+						previousBranch.boundaryToken.type == 'union') {
+						mainBranchIndex--;
+					}
+					else
+						break;
+				}
+
+				if (mainBranchIndex != currentBranchIndex) {
+					let itemIndex = this.getQueryBranchFieldIndex(currentBranch, tokens, positionOffset);
+					let alias = this.getQueryFieldAlias(this.getQueryBranchFieldText(branches[mainBranchIndex], tokens, itemIndex));
+
+					if (alias)
+						hover = this.getQueryHoverObject(alias);
+				}
+
+				if (!hover) {
+					let alias = this.getQueryBranchAliasByWord(branches[mainBranchIndex], tokens);
+
+					if (!alias && mainBranchIndex != currentBranchIndex)
+						alias = this.getQueryBranchAliasByWord(currentBranch, tokens);
+
+					if (alias)
+						hover = this.getQueryHoverObject(alias);
+				}
+
+			}
+
+		}
+
+		return hover;
 
 	}
 
