@@ -1,4 +1,5 @@
 import bslHelper from './bsl_helper';
+import queryModel from './query_model';
 
 setTimeout(() => {
 
@@ -58,6 +59,132 @@ setTimeout(() => {
     }
 
     let bsl = helper('', 1, 1);
+
+    it("проверка построения модели запроса", function () {
+      let model = queryModel.parse(`ВЫБРАТЬ
+        Товары.Ссылка КАК Ссылка,
+        Товары.Код КАК Код
+      ИЗ
+        Справочник.Товары КАК Товары
+      ГДЕ
+        Товары.Код = &Код
+      УПОРЯДОЧИТЬ ПО
+        Товары.Код`);
+
+      expect(model.statements).to.be.an('array').that.has.length(1);
+      expect(model.statements[0].branches).to.be.an('array').that.has.length(1);
+      expect(model.statements[0].branches[0].select.items).to.be.an('array').that.has.length(2);
+      assert.equal(model.statements[0].branches[0].select.items[0].alias.name, "Ссылка");
+      assert.equal(model.statements[0].branches[0].from.sources[0].base.alias.name, "Товары");
+      assert.equal(model.statements[0].branches[0].where.references.some(ref => ref.path === "Товары.Код"), true);
+    });
+
+    it("проверка метрик производительности модели запроса", function () {
+      let model = queryModel.parse(`ВЫБРАТЬ
+        Товары.Ссылка КАК Ссылка
+      ИЗ
+        Справочник.Товары КАК Товары`);
+
+      expect(model.performance).to.be.an('object');
+      expect(model.performance.tokenizeMs).to.be.a('number');
+      expect(model.performance.parseMs).to.be.a('number');
+      expect(model.performance.totalMs).to.be.a('number');
+      expect(model.performance.tokenCount).to.be.a('number');
+      expect(model.performance.nodeCount).to.be.a('number');
+      expect(model.performance.errorCount).to.be.a('number');
+    });
+
+    it("проверка модели запроса с объединением", function () {
+      let model = queryModel.parse(`ВЫБРАТЬ
+        Источник.Период КАК Период,
+        Источник.Организация КАК Организация
+      ИЗ
+        Документ.Продажа КАК Источник
+      ОБЪЕДИНИТЬ ВСЕ
+      ВЫБРАТЬ
+        Источник.Период,
+        Источник.Организация
+      ИЗ
+        Документ.Возврат КАК Источник`);
+
+      expect(model.statements[0].branches).to.be.an('array').that.has.length(2);
+      assert.equal(model.statements[0].branches[1].from.sources[0].base.name, "Документ.Возврат");
+      assert.equal(model.statements[0].branches[1].from.sources[0].base.alias.name, "Источник");
+    });
+
+    it("проверка tolerant-модели объединения после лишней закрывающей скобки", function () {
+      let model = queryModel.parse(`ВЫБРАТЬ
+        Источник.Период КАК Период
+      ИЗ
+        Документ.Продажа КАК Источник
+      ГДЕ
+        Источник.Период В (ВЫБРАТЬ Данные.Период ИЗ Таблица КАК Данные)
+        И НЕ Данные.Период ЕСТЬ NULL)
+
+      ОБЪЕДИНИТЬ ВСЕ
+
+      ВЫБРАТЬ
+        Источник.Период
+      ИЗ
+        Документ.Возврат КАК Источник`);
+
+      let context = model.getContextAt(12, 18);
+      expect(model.statements[0].branches).to.be.an('array').that.has.length(2);
+      assert.equal(context.branch, model.statements[0].branches[1]);
+    });
+
+    it("проверка tolerant-модели для битого запроса", function () {
+      let model = queryModel.parse(`ВЫБРАТЬ
+        Товары.Ссылка КАК Ссылка,
+        ВЫБОР
+          КОГДА Товары.Код =
+      ИЗ
+        Справочник.Товары КАК Товары`);
+
+      expect(model.statements).to.be.an('array').that.not.is.empty;
+      expect(model.statements[0].branches[0].select.items).to.be.an('array').that.not.is.empty;
+      assert.equal(model.statements[0].branches[0].from.sources[0].base.alias.name, "Товары");
+    });
+
+    it("проверка контекста по позиции в модели запроса", function () {
+      let model = queryModel.parse(`ВЫБРАТЬ
+        Товары.Ссылка КАК Ссылка
+      ИЗ
+        Справочник.Товары КАК Товары
+      ГДЕ
+        Товары.Ссылка = &Ссылка`);
+
+      let context = model.getContextAt(6, 15);
+      assert.equal(context.branch.kind, "queryBranch");
+      assert.equal(context.clause.kind, "whereClause");
+      assert.equal(context.node.kind, "expression");
+    });
+
+    it("проверка query hover для ветвей объединения", function () {
+      let query = `ВЫБРАТЬ
+        Источник.Период КАК Период,
+        Источник.Организация КАК Организация
+      ИЗ
+        Документ.Продажа КАК Источник
+      ОБЪЕДИНИТЬ ВСЕ
+      ВЫБРАТЬ
+        &ДругойПериод,
+        ВЫБОР КОГДА Источник.Организация = &Организация ТОГДА Источник.Организация ИНАЧЕ NULL КОНЕЦ
+      ИЗ
+        Документ.Возврат КАК Источник`;
+
+      let hover = helper(query, 8, 11).getQueryHover();
+      expect(hover).to.be.an('object');
+      assert.equal(hover.contents[0].value, "Период");
+
+      hover = helper(query, 9, 32).getQueryHover();
+      expect(hover).to.be.an('object');
+      assert.equal(hover.contents[0].value, "Организация");
+
+      hover = helper(query, 2, 20).getQueryHover();
+      expect(hover).to.be.an('object');
+      assert.equal(hover.contents[0].value, "Период");
+    });
     
     it("проверка существования глобальной переменной editor", function () {
       assert.notEqual(window.editor, undefined);

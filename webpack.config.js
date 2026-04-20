@@ -184,6 +184,10 @@ module.exports = (env, argv) => {
       {
         apply(compiler) {
           compiler.hooks.afterEmit.tapAsync('AssertMonacoPatches', (compilation, cb) => {
+            if (!isProd) {
+              cb();
+              return;
+            }
             try { replaceStrings.assertApplied(); cb(); } catch (e) { cb(e); }
           });
         }
