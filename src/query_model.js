@@ -161,6 +161,11 @@ const KEYWORDS = new Set([
                     continue;
                 }
 
+                if (char == '{') {
+                    this.skipBraceBlock();
+                    continue;
+                }
+
                 if (char == '&') {
                     this.tokens.push(this.readParameter());
                     continue;
@@ -191,6 +196,42 @@ const KEYWORDS = new Set([
                 errors: this.errors
             };
 
+        }
+
+        skipBraceBlock() {
+            let depth = 0;
+
+            while (this.offset < this.length) {
+                let char = this.text[this.offset];
+                let nextChar = this.offset + 1 < this.length ? this.text[this.offset + 1] : '';
+
+                if (char == '/' && nextChar == '/') {
+                    this.offset += 2;
+
+                    while (this.offset < this.length && this.text[this.offset] != '\n')
+                        this.offset++;
+
+                    continue;
+                }
+
+                if (char == '\'' || char == '"') {
+                    this.readString(char);
+                    continue;
+                }
+
+                if (char == '{')
+                    depth++;
+                else if (char == '}') {
+                    depth--;
+
+                    if (depth <= 0) {
+                        this.offset++;
+                        return;
+                    }
+                }
+
+                this.offset++;
+            }
         }
 
         readString(quote) {
