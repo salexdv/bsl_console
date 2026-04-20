@@ -1,5 +1,6 @@
 import './editor';
 import queryModel from './query_model';
+import { scheduleQueryModelParse } from './bsl_helper';
 import { jsonDefaults } from 'monaco-editor/esm/vs/language/json/monaco.contribution';
 
 jsonDefaults.setDiagnosticsOptions({
@@ -37,10 +38,14 @@ window.init('8.3.18.1');
   const modelContainer = document.getElementById('model-container');
   let parsedDocument = null;
   let parseTimer = null;
+  let parseWaitTimer = null;
+  let parseRequestId = 0;
   let jsonDecorations = [];
   let queryDecorations = [];
   let jsonLineRanges = [];
+  let queryRangeJsonLines = {};
   let modelEditor = null;
+  let renderedDocument = null;
   let syncingFromQuery = false;
   let syncingFromJson = false;
 
@@ -170,6 +175,7 @@ window.init('8.3.18.1');
     let json = JSON.stringify(value, null, 2);
     let lines = json.split('\n');
     let stack = [];
+    queryRangeJsonLines = {};
 
     lines.forEach((line, index) => {
       let lineNumber = index + 1;
@@ -210,6 +216,11 @@ window.init('8.3.18.1');
 
           for (let targetLine = current.startLine; targetLine <= lineNumber; targetLine++)
             lineRanges[targetLine] = range;
+
+          let key = rangeKey(range);
+
+          if (!queryRangeJsonLines[key])
+            queryRangeJsonLines[key] = current.startLine;
         }
 
         stack.pop();
@@ -217,6 +228,18 @@ window.init('8.3.18.1');
     });
 
     return json;
+  }
+
+  function rangeKey(range) {
+    if (!range)
+      return '';
+
+    return [
+      range.startLineNumber,
+      range.startColumn,
+      range.endLineNumber,
+      range.endColumn
+    ].join(':');
   }
 
   function contextSummary(context) {
@@ -271,41 +294,80 @@ window.init('8.3.18.1');
     ].join(' | ');
   }
 
-  function revealActiveLine() {
+  function updateParsingStatus() {
+    if (!statusElement)
+      return;
+
+    if (statusElement.textContent == 'query_model: parsing...')
+      return;
+
+    statusElement.textContent = 'query_model: parsing...';
+  }
+
+  function revealJsonLine(activeLine) {
     let model = modelEditor.getModel();
     let lineCount = model.getLineCount();
-    let activeLine = 1;
+    activeLine = activeLine || 1;
 
-    for (let line = 1; line <= lineCount; line++) {
-      let text = model.getLineContent(line);
-      if (text.indexOf('"__activeRole":') != -1 && text.indexOf('node') != -1) {
-        activeLine = line;
-        break;
-      }
+    if (activeLine < 1)
+      activeLine = 1;
 
-      if (text.indexOf('"__active": true') != -1 && activeLine == 1)
-        activeLine = line;
-    }
+    if (lineCount < activeLine)
+      activeLine = lineCount;
 
-    modelEditor.revealLineInCenter(activeLine);
+    modelEditor.revealLineInCenter(activeLine || 1);
     modelEditor.setPosition({
-      lineNumber: activeLine,
+      lineNumber: activeLine || 1,
       column: 1
     });
     modelEditor.setSelection(new monaco.Range(
-      activeLine,
+      activeLine || 1,
       1,
-      activeLine,
-      model.getLineMaxColumn(activeLine)
+      activeLine || 1,
+      model.getLineMaxColumn(activeLine || 1)
     ));
     jsonDecorations = modelEditor.deltaDecorations(jsonDecorations, [{
-      range: new monaco.Range(activeLine, 1, activeLine, 1),
+      range: new monaco.Range(activeLine || 1, 1, activeLine || 1, 1),
       options: {
         isWholeLine: true,
         className: 'query-model-active-line',
         glyphMarginClassName: 'query-model-active-glyph'
       }
     }]);
+  }
+
+  function findActiveJsonLineFromText() {
+    let model = modelEditor.getModel();
+    let lineCount = model.getLineCount();
+    let activeLine = 1;
+
+    for (let line = 1; line <= lineCount; line++) {
+      let text = model.getLineContent(line);
+      if (text.indexOf('"__activeRole":') != -1 && text.indexOf('node') != -1)
+        return line;
+
+      if (text.indexOf('"__active": true') != -1 && activeLine == 1)
+        activeLine = line;
+    }
+
+    return activeLine;
+  }
+
+  function getJsonLineForContext(context) {
+    let nodes = context ? [context.node, context.clause, context.branch, context.statement] : [];
+
+    for (let idx = 0; idx < nodes.length; idx++) {
+      let key = compactRange(nodes[idx]);
+
+      if (key && queryRangeJsonLines[key])
+        return queryRangeJsonLines[key];
+    }
+
+    return findActiveJsonLineFromText();
+  }
+
+  function revealActiveLine(context) {
+    revealJsonLine(context ? getJsonLineForContext(context) : findActiveJsonLineFromText());
   }
 
   function findRangeNearJsonLine(lineNumber) {
@@ -349,41 +411,114 @@ window.init('8.3.18.1');
 
     syncingFromQuery = true;
 
-    if (!parsedDocument)
-      parsedDocument = queryModel.parse(editor.getValue());
+    if (!parsedDocument) {
+      scheduleInspectorParse(0);
+      updateParsingStatus();
+      syncingFromQuery = false;
+      return;
+    }
 
     let context = parsedDocument.getContextAt(position.lineNumber, position.column);
     jsonLineRanges = [];
     let text = registerRangeLines(visualModel(parsedDocument, context), jsonLineRanges);
 
     modelEditor.setValue(text);
+    renderedDocument = parsedDocument;
     updateStatus(context);
-    revealActiveLine();
+    revealActiveLine(context);
 
     setTimeout(() => {
       syncingFromQuery = false;
     }, 0);
   }
 
+  function updateInspectorNavigation(position) {
+    if (syncingFromJson || !parsedDocument || renderedDocument !== parsedDocument)
+      return false;
+
+    let context = parsedDocument.getContextAt(position.lineNumber, position.column);
+
+    syncingFromQuery = true;
+    updateStatus(context);
+    revealActiveLine(context);
+
+    setTimeout(() => {
+      syncingFromQuery = false;
+    }, 0);
+
+    return true;
+  }
+
+  function getCachedInspectorDocument() {
+    let model = editor.getModel();
+    let version = model.getVersionId ? model.getVersionId() : null;
+
+    if (model._queryModelCache && (!version || model._queryModelCache.version == version)) {
+      if (typeof attachQueryModelRuntime == 'function')
+        return attachQueryModelRuntime(model._queryModelCache.document);
+
+      return model._queryModelCache.document;
+    }
+
+    return parsedDocument;
+  }
+
+  function scheduleInspectorParse(delay) {
+    if (parseTimer)
+      clearTimeout(parseTimer);
+
+    parseTimer = setTimeout(() => {
+      parseTimer = null;
+
+      if (typeof scheduleQueryModelParse == 'function')
+        scheduleQueryModelParse(editor.getModel(), 0);
+
+      waitForParsedDocument(++parseRequestId, editor.getModel().getVersionId ? editor.getModel().getVersionId() : null);
+    }, delay == undefined ? 250 : delay);
+  }
+
+  function waitForParsedDocument(requestId, version) {
+    if (parseWaitTimer)
+      clearTimeout(parseWaitTimer);
+
+    let document = getCachedInspectorDocument();
+    let documentVersion = editor.getModel().getVersionId ? editor.getModel().getVersionId() : null;
+
+    if (document && (!version || documentVersion == version)) {
+      parsedDocument = document;
+      renderedDocument = null;
+      updateInspector(editor.getPosition());
+      return;
+    }
+
+    if (requestId != parseRequestId)
+      return;
+
+    updateParsingStatus();
+    parseWaitTimer = setTimeout(() => waitForParsedDocument(requestId, version), 50);
+  }
+
   function reparseAndUpdate() {
-    parsedDocument = queryModel.parse(editor.getValue());
-    updateInspector(editor.getPosition());
+    parsedDocument = getCachedInspectorDocument();
+
+    if (parsedDocument)
+      updateInspector(editor.getPosition());
+    else
+      scheduleInspectorParse(0);
   }
 
   function startInspector() {
     createModelEditor();
 
     editor.onDidChangeCursorPosition(event => {
-      updateInspector(event.position);
+      if (!updateInspectorNavigation(event.position))
+        updateInspector(event.position);
     });
 
     editor.onDidChangeModelContent(() => {
       parsedDocument = null;
-
-      if (parseTimer)
-        clearTimeout(parseTimer);
-
-      parseTimer = setTimeout(reparseAndUpdate, 250);
+      renderedDocument = null;
+      scheduleInspectorParse(250);
     });
 
     reparseAndUpdate();

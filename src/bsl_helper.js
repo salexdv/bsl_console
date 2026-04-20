@@ -1,5 +1,6 @@
 import Finder from "./finder";
 import queryModel from "./query_model";
+const queryModelWorkerUrl = require('blob-url-loader?type=application/javascript!compile-loader?target=worker&emit=false!./query_model_worker');
 
 /**
  * Class for provideSignatureHelp
@@ -12,6 +13,328 @@ import queryModel from "./query_model";
 
 	dispose() {
 	}
+
+}
+
+const QUERY_MODEL_PARSE_DELAY_MS = 250;
+const QUERY_MODEL_SYNC_PARSE_LIMIT = 20000;
+
+let queryModelWorker = null;
+let queryModelWorkerAvailable = true;
+let queryModelWorkerInitializing = false;
+let queryModelWorkerJobId = 0;
+let queryModelWorkerModelId = 0;
+let queryModelWorkerModels = {};
+
+function getQueryModelVersion(model) {
+
+	if (!model)
+		return 0;
+
+	if (model.getVersionId)
+		return model.getVersionId();
+
+	return model.getValue ? model.getValue().length : 0;
+
+}
+
+function canParseQueryModel() {
+
+	return queryModel && queryModel.parse;
+
+}
+
+function parseQueryModelForModel(model) {
+
+	if (!model || !model.getValue || !canParseQueryModel())
+		return null;
+
+	let version = getQueryModelVersion(model);
+	let document = queryModel.parse(model.getValue());
+
+	model._queryModelCache = {
+		version: version,
+		document: document,
+		parsedAt: Date.now()
+	};
+
+	return document;
+
+}
+
+function createQueryModelWorker() {
+
+	if (!queryModelWorkerAvailable || typeof Worker == 'undefined')
+		return null;
+
+	if (queryModelWorker)
+		return queryModelWorker;
+
+	if (queryModelWorkerInitializing)
+		return null;
+
+	queryModelWorkerInitializing = true;
+
+	try {
+		queryModelWorker = new Worker(queryModelWorkerUrl);
+		queryModelWorker.onmessage = onQueryModelWorkerMessage;
+		queryModelWorker.onerror = error => {
+			queryModelWorkerAvailable = false;
+
+			if (queryModelWorker) {
+				queryModelWorker.terminate();
+				queryModelWorker = null;
+			}
+
+			if (typeof console != 'undefined' && console.warn)
+				console.warn('query_model worker failed, fallback to main thread', error);
+
+			Object.keys(queryModelWorkerModels).forEach(key => {
+				let model = queryModelWorkerModels[key];
+				if (model)
+					scheduleQueryModelParse(model, 0);
+			});
+		};
+	}
+	catch (error) {
+		queryModelWorkerAvailable = false;
+
+		if (typeof console != 'undefined' && console.warn)
+			console.warn('query_model worker is unavailable, fallback to main thread', error);
+	}
+	finally {
+		queryModelWorkerInitializing = false;
+	}
+
+	return queryModelWorker;
+
+}
+
+function getQueryModelModelId(model) {
+
+	if (!model._queryModelWorkerId)
+		model._queryModelWorkerId = ++queryModelWorkerModelId;
+
+	queryModelWorkerModels[model._queryModelWorkerId] = model;
+
+	return model._queryModelWorkerId;
+
+}
+
+function onQueryModelWorkerMessage(event) {
+
+	let data = event.data || {};
+	let model = queryModelWorkerModels[data.modelId];
+
+	if (!model)
+		return;
+
+	let state = model._queryModelParseState || {};
+
+	if (state.jobId && data.jobId < state.jobId)
+		return;
+
+	state.isParsing = false;
+
+	if (data.type == 'parsed' && data.document) {
+		attachQueryModelRuntime(data.document);
+
+		if (getQueryModelVersion(model) == data.version) {
+			model._queryModelCache = {
+				version: data.version,
+				document: data.document,
+				parsedAt: Date.now(),
+				worker: true
+			};
+		}
+	}
+	else if (data.type == 'error' && typeof console != 'undefined' && console.warn)
+		console.warn('query_model worker parse failed', data.message);
+
+	model._queryModelParseState = state;
+
+}
+
+function buildQueryModelLineStarts(text) {
+
+	let starts = [0];
+
+	for (let idx = 0; idx < text.length; idx++) {
+		if (text[idx] == '\n')
+			starts.push(idx + 1);
+	}
+
+	return starts;
+
+}
+
+function queryModelOffsetAt(lineNumber, column, lineStarts) {
+
+	let lineStart = lineStarts[Math.max(0, lineNumber - 1)] || 0;
+	return lineStart + Math.max(0, column - 1);
+
+}
+
+function findQueryModelNodeAtOffset(document, offset) {
+
+	let best = null;
+	let nodes = document.nodes || [];
+
+	nodes.forEach(node => {
+		if (node.start <= offset && offset <= node.end) {
+			if (!best || (node.end - node.start) < (best.end - best.start))
+				best = node;
+		}
+	});
+
+	return best || document;
+
+}
+
+function attachQueryModelRuntime(document) {
+
+	if (!document || document.getContextAt)
+		return document;
+
+	let lineStarts = document.lineStarts || buildQueryModelLineStarts(document.text || '');
+
+	document.findNodeAt = (lineNumber, column) => {
+		let offset = queryModelOffsetAt(lineNumber, column, lineStarts);
+		return findQueryModelNodeAtOffset(document, offset);
+	};
+
+	document.getContextAt = (lineNumber, column) => {
+		let offset = queryModelOffsetAt(lineNumber, column, lineStarts);
+		let statement = (document.statements || []).find(item => item.start <= offset && offset <= item.end) || null;
+		let branch = null;
+		let clause = null;
+
+		if (statement && statement.branches) {
+			branch = statement.branches.find(item => item.start <= offset && offset <= item.end) || null;
+
+			if (branch) {
+				['select', 'into', 'from', 'where', 'groupBy', 'having', 'orderBy', 'indexBy', 'forUpdate'].forEach(key => {
+					if (!clause && branch[key] && branch[key].start <= offset && offset <= branch[key].end)
+						clause = branch[key];
+				});
+			}
+		}
+
+		return {
+			offset: offset,
+			statement: statement,
+			branch: branch,
+			clause: clause,
+			node: findQueryModelNodeAtOffset(document, offset)
+		};
+	};
+
+	return document;
+
+}
+
+function scheduleQueryModelParseInWorker(model, delay) {
+
+	let worker = createQueryModelWorker();
+
+	if (!worker)
+		return false;
+
+	let state = model._queryModelParseState || {};
+
+	if (state.timer)
+		clearTimeout(state.timer);
+
+	state.pendingVersion = getQueryModelVersion(model);
+	state.timer = setTimeout(() => {
+		state.timer = null;
+		state.isParsing = true;
+		state.jobId = ++queryModelWorkerJobId;
+		model._queryModelParseState = state;
+
+		try {
+			worker.postMessage({
+				type: 'parse',
+				jobId: state.jobId,
+				modelId: getQueryModelModelId(model),
+				version: getQueryModelVersion(model),
+				text: model.getValue()
+			});
+		}
+		catch (error) {
+			state.isParsing = false;
+			queryModelWorkerAvailable = false;
+
+			if (typeof console != 'undefined' && console.warn)
+				console.warn('query_model worker postMessage failed, fallback to main thread', error);
+
+			scheduleQueryModelParse(model, delay);
+		}
+	}, delay == undefined ? QUERY_MODEL_PARSE_DELAY_MS : delay);
+
+	model._queryModelParseState = state;
+	return true;
+
+}
+
+function scheduleQueryModelParse(model, delay) {
+
+	if (!model || !canParseQueryModel())
+		return;
+
+	if (scheduleQueryModelParseInWorker(model, delay))
+		return;
+
+	let state = model._queryModelParseState || {};
+
+	if (state.timer)
+		clearTimeout(state.timer);
+
+	state.pendingVersion = getQueryModelVersion(model);
+	state.timer = setTimeout(() => {
+		state.timer = null;
+		state.isParsing = true;
+
+		try {
+			attachQueryModelRuntime(parseQueryModelForModel(model));
+		}
+		catch (error) {
+			if (typeof console != 'undefined' && console.warn)
+				console.warn('query_model parse failed', error);
+		}
+		finally {
+			state.isParsing = false;
+		}
+	}, delay == undefined ? QUERY_MODEL_PARSE_DELAY_MS : delay);
+
+	model._queryModelParseState = state;
+
+}
+
+function getCachedQueryModel(model, parseIfMissing) {
+
+	if (!model || !canParseQueryModel())
+		return null;
+
+	let version = getQueryModelVersion(model);
+
+	if (model._queryModelCache && model._queryModelCache.version == version)
+		return attachQueryModelRuntime(model._queryModelCache.document);
+
+	scheduleQueryModelParse(model);
+
+	if (model._queryModelCache && model._queryModelCache.document)
+		return attachQueryModelRuntime(model._queryModelCache.document);
+
+	if (!parseIfMissing)
+		return null;
+
+	let textLength = model.getValueLength ? model.getValueLength() : (model.getValue ? model.getValue().length : 0);
+
+	if (queryModelWorkerAvailable && QUERY_MODEL_SYNC_PARSE_LIMIT < textLength)
+		return null;
+
+	return attachQueryModelRuntime(parseQueryModelForModel(model));
 
 }
 
@@ -7884,19 +8207,7 @@ class bslHelper {
 	 */
 	getParsedQueryModel() {
 
-		if (!queryModel || !queryModel.parse)
-			return null;
-
-		let version = this.model.getVersionId ? this.model.getVersionId() : this.model.getValue().length;
-
-		if (!this.model._queryModelCache || this.model._queryModelCache.version != version) {
-			this.model._queryModelCache = {
-				version: version,
-				document: queryModel.parse(this.model.getValue())
-			};
-		}
-
-		return this.model._queryModelCache.document;
+		return getCachedQueryModel(this.model, true);
 
 	}
 
@@ -9335,4 +9646,10 @@ class bslHelper {
 
 }
 
+export {
+	scheduleQueryModelParse,
+	getCachedQueryModel,
+	parseQueryModelForModel,
+	attachQueryModelRuntime
+};
 export default bslHelper;

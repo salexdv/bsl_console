@@ -13,6 +13,7 @@ import './product-service';
 import monaco from './expose-monaco';
 
 import { languages, setHighlightInnerQuotes} from './bsl_language';
+import { scheduleQueryModelParse } from './bsl_helper';
 import HiddenBlocksController from './hidden_blocks';
 import { getActions, permanentActions } from './actions';
 import './decorations.css'
@@ -481,6 +482,16 @@ window.setLanguageMode = function(mode) {
   window.setTheme(currentTheme);
 
   initContextMenuActions();
+
+  if (mode == 'bsl_query') {
+    if (isCompareMode) {
+      scheduleQueryModelParse(window.editor.getModifiedEditor().getModel(), 0);
+      scheduleQueryModelParse(window.editor.getOriginalEditor().getModel(), 0);
+    }
+    else {
+      scheduleQueryModelParse(window.editor.getModel(), 0);
+    }
+  }
 
 }
 
@@ -2351,6 +2362,16 @@ function initEditorEventListenersAndProperies() {
     window.updateBreakpoints(undefined);
 
     setOption('lastContentChanges', e);
+
+    if (window.getCurrentLanguageId() == 'bsl_query') {
+      if (window.editor.navi) {
+        scheduleQueryModelParse(window.editor.getModifiedEditor().getModel());
+        scheduleQueryModelParse(window.editor.getOriginalEditor().getModel());
+      }
+      else {
+        scheduleQueryModelParse(window.editor.getModel());
+      }
+    }
         
   });
 

@@ -417,6 +417,9 @@ const KEYWORDS = new Set([
                 this.skipSemicolons();
             }
 
+            document.lineStarts = this.lineStarts;
+            document.nodes = this.nodes.filter(node => node !== document);
+
             document.findNodeAt = (lineNumber, column) => {
                 let offset = this.offsetAt(lineNumber, column);
                 return this.findNodeAtOffset(document, offset);
@@ -456,8 +459,6 @@ const KEYWORDS = new Set([
                 nodeCount: this.nodes.length,
                 errorCount: document.errors.length
             };
-
-            console.log(document.performance);
 
             return document;
         }
