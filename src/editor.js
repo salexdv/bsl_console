@@ -891,7 +891,8 @@ define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/edit
           detail: value.detail,
           documentation: value.documentation,
           filterText: value.hasOwnProperty('filter') ? value.filter : value.name,
-          sortText: value.hasOwnProperty('sort') ? value.sort : value.name
+          sortText: value.hasOwnProperty('sort') ? value.sort : value.name,
+          preselect: !!value.preselect
         };
 
         if (value.event) {

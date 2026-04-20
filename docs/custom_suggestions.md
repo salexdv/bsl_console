@@ -11,6 +11,7 @@
 	* [documentation](https://microsoft.github.io/monaco-editor/api/interfaces/monaco.languages.completionitem.html#documentation) - документация к элементу
 	* [filter](https://microsoft.github.io/monaco-editor/api/interfaces/monaco.languages.completionitem.html#filtertext) - текст, используемый для фильтрации. Необязательно поле.
 	* [sort](https://microsoft.github.io/monaco-editor/api/interfaces/monaco.languages.completionitem.html#sorttext) - строка, используемая для сортировки элемента в списке. Необязательно поле.
+	* [preselect](https://microsoft.github.io/monaco-editor/api/interfaces/monaco.languages.completionitem.html#preselect) - признак предварительного выбора элемента в списке подсказок. Необязательное поле. Только один элемент из списка может иметь `preselect: true`
 	* **event** - *string*, имя пользовательского события. Если поле заполнено, при выборе текст не вставляется, вместо этого генерируется событие с указанным именем
 	* **codicon** - *string*, CSS-класс иконки Codicon, например `codicon-run` или `codicon-symbol-event`. Необязательное поле. Если для специального элемента не задано, используется `codicon-symbol-event`. Список доступных иконок можно посмотреть [тут](./codicons_list.md)
 
@@ -27,7 +28,8 @@ showCustomSuggestions(`{
 		"text": "Подсказка №1 вставляемый текст",
 		"kind": "Class",
 		"detail": "Расширенная подсказка #1",
-		"documentation": "Документация #1"
+		"documentation": "Документация #1",
+		"preselect", true
 	},
 	"Подсказка2": {
 		"name": "Выполнить действие",
@@ -70,7 +72,8 @@ showCustomSuggestions(`{
 		"text": "Подсказка №2 ()",
 		"kind": "Method",
 		"detail": "Расширенная подсказка #2",
-		"documentation": "Документация #2"
+		"documentation": "Документация #2",
+		"preselect": true
 	}
 }`);
 ```
