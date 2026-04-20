@@ -126,6 +126,38 @@ const KEYWORDS = new Set([
         return Date.now();
     }
 
+    function getBslMetadata() {
+        if (typeof self != 'undefined' && self && self.bslMetadata)
+            return self.bslMetadata;
+
+        return null;
+    }
+
+    function getMetadataSource(fullSourceName) {
+        let metadata = getBslMetadata();
+
+        if (!metadata || !fullSourceName)
+            return '';
+
+        for (let key in metadata) {
+            if (!metadata.hasOwnProperty(key))
+                continue;
+
+            let item = metadata[key];
+
+            if (!item)
+                continue;
+
+            if (item.query_name && fullSourceName.indexOf(item.query_name) == 0)
+                return item.query_name;
+
+            if (item.query_name_en && fullSourceName.indexOf(item.query_name_en) == 0)
+                return item.query_name_en;
+        }
+
+        return '';
+    }
+
     class QueryTokenizer {
 
         constructor(text) {
@@ -857,6 +889,80 @@ const KEYWORDS = new Set([
 
             branch.sourceIndex = sourceIndex;
             branch.selectIndex = selectIndex;
+            this.enrichBranchReferences(branch);
+        }
+
+        enrichBranchReferences(branch) {
+            if (!branch)
+                return;
+
+            if (branch.select && branch.select.items) {
+                branch.select.items.forEach(item => {
+                    this.enrichReferences(item.references, branch);
+
+                    if (item.expression)
+                        this.enrichReferences(item.expression.references, branch);
+                });
+            }
+
+            if (branch.from && branch.from.sources) {
+                branch.from.sources.forEach(source => {
+                    if (source.base)
+                        this.enrichReferences(source.base.references, branch);
+
+                    if (source.joins) {
+                        source.joins.forEach(join => {
+                            if (join.source)
+                                this.enrichReferences(join.source.references, branch);
+
+                            if (join.condition)
+                                this.enrichReferences(join.condition.references, branch);
+                        });
+                    }
+                });
+            }
+
+            ['where', 'groupBy', 'having', 'orderBy', 'indexBy', 'forUpdate'].forEach(key => {
+                this.enrichClauseReferences(branch[key], branch);
+            });
+        }
+
+        enrichClauseReferences(clause, branch) {
+            if (!clause)
+                return;
+
+            this.enrichReferences(clause.references, branch);
+
+            if (clause.expression)
+                this.enrichReferences(clause.expression.references, branch);
+
+            if (clause.items) {
+                clause.items.forEach(item => {
+                    if (!item)
+                        return;
+
+                    this.enrichReferences(item.references, branch);
+
+                    if (item.expression)
+                        this.enrichReferences(item.expression.references, branch);
+                });
+            }
+        }
+
+        enrichReferences(references, branch) {
+            if (!references || !branch || !branch.sourceIndex)
+                return;
+
+            references.forEach(reference => {
+                if (!reference || reference.kind != 'column' || !reference.sourceName)
+                    return;
+
+                let source = branch.sourceIndex[reference.sourceName.toLowerCase()];
+                let fullSourceName = source && source.name ? source.name : '';
+
+                reference.fullSourceName = fullSourceName;
+                reference.metadataSourse = getMetadataSource(fullSourceName);
+            });
         }
 
         getSelectItemName(item) {

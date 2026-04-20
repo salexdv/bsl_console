@@ -79,6 +79,30 @@ setTimeout(() => {
       assert.equal(model.statements[0].branches[0].where.references.some(ref => ref.path === "Товары.Код"), true);
     });
 
+    it("проверка полных имен источников в references модели запроса", function () {
+      let model = queryModel.parse(`ВЫБРАТЬ
+        Товары.Наименование КАК Наименование,
+        Продажи.Сумма КАК Сумма,
+        втТовары.Количество КАК Количество
+      ИЗ
+        Справочник.Товары КАК Товары,
+        AccountingRegister.Sales КАК Продажи,
+        втТовары КАК втТовары`);
+
+      let branch = model.statements[0].branches[0];
+      let catalogReference = branch.select.items[0].references[0];
+      let accountingRegisterReference = branch.select.items[1].references[0];
+      let tempTableReference = branch.select.items[2].references[0];
+
+      assert.equal(catalogReference.sourceName, "Товары");
+      assert.equal(catalogReference.fullSourceName, "Справочник.Товары");
+      assert.equal(catalogReference.metadataSourse, "Справочник");
+      assert.equal(accountingRegisterReference.fullSourceName, "AccountingRegister.Sales");
+      assert.equal(accountingRegisterReference.metadataSourse, "AccountingRegister");
+      assert.equal(tempTableReference.fullSourceName, "втТовары");
+      assert.equal(tempTableReference.metadataSourse, "");
+    });
+
     it("проверка метрик производительности модели запроса", function () {
       let model = queryModel.parse(`ВЫБРАТЬ
         Товары.Ссылка КАК Ссылка
