@@ -111,6 +111,65 @@ const KEYWORDS = new Set([
         };
     }
 
+    function offsetAt(lineNumber, column, lineStarts) {
+        let lineStart = lineStarts[Math.max(0, lineNumber - 1)] || 0;
+        return lineStart + Math.max(0, column - 1);
+    }
+
+    function findNodeAtOffset(document, offset) {
+        let best = null;
+        let nodes = document && document.nodes ? document.nodes : [];
+
+        nodes.forEach(node => {
+            if (node.start <= offset && offset <= node.end) {
+                if (!best || (node.end - node.start) < (best.end - best.start))
+                    best = node;
+            }
+        });
+
+        return best || document;
+    }
+
+    function attachRuntime(document) {
+        if (!document || document.getContextAt)
+            return document;
+
+        let lineStarts = document.lineStarts || buildLineStarts(document.text || '');
+
+        document.findNodeAt = (lineNumber, column) => {
+            let offset = offsetAt(lineNumber, column, lineStarts);
+            return findNodeAtOffset(document, offset);
+        };
+
+        document.getContextAt = (lineNumber, column) => {
+            let offset = offsetAt(lineNumber, column, lineStarts);
+            let statement = (document.statements || []).find(item => item.start <= offset && offset <= item.end) || null;
+            let branch = null;
+            let clause = null;
+
+            if (statement && statement.branches) {
+                branch = statement.branches.find(item => item.start <= offset && offset <= item.end) || null;
+
+                if (branch) {
+                    ['select', 'into', 'from', 'where', 'groupBy', 'having', 'orderBy', 'indexBy', 'forUpdate'].forEach(key => {
+                        if (!clause && branch[key] && branch[key].start <= offset && offset <= branch[key].end)
+                            clause = branch[key];
+                    });
+                }
+            }
+
+            return {
+                offset: offset,
+                statement: statement,
+                branch: branch,
+                clause: clause,
+                node: findNodeAtOffset(document, offset)
+            };
+        };
+
+        return document;
+    }
+
     function normalizeWord(word) {
         return word ? word.toLowerCase() : '';
     }
@@ -420,36 +479,7 @@ const KEYWORDS = new Set([
             document.lineStarts = this.lineStarts;
             document.nodes = this.nodes.filter(node => node !== document);
 
-            document.findNodeAt = (lineNumber, column) => {
-                let offset = this.offsetAt(lineNumber, column);
-                return this.findNodeAtOffset(document, offset);
-            };
-
-            document.getContextAt = (lineNumber, column) => {
-                let offset = this.offsetAt(lineNumber, column);
-                let statement = document.statements.find(item => item.start <= offset && offset <= item.end) || null;
-                let branch = null;
-                let clause = null;
-
-                if (statement && statement.branches) {
-                    branch = statement.branches.find(item => item.start <= offset && offset <= item.end) || null;
-
-                    if (branch) {
-                        ['select', 'into', 'from', 'where', 'groupBy', 'having', 'orderBy', 'indexBy', 'forUpdate'].forEach(key => {
-                            if (!clause && branch[key] && branch[key].start <= offset && offset <= branch[key].end)
-                                clause = branch[key];
-                        });
-                    }
-                }
-
-                return {
-                    offset: offset,
-                    statement: statement,
-                    branch: branch,
-                    clause: clause,
-                    node: this.findNodeAtOffset(document, offset)
-                };
-            };
+            attachRuntime(document);
 
             document.performance = {
                 tokenizeMs: this.tokenizeDurationMs,
@@ -1381,6 +1411,10 @@ const queryModel = {
                 document.performance.totalMs = nowMs() - start;
 
             return document;
+        },
+
+        attachRuntime(document) {
+            return attachRuntime(document);
         }
 
     };

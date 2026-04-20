@@ -1,6 +1,6 @@
 import './editor';
 import queryModel from './query_model';
-import { scheduleQueryModelParse } from './bsl_helper';
+import queryModelService from './query_model_service';
 import { jsonDefaults } from 'monaco-editor/esm/vs/language/json/monaco.contribution';
 
 jsonDefaults.setDiagnosticsOptions({
@@ -454,8 +454,8 @@ window.init('8.3.18.1');
     let version = model.getVersionId ? model.getVersionId() : null;
 
     if (model._queryModelCache && (!version || model._queryModelCache.version == version)) {
-      if (typeof attachQueryModelRuntime == 'function')
-        return attachQueryModelRuntime(model._queryModelCache.document);
+      if (queryModelService)
+        return queryModelService.attachRuntime(model._queryModelCache.document);
 
       return model._queryModelCache.document;
     }
@@ -470,8 +470,8 @@ window.init('8.3.18.1');
     parseTimer = setTimeout(() => {
       parseTimer = null;
 
-      if (typeof scheduleQueryModelParse == 'function')
-        scheduleQueryModelParse(editor.getModel(), 0);
+      if (queryModelService)
+        queryModelService.schedule(editor.getModel(), 0);
 
       waitForParsedDocument(++parseRequestId, editor.getModel().getVersionId ? editor.getModel().getVersionId() : null);
     }, delay == undefined ? 250 : delay);

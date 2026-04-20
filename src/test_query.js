@@ -197,16 +197,51 @@ setTimeout(() => {
       ИЗ
         Документ.Возврат КАК Источник`;
 
-      let hover = helper(query, 8, 11).getQueryHover();
-      expect(hover).to.be.an('object');
+      let queryHelper = helper(query, 8, 11);
+      let parsedQuery = queryHelper.getParsedQueryModel();
+      expect(parsedQuery, "модель запроса для hover").to.be.an('object');
+      expect(parsedQuery.getContextAt, "позиционный API модели запроса").to.be.a('function');
+
+      let context = parsedQuery.getContextAt(8, 11);
+      expect(context, "контекст параметра во второй ветви").to.be.an('object');
+      assert.equal(context.clause && context.clause.kind, "selectList");
+      assert.equal(context.branch, context.statement.branches[1]);
+
+      let modelHover = queryHelper.getQueryModelHover();
+      expect(modelHover, "hover объектной модели для параметра").to.be.an('object');
+
+      let hover = queryHelper.getQueryHover();
+      expect(hover, "параметр во второй ветви").to.be.an('object');
       assert.equal(hover.contents[0].value, "Период");
 
       hover = helper(query, 9, 32).getQueryHover();
-      expect(hover).to.be.an('object');
+      expect(hover, "выражение ВЫБОР во второй ветви").to.be.an('object');
       assert.equal(hover.contents[0].value, "Организация");
 
       hover = helper(query, 2, 20).getQueryHover();
-      expect(hover).to.be.an('object');
+      expect(hover, "поле первой ветви").to.be.an('object');
+      assert.equal(hover.contents[0].value, "Период");
+
+      let customHovers = window.customHovers;
+      let immediateHover = window.immediateHover;
+      let priorityHelper = helper(query, 8, 11);
+
+      window.customHovers = { "другойпериод": "Пользовательский hover" };
+      window.immediateHover = [{ value: "Немедленный hover" }];
+      hover = priorityHelper.getQueryHover();
+      assert.equal(hover.contents[0].value, "Пользовательский hover");
+
+      window.customHovers = {};
+      hover = priorityHelper.getQueryHover();
+      assert.equal(hover.contents[0].value, "Немедленный hover");
+
+      window.customHovers = customHovers;
+      window.immediateHover = immediateHover;
+
+      let fallbackHelper = helper(query, 8, 11);
+      fallbackHelper.getQueryModelHover = () => null;
+      hover = fallbackHelper.getQueryHover();
+      expect(hover, "эвристический fallback").to.be.an('object');
       assert.equal(hover.contents[0].value, "Период");
     });
     

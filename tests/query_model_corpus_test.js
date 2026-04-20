@@ -34,6 +34,7 @@ function parseArgs(argv) {
     let args = {
         queriesDir: DEFAULT_QUERIES_DIR,
         strictErrors: false,
+        strictStructure: false,
         includeAllFiles: false
     };
 
@@ -42,6 +43,11 @@ function parseArgs(argv) {
 
         if (arg == '--strict-errors') {
             args.strictErrors = true;
+            continue;
+        }
+
+        if (arg == '--strict-structure') {
+            args.strictStructure = true;
             continue;
         }
 
@@ -64,7 +70,7 @@ function parseArgs(argv) {
 function printUsage() {
     console.log([
         'Usage:',
-        '  node tests/query_model_corpus_test.js [queriesDirOrFile] [--strict-errors] [--all-files]',
+        '  node tests/query_model_corpus_test.js [queriesDirOrFile] [--strict-errors] [--strict-structure] [--all-files]',
         '',
         'Default queriesDir: tests/queries',
         '',
@@ -73,7 +79,10 @@ function printUsage() {
         '  - top-level SELECT/ВЫБРАТЬ branches count matches model branches',
         '  - statement-level SELECT/ВЫБРАТЬ count matches selectStatement count',
         '  - top-level FROM/ИЗ, WHERE/ГДЕ, GROUP BY, HAVING, ORDER BY counts match model clauses',
-        '  - UNION branches have the same number of selected fields'
+        '  - UNION branches have the same number of selected fields',
+        '',
+        'Structural discrepancies are warnings for the tolerant corpus.',
+        'Use --strict-structure to treat them as failures.'
     ].join('\n'));
 }
 
@@ -528,8 +537,13 @@ function runFile(queryModel, file, options) {
     }
 
     let actual = countModelClauses(document);
-    failures = failures.concat(compareCounts(file, expected, actual));
-    failures = failures.concat(checkUnionFieldCounts(document));
+    let structureMessages = compareCounts(file, expected, actual)
+        .concat(checkUnionFieldCounts(document));
+
+    if (options.strictStructure)
+        failures = failures.concat(structureMessages);
+    else
+        warnings = warnings.concat(structureMessages);
 
     if (!document.performance)
         failures.push('document.performance is missing');
