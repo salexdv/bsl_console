@@ -7,7 +7,9 @@
   "scripts": {
     "test": "mocha",
     "debug": "webpack-dev-server --mode development --progress",
-    "build": "webpack --mode production --progress"
+    "build": "webpack --mode production --progress",
+    "build:single": "webpack --mode production --env.single --progress && node tools/check_single.js",
+    "check:single": "node tools/check_single.js"
   },
   "author": "Shkuraev Alexander",
   "license": "MIT",

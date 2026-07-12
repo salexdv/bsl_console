@@ -81,11 +81,18 @@ class Treeview {
       target.innerHTML = this.parseData(data);
     }
   };
+  iconSrc(item) {
+    // Имя иконки по данным узла (явная icon / structure для веток / undefined по умолчанию).
+    let name = item.icon ? item.icon : item.children ? 'structure.png' : 'undefined.png';
+    // imageBase может быть строкой-префиксом (standalone tree.html: "./icons/") либо
+    // функцией-резолвером имя→data:-URI (сборка редактора, иконки инлайнятся в бандл).
+    return typeof this.imageBase === 'function' ? this.imageBase(name) : this.imageBase + name;
+  };
   parseData(data) {
     let me = this;
-    let buf = Object.keys(data).map((key) => 
+    let buf = Object.keys(data).map((key) =>
       `<details><summary  id="${key}" data-label="${data[key].label}" data-requested="false" data-path="${data[key].path}" class="${data[key].class}">
-      <img class="icon" src="${me.imageBase}${data[key].icon ? data[key].icon : data[key].children ? 'structure.png' : 'undefined.png'}"> </img>
+      <img class="icon" src="${me.iconSrc(data[key])}"> </img>
       ${data[key].label} ${data[key].type || data[key].value ? '<span class="equal"> = </span>' : ' '}
       ${Object.keys(data[key]).map((subkey) => {
         return subkey == 'type' || subkey == 'value' ? `<span class="${subkey}">${data[key][subkey]}</span>` : ' ' 

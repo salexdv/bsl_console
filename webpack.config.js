@@ -9,6 +9,11 @@ const CopyWebpackPlugin = require('copy-webpack-plugin');
 
 module.exports = (env, args) => {
 
+  // single-file режим (npm run build:single → webpack --env.single):
+  // один self-contained dist/index.html без внешних файлов для загрузки в поле HTML 1С текстом.
+  // Поддержаны оба стиля вызова webpack-cli 3: --env.single ({single:true}) и --env single ('single').
+  const single = !!(env && (env.single || env === 'single'));
+
   return {
     context: path.resolve(__dirname, 'src'),
     entry: Object.assign(
@@ -142,7 +147,8 @@ module.exports = (env, args) => {
             {
               loader: 'url-loader',
               options: {
-                limit: 8192,
+                // single: инлайним всё (иначе картинки > лимита эмитятся файлами — напр. loading.gif ~41 КБ)
+                limit: single ? 10 * 1024 * 1024 : 8192,
               },
             },
           ],
@@ -159,7 +165,8 @@ module.exports = (env, args) => {
     },
     optimization: {
       minimize: args.mode === 'production',
-      splitChunks: {
+      // single: не дробим на чанки — всё в entry-бандл console.js, который инлайнится ScriptExt
+      splitChunks: single ? false : {
         chunks: 'all'
       }
     },
@@ -167,13 +174,15 @@ module.exports = (env, args) => {
       new MonacoWebpackPlugin({
         languages: ['xml'],
       }),
-      new CopyWebpackPlugin({
+      // single: иконки дерева инлайнятся через require.context в editor.js, копирование файлами не нужно
+      single ? false : new CopyWebpackPlugin({
         patterns: [
           { from: './tree/icons', to: 'tree/icons'}
         ]
       }),
       args.mode == 'production' ? new webpack.optimize.LimitChunkCountPlugin({
-        maxChunks: 10
+        // single: ровно один чанк → он и инлайнится (ScriptExt inline: ['console.js'])
+        maxChunks: single ? 1 : 10
       }) : false,
       new CleanWebpackPlugin(),
       new HtmlWebpackPlugin({
