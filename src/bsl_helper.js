@@ -7586,27 +7586,44 @@ class bslHelper {
 	 */
 	getQuery() {
 
-		const regexp = RegExp('(".*(?:\\n(?:\\t|\\s)*\\|.*)+")', 'gi');
+		// Многострочный запрос: строка с продолжениями через "|"
+		let query = this.findQueryMatch('(".*$(?:\\n(?:\\t|\\s)*\\|.*)+")');
 
+		// Однострочный запрос: строка, начинающаяся с ВЫБРАТЬ/SELECT (без переносов)
+		if (query == null)
+			query = this.findQueryMatch('("\\s*(?:ВЫБРАТЬ|SELECT)\\s.*?")');
+
+		return query;
+
+	}
+
+	/**
+	 * Ищет строку запроса, охватывающую текущую позицию курсора, по заданному
+	 * регулярному выражению. Поиск идёт через Monaco findMatches, поэтому устойчив
+	 * к переводам строк (CRLF/LF), в отличие от RegExp по сырому тексту модели.
+	 *
+	 * @param {string} pattern регулярное выражение строки запроса (с захватывающей группой)
+	 * @returns {object} объект с text и range или null, если под курсором запроса нет
+	 */
+	findQueryMatch(pattern) {
+
+		const matches = this.model.findMatches(pattern, false, true, false, null, true);
+
+		let idx = 0;
 		let match = null;
 		let queryFound = false;
-		let code = this.model.getValue();
-		let text = '';
-		let range = null;
 
-		while ((match = regexp.exec(code)) !== null && !queryFound) {
+		if (matches) {
 
-			text = match[match.length - 1];
-			let start_position = this.model.getPositionAt(match.index);
-			let end_position = this.model.getPositionAt(match.index + text.length);
-			queryFound = (start_position.lineNumber <= this.lineNumber && this.lineNumber <= end_position.lineNumber);
-
-			if (queryFound)
-				range = new monaco.Range(start_position.lineNumber, start_position.column, end_position.lineNumber, end_position.column);
+			while (idx < matches.length && !queryFound) {
+				match = matches[idx];
+				queryFound = (match.range.startLineNumber <= this.lineNumber && this.lineNumber <= match.range.endLineNumber);
+				idx++;
+			}
 
 		}
 
-		return queryFound ? { text: text, range: range } : null;
+		return queryFound ? { text: match.matches[match.matches.length - 1], range: match.range } : null;
 
 	}
 
