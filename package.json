@@ -14,6 +14,7 @@
     "test:mocha": "node tools/run_mocha_headless.js",
     "build:single": "webpack --mode production --progress && node tools/make_single.js && node tools/check_single.js",
     "build:pack": "webpack --mode production --progress && node tools/make_pack.js && node tools/check_single.js",
+    "build:diag": "webpack --mode production --env diag --progress && node tools/make_pack.js && node tools/check_single.js",
     "check:single": "node tools/check_single.js"
   },
   "author": "Shkuraev Alexander",

@@ -20,12 +20,17 @@ module.exports = (env, argv) => {
   // node_modules скрипт-тегами в шаблоне (НЕ бандлятся — избегаем mocha-в-бандлере). Обычная
   // сборка — только console.
   const isTest = !!(env && env.test);
+  // Диагностическая сборка (--env diag): editor.js + оверлей инструментации моста (src/diag.js)
+  // для полевой отладки — владелец кликает/печатает в поле 1С, скриншотит панель с логом.
+  const isDiag = !!(env && env.diag);
 
   return {
     context: path.resolve(__dirname, 'src'),
     entry: isTest ? {
       test: ['./editor', './test'],
       test_query: ['./editor', './test_query']
+    } : isDiag ? {
+      console: ['./editor', './diag-entry']
     } : {
       // Реальный редактор bsl_console (Этап 3+). Обёрнут теми же слоями совместимости, что и
       // смоук-каркас: polyfills → monaco-environment → product-service → expose-monaco.
