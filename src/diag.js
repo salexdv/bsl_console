@@ -58,7 +58,7 @@ export function installDiag() {
   // вызовов из консоли 1С. withState=true для функций, меняющих язык/тему.
   var fns = ['init', 'setLanguageMode', 'setText', 'updateText', 'setContent', 'setTheme',
     'setOption', 'updateMetadata', 'setReadOnly', 'enableQuickSuggestions', 'triggerSuggestions',
-    'isQueryMode', 'isDCSMode', 'eraseText'];
+    'isQueryMode', 'isDCSMode', 'eraseText', 'showStatusBar'];
   for (var i = 0; i < fns.length; i++) wrap(fns[i], fns[i] === 'init' || fns[i] === 'setLanguageMode' || fns[i] === 'setTheme');
 
   add('диагностика включена');
@@ -104,6 +104,8 @@ export function installDiag() {
         if (ph && ph.className.indexOf('visible') >= 0) parts.push('PARAM-HINTS["' + ((ph.innerText || '').replace(/\s+/g, ' ').slice(0, 44)) + '"]');
         var hv = document.querySelector('.monaco-hover');
         if (hv && hv.offsetParent) parts.push('HOVER');
+        var sb = document.querySelector('.statusbar-widget');
+        if (sb) parts.push((sb.textContent || '').replace(/\s/g, '') ? 'STATUSBAR:"' + (sb.textContent || '').trim() + '"' : 'STATUSBAR:ПУСТО');
         var key = parts.join(' ');
         if (key !== lastWidgetKey) { if (key) add('* ' + key); else if (lastWidgetKey) add('* виджеты скрыты'); lastWidgetKey = key; }
       } catch (e) { /* ignore */ }

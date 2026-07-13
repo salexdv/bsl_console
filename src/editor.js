@@ -2239,6 +2239,24 @@ function initEditorEventListenersAndProperies() {
     onDidPaste(e);
   });
 
+  // 0.55: гасим пустой suggest-виджет («No suggestions»). При ПЕРЕ-триггере автодополнения
+  // (после updateMetadata в потоке метаданных консоли, или командой suggest_type у элемента)
+  // явный editor.action.triggerSuggest с пустым результатом показывал висящий пустой блок.
+  // Ловим onDidSuggest модели с пустой completionModel и отменяем: обработчики Emitter
+  // выполняются синхронно, поэтому show+cancel проходят ДО отрисовки — блок не мелькает.
+  // (Наш провайдер уже возвращает undefined на пусто, но это не гасит ЯВНЫЙ триггер.)
+  try {
+    let suggestCtrl = window.editor.getContribution('editor.contrib.suggestController');
+    if (suggestCtrl && suggestCtrl.model && typeof suggestCtrl.model.onDidSuggest === 'function') {
+      suggestCtrl.model.onDidSuggest(function (e) {
+        try {
+          if (e && !e.triggerOptions.shy && e.completionModel && e.completionModel.items.length === 0)
+            suggestCtrl.model.cancel();
+        } catch (err) { /* ignore */ }
+      });
+    }
+  } catch (e) { /* ignore */ }
+
 }
 // #endregion
   
@@ -3427,7 +3445,9 @@ function updateStatusBar() {
     if (!window.engLang)
       status = status.replace('Ln', 'Стр').replace('Col', 'Кол');
 
-    window.statusBarWidget.domNode.firstElementChild.innerText = status;
+    // textContent (не innerText): innerText зависит от лейаута и в старом WebKit поля 1С
+    // может не проставляться (строка состояния показывалась пустой); textContent надёжен.
+    window.statusBarWidget.domNode.firstElementChild.textContent = status;
   }
 
 }
