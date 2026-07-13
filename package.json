@@ -13,6 +13,7 @@
     "build:test": "webpack --mode development --env test --progress",
     "test:mocha": "node tools/run_mocha_headless.js",
     "build:single": "webpack --mode production --progress && node tools/make_single.js && node tools/check_single.js",
+    "build:pack": "webpack --mode production --progress && node tools/make_pack.js && node tools/check_single.js",
     "check:single": "node tools/check_single.js"
   },
   "author": "Shkuraev Alexander",
@@ -33,6 +34,7 @@
     "esbuild-loader": "^4.5.0",
     "html-webpack-plugin": "^5.6.0",
     "mocha": "^10.8.2",
+    "pako": "^2.1.0",
     "postcss": "^8.5.15",
     "postcss-loader": "^8.2.1",
     "puppeteer-core": "^24.43.1",
