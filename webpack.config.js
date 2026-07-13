@@ -1,227 +1,150 @@
-const MonacoWebpackPlugin = require('monaco-editor-esm-webpack-plugin');
-const HtmlWebpackPlugin = require('html-webpack-plugin');
-const ScriptExtHtmlWebpackPlugin = require('script-ext-html-webpack-plugin');
-const { CleanWebpackPlugin } = require("clean-webpack-plugin");
-const RemovePlugin = require('remove-files-webpack-plugin');
-const webpack = require('webpack');
+// ── Сборка спайка Monaco 0.55.1 под «Поле HTML документа» 1С (webpack 5) ──────────
+// Рецепт перенесён из Pr-Mex/VAEditor (BSD-3-Clause, (c) 2020 Pautov Leonid) — единственный
+// проверенный в бою Monaco 0.55.1 в поле 1С (Win/Linux/mac, платформа 8.3.14+). Отличия от
+// VAEditor: наш код — JS+babel (не TS+ts-loader); ES-floor строже (es-check es2015, не es2019).
+//
+// Три слоя совместимости со старым WebKit: транспиляция (esbuild es2015 на monaco + babel на
+// нашем коде) + рантайм-полифилы (src/polyfills.js) + строковые патчи monaco (replace-strings
+// с assertApplied). Детали — specs/monaco-0.55/analysis.md §2.
+
 const path = require('path');
-const CopyWebpackPlugin = require('copy-webpack-plugin');
+const webpack = require('webpack');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+const TerserPlugin = require('terser-webpack-plugin');
+const replaceStrings = require('./tools/loaders/replaceStrings'); // counts + assertApplied
 
-module.exports = (env, args) => {
-
-  // single-file режим (npm run build:single → webpack --env.single):
-  // один self-contained dist/index.html без внешних файлов для загрузки в поле HTML 1С текстом.
-  // Поддержаны оба стиля вызова webpack-cli 3: --env.single ({single:true}) и --env single ('single').
-  const single = !!(env && (env.single || env === 'single'));
+module.exports = (env, argv) => {
+  const isProd = argv.mode === 'production';
 
   return {
     context: path.resolve(__dirname, 'src'),
-    entry: Object.assign(
-      {
-        console: './editor'
-      },
-      args.mode == 'development' ?
-      {
-        test: './test',
-        test_query: './test_query'
-      }
-      : {}
-    ),
+    entry: {
+      // Каркас спайка (Этап 1). На этапах 2–4 переключится на реальный './editor'
+      // (обёрнутый теми же polyfills/product-service/monaco-environment).
+      console: './boot'
+    },
     output: {
       path: path.resolve(__dirname, 'dist'),
-      filename: '[name].js'
+      filename: '[name].js',
+      globalObject: 'self', // иначе monaco зовёт window в worker-контексте
+      clean: true
+    },
+    resolve: {
+      extensions: ['.js', '.json', '.css'],
+      alias: {
+        // 0.55: package "exports" мапит require→min/vs/editor/editor.main.js (AMD, webpack
+        // не парсит) и import→esm. Алиасим bare-импорт на ESM-точку входа. `$` — точное
+        // совпадение, deep-import (monaco-editor/esm/...) не задет.
+        'monaco-editor$': path.resolve(__dirname, 'node_modules/monaco-editor/esm/vs/editor/editor.main.js')
+      }
     },
     resolveLoader: {
       alias: {
         'blob-url-loader': require.resolve('./tools/loaders/blobUrl'),
         'compile-loader': require.resolve('./tools/loaders/compile'),
+        'monaco-nls': require.resolve('./tools/loaders/monacoNls'),
+        'replace-strings': require.resolve('./tools/loaders/replaceStrings')
       }
     },
-    devtool: args.mode == 'development' ? "inline-source-map" : false,
+    devtool: isProd ? false : 'inline-source-map',
     module: {
+      // Воркеры — только через наши лоадеры (blobUrl+compile), не через нативный
+      // webpack5-парсинг new Worker(new URL(...)).
+      parser: { javascript: { worker: false } },
       rules: [
-        args.customOptions ?
-          {
-            test: /src[\\/]editor\.js$/,
-            loader: 'string-replace-loader',
-            options: {
-              search: 'customOptions: true',
-              replace: args.customOptions + ', customOptions: true'
-            }
-          } : {},
         {
-          test: /node_modules[\\/]monaco-editor[\\/].+actions\.js$/,
-          loader: 'string-replace-loader',
-          options: {
-            search: '(this._menuItems.get(id) || []).slice(0);',
-            replace: '(this._menuItems.get(id) || []).slice(0);result=result.filter(function(item){return isIMenuItem(item)&&item.command.id.indexOf("_bsl")>=0;});'
-          }
-        },
-        {
-          test: /node_modules[\\/]monaco-editor[\\/].+standaloneEnums\.js$/,
-          loader: 'string-replace-loader',
-          options: {
-            search: '108] = "NUMPAD_DIVIDE"',
-            replace: '108] = "/"'
-          }
-        },
-        {
-          test: /node_modules[\\/]monaco-editor[\\/].+parameterHintsWidget\.js$/,
-          loader: 'string-replace-loader',
-          options: {
-            multiple: [{
-              search: 'var $ = dom.$;',
-              replace: "import { escapeRegExpCharacters } from '../../../base/common/strings.js'; var $ = dom.$;"
-            },
-            {
-              search: /var idx = signature\.label\.[\s\S.]*];/im,
-              replace: 'if (!param.label.length) { return [0, 0]; } else { var regex = new RegExp("(\\\\p{L}\\\\p{N}_]|^)${escapeRegExpCharacters(param.label)}(?=\\\\p{L}\\\\p{N}_]|$)", "g"); regex.test(signature.label); var idx = regex.lastIndex - param.label.length; return idx >= 0 ? [idx, regex.lastIndex] : [0, 0]; }'
-            }]
-
-          }
-        },
-        {
-          test: /node_modules[\\/]monaco-editor[\\/].+parameterHints\.js$/,
-          loader: 'string-replace-loader',
-          options: {
-            multiple: [{
-              search: '[512 /* Alt */ | 16 /* UpArrow */',
-              replace: '[2048 /* CtrlCmd */ | 16 /* UpArrow */'
-            },
-            {
-              search: '[512 /* Alt */ | 18 /* DownArrow */',
-              replace: '[2048 /* CtrlCmd */ | 18 /* DownArrow */'
-            }]
-
-          }
-        },
-        {
-          test: /node_modules[\\/]monaco-editor-nls[\\/].+\.js$/,
-          loader: 'string-replace-loader',
-          options: {
-            multiple: [{
-              search: 'let CURRENT_LOCALE_DATA = null;',
-              replace: 'var CURRENT_LOCALE_DATA = null;'
-            }]
-          }
-        },
-        {
+          // Патчи monaco + транспиляция в es2015. Порядок use — справа налево:
+          // replace-strings (на сыром коде, до сворачивания констант и срезки комментов)
+          // → esbuild (финальная транспиляция ?./class fields/static blocks).
           test: /node_modules[\\/]monaco-editor[\\/]esm[\\/].+\.js$/,
-          loader: 'string-replace-loader',
-          options: {
-            multiple: [{
-              search: 'let __insane_func;',
-              replace: 'var __insane_func;'
+          use: [
+            {
+              loader: 'esbuild-loader',
+              options: { target: 'es2015' }
             },
             {
-              search: '0x2192',
-              replace: '0xBB'
+              loader: 'replace-strings',
+              options: {
+                replacements: [
+                  // (1) suggestController: Ctrl+I у inline-suggest снимаем (0.55 сменил формат
+                  //     комментариев на KeyMod./KeyCode.-квалифицированный — старый search не совпал бы).
+                  { search: 'secondary: [2048 /* KeyMod.CtrlCmd */ | 39 /* KeyCode.KeyI */],', replace: 'secondary: null,' },
+                  // (2) RegExp-флаг 'd' (hasIndices, Safari 15) → «Invalid flags» в WebKit 1С.
+                  //     Срезаем 'd' у editorOptions new RegExp(inputRegex, 'd'). Глобальную
+                  //     обёртку RegExp не делаем — ломает именованные группы (?<name>) в 1С.
+                  { search: "new RegExp(inputRegex, 'd')", replace: "new RegExp(inputRegex, '')" },
+                  // (3) defaultDocumentColorsComputer: lookbehind (?<=['"\s]) ×4 — WebKit 1С без
+                  //     lookbehind (до Safari 16.4) читает как невалидную named-group → SyntaxError
+                  //     всего модуля при require (color provider на старте). Меняем на консумирующую
+                  //     группу (color-дисплей выключен опцией colorDecorators:false).
+                  { search: "(?<=['\"\\s])", replace: "(?:['\"\\s])" }
+                ]
+              }
             }
           ]
-          }
         },
         {
-          test: /\.ttf$/,
-          use: 'base64-inline-loader?limit=1000&name=[name].[ext]'
-        },
-        {
-          test: /\.js/,
-          enforce: 'pre',
-          include: /node_modules[\\\/]monaco-editor[\\\/]esm/,
-          use: MonacoWebpackPlugin.loader
-        },
-        {
+          // Наш код — babel @babel/preset-env (browserslist из package.json → safari>=11).
           test: /\.js$/,
           exclude: /node_modules/,
           use: {
             loader: 'babel-loader',
             options: {
               cacheDirectory: true,
-              presets: ['@babel/env']
+              presets: ['@babel/preset-env']
             }
           }
         },
         {
-          test: /\.(png|jpg|gif|svg)$/i,
-          use: [
-            {
-              loader: 'url-loader',
-              options: {
-                // single: инлайним всё (иначе картинки > лимита эмитятся файлами — напр. loading.gif ~41 КБ)
-                limit: single ? 10 * 1024 * 1024 : 8192,
-              },
-            },
-          ],
+          test: /\.css$/,
+          use: ['style-loader', 'css-loader', 'postcss-loader']
         },
         {
-          test: /\.css$/,
-          use: [
-            'style-loader',
-            'css-loader',
-            'postcss-loader'
-          ]
-        },
+          // Шрифты (codicon.ttf) и svg-иконки monaco — инлайн data: (без внешних файлов).
+          test: /\.(svg|ttf)$/,
+          type: 'asset/inline'
+        }
       ]
     },
-    optimization: {
-      minimize: args.mode === 'production',
-      // single: не дробим на чанки — всё в entry-бандл console.js, который инлайнится ScriptExt
-      splitChunks: single ? false : {
-        chunks: 'all'
-      }
-    },
     plugins: [
-      new MonacoWebpackPlugin({
-        languages: ['xml'],
-      }),
-      // single: иконки дерева инлайнятся через require.context в editor.js, копирование файлами не нужно
-      single ? false : new CopyWebpackPlugin({
-        patterns: [
-          { from: './tree/icons', to: 'tree/icons'}
-        ]
-      }),
-      args.mode == 'production' ? new webpack.optimize.LimitChunkCountPlugin({
-        // single: ровно один чанк → он и инлайнится (ScriptExt inline: ['console.js'])
-        maxChunks: single ? 1 : 10
-      }) : false,
-      new CleanWebpackPlugin(),
+      // Валим сборку, если строковый патч monaco не наложился (дрейф версии monaco).
+      {
+        apply(compiler) {
+          compiler.hooks.afterEmit.tapAsync('AssertMonacoPatches', (compilation, cb) => {
+            try { replaceStrings.assertApplied(); cb(); } catch (e) { cb(e); }
+          });
+        }
+      },
+      // Один main-чанк console.js в проде (folдим возможные monaco dynamic-import async-чанки;
+      // нужно для es-check dist/*.js и последующей single-file-упаковки). Воркер — blob (не чанк).
+      isProd ? new webpack.optimize.LimitChunkCountPlugin({ maxChunks: 1 }) : false,
       new HtmlWebpackPlugin({
         inject: 'body',
         chunks: ['console'],
         template: './index.html',
         filename: 'index.html',
         cache: false
-      }),
-      args.mode == 'production' ? new ScriptExtHtmlWebpackPlugin({
-        inline: ['console.js']
-      }) : false,
-      args.mode == 'development' ? new HtmlWebpackPlugin({
-        inject: 'body',
-        chunks: ['console', 'test'],
-        template: './test.html',
-        filename: 'test',
-        cache: false
-      }) : false,
-      args.mode == 'development' ? new HtmlWebpackPlugin({
-        inject: 'body',
-        chunks: ['console', 'test_query'],
-        template: './test_query.html',
-        filename: 'test_query',
-        cache: false
-      }) : false,
-      args.mode == 'production' ? new RemovePlugin({
-        after: {
-          include: [
-            './dist/test.js',
-            './dist/test_query.js',
-            './dist/editor.worker.js'
-          ]
-        }
-      }) : false
+      })
     ].filter(Boolean),
+    optimization: {
+      minimize: isProd,
+      minimizer: [
+        new TerserPlugin({
+          terserOptions: {
+            // Старый WebKit 1С не понимает ES2020: иначе terser генерит `a ?? b` из
+            // `null==a?b:a` и раскавычивает не-ASCII ключи (`℘:"wp"`). ecma 2015 +
+            // закавыченные ASCII-ключи = вывод как в webpack 4.
+            ecma: 2015,
+            format: { quote_keys: true, ascii_only: true }
+          }
+        })
+      ],
+      splitChunks: false
+    },
     devServer: {
       port: 9000,
-      open: true
+      open: true,
+      hot: false
     }
-  }
+  };
 };

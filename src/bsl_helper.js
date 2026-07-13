@@ -1034,7 +1034,7 @@ class bslHelper {
 					if (ref || signatures.length) {
 						// If the attribute contains a ref, we need to run the command to save the position of ref
 						command = {
-							id: 'vs.editor.ICodeEditor:1:saveref',
+							id: 'bsl.saveref',
 							arguments: [
 								{
 									"name": value[this.nameField],
@@ -1203,7 +1203,7 @@ class bslHelper {
 					if (this.objectHasProperties(value, 'metadata')) {
 
 						let command = {
-							id: 'vs.editor.ICodeEditor:1:saveref',
+							id: 'bsl.saveref',
 							arguments: [
 								{
 									"name": value[this.nameField],
@@ -1229,7 +1229,7 @@ class bslHelper {
 
 				let label = engLang ? 'ObjectProperties' : 'СвойстваОбъектов';
 				let command = {
-					id: 'vs.editor.ICodeEditor:1:saveref',
+					id: 'bsl.saveref',
 					arguments: [
 						{
 							"name": label,
@@ -1305,7 +1305,7 @@ class bslHelper {
 				if (ref || signatures.length) {
 					// If the attribute contains a ref, we need to run the command to save the position of ref
 					command = {
-						id: 'vs.editor.ICodeEditor:1:saveref',
+						id: 'bsl.saveref',
 						arguments: [
 							{
 								"name": mvalue[this.nameField],
@@ -1343,7 +1343,7 @@ class bslHelper {
 					});
 				});
 
-				let command = { id: 'vs.editor.ICodeEditor:1:saveref', arguments: [{ "name": recName, "data": { "list": list } }] }
+				let command = { id: 'bsl.saveref', arguments: [{ "name": recName, "data": { "list": list } }] }
 
 				suggestions.push({
 					label: recName,
@@ -1378,7 +1378,7 @@ class bslHelper {
 				let command = null;
 							
 				if (mvalue.hasOwnProperty('ref'))
-					command = { id: 'vs.editor.ICodeEditor:1:saveref', arguments: [{ "name": mvalue[this.nameField], "data": { "ref": mvalue.ref, "sig": null } }] };
+					command = { id: 'bsl.saveref', arguments: [{ "name": mvalue[this.nameField], "data": { "ref": mvalue.ref, "sig": null } }] };
 				
 				suggestions.push({
 					label: mvalue[this.nameField],
@@ -1412,7 +1412,7 @@ class bslHelper {
 				if (listItem.hasOwnProperty('command'))
 					command = listItem.command;
 				else if (listItem.hasOwnProperty('ref'))
-					command = { id: 'vs.editor.ICodeEditor:1:saveref', arguments: [{ "name": listItem.name, "data": { "ref": listItem.ref, "sig": null } }] }				
+					command = { id: 'bsl.saveref', arguments: [{ "name": listItem.name, "data": { "ref": listItem.ref, "sig": null } }] }				
 				
 
 				let name = listItem.hasOwnProperty('name') ? listItem.name : listItem.label;
@@ -1446,7 +1446,7 @@ class bslHelper {
 				let command = null;
 
 				if (pvalue.hasOwnProperty('ref'))
-					command = { id: 'vs.editor.ICodeEditor:1:saveref', arguments: [{ "name": pvalue[this.nameField], "data": { "ref": pvalue.ref, "sig": null } }] };
+					command = { id: 'bsl.saveref', arguments: [{ "name": pvalue[this.nameField], "data": { "ref": pvalue.ref, "sig": null } }] };
 
 				suggestions.push({
 					label: pvalue[this.nameField],
@@ -1484,7 +1484,7 @@ class bslHelper {
 
 						let refItem = bslHelper.getObjectByPath(window.bslGlobals, refArray);
 						let command = {
-							id: 'vs.editor.ICodeEditor:1:saveref',
+							id: 'bsl.saveref',
 							arguments: [
 								{
 									"name": refItem[this.nameField],
@@ -1849,7 +1849,7 @@ class bslHelper {
 				if (ref || signatures.length) {					
 					// If the attribute contains a ref, we need to run the command to save the position of ref
 					command = {
-						id: 'vs.editor.ICodeEditor:1:saveref',
+						id: 'bsl.saveref',
 						arguments: [
 							{
 								"name": mvalue[this.nameField],
@@ -1884,7 +1884,7 @@ class bslHelper {
 				let command = null;
 								
 				if (pvalue.hasOwnProperty('ref'))
-					command = { id: 'vs.editor.ICodeEditor:1:saveref', arguments: [{ "name": pvalue[this.nameField], "data": { "ref": pvalue.ref, "sig": null } }] };
+					command = { id: 'bsl.saveref', arguments: [{ "name": pvalue[this.nameField], "data": { "ref": pvalue.ref, "sig": null } }] };
 
 				suggestions.push({
 					label: pvalue[this.nameField],
@@ -1936,7 +1936,7 @@ class bslHelper {
 				if (ref || signatures.length) {
 					// If the attribute contains a ref, we need to run the command to save the position of ref
 					command = {
-						id: 'vs.editor.ICodeEditor:1:saveref',
+						id: 'bsl.saveref',
 						arguments: [
 							{
 								"name": mvalue[this.nameField],
@@ -1991,7 +1991,7 @@ class bslHelper {
 
 				if (ref || list) {
 					command = {
-						id: 'vs.editor.ICodeEditor:1:saveref',
+						id: 'bsl.saveref',
 						arguments: [
 							{
 								"name": pvalue[this.nameField],
@@ -2055,7 +2055,7 @@ class bslHelper {
 				if (ref || signatures.length) {					
 					// If the attribute contains a ref, we need to run the command to save the position of ref
 					command = {
-						id: 'vs.editor.ICodeEditor:1:saveref',
+						id: 'bsl.saveref',
 						arguments: [
 							{
 								"name": mvalue[this.nameField],
@@ -2090,7 +2090,7 @@ class bslHelper {
 				let command = null;
 								
 				if (pvalue.hasOwnProperty('ref'))
-					command = { id: 'vs.editor.ICodeEditor:1:saveref', arguments: [{ "name": pvalue[this.nameField], "data": { "ref": pvalue.ref, "sig": null } }] };
+					command = { id: 'bsl.saveref', arguments: [{ "name": pvalue[this.nameField], "data": { "ref": pvalue.ref, "sig": null } }] };
 
 				suggestions.push({
 					label: pvalue[this.nameField],
@@ -2317,7 +2317,7 @@ class bslHelper {
 					if (ref || signatures.length) {
 						// If the attribute contains a ref, we need to run the command to save the position of ref
 						command = {
-							id: 'vs.editor.ICodeEditor:1:saveref',
+							id: 'bsl.saveref',
 							arguments: [
 								{
 									"name": mvalue[this.nameField],
@@ -2454,7 +2454,7 @@ class bslHelper {
 
 				if (ref || nestedSuggestions.length) {
 					// If the attribute contains a ref, we need to run the command to save the position of ref
-					command = { id: 'vs.editor.ICodeEditor:1:saveref', arguments: [{ 'name': pkey, "data": { "ref": ref, "sig": null, "list": nestedSuggestions } }] }
+					command = { id: 'bsl.saveref', arguments: [{ 'name': pkey, "data": { "ref": ref, "sig": null, "list": nestedSuggestions } }] }
 				}
 
 				if (typeof (detail) == 'object')
@@ -2488,7 +2488,7 @@ class bslHelper {
 		for (const [key, value] of Object.entries(tabulars)) {
 
 			let command = {
-				id: 'vs.editor.ICodeEditor:1:saveref',
+				id: 'bsl.saveref',
 				arguments: [{
 					'name': key,
 					"data": {
@@ -2567,7 +2567,7 @@ class bslHelper {
 
 				if (ref || nestedSuggestions.length) {					
 					// If the attribute contains a ref, we need to run the command to save the position of ref
-					command = { id: 'vs.editor.ICodeEditor:1:saveref', arguments: [{'name': pkey, "data": { "ref": ref, "sig": null, "list" : nestedSuggestions } }]}
+					command = { id: 'bsl.saveref', arguments: [{'name': pkey, "data": { "ref": ref, "sig": null, "list" : nestedSuggestions } }]}
 				}
 
 				if (typeof(detail) == 'object')
@@ -2808,7 +2808,7 @@ class bslHelper {
 				if (ref || signatures.length) {
 					postfix = '(';
 					command = {
-						id: 'vs.editor.ICodeEditor:1:saveref',
+						id: 'bsl.saveref',
 						arguments: [
 							{
 								"name": mvalue[this.nameField],
@@ -2859,7 +2859,7 @@ class bslHelper {
 
 				if (ref) {
 					command = {
-						id: 'vs.editor.ICodeEditor:1:saveref',
+						id: 'bsl.saveref',
 						arguments: [
 							{
 								"name": ikey,
@@ -3195,7 +3195,7 @@ class bslHelper {
 				
 				let command = suggestion.command;
 
-				if (command && command.id == 'vs.editor.ICodeEditor:1:saveref') {
+				if (command && command.id == 'bsl.saveref') {
 																	
 					return this.setContextDataForRefExpression(exp_name, command.arguments[0].data.ref, item.line, command.arguments[0].data.parent_ref);
 
@@ -3926,7 +3926,7 @@ class bslHelper {
 
 								if (ref || signatures.length) {
 									command = {
-										id: 'vs.editor.ICodeEditor:1:saveref',
+										id: 'bsl.saveref',
 										arguments: [
 											{
 												"name": mvalue[this.nameField],
@@ -3993,7 +3993,7 @@ class bslHelper {
 		let isComment = (0 <= this.token.search('comment'));
 
 		if (available && isComment) {
-			let ctrlSpaceTrigger = (window.ctrlPressed && window.editor.lastKeyCode == 10);
+			let ctrlSpaceTrigger = (window.ctrlPressed && window.editor.lastKeyCode == monaco.KeyCode.Space);
 			available = ctrlSpaceTrigger;
 		}
 
@@ -4151,7 +4151,7 @@ class bslHelper {
 		if (suggestions.length)
 			return { suggestions: suggestions }
 		else
-			return [];
+			return { suggestions: [] };
 
 	}
 
@@ -4770,7 +4770,7 @@ class bslHelper {
 		let label = engLang ? 'Ref' : 'Ссылка';
 
 		let command = {
-			id: 'vs.editor.ICodeEditor:1:saveref',
+			id: 'bsl.saveref',
 			arguments: [
 				{
 					"name": label,
@@ -4828,7 +4828,7 @@ class bslHelper {
 			
 			if (ref || nestedSuggestions.length) {					
 				// If the attribute contains a ref, we need to run the command to save the position of ref
-				command = { id: 'vs.editor.ICodeEditor:1:saveref', arguments: [{ 'name': pkey, "data": { "ref": ref, "sig": null, "list": nestedSuggestions } }] }
+				command = { id: 'bsl.saveref', arguments: [{ 'name': pkey, "data": { "ref": ref, "sig": null, "list": nestedSuggestions } }] }
 			}
 
 			suggestions.push({
@@ -4874,7 +4874,7 @@ class bslHelper {
 
 				suggestions.push({
 					label: item.label,
-					kind: monaco.languages.CompletionItemKind.value,
+					kind: monaco.languages.CompletionItemKind.Value,
 					insertText: item.label,
 					insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
 					detail: item.name
@@ -5213,11 +5213,11 @@ class bslHelper {
 											
 						// Searching the source
 						position = new monaco.Position(match.range.endLineNumber, match.range.endColumn);
-						let bracket_match = this.model.findPrevBracket(position);
+						let bracket_match = this.model.bracketPairs.findPrevBracket(position);
 
 						if (bracket_match && match.range.startLineNumber < bracket_match.range.startLineNumber) {
 							position = new monaco.Position(bracket_match.range.startLineNumber, bracket_match.range.startColumn);
-							let brackets = editor.getModel().matchBracket(position);
+							let brackets = editor.getModel().bracketPairs.matchBracket(position);
 							if (brackets) {
 								brackets = brackets.sort();
 								const open = brackets[0], close = brackets[1];
@@ -5489,7 +5489,7 @@ class bslHelper {
 								kind: kind,
 								insertText: label,
 								insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-								command: { id: 'vs.editor.ICodeEditor:1:requestMetadata', arguments: [{ "metadata": value.name.toLowerCase() + '.' + label.toLowerCase() }] }
+								command: { id: 'bsl.requestMetadata', arguments: [{ "metadata": value.name.toLowerCase() + '.' + label.toLowerCase() }] }
 							});
 
 						}
@@ -5978,7 +5978,7 @@ class bslHelper {
 		if (suggestions.length)
 			return { suggestions: suggestions }
 		else
-			return [];
+			return { suggestions: [] };
 
 	}
 
@@ -6017,7 +6017,7 @@ class bslHelper {
 		if (suggestions.length)
 			return { suggestions: suggestions }
 		else
-			return [];
+			return { suggestions: [] };
 
 	}
 
@@ -6604,7 +6604,7 @@ class bslHelper {
 	getLastSigMethod(context) {
 
 		let method = '';
-		let bracket = this.model.findMatchingBracketUp('(', this.position);
+		let bracket = this.model.bracketPairs.findMatchingBracketUp(')', this.position);
 
 		if (bracket && this.isSuitablePlaceForSigHelp()) {
 
