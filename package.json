@@ -10,6 +10,8 @@
     "dev": "webpack serve --mode development --progress",
     "escheck": "es-check es2018 \"dist/*.js\"",
     "test:headless": "node tools/run_tests_headless.js",
+    "build:test": "webpack --mode development --env test --progress",
+    "test:mocha": "node tools/run_mocha_headless.js",
     "build:single": "webpack --mode production --progress && node tools/make_single.js && node tools/check_single.js",
     "check:single": "node tools/check_single.js"
   },

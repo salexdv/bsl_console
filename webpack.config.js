@@ -15,10 +15,18 @@ const replaceStrings = require('./tools/loaders/replaceStrings'); // counts + as
 
 module.exports = (env, argv) => {
   const isProd = argv.mode === 'production';
+  // Тест-сборка (--env test): mocha-страницы test/test_query для headless-гейта Этапа 3c.
+  // Каждый тест-entry = [editor.js (window.init + провайдеры), сами кейсы]; mocha/chai — из
+  // node_modules скрипт-тегами в шаблоне (НЕ бандлятся — избегаем mocha-в-бандлере). Обычная
+  // сборка — только console.
+  const isTest = !!(env && env.test);
 
   return {
     context: path.resolve(__dirname, 'src'),
-    entry: {
+    entry: isTest ? {
+      test: ['./editor', './test'],
+      test_query: ['./editor', './test_query']
+    } : {
       // Реальный редактор bsl_console (Этап 3+). Обёрнут теми же слоями совместимости, что и
       // смоук-каркас: polyfills → monaco-environment → product-service → expose-monaco.
       // boot.js остаётся в дереве как ручной смоук-энтрипоинт Этапов 1-2, но в entry не входит.
@@ -120,8 +128,11 @@ module.exports = (env, argv) => {
       },
       // Один main-чанк console.js в проде (folдим возможные monaco dynamic-import async-чанки;
       // нужно для es-check dist/*.js и последующей single-file-упаковки). Воркер — blob (не чанк).
-      isProd ? new webpack.optimize.LimitChunkCountPlugin({ maxChunks: 1 }) : false,
-      new HtmlWebpackPlugin({
+      (isProd && !isTest) ? new webpack.optimize.LimitChunkCountPlugin({ maxChunks: 1 }) : false,
+      // Тест-сборка: две mocha-страницы (BSL и запросы), каждая инжектит свой чанк.
+      isTest ? new HtmlWebpackPlugin({ inject: 'body', chunks: ['test'], template: './test.html', filename: 'test.html', cache: false }) : false,
+      isTest ? new HtmlWebpackPlugin({ inject: 'body', chunks: ['test_query'], template: './test_query.html', filename: 'test_query.html', cache: false }) : false,
+      isTest ? false : new HtmlWebpackPlugin({
         inject: 'body',
         chunks: ['console'],
         template: './index.html',

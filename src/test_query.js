@@ -354,12 +354,12 @@ setTimeout(() => {
       bsl = helper('Сокр');
         
       let suggestions = bsl.getQueryCompletion();
-      expect(suggestions).to.be.an('array').that.is.empty;
+      expect(suggestions.suggestions).to.be.an('array').that.is.empty;
 
       bsl = helper('Групп');
         
       suggestions = bsl.getQueryCompletion();
-      expect(suggestions).to.be.an('array').that.is.empty;
+      expect(suggestions.suggestions).to.be.an('array').that.is.empty;
 
       window.init('8.3.20.1')     
       
@@ -452,7 +452,7 @@ setTimeout(() => {
             
       bsl = helper("ВЫРАЗИТЬ(");
       let suggestions = bsl.getQueryCompletion();
-      expect(suggestions).to.be.an('array').that.is.empty;
+      expect(suggestions.suggestions).to.be.an('array').that.is.empty;
 
       bsl = helper("ВЫРАЗИТЬ(Товары.Код ");
       suggestions = bsl.getQueryCompletion();
@@ -528,7 +528,17 @@ setTimeout(() => {
 
     window.setLanguageMode('bsl_query');
         
-    mocha.run();
+    // Адаптер результатов (Этап 3c) — см. test.js.
+    var __runner = mocha.run();
+    window.mochaFailures = [];
+    __runner.on('fail', function (test, err) {
+      window.mochaFailures.push({ title: (test.fullTitle ? test.fullTitle() : test.title), error: (err && err.message) || String(err) });
+    });
+    __runner.on('end', function () {
+      window.mochaResults = __runner.stats;
+      var __btn = document.getElementById('AutotestResult');
+      if (__btn) __btn.click();
+    });
 
   })
 
