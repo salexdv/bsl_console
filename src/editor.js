@@ -1905,6 +1905,9 @@ window.createEditor = function(language_id, text, theme) {
     defaultColorDecorators: 'never',
     // Поле 1С: без Shadow DOM — стабильнее измерения/стили в старом WebKit.
     useShadowDOM: false,
+    // 0.55: bracket-pair colorization (радуга скобок по вложенности) — выключить глобально;
+    // в 0.20 её не было, наши токены скобок задают цвет сами (дубль к colorizedBracketPairs:[]).
+    bracketPairColorization: { enabled: false },
     find: {
       addExtraSpaceOnTop: false
     },
@@ -1967,10 +1970,14 @@ for (const [key, lang] of Object.entries(window.languages)) {
   monaco.languages.registerDefinitionProvider(language.id, lang.definitionProvider);
   monaco.languages.registerCodeActionProvider(language.id, lang.codeActionProvider);  
 
+  // 0.55: два setLanguageConfiguration подряд — второй ЗАМЕЩАЕТ первый (не мержит), поэтому
+  // indentationRules + brackets/autoClosingPairs сливаем в ОДИН вызов (иначе теряются отступы).
+  // colorizedBracketPairs:[] гасит bracket-pair colorization 0.55: у нас свои токены скобок, иначе
+  // скобки методов красятся «радугой» по уровню вложенности (в 0.20 такого не было).
+  var langCfg = { brackets: lang.brackets, autoClosingPairs: lang.autoClosingPairs, colorizedBracketPairs: [] };
   if (lang.autoIndentation && lang.indentationRules)
-    monaco.languages.setLanguageConfiguration(language.id, { indentationRules: lang.indentationRules });
-
-  monaco.languages.setLanguageConfiguration(language.id, { brackets: lang.brackets, autoClosingPairs: lang.autoClosingPairs });
+    langCfg.indentationRules = lang.indentationRules;
+  monaco.languages.setLanguageConfiguration(language.id, langCfg);
 
   if (!window.editor) {
 

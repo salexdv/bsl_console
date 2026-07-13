@@ -42,9 +42,12 @@ module.exports = (env, argv) => {
       extensions: ['.js', '.json', '.css'],
       alias: {
         // 0.55: package "exports" мапит require→min/vs/editor/editor.main.js (AMD, webpack
-        // не парсит) и import→esm. Алиасим bare-импорт на ESM-точку входа. `$` — точное
-        // совпадение, deep-import (monaco-editor/esm/...) не задет.
-        'monaco-editor$': path.resolve(__dirname, 'node_modules/monaco-editor/esm/vs/editor/editor.main.js')
+        // не парсит) и import→esm. Алиасим bare-импорт на УЗКУЮ ESM-точку edcore.main: ядро
+        // редактора + ВСЕ editor-контрибы (suggest/find/folding/hover/parameterHints/format/…),
+        // но БЕЗ ~80 basic-languages и без языковых сервисов css/html/json/typescript — мы
+        // регистрируем bsl/bsl_query/dcs_query сами. Экономит несколько МБ (один ts-сервис —
+        // ~3-4 МБ) и время старта в поле 1С. `$` — точное совпадение, deep-import не задет.
+        'monaco-editor$': path.resolve(__dirname, 'node_modules/monaco-editor/esm/vs/editor/edcore.main.js')
       }
     },
     resolveLoader: {
