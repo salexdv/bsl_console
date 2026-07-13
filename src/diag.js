@@ -65,6 +65,22 @@ export function installDiag() {
   add(state());
   add('мост: setLanguageMode=' + (typeof window.setLanguageMode) + ' updateText=' + (typeof window.updateText) + ' getCurrentLanguageId=' + (typeof window.getCurrentLanguageId));
 
+  // Хук onDidSuggest: КАЖДЫЙ вызов автодополнения — сколько элементов + тип триггера. Ключ для #3
+  // (виден каждый триггер, включая пустые пере-триггеры; параллельно работает guard в editor.js).
+  try {
+    var sc = window.editor.getContribution('editor.contrib.suggestController');
+    if (sc && sc.model && typeof sc.model.onDidSuggest === 'function') {
+      sc.model.onDidSuggest(function (ev) {
+        try {
+          var n = (ev && ev.completionModel && ev.completionModel.items) ? ev.completionModel.items.length : '?';
+          var o = (ev && ev.triggerOptions) || {};
+          add('· onDidSuggest: элементов=' + n + ' триггер=' + o.triggerKind + (o.auto ? '/auto' : '/manual') + (o.shy ? '/shy' : '') + (o.retrigger ? '/retrig' : ''));
+        } catch (er) { /* ignore */ }
+      });
+      add('хук onDidSuggest установлен');
+    } else { add('НЕТ suggestController.model.onDidSuggest'); }
+  } catch (e) { add('хук onDidSuggest ошибка: ' + e.message); }
+
   // Ловим смену языка модели ЛЮБЫМ путём (даже если консоль зовёт monaco.editor.setModelLanguage
   // напрямую, минуя setLanguageMode) — так узнаём, переключается ли режим вообще (#2).
   try {
@@ -85,21 +101,24 @@ export function installDiag() {
       try {
         var parts = [];
         var sw = document.querySelector('.suggest-widget');
-        if (sw && sw.className.indexOf('visible') >= 0) {
-          var rows = sw.querySelectorAll('.monaco-list-row');
-          var msg = sw.querySelector('.message');
-          var msgTxt = (msg && msg.offsetParent) ? (msg.innerText || '') : '';
-          var ll = -1, ml = -1;
-          try {
-            var c = window.editor.getContribution('editor.contrib.suggestController');
-            if (c && c.widget && c.widget.isInitialized) {
-              var v = c.widget.value;
-              ll = v._list ? v._list.length : -1;
-              ml = v._completionModel ? v._completionModel.items.length : -1;
-            }
-          } catch (e) { /* ignore */ }
-          parts.push('SUGGEST[DOM-строк=' + rows.length + ' msg="' + msgTxt + '" _list=' + ll + ' model=' + ml + (rows.length ? ' [0]=' + ((rows[0].getAttribute('aria-label') || '').slice(0, 22)) : '') + ']');
+        if (sw) {
+          var swr = sw.getBoundingClientRect();
+          if (sw.className.indexOf('visible') >= 0 && swr.width > 1 && swr.height > 1) {
+            var rows = sw.querySelectorAll('.monaco-list-row');
+            var msg = sw.querySelector('.message');
+            var msgTxt = (msg && msg.offsetParent) ? (msg.innerText || '') : '';
+            var ml = -1;
+            try {
+              var c = window.editor.getContribution('editor.contrib.suggestController');
+              if (c && c.widget && c.widget.isInitialized && c.widget.value._completionModel) ml = c.widget.value._completionModel.items.length;
+            } catch (e) { /* ignore */ }
+            var rText = rows.length ? (rows[0].textContent || '').replace(/\s+/g, ' ').trim().slice(0, 20) : '';
+            var rAria = rows.length ? (rows[0].getAttribute('aria-label') || '').slice(0, 20) : '';
+            parts.push('SUGGEST[' + Math.round(swr.width) + 'x' + Math.round(swr.height) + ' строк=' + rows.length + ' model=' + ml + ' msg="' + msgTxt + '" видно="' + rText + '" data="' + rAria + '"]');
+          }
         }
+        var sd = document.querySelector('.suggest-details-container') || document.querySelector('.suggest-details');
+        if (sd) { var sdr = sd.getBoundingClientRect(); if (sdr.width > 1 && sdr.height > 1) parts.push('DETAILS[' + Math.round(sdr.width) + 'x' + Math.round(sdr.height) + ' текст="' + ((sd.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 28)) + '"]'); }
         var ph = document.querySelector('.parameter-hints-widget');
         if (ph && ph.className.indexOf('visible') >= 0) parts.push('PARAM-HINTS["' + ((ph.innerText || '').replace(/\s+/g, ' ').slice(0, 44)) + '"]');
         var hv = document.querySelector('.monaco-hover');
