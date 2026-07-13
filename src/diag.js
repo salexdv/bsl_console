@@ -76,4 +76,37 @@ export function installDiag() {
       } catch (e) { /* редактор ещё не готов */ }
     }, 400);
   } catch (e) { /* ignore */ }
+
+  // Монитор виджетов (suggest/param-hints/hover): когда всплывают — ЧТО внутри. Ключевое для #3
+  // (пустой блок): видно, есть ли элементы в модели/списке, или блок реально пуст.
+  try {
+    var lastWidgetKey = '';
+    setInterval(function () {
+      try {
+        var parts = [];
+        var sw = document.querySelector('.suggest-widget');
+        if (sw && sw.className.indexOf('visible') >= 0) {
+          var rows = sw.querySelectorAll('.monaco-list-row');
+          var msg = sw.querySelector('.message');
+          var msgTxt = (msg && msg.offsetParent) ? (msg.innerText || '') : '';
+          var ll = -1, ml = -1;
+          try {
+            var c = window.editor.getContribution('editor.contrib.suggestController');
+            if (c && c.widget && c.widget.isInitialized) {
+              var v = c.widget.value;
+              ll = v._list ? v._list.length : -1;
+              ml = v._completionModel ? v._completionModel.items.length : -1;
+            }
+          } catch (e) { /* ignore */ }
+          parts.push('SUGGEST[DOM-строк=' + rows.length + ' msg="' + msgTxt + '" _list=' + ll + ' model=' + ml + (rows.length ? ' [0]=' + ((rows[0].getAttribute('aria-label') || '').slice(0, 22)) : '') + ']');
+        }
+        var ph = document.querySelector('.parameter-hints-widget');
+        if (ph && ph.className.indexOf('visible') >= 0) parts.push('PARAM-HINTS["' + ((ph.innerText || '').replace(/\s+/g, ' ').slice(0, 44)) + '"]');
+        var hv = document.querySelector('.monaco-hover');
+        if (hv && hv.offsetParent) parts.push('HOVER');
+        var key = parts.join(' ');
+        if (key !== lastWidgetKey) { if (key) add('* ' + key); else if (lastWidgetKey) add('* виджеты скрыты'); lastWidgetKey = key; }
+      } catch (e) { /* ignore */ }
+    }, 350);
+  } catch (e) { /* ignore */ }
 }
