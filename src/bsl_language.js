@@ -647,7 +647,9 @@ let languages = {
                 let bsl = new bslHelper(model, position);
                 let completion = bsl.getCompletion(context, token);
                 bsl.onProvideCompletion(context, completion);
-                return completion;
+                // 0.55: пусто → undefined, иначе на авто-триггере (пробел/точка/&) висит блок
+                // «No suggestions» (в 0.20 return [] его не показывал). Ctrl+Space monaco обработает сам.
+                return (completion && completion.suggestions && completion.suggestions.length) ? completion : undefined;
             },
             resolveCompletionItem: function (item, token) {
                 // 0.55: сигнатура (item, token) — model/position не передаются. Тело
@@ -772,7 +774,9 @@ let languages = {
                 let bsl = new bslHelper(model, position);
                 let completion = bsl.getQueryCompletion(context);
                 bsl.onProvideCompletion(context, completion);
-                return completion;
+                // 0.55: пусто → undefined, иначе на авто-триггере (пробел/точка/&) висит блок
+                // «No suggestions» (в 0.20 return [] его не показывал). Ctrl+Space monaco обработает сам.
+                return (completion && completion.suggestions && completion.suggestions.length) ? completion : undefined;
             }
         },
         foldingProvider: {
@@ -854,7 +858,9 @@ let languages = {
                 let bsl = new bslHelper(model, position);
                 let completion = bsl.getDCSCompletion();
                 bsl.onProvideCompletion(context, completion);
-                return completion;
+                // 0.55: пусто → undefined, иначе на авто-триггере (пробел/точка/&) висит блок
+                // «No suggestions» (в 0.20 return [] его не показывал). Ctrl+Space monaco обработает сам.
+                return (completion && completion.suggestions && completion.suggestions.length) ? completion : undefined;
             }
         },
         foldingProvider: {
