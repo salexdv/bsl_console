@@ -245,3 +245,14 @@ if (typeof Promise.allSettled !== 'function') {
 if (typeof Object.hasOwn !== 'function') {
   Object.hasOwn = function (o, k) { return Object.prototype.hasOwnProperty.call(o, k); };
 }
+
+// Node.prototype.isConnected (Safari 10) — движок 1С его лишён, а monaco проверяет
+// isConnected у DOM-узлов уже во время editor.create(). Достаточно вернуть true. Держим
+// в polyfills (импортируются ПЕРВЫМИ, до top-level createEditor в editor.js), а не в
+// patchWebKit1C() — тот вызывается лишь в конце editor.js, уже после создания редактора.
+if (_self.Node && _self.Node.prototype && !('isConnected' in _self.Node.prototype)) {
+  Object.defineProperty(_self.Node.prototype, 'isConnected', {
+    configurable: true,
+    get: function () { return true; }
+  });
+}

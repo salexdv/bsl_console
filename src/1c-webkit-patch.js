@@ -8,19 +8,12 @@ export function patchWebKit1C() {
   var standardScrollbarStyle = document.getElementById('1C_scrollbar_12704CA4-9C01-461B-8383-F4CD6283CB75');
   if (standardScrollbarStyle !== null) standardScrollbarStyle.remove();
 
-  // Node.prototype.isConnected (Safari 10) — в движке 1С отсутствует, monaco его
-  // проверяет при работе с DOM-узлами → достаточно вернуть true.
-  if (!('isConnected' in Node.prototype)) {
-    Object.defineProperty(Node.prototype, 'isConnected', {
-      configurable: true,
-      get: function () { return true; }
-    });
-  }
-
   // Отключаем автоскролл по средней кнопке мыши (мешает в поле 1С).
   document.body.onmousedown = function (e) { if (e.button === 1) return false; };
 
-  // TODO (Этап 4): перехват keydown по keyCode для клавиш, которые перехватывает форма
+  // Node.prototype.isConnected перенесён в polyfills.js — он нужен ДО top-level createEditor
+  // (editor.js), а эта функция вызывается лишь в конце файла.
+  // TODO (Этап 4/5): перехват keydown по keyCode для клавиш, которые перехватывает форма
   // 1С (Ctrl+S / Ctrl+цифры / Esc / PgUp / PgDn), — адаптировать под наш набор EVENT_*
   // (у VAEditor завязан на VanessaTabs, которого у нас нет).
 }

@@ -19,9 +19,10 @@ module.exports = (env, argv) => {
   return {
     context: path.resolve(__dirname, 'src'),
     entry: {
-      // Каркас спайка (Этап 1). На этапах 2–4 переключится на реальный './editor'
-      // (обёрнутый теми же polyfills/product-service/monaco-environment).
-      console: './boot'
+      // Реальный редактор bsl_console (Этап 3+). Обёрнут теми же слоями совместимости, что и
+      // смоук-каркас: polyfills → monaco-environment → product-service → expose-monaco.
+      // boot.js остаётся в дереве как ручной смоук-энтрипоинт Этапов 1-2, но в entry не входит.
+      console: './editor'
     },
     output: {
       path: path.resolve(__dirname, 'dist'),
@@ -100,8 +101,10 @@ module.exports = (env, argv) => {
           use: ['style-loader', 'css-loader', 'postcss-loader']
         },
         {
-          // Шрифты (codicon.ttf) и svg-иконки monaco — инлайн data: (без внешних файлов).
-          test: /\.(svg|ttf)$/,
+          // Шрифты (codicon.ttf), svg-иконки monaco и PNG-иконки дерева переменных
+          // (require.context('./tree/icons') в editor.js, resolveTreeIcon) — инлайн data:
+          // (ноль внешних файлов; важно для single-file и предупреждения безопасности поля 1С).
+          test: /\.(svg|ttf|png|gif)$/,
           type: 'asset/inline'
         }
       ]

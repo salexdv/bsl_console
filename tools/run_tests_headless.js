@@ -72,7 +72,10 @@ function serve() {
     });
 
     await page.goto('http://localhost:' + PORT + '/index.html', { waitUntil: 'load', timeout: 60000 });
-    await page.waitForFunction('window.__spikeReady === true', { timeout: 30000 });
+    // Готовность: реальный editor.js создаёт window.editor синхронно в module-eval
+    // (boot.js-каркас — тоже); ждём его + глобальный monaco. (Раньше ждали window.__spikeReady
+    // каркаса boot.js — editor.js его не ставит.)
+    await page.waitForFunction('!!window.editor && typeof window.monaco !== "undefined"', { timeout: 30000 });
 
     // Печать: вставляем строку через API и читаем назад — доказательство «редактор печатает».
     const typed = await page.evaluate(() => {
@@ -100,6 +103,37 @@ function serve() {
       if (!langDiag.kwTokened) errors.push('BSL-грамматика не токенизирует ключевые слова');
     } else {
       console.log('[headless] язык bsl не зарегистрирован (голый каркас Этапа 1) — пропускаю проверку грамматики');
+    }
+
+    // Bridge-смоук (Этап 4, analysis §4.4): window.init + ключевые функции моста не бросают.
+    // Только для реального editor.js (у смоук-каркаса boot.js нет window.init).
+    const hasInit = await page.evaluate(() => typeof window.init === 'function');
+    if (hasInit) {
+      // bslHelper подгружается асинхронно (import в onDidCreateEditor) — дождёмся.
+      try { await page.waitForFunction('typeof window.bslHelper !== "undefined"', { timeout: 15000 }); }
+      catch (e) { errors.push('window.bslHelper не загрузился за 15с'); }
+      const bridge = await page.evaluate(() => {
+        const out = { steps: [], errors: [] };
+        const step = (name, fn) => {
+          try { fn(); out.steps.push(name); }
+          catch (e) { out.errors.push(name + ' threw: ' + ((e && e.stack) || (e && e.message) || e)); throw e; }
+        };
+        try {
+          step('init', () => window.init('8.3.18.1'));
+          step('setText', () => window.setText('Процедура Тест() КонецПроцедуры', undefined, false));
+          step('getText', () => { if (window.getText().indexOf('Процедура Тест') < 0) out.errors.push('setText/getText не сходятся'); });
+          step('getCurrentLanguageId', () => { out.lang = window.getCurrentLanguageId(); });
+          step('setTheme', () => window.setTheme('bsl-dark'));
+          step('setLanguageMode(bsl_query)', () => window.setLanguageMode('bsl_query'));
+          step('checkLang', () => { if (window.getCurrentLanguageId() !== 'bsl_query') out.errors.push('setLanguageMode не переключил на bsl_query'); });
+          step('setLanguageMode(bsl)', () => window.setLanguageMode('bsl'));
+          step('isSuggestWidgetVisible', () => window.isSuggestWidgetVisible());
+          step('isParameterHintsWidgetVisible', () => window.isParameterHintsWidgetVisible());
+        } catch (e) { /* остановились на первом бросившем шаге; он уже в out.errors */ }
+        return out;
+      });
+      console.log('[headless] bridge шаги ok: ' + bridge.steps.join(', ') + ' | lang=' + bridge.lang);
+      bridge.errors.forEach((e) => errors.push('bridge: ' + e));
     }
 
     // Если появился mochaResults (этап 3) — учтём failures.
