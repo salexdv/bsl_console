@@ -1147,10 +1147,9 @@ window.showStatusBar = function(overlapScroll = true) {
 window.hideStatusBar = function() {
 
   if (window.statusBarWidget) {
-    if (window.editor.navi)
-        window.editor.getModifiedEditor().removeOverlayWidget(window.statusBarWidget);
-      else
-        window.editor.removeOverlayWidget(window.statusBarWidget);
+    let dom = window.statusBarWidget.domNode;
+    if (dom && dom.parentNode)
+      dom.parentNode.removeChild(dom);
     window.statusBarWidget = null;
   }
 
@@ -3459,9 +3458,25 @@ function updateStatusBar() {
     if (!window.engLang)
       status = status.replace('Ln', 'Стр').replace('Col', 'Кол');
 
-    // textContent (не innerText): innerText зависит от лейаута и в старом WebKit поля 1С
-    // может не проставляться (строка состояния показывалась пустой); textContent надёжен.
-    window.statusBarWidget.domNode.firstElementChild.textContent = status;
+    let dom = window.statusBarWidget.domNode;
+    if (!dom) return;
+
+    // Структурная причина пустого статус-бара в поле 1С устранена в createStatusBarWidget (увод из
+    // 0-высотного overlay-контейнера Monaco в корень редактора). Здесь — дополнительно: на смену
+    // статуса ПЕРЕСОЗДАЁМ дочерний узел, а не мутируем textContent существующего — зеркалим то, что
+    // рисует suggest (виртуализированные строки Monaco пересоздаёт), т.к. в старом WebKit смена
+    // textContent у постоянного узла может не пере-растеризоваться.
+    let child = dom.firstElementChild;
+    if (child && child.textContent === status)
+      return; // без изменений — лишний churn не нужен
+
+    let fresh = document.createElement('div');
+    fresh.style.margin = 'auto 10px';
+    fresh.textContent = status;
+    if (child)
+      dom.replaceChild(fresh, child);
+    else
+      dom.appendChild(fresh);
   }
 
 }
@@ -3471,14 +3486,28 @@ function resizeStatusBar() {
   if (window.statusBarWidget) {
 
     let element = window.statusBarWidget.domNode;
+    if (!element) return;
 
+    // Позиционируем через bottom/right (плашка — absolute-ребёнок корня редактора, полная высота):
+    // при overlapScroll (дефолт) bottom/right='0', иначе с отступом под скроллбары.
+    let newBottom, newRight;
     if (window.statusBarWidget.overlapScroll) {
-      element.style.top = window.editor.getDomNode().clientHeight - 20 + 'px';
+      newBottom = '0';
+      newRight = '0';
     }
     else {
-      let layout = getActiveEditor().getLayoutInfo();      
-      element.style.top = (window.editor.getDomNode().offsetHeight - 20 - layout.horizontalScrollbarHeight) + 'px';
+      let layout = getActiveEditor().getLayoutInfo();
+      newBottom = layout.horizontalScrollbarHeight + 'px';
+      newRight = layout.verticalScrollbarWidth + 'px';
     }
+
+    // Поле 1С (старый WebKit): лишняя запись стиля КОНТЕЙНЕРА статус-бара рвёт растеризацию его
+    // текста (тот же класс, что resetSuggestWidgetDisplay у suggest). Пишем ТОЛЬКО при реальном
+    // изменении — при overlapScroll bottom/right не меняются, поэтому обычно не пишем вовсе.
+    if (element.style.bottom !== newBottom)
+      element.style.bottom = newBottom;
+    if (element.style.right !== newRight)
+      element.style.right = newRight;
 
   }
 
@@ -3801,53 +3830,34 @@ function calculateDiff() {
 
 function createStatusBarWidget(overlapScroll) {
 
-  window.statusBarWidget = {
-    domNode: null,
-    overlapScroll: overlapScroll,
-    getId: function () {
-      return 'bsl.statusbar.widget';
-    },
-    getDomNode: function () {
+  // В «Поле HTML документа» 1С (старый WebKit ~Safari 11) статус-бар как overlay-виджет Monaco
+  // оставался ПУСТЫМ: контейнер .overlayWidgets имеет height:0 (Monaco задаёт ему в render()
+  // только width), и поле не композитит содержимое, вылезающее за 0-высотный контейнер через
+  // absolute-позиционирование. (suggest в поле рисуется, т.к. с fixedOverflowWidgets живёт в
+  // ДРУГОМ, полноразмерном контейнере overflowing-виджетов — вот почему прошлые фиксы, оставлявшие
+  // бар в .overlayWidgets, не помогали.) Поэтому вешаем плашку СВОИМ absolute-элементом прямо в
+  // корневой DOM редактора (.monaco-editor, position:relative, полная высота) и позиционируем
+  // через bottom — авто-следование за ресайзом, без записи top на каждый layout (та запись рвала
+  // растеризацию текста, тот же класс бага, что resetSuggestWidgetDisplay у suggest).
+  let host = window.editor.navi
+    ? window.editor.getModifiedEditor().getDomNode()
+    : window.editor.getDomNode();
 
-      if (!this.domNode) {
+  let dom = document.createElement('div');
+  dom.classList.add('statusbar-widget');
+  dom.style.position = 'absolute';
+  dom.style.height = '20px';
+  dom.style.minWidth = '125px';
+  dom.style.textAlign = 'center';
+  dom.style.zIndex = '35';
+  dom.style.fontSize = '12px';
+  dom.style.pointerEvents = 'none'; // не перехватывать клики/скролл редактора
 
-        this.domNode = document.createElement('div');
-        this.domNode.classList.add('statusbar-widget');
-        if (this.overlapScroll) {
-          this.domNode.style.right = '0';
-          this.domNode.style.top = window.editor.getDomNode().offsetHeight - 20 + 'px';
-        }
-        else {
-          let layout = getActiveEditor().getLayoutInfo();
-          this.domNode.style.right = layout.verticalScrollbarWidth + 'px';
-          this.domNode.style.top = (window.editor.getDomNode().offsetHeight - 20 - layout.horizontalScrollbarHeight) + 'px';
-        }
-        this.domNode.style.height = '20px';
-        this.domNode.style.minWidth = '125px';
-        this.domNode.style.textAlign = 'center';
-        this.domNode.style.zIndex = 1;
-        this.domNode.style.fontSize = '12px';
+  window.statusBarWidget = { domNode: dom, overlapScroll: overlapScroll };
 
-        let pos = document.createElement('div');
-        pos.style.margin = 'auto 10px';
-        this.domNode.appendChild(pos);
-
-      }
-
-      return this.domNode;
-
-    },
-    getPosition: function () {
-      return null;
-    }
-  };
-
-  if (window.editor.navi)
-    window.editor.getModifiedEditor().addOverlayWidget(window.statusBarWidget);
-  else
-    window.editor.addOverlayWidget(window.statusBarWidget);
-
-  updateStatusBar();
+  host.appendChild(dom);
+  resizeStatusBar(); // выставить bottom/right под overlapScroll
+  updateStatusBar(); // создать дочерний узел с текстом (свежий узел красится в поле)
 
 }
 
