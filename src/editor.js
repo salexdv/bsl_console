@@ -1893,6 +1893,11 @@ window.createEditor = function(language_id, text, theme) {
     // entry на editor.js он потерялся. VAEditor держит automaticLayout:true — паритет с рабочим
     // референсом (у него нет программного triggerSuggest, поэтому там баг и не всплывал).
     automaticLayout: true,
+    // fixedOverflowWidgets: overflow-виджеты (suggest/hover/param-hints) в fixed-контейнере на
+    // document.body. Наследие экспериментов по #3 (пустой блок автодополнения в поле 1С); НЕ является
+    // фиксом — реальная причина была в per-call записи в стиль виджета из провайдера автодополнения
+    // (см. resetSuggestWidgetDisplay в bsl_language.js). Оставлено как рабочая опция; кандидат на ревизию.
+    fixedOverflowWidgets: true,
     // 0.55: wordBasedSuggestions boolean → строковый enum; false === 'off'.
     wordBasedSuggestions: 'off',
     scrollBeyondLastLine: false,

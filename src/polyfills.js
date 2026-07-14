@@ -256,3 +256,17 @@ if (_self.Node && _self.Node.prototype && !('isConnected' in _self.Node.prototyp
     get: function () { return true; }
   });
 }
+
+// Element.prototype.replaceChildren (Safari 14) — движок 1С (~Safari 11) его лишён, а monaco 0.52
+// зовёт его в diff-редакторе (compare: movedBlocks/hideUnchangedRegions/gutter) и markdown-hover →
+// TypeError рушит эти фичи. Портирован из фикса автора для 0.47 (ветка webpack-monaco-v0.47.0, fd8232e).
+// ПРИМ.: на пустой suggest НЕ влияет — listView/suggestWidget 0.52 его не используют (проверено grep'ом).
+if (_self.Element && _self.Element.prototype && typeof _self.Element.prototype.replaceChildren !== 'function') {
+  _self.Element.prototype.replaceChildren = function () {
+    while (this.firstChild) { this.removeChild(this.firstChild); }
+    for (var i = 0; i < arguments.length; i++) {
+      var node = arguments[i];
+      this.appendChild(typeof node === 'string' ? document.createTextNode(node) : node);
+    }
+  };
+}
