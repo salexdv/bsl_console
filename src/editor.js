@@ -5,11 +5,11 @@
 // впервые коснётся monaco:
 //   1) polyfills          — рантайм-API старого WebKit ДО любого кода monaco
 //   2) monaco-environment — self.MonacoEnvironment (globalAPI + blob-воркер) ДО monaco
-//   3) expose-monaco      — import monaco (edcore.main: API + ВСЕ контрибы) + window.monaco
-// product-service (был нужен на 0.55) убран: в 0.52.2 clipboard-paste не требует IProductService
-// (регрессия paste была 0.55-специфична), см. VAEditor PR #185.
+//   3) product-service    — registerSingleton(IProductService) ДО StandaloneServices
+//   4) expose-monaco      — import monaco (editor.main: API + ВСЕ контрибы) + window.monaco
 import './polyfills';
 import './monaco-environment';
+import './product-service';
 import monaco from './expose-monaco';
 
 import languages from './bsl_language';

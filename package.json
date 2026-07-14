@@ -47,6 +47,6 @@
   },
   "dependencies": {
     "@juggle/resize-observer": "^3.4.0",
-    "monaco-editor": "0.52.2"
+    "monaco-editor": "0.55.1"
   }
 }

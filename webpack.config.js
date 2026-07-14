@@ -83,19 +83,34 @@ module.exports = (env, argv) => {
               loader: 'replace-strings',
               options: {
                 replacements: [
-                  // (1) suggestController: Ctrl+I у inline-suggest снимаем (secondary-массив → null).
-                  //     0.52.2: Windows-ветки suggestController.js (×3, стр.665/829/849); mac-ветки НЕ
-                  //     трогаем (в 1С/Windows mac-набор не активируется). Литерал совпадает и в 0.52.2,
-                  //     и в 0.55 (VAEditor PR #185).
+                  // (1) suggestController: Ctrl+I у inline-suggest снимаем (0.55 сменил формат
+                  //     комментариев на KeyMod./KeyCode.-квалифицированный — старый search не совпал бы).
                   { search: 'secondary: [2048 /* KeyMod.CtrlCmd */ | 39 /* KeyCode.KeyI */],', replace: 'secondary: null,' },
-                  // (2) RegExp-флаг 'd' (hasIndices, Safari 15) → «Invalid flags» в WebKit 1С. В 0.52.2
-                  //     findSectionHeaders.js — top-level `new RegExp('\\bMARK:\\s*(.*)$', 'd')` бросает
-                  //     ПРИ ЗАГРУЗКЕ модуля → мёртв весь бандл. Срезаем флаг. Глобальную обёртку RegExp
-                  //     не делаем — ломает именованные группы (?<name>) в 1С.
-                  //     (0.55-паттерны — new RegExp(inputRegex,'d') и lookbehind (?<=['"\s]) color-computer —
-                  //     в 0.52.2 отсутствуют; те патчи и rAF→setTimeout-митигация убраны при переезде
-                  //     0.55→0.52.2, т.к. пустой рендер 0.55 был 0.53+ регрессией, см. VAEditor PR #185.)
-                  { search: "(.*)$', 'd'", replace: "(.*)$', ''" }
+                  // (2) RegExp-флаг 'd' (hasIndices, Safari 15) → «Invalid flags» в WebKit 1С.
+                  //     Срезаем 'd' у editorOptions new RegExp(inputRegex, 'd'). Глобальную
+                  //     обёртку RegExp не делаем — ломает именованные группы (?<name>) в 1С.
+                  { search: "new RegExp(inputRegex, 'd')", replace: "new RegExp(inputRegex, '')" },
+                  // (3) defaultDocumentColorsComputer: lookbehind (?<=['"\s]) ×4 — WebKit 1С без
+                  //     lookbehind (до Safari 16.4) читает как невалидную named-group → SyntaxError
+                  //     всего модуля при require (color provider на старте). Меняем на консумирующую
+                  //     группу (color-дисплей выключен опцией colorDecorators:false).
+                  { search: "(?<=['\"\\s])", replace: "(?:['\"\\s])" },
+                  // (4) ЯДРО РЕНДЕРА: единственный планировщик отложенной отрисовки Monaco 0.55 —
+                  //     scheduleAtNextAnimationFrame (dom.js:273) — зовёт requestAnimationFrame НАПРЯМУЮ.
+                  //     Через него идёт ВЕСЬ отложенный рендер: и позиционирование suggest (content-
+                  //     widget), и статус-бара (overlay-widget), и размеры списка. «Поле HTML документа»
+                  //     1С (старый WebKit-webview) композитит/красит только по инвалидации от реального
+                  //     ВВОДА — «холодный» rAF вне кадра ввода не отрабатывает → контент есть в DOM, но
+                  //     не нарисован (пустой suggest, пустой статус-бар). На боевой Monaco 0.20 в том же
+                  //     поле всё рисуется. Переводим планировщик rAF→setTimeout-макротаск (ровно как
+                  //     emulated-rAF fallback в 0.20 dom.js): message-loop таймера гонит paint-проход, в
+                  //     отличие от rAF. Один патч закрывает и suggest, и статус-бар. Семантика очереди/
+                  //     отмены цела: dispose() метит _canceled (не завязан на cancelAnimationFrame).
+                  //     Сверено воркфлоу-агентом по исходникам 0.20.0 vs 0.55.1.
+                  {
+                    search: 'targetWindow.requestAnimationFrame(() => animationFrameRunner(targetWindowId));',
+                    replace: 'setTimeout(() => animationFrameRunner(targetWindowId), 0);'
+                  }
                 ]
               }
             }
