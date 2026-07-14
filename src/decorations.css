@@ -97,19 +97,6 @@
 	min-height: 62px;
 }
 
-/* Monaco 0.55: контейнер строк suggest-виджета (.monaco-list-rows) при transformOptimization
-   получает СТАТИЧНЫЙ inline transform: translate3d(0,0,0) — компоновочный GPU-слой (listView.js:212).
-   В старом WebKit «Поля HTML документа» 1С (Safari 11-13) backing-store этого слоя НЕ инвалидируется
-   при первой синхронной вставке большого списка → строки есть в DOM (с текстом, бокс нужного размера),
-   но визуально пусто; печать/фильтрация (пере-splice → dirty region) прорисовывает. Снимаем принудительный
-   слой — строки рисуются на основном paint-слое сразу. Скролл идёт через style.top контейнера/строк
-   (listView.js:548/621), НЕ через transform, поэтому !important-снятие безопасно. Только suggest-виджет. */
-.suggest-widget .monaco-list-rows {
-	transform: none !important;
-	will-change: auto !important;
-	contain: none !important;
-}
-
 .suggest-widget .monaco-list .monaco-list-row .inactive-detail {
 	display: inline !important;
 	color: #b3b3b3;

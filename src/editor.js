@@ -1884,6 +1884,15 @@ window.createEditor = function(language_id, text, theme) {
     value: text,
     language: language_id,
     contextmenu: true,
+    // КРИТИЧНО для «Поля HTML документа» 1С (старый WebKit-webview красит по событию ВВОДА, не
+    // постоянно). Monaco вставляет строки suggest АСИНХРОННО (rAF, suggestWidget.js). Без
+    // automaticLayout наш ResizeObserver-полифил @juggle не стартует → нет «насоса» перерисовки
+    // (body-MutationObserver → rAF → чтение clientWidth = форс-reflow), и асинхронно вставленные
+    // строки автодополнения висят НЕНАРИСОВАННЫМИ до следующего ввода = пустой блок suggest.
+    // boot.js (смоук Этапов 1-2, где suggest работал) и diff-редакторы его держат; при переходе
+    // entry на editor.js он потерялся. VAEditor держит automaticLayout:true — паритет с рабочим
+    // референсом (у него нет программного triggerSuggest, поэтому там баг и не всплывал).
+    automaticLayout: true,
     // 0.55: wordBasedSuggestions boolean → строковый enum; false === 'off'.
     wordBasedSuggestions: 'off',
     scrollBeyondLastLine: false,
