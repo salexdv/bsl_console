@@ -186,7 +186,7 @@ window.updateText = function(txt, clearUndoHistory = true) {
   }
   else {
     window.removeAllBookmarks();
-    window.revomeAllBreakpoints();
+    window.removeAllBreakpoints();
   }
 
   if (mod_event)    
