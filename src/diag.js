@@ -65,6 +65,55 @@ export function installDiag() {
   add(state());
   add('мост: setLanguageMode=' + (typeof window.setLanguageMode) + ' updateText=' + (typeof window.updateText) + ' getCurrentLanguageId=' + (typeof window.getCurrentLanguageId));
 
+  // ── PAINT-PUMP ТЕСТ (принципиально иной класс: анимация, не рефлоу) ──────────────────────────
+  // Видео: param-hints (синхронный DOM) рисуется, а suggest (АСИНХРОННЫЙ виртуализированный
+  // ListView) — нет. Строки вставляются в async-продолжении, ПОСЛЕ input-кадра; поле красит по
+  // вводу, рефлоу (automaticLayout/@juggle) паинт НЕ будит. Остался рычаг — CSS-АНИМАЦИЯ: она
+  // гонит компоновщик рисовать кадры сама. filter:brightness пере-рендерит ВСЁ поддерево (включая
+  // строки) каждый кадр — если строки проявятся, это фикс. animationiteration считает, крутится ли
+  // анимация в поле ВООБЩЕ (главный вопрос: жив ли таймлайн анимаций в webview 1С). Если счётчик
+  // не растёт — поле не честит CSS-анимации, нужен ещё иной подход.
+  (function () {
+    try {
+      var st = document.createElement('style');
+      st.textContent =
+        '@keyframes bslpump{0%{filter:brightness(1)}50%{filter:brightness(0.996)}100%{filter:brightness(1)}}' +
+        '.suggest-widget.visible{animation:bslpump .3s linear infinite !important}';
+      (document.head || document.documentElement).appendChild(st);
+      var iter = 0, logged = 0;
+      document.addEventListener('animationiteration', function (e) {
+        if (e && e.animationName === 'bslpump') {
+          iter++;
+          if (iter - logged >= 4) { logged = iter; add('✓ PUMP анимация КРУТИТСЯ в поле: iter=' + iter); }
+        }
+      }, true);
+      add('paint-pump установлен (filter-анимация на suggest; жду animationiteration)');
+    } catch (e) { add('paint-pump ошибка: ' + e.message); }
+  })();
+
+  // ── СИНТЕТИЧЕСКИЙ «БУДИЛЬНИК» render-loop ────────────────────────────────────────────────────
+  // Анимация в поле замерла (iter встал) → цикл отрисовки webview сам не крутится, только по вводу.
+  // Пробуем разбудить его СИНТЕТИЧЕСКИМИ событиями (mousemove + window.resize) каждые 120мс, пока
+  // suggest виден. ЕСЛИ синт-события гонят цикл — замерший pump-счётчик снова поползёт И бокс
+  // заполнится (двойной индикатор). Безопасно: mousemove/resize не меняют текст/выделение.
+  (function () {
+    var announced = false, mx = 0;
+    setInterval(function () {
+      try {
+        var sw = document.querySelector('.suggest-widget');
+        if (!sw || sw.className.indexOf('visible') < 0) return;
+        var r = sw.getBoundingClientRect();
+        if (r.width < 2 || r.height < 2) return;
+        mx = (mx + 1) % 7;
+        var opt = { bubbles: true, cancelable: true, view: window, clientX: Math.round(r.left + 15 + mx), clientY: Math.round(r.top + 8 + (mx % 3)) };
+        document.dispatchEvent(new MouseEvent('mousemove', opt));
+        sw.dispatchEvent(new MouseEvent('mousemove', opt));
+        try { window.dispatchEvent(new Event('resize')); } catch (e) { }
+        if (!announced) { announced = true; add('синт-будильник ВКЛ (mousemove+resize 120мс пока suggest виден)'); }
+      } catch (e) { /* ignore */ }
+    }, 120);
+  })();
+
   // Хук onDidSuggest: КАЖДЫЙ вызов автодополнения — сколько элементов + тип триггера. Ключ для #3
   // (виден каждый триггер, включая пустые пере-триггеры; параллельно работает guard в editor.js).
   try {

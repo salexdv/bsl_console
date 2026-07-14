@@ -94,7 +94,23 @@ module.exports = (env, argv) => {
                   //     lookbehind (до Safari 16.4) читает как невалидную named-group → SyntaxError
                   //     всего модуля при require (color provider на старте). Меняем на консумирующую
                   //     группу (color-дисплей выключен опцией colorDecorators:false).
-                  { search: "(?<=['\"\\s])", replace: "(?:['\"\\s])" }
+                  { search: "(?<=['\"\\s])", replace: "(?:['\"\\s])" },
+                  // (4) ЯДРО РЕНДЕРА: единственный планировщик отложенной отрисовки Monaco 0.55 —
+                  //     scheduleAtNextAnimationFrame (dom.js:273) — зовёт requestAnimationFrame НАПРЯМУЮ.
+                  //     Через него идёт ВЕСЬ отложенный рендер: и позиционирование suggest (content-
+                  //     widget), и статус-бара (overlay-widget), и размеры списка. «Поле HTML документа»
+                  //     1С (старый WebKit-webview) композитит/красит только по инвалидации от реального
+                  //     ВВОДА — «холодный» rAF вне кадра ввода не отрабатывает → контент есть в DOM, но
+                  //     не нарисован (пустой suggest, пустой статус-бар). На боевой Monaco 0.20 в том же
+                  //     поле всё рисуется. Переводим планировщик rAF→setTimeout-макротаск (ровно как
+                  //     emulated-rAF fallback в 0.20 dom.js): message-loop таймера гонит paint-проход, в
+                  //     отличие от rAF. Один патч закрывает и suggest, и статус-бар. Семантика очереди/
+                  //     отмены цела: dispose() метит _canceled (не завязан на cancelAnimationFrame).
+                  //     Сверено воркфлоу-агентом по исходникам 0.20.0 vs 0.55.1.
+                  {
+                    search: 'targetWindow.requestAnimationFrame(() => animationFrameRunner(targetWindowId));',
+                    replace: 'setTimeout(() => animationFrameRunner(targetWindowId), 0);'
+                  }
                 ]
               }
             }
