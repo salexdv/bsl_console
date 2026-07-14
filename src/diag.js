@@ -93,6 +93,121 @@ export function installDiag() {
     }, 400);
   } catch (e) { /* ignore */ }
 
+  // ── Глубокая выгрузка состояния suggest-виджета (пиксельный уровень) + «пинок» перерисовки ──
+  // #3: строки ЕСТЬ в DOM с текстом (model=23, видно="…"), но бокс визуально пуст в поле 1С.
+  // Фикс transform:none у .monaco-list-rows в поле НЕ помог → причина не в слое контейнера.
+  // Нужны реальные computed-стили/геометрия САМИХ строк и текста (белое-на-белом? offscreen?
+  // opacity/visibility? свой transform у строки?), которых в браузере не видно. Дампим ОДИН раз
+  // на каждое появление виджета, ДО пинка (чтобы поймать пустое состояние).
+  function _rect(el) { var r = el.getBoundingClientRect(); return Math.round(r.left) + ',' + Math.round(r.top) + ' ' + Math.round(r.width) + 'x' + Math.round(r.height); }
+  function _css(el, props) { var cs; try { cs = getComputedStyle(el); } catch (e) { return 'css?'; } var o = []; for (var i = 0; i < props.length; i++) o.push(props[i] + '=' + cs[props[i]]); return o.join(' '); }
+  function deepDump() {
+    try {
+      var sw = document.querySelector('.suggest-widget');
+      if (!sw) { add('DUMP: нет .suggest-widget'); return; }
+      add('DUMP widget ' + _rect(sw) + ' | ' + _css(sw, ['transform', 'opacity', 'visibility', 'backgroundColor', 'color', 'zIndex']));
+      var scr = sw.querySelector('.monaco-scrollable-element');
+      if (scr) add('DUMP scroll ' + _rect(scr) + ' | ' + _css(scr, ['transform', 'overflow', 'contain']));
+      var rc = sw.querySelector('.monaco-list-rows');
+      if (rc) add('DUMP rowsC ' + _rect(rc) + ' | ' + _css(rc, ['transform', 'willChange', 'contain', 'overflow', 'height', 'top']));
+      var row = sw.querySelector('.monaco-list-row');
+      if (row) {
+        add('DUMP row0 ' + _rect(row) + ' | ' + _css(row, ['transform', 'top', 'left', 'position', 'opacity', 'visibility', 'display', 'color', 'backgroundColor', 'contain']));
+        var lbl = row.querySelector('.label-name') || row.querySelector('.monaco-icon-label') || row.querySelector('.contents') || row.querySelector('span');
+        if (lbl) add('DUMP row0.lbl "' + ((lbl.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 16)) + '" ' + _rect(lbl) + ' | ' + _css(lbl, ['color', 'opacity', 'visibility', 'transform', 'fontFamily']));
+      } else add('DUMP: нет .monaco-list-row');
+    } catch (e) { add('DUMP ошибка: ' + e.message); }
+  }
+  // Обход предков suggest-виджета вверх до корня: КТО создаёт залипший compositing-слой
+  // (transform / will-change / filter / opacity<1 / position:fixed / isolation / perspective /
+  // backface). display-reflow строк не разбудил перерисовку → слой, возможно, на ПРЕДКЕ, а не на
+  // .monaco-list-rows. Печать чинит, т.к. re-layout трогает сам виджет. Логируем цепочку слоёв.
+  function layerAncestors() {
+    try {
+      var el = document.querySelector('.suggest-widget'); var out = []; var depth = 0;
+      while (el && depth < 16) {
+        var cs; try { cs = getComputedStyle(el); } catch (e) { break; }
+        var f = [];
+        if (cs.transform && cs.transform !== 'none') f.push('tf=' + String(cs.transform).slice(0, 22));
+        if (cs.willChange && cs.willChange !== 'auto') f.push('wc=' + cs.willChange);
+        if (cs.filter && cs.filter !== 'none') f.push('filter=' + String(cs.filter).slice(0, 16));
+        if (cs.opacity && cs.opacity !== '1') f.push('op=' + cs.opacity);
+        if (cs.position === 'fixed') f.push('pos=fixed');
+        if (cs.isolation === 'isolate') f.push('isolate');
+        if (cs.perspective && cs.perspective !== 'none') f.push('persp');
+        if (cs.backfaceVisibility === 'hidden') f.push('backface');
+        if (cs.webkitOverflowScrolling === 'touch') f.push('wk-scroll-touch');
+        if (f.length) out.push((el.className || el.tagName || '?').toString().slice(0, 24).replace(/\s+/g, '.') + '{' + f.join(' ') + '}');
+        el = el.parentElement; depth++;
+      }
+      add('LAYERS: ' + (out.length ? out.join('  ') : 'слой-свойств до корня НЕТ'));
+    } catch (e) { add('LAYERS ошибка: ' + e.message); }
+  }
+
+  // КАНДИДАТ-ФИКС v2 (КРОСС-КАДРОВЫЙ). Прошлый провал доказал: синхронный display:none→рефлоу→назад
+  // НЕ будит перерисовку. Причина: offsetHeight форсит только LAYOUT, а PAINT — на границе кадра;
+  // итоговое computed-состояние == исходному → старый WebKit схлопывает в один крас (залипший тайл).
+  // Печать чинит, т.к. растянута на НЕСКОЛЬКО кадров. Значит мутируем через ДВА кадра: прячем весь
+  // виджет на кадр N (rAF), возвращаем на кадр N+1 — WebKit обязан покрасить дважды (без строк → со
+  // строками). Тогглим ВЕСЬ .suggest-widget (сильнее всего; фон виджета красится, а строки — нет →
+  // поддерево строк надо пере-растеризовать целиком). _fixing защищает от гонки повторных вызовов.
+  var _fixing = false;
+  function applyFix() {
+    if (_fixing) return;
+    try {
+      var sw = document.querySelector('.suggest-widget');
+      if (!sw || sw.className.indexOf('visible') < 0) return;
+      _fixing = true;
+      var d = sw.style.display;
+      sw.style.display = 'none'; void sw.offsetHeight;                 // кадр N: поддерево убрано
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () {                            // кадр N+1: вернули → форс-перекрас
+          try { sw.style.display = d; void sw.offsetHeight; add('⟳ FIX xframe widget-display'); } catch (e) { }
+          _fixing = false;
+        });
+      });
+    } catch (e) { _fixing = false; add('FIX ошибка: ' + e.message); }
+  }
+  // «РЕНТГЕН» стека: что РЕАЛЬНО сверху в точке, где должна быть строка. Кросс-кадровый тоггл всего
+  // виджета не разбудил краску → вероятно, строки красятся, но их НАКРЫВАЕТ оверлей (или предок со
+  // залипшим слоем). elementFromPoint назовёт топ-элемент по пикселю: если это сама строка/label —
+  // баг краски; если что-то другое — вот виновник. Плюс счётчики (не два ли виджета мы толкаем).
+  function stackAt(cx, cy) {
+    try {
+      var els = document.elementsFromPoint ? document.elementsFromPoint(cx, cy) : [document.elementFromPoint(cx, cy)];
+      var s = [];
+      for (var i = 0; i < els.length && i < 7; i++) { var e = els[i]; if (!e) continue; var c = (e.className && e.className.toString ? e.className.toString() : e.tagName) || '?'; s.push(c.slice(0, 20).replace(/\s+/g, '.')); }
+      return s.join(' › ') || '(пусто)';
+    } catch (e) { return 'ERR ' + e.message; }
+  }
+  function stackProbe() {
+    try {
+      var all = document.querySelectorAll('.suggest-widget');
+      var sw = null;
+      for (var i = 0; i < all.length; i++) { var rr = all[i].getBoundingClientRect(); if (all[i].className.indexOf('visible') >= 0 && rr.width > 1 && rr.height > 1) { sw = all[i]; break; } }
+      if (!sw) sw = all[0];
+      if (!sw) { add('STACK: нет .suggest-widget'); return; }
+      var r = sw.getBoundingClientRect();
+      var cx = Math.round(r.left + Math.min(60, r.width / 2));
+      add('STACK row0@' + cx + ',' + Math.round(r.top + 10) + ': ' + stackAt(cx, Math.round(r.top + 10)));
+      add('STACK mid@' + cx + ',' + Math.round(r.top + r.height / 2) + ': ' + stackAt(cx, Math.round(r.top + r.height / 2)));
+      add('счётчики: suggest-widget=' + all.length + ' monaco-editor=' + document.querySelectorAll('.monaco-editor').length + ' rows=' + sw.querySelectorAll('.monaco-list-row').length);
+    } catch (e) { add('STACK ошибка: ' + e.message); }
+  }
+  window.__dump = deepDump; window.__layers = layerAncestors; window.__fix = applyFix; window.__stack = stackProbe;
+  var _dumpedThisShow = false;
+
+  // Штатный хук показа виджета (suggestWidget.js:426, дебаунс 100мс после паузы печати) — самый
+  // точный момент «бокс устаканился». Сюда же встанет боевой фикс в editor.js, если подтвердится.
+  try {
+    var scw = window.editor.getContribution('editor.contrib.suggestController');
+    var wv = scw && scw.widget && scw.widget.value;
+    if (wv && typeof wv.onDidShow === 'function') {
+      wv.onDidShow(function () { setTimeout(stackProbe, 0); });
+      add('хук onDidShow(widget) установлен');
+    } else { add('НЕТ widget.onDidShow'); }
+  } catch (e) { add('хук onDidShow ошибка: ' + e.message); }
+
   // Монитор виджетов (suggest/param-hints/hover): когда всплывают — ЧТО внутри. Ключевое для #3
   // (пустой блок): видно, есть ли элементы в модели/списке, или блок реально пуст.
   try {
@@ -100,10 +215,12 @@ export function installDiag() {
     setInterval(function () {
       try {
         var parts = [];
+        var suggestVisibleNow = false;
         var sw = document.querySelector('.suggest-widget');
         if (sw) {
           var swr = sw.getBoundingClientRect();
           if (sw.className.indexOf('visible') >= 0 && swr.width > 1 && swr.height > 1) {
+            suggestVisibleNow = true;
             var rows = sw.querySelectorAll('.monaco-list-row');
             var msg = sw.querySelector('.message');
             var msgTxt = (msg && msg.offsetParent) ? (msg.innerText || '') : '';
@@ -127,6 +244,16 @@ export function installDiag() {
         if (sb) parts.push((sb.textContent || '').replace(/\s/g, '') ? 'STATUSBAR:"' + (sb.textContent || '').trim() + '"' : 'STATUSBAR:ПУСТО');
         var key = parts.join(' ');
         if (key !== lastWidgetKey) { if (key) add('* ' + key); else if (lastWidgetKey) add('* виджеты скрыты'); lastWidgetKey = key; }
+        // Переход «suggest появился» → один раз выгрузить состояние и пнуть перерисовку.
+        if (suggestVisibleNow && !_dumpedThisShow) {
+          _dumpedThisShow = true;
+          deepDump();
+          layerAncestors();
+          stackProbe();   // РЕНТГЕН: кто реально сверху по пикселю строки (оверлей?)
+          // applyFix НЕ зовём — оставляем бокс в естественном пустом виде для видео/анализа
+        } else if (!suggestVisibleNow) {
+          _dumpedThisShow = false;
+        }
       } catch (e) { /* ignore */ }
     }, 350);
   } catch (e) { /* ignore */ }
