@@ -237,7 +237,19 @@ window.getText = function(txt) {
 
 window.getQuery = function () {
 
-  let bsl = new bslHelper(window.editor.getModel(), window.editor.getPosition());		
+  // В режиме запроса весь текст редактора и ЕСТЬ запрос — строкового литерала BSL тут нет, поэтому
+  // bslHelper.getQuery() (ищет строку-запрос в BSL-коде) вернул бы null, и кнопка «Конструктор
+  // запроса» не получала бы текст. Отдаём его в ТОМ ЖЕ виде {text, range}, что и запрос, вырезанный
+  // из BSL: text экранируем как тело BSL-литерала (кавычки удвоены), чтобы потребитель снял
+  // экранирование (ПодготовитьТекстЗапроса в консоли) и получил исходный запрос. Симметрично записи
+  // результата (ПриЗакрытииКонструктораЗапросов пишет в режиме запроса СЫРОЙ текст). range — весь
+  // документ: конструктор пишет результат обратно в него.
+  if (window.isQueryMode()) {
+    let model = window.editor.getModel();
+    return { text: model.getValue().replace(/"/g, '""'), range: model.getFullModelRange() };
+  }
+
+  let bsl = new bslHelper(window.editor.getModel(), window.editor.getPosition());
   return bsl.getQuery();
 
 }

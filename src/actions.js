@@ -163,7 +163,10 @@ let getActions = function(version1C) {
                 cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyD),
                 order: 1.3,
                 callback: function (ed) {
-                    let query_text = window.isQueryMode() ? window.getText() : window.getQuery();
+                    // getQuery мод-аварна (в режиме запроса отдаёт весь текст как {text, range}) —
+                    // единый путь для обоих режимов; EVENT_QUERY_CONSTRUCT всегда получает объект
+                    // {text, range}, как и ждёт обработчик в консоли (ПараметрыЗапроса.text/.range).
+                    let query_text = window.getQuery();
                     window.sendEvent('EVENT_QUERY_CONSTRUCT', query_text);
                     return null;
                 }
