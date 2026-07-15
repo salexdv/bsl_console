@@ -116,13 +116,18 @@ if (typeof _self.addEventListener === 'function') {
   _self.addEventListener('cut', _grabClipboardEvent, false);
 }
 
-// performance.mark / measure (User Timing) — встроенный WebKit «Поля HTML документа» 1С
-// имеет performance.now(), но НЕ mark/measure/getEntries* (User Timing в webview 1С отсутствует).
-// monaco 0.55 зовёт performance.mark(...) на «горячих» путях (в т.ч. при обработке моделей —
-// путь updateMetadata) → TypeError обрывает поток ДО запроса метаданных: в консоли кода 1С
-// пропадают справочники/документы конфигурации (воспроизведено на 8.3.27.1719). Ставим no-op-
-// стабы (метрики нам не нужны); getEntries* → [], чтобы читатели таймингов не падали. Часть
-// движков делает performance нерасширяемым — на отказ присваивания падаем в defineProperty.
+// performance User Timing — встроенный WebKit «Поля HTML документа» 1С имеет только
+// performance.now(), но НЕ mark/measure/getEntries* (User Timing в webview 1С отсутствует).
+// Monaco 0.55 (vs/base/browser/performance.js, замер input-latency) на КАЖДЫЙ ввод делает:
+//   mark(a); mark(b); measure(name, a, b); getEntriesByName(name)[0].duration; clearMarks/Measures.
+// No-op-стабы тут НЕДОСТАТОЧНЫ: getEntriesByName → [] → [0].duration бросает
+// «undefined is not an object» на каждом keyUp — это обрывало обновление автодополнения
+// метаданными конфигурации (воспроизведено полем на 8.3.27.1719; performance.mark-краш ДО
+// запроса — лишь первая половина). Поэтому реализуем МИНИМАЛЬНЫЙ User Timing: mark пишет
+// отметку времени, measure считает длительность между отметками, getEntriesByName отдаёт
+// запись с .duration. Хранилище чистится теми же clearMarks/clearMeasures, что Monaco зовёт
+// в конце цикла → не растёт. Часть движков делает performance нерасширяемым — на отказ
+// присваивания падаем в defineProperty.
 (function () {
   var p = _self.performance;
   if (!p) { try { _self.performance = p = {}; } catch (e) { return; } }
@@ -135,13 +140,24 @@ if (typeof _self.addEventListener === 'function') {
     var _epoch = (Date.now ? Date.now() : +new Date());
     stub('now', function () { return (Date.now ? Date.now() : +new Date()) - _epoch; });
   }
-  stub('mark', function () {});
-  stub('measure', function () {});
-  stub('clearMarks', function () {});
-  stub('clearMeasures', function () {});
-  stub('getEntries', function () { return []; });
-  stub('getEntriesByName', function () { return []; });
+  var _marks = {}, _measures = {};
+  stub('mark', function (name) { _marks[name] = p.now(); });
+  stub('measure', function (name, startMark, endMark) {
+    var s = (startMark != null && _marks[startMark] != null) ? _marks[startMark] : 0;
+    var e = (endMark != null && _marks[endMark] != null) ? _marks[endMark] : p.now();
+    _measures[name] = { name: name, entryType: 'measure', startTime: s, duration: Math.max(0, e - s) };
+  });
+  stub('getEntriesByName', function (name) {
+    if (_measures[name]) return [_measures[name]];
+    if (_marks[name] != null) return [{ name: name, entryType: 'mark', startTime: _marks[name], duration: 0 }];
+    // Monaco читает [0].duration сразу после measure — сюда попадать не должно; на всякий
+    // случай отдаём безопасную запись, чтобы [0].duration никогда не бросал.
+    return [{ name: name, entryType: 'measure', startTime: 0, duration: 0 }];
+  });
   stub('getEntriesByType', function () { return []; });
+  stub('getEntries', function () { return []; });
+  stub('clearMarks', function (name) { if (name == null) _marks = {}; else delete _marks[name]; });
+  stub('clearMeasures', function (name) { if (name == null) _measures = {}; else delete _measures[name]; });
 })();
 
 if (typeof _self.queueMicrotask !== 'function') {
