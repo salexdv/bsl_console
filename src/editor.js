@@ -2328,7 +2328,7 @@ window.generateEscapeEvent = function() {
   let position = window.editor.getPosition();
   let bsl = new bslHelper(window.editor.getModel(), position);
 
-  eventParams = {
+  let eventParams = {
     current_word: bsl.word,
     last_word: bsl.lastRawExpression,
     last_expression: bsl.lastExpression,
@@ -2933,7 +2933,7 @@ window.generateEventWithSuggestData = function(eventName, trigger, row, suggestR
 
   }
 
-  eventParams = {
+  let eventParams = {
     trigger: trigger,
     current_word: bsl.word,
     last_word: bsl.lastRawExpression,

@@ -20,16 +20,31 @@ module.exports = (env, argv) => {
   // node_modules скрипт-тегами в шаблоне (НЕ бандлятся — избегаем mocha-в-бандлере). Обычная
   // сборка — только console.
   const isTest = !!(env && env.test);
+  // Доп. опции редактора для editor.create() из `--env customOptions="a: true, b: false"`
+  // (webpack-cli 5+ не принимает произвольные флаги — источник только env, не argv). Инжектятся
+  // в маркер `customOptions: true` в src/editor.js (см. правило ниже). Восстановление механизма
+  // ветки webpack (там был string-replace-loader + argv.customOptions).
+  const customOptions = env && env.customOptions;
+  // dev-сборка (npm run debug/dev) отдаёт И редактор, И mocha-страницы test/test_query, чтобы
+  // http://localhost:9000/test.html и /test_query.html открывались без флагов (на ветке webpack
+  // dev-режим подключал их по умолчанию — здесь это регресс). Чистый тест-таргет (--env test,
+  // headless-гейт) по-прежнему собирает ТОЛЬКО страницы тестов, без index.html.
+  const withTests = isTest || !isProd;
 
   return {
     context: path.resolve(__dirname, 'src'),
     entry: isTest ? {
       test: ['./editor', './test'],
       test_query: ['./editor', './test_query']
-    } : {
+    } : withTests ? {
       // Реальный редактор bsl_console (Этап 3+). Обёрнут теми же слоями совместимости, что и
       // смоук-каркас: polyfills → monaco-environment → product-service → expose-monaco.
       // boot.js остаётся в дереве как ручной смоук-энтрипоинт Этапов 1-2, но в entry не входит.
+      console: './editor',
+      // + страницы тестов для dev-сервера (см. withTests).
+      test: ['./editor', './test'],
+      test_query: ['./editor', './test_query']
+    } : {
       console: './editor'
     },
     output: {
@@ -64,6 +79,21 @@ module.exports = (env, argv) => {
       // webpack5-парсинг new Worker(new URL(...)).
       parser: { javascript: { worker: false } },
       rules: [
+        // Инжект доп. опций редактора из --env customOptions="..." в editor.create()
+        // (маркер `customOptions: true` в src/editor.js). Отдельное правило от общего babel-
+        // правила на .js; маркер — простой object-литерал и переживает babel, поэтому порядок
+        // лоадеров не критичен (enforce:'pre'). replace-strings.assertApplied заодно проверит,
+        // что маркер жив (счётчик считается только когда флаг передан).
+        customOptions ? {
+          test: /src[\\/]editor\.js$/,
+          enforce: 'pre',
+          loader: 'replace-strings',
+          options: {
+            replacements: [
+              { search: 'customOptions: true', replace: customOptions + ', customOptions: true' }
+            ]
+          }
+        } : false,
         {
           // Патчи monaco + транспиляция в es2015. Порядок use — справа налево:
           // replace-strings (на сыром коде, до сворачивания констант и срезки комментов)
@@ -134,7 +164,7 @@ module.exports = (env, argv) => {
           test: /\.(svg|ttf|png|gif)$/,
           type: 'asset/inline'
         }
-      ]
+      ].filter(Boolean)
     },
     plugins: [
       // Валим сборку, если строковый патч monaco не наложился (дрейф версии monaco).
@@ -148,9 +178,10 @@ module.exports = (env, argv) => {
       // Один main-чанк console.js в проде (folдим возможные monaco dynamic-import async-чанки;
       // нужно для es-check dist/*.js и последующей single-file-упаковки). Воркер — blob (не чанк).
       (isProd && !isTest) ? new webpack.optimize.LimitChunkCountPlugin({ maxChunks: 1 }) : false,
-      // Тест-сборка: две mocha-страницы (BSL и запросы), каждая инжектит свой чанк.
-      isTest ? new HtmlWebpackPlugin({ inject: 'body', chunks: ['test'], template: './test.html', filename: 'test.html', cache: false }) : false,
-      isTest ? new HtmlWebpackPlugin({ inject: 'body', chunks: ['test_query'], template: './test_query.html', filename: 'test_query.html', cache: false }) : false,
+      // Страницы тестов: две mocha-страницы (BSL и запросы), каждая инжектит свой чанк.
+      // Собираются и в чистом тест-таргете (--env test), и в dev-сборке (npm run debug) — см. withTests.
+      withTests ? new HtmlWebpackPlugin({ inject: 'body', chunks: ['test'], template: './test.html', filename: 'test.html', cache: false }) : false,
+      withTests ? new HtmlWebpackPlugin({ inject: 'body', chunks: ['test_query'], template: './test_query.html', filename: 'test_query.html', cache: false }) : false,
       isTest ? false : new HtmlWebpackPlugin({
         inject: 'body',
         chunks: ['console'],
@@ -177,7 +208,17 @@ module.exports = (env, argv) => {
     devServer: {
       port: 9000,
       open: true,
-      hot: false
+      hot: false,
+      // Страницы тестов грузят mocha/chai тегами <script src="node_modules/...">. dev-server
+      // отдаёт из памяти только собранные ассеты, поэтому реальный node_modules с диска мапим
+      // статикой — иначе mocha не загружается и тесты падают с «describe is not defined».
+      static: [
+        {
+          directory: path.resolve(__dirname, 'node_modules'),
+          publicPath: '/node_modules',
+          watch: false
+        }
+      ]
     }
   };
 };

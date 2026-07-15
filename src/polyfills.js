@@ -116,6 +116,34 @@ if (typeof _self.addEventListener === 'function') {
   _self.addEventListener('cut', _grabClipboardEvent, false);
 }
 
+// performance.mark / measure (User Timing) — встроенный WebKit «Поля HTML документа» 1С
+// имеет performance.now(), но НЕ mark/measure/getEntries* (User Timing в webview 1С отсутствует).
+// monaco 0.55 зовёт performance.mark(...) на «горячих» путях (в т.ч. при обработке моделей —
+// путь updateMetadata) → TypeError обрывает поток ДО запроса метаданных: в консоли кода 1С
+// пропадают справочники/документы конфигурации (воспроизведено на 8.3.27.1719). Ставим no-op-
+// стабы (метрики нам не нужны); getEntries* → [], чтобы читатели таймингов не падали. Часть
+// движков делает performance нерасширяемым — на отказ присваивания падаем в defineProperty.
+(function () {
+  var p = _self.performance;
+  if (!p) { try { _self.performance = p = {}; } catch (e) { return; } }
+  function stub(name, fn) {
+    if (typeof p[name] === 'function') return;
+    try { p[name] = fn; }
+    catch (e) { try { Object.defineProperty(p, name, { value: fn, writable: true, configurable: true }); } catch (e2) { /* ignore */ } }
+  }
+  if (typeof p.now !== 'function') {
+    var _epoch = (Date.now ? Date.now() : +new Date());
+    stub('now', function () { return (Date.now ? Date.now() : +new Date()) - _epoch; });
+  }
+  stub('mark', function () {});
+  stub('measure', function () {});
+  stub('clearMarks', function () {});
+  stub('clearMeasures', function () {});
+  stub('getEntries', function () { return []; });
+  stub('getEntriesByName', function () { return []; });
+  stub('getEntriesByType', function () { return []; });
+})();
+
 if (typeof _self.queueMicrotask !== 'function') {
   var _resolved = Promise.resolve();
   _self.queueMicrotask = function (callback) {

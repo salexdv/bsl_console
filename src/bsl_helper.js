@@ -7237,7 +7237,7 @@ class bslHelper {
 
 				let do_search = true;
 				while (do_search && 1 <= range.start) {
-					const content = window.editor.getModel().getLineContent(range.start);
+					const content = model.getLineContent(range.start);
 					if (/\s*\/\/\s*/.test(content))
 						range.start--;
 					else
