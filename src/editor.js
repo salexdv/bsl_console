@@ -2423,16 +2423,23 @@ window.disposeEditor = function() {
   if (window.editor) {
 
     if (window.editor.navi) {
-      window.editor.getOriginalEditor().getModel().dispose();
-      window.editor.getOriginalEditor().dispose();
-      window.editor.getModifiedEditor().getModel().dispose();
-      window.editor.getModifiedEditor().dispose();
+      // 0.55: НЕ диспозим суб-редакторы вручную — их владелец diff-редактор снимет сам при своём
+      // dispose(). Модели original/modified создавали мы (createModel в compare()), поэтому снимаем
+      // их отдельно, взяв с diff-редактора getModel() → {original, modified} ДО его dispose().
+      // Прежний ручной обход `getOriginalEditor().getModel().dispose()` на 0.55 падал: getModel()
+      // суб-редактора мог вернуть null → TypeError в compare() при ВЫХОДЕ, и режим сравнения не
+      // закрывался (сначала здесь, ранее — в getCurrentThemeName).
+      let diff_model = window.editor.getModel();
+      window.editor.dispose();
+      if (diff_model) {
+        if (diff_model.original) diff_model.original.dispose();
+        if (diff_model.modified) diff_model.modified.dispose();
+      }
     }
     else {
       window.editor.getModel().dispose();
+      window.editor.dispose();
     }
-
-    window.editor.dispose();
 
   }
 
@@ -3765,7 +3772,11 @@ function getCurrentThemeName() {
 
   let queryPostfix = '-query';
   // 0.55: StandaloneThemeService.getTheme() → getColorTheme(); поле _themeService и .themeName живы.
-  let currentTheme = window.editor._themeService.getColorTheme().themeName;
+  // ВАЖНО: в режиме сравнения window.editor — это diff-редактор, у которого _themeService НЕТ
+  // (он есть только у код-редакторов). getActiveEditor() отдаёт код-редактор в обоих режимах (в
+  // diff — модифицированный/исходный суб-редактор), поэтому тема читается и при ВЫХОДЕ из сравнения.
+  // Иначе compare() (выключение) падал здесь ещё до disposeEditor() и режим сравнения не закрывался.
+  let currentTheme = getActiveEditor()._themeService.getColorTheme().themeName;
   let is_query = (queryMode || DCSMode);
 
   if (is_query && currentTheme.indexOf(queryPostfix) == -1)
