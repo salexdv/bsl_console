@@ -135,7 +135,18 @@ module.exports = (env, argv) => {
                   {
                     search: 'targetWindow.requestAnimationFrame(() => animationFrameRunner(targetWindowId));',
                     replace: 'setTimeout(() => animationFrameRunner(targetWindowId), 0);'
-                  }
+                  },
+                  // (5) extractKeyCode (keyboardEvent.js): WebKit поля 1С на macOS (WebView
+                  //     605.1.15 без токена Safari) заполняет charCode уже на KEYDOWN (стрелки —
+                  //     Apple PUA 63232-63235, BS=8, Enter=13, буквы — код символа раскладки).
+                  //     Ветка `if (e.charCode)` задумана под keypress, но срабатывает и на такой
+                  //     keydown: String.fromCharCode(PUA/контрол-чар) не находится в таблице имён
+                  //     → KeyCode.Unknown → keybinding-слой МОЛЧА игнорирует все клавиши-команды
+                  //     (стрелки/BS/Del/Enter/навигация suggest/хоткеи кириллической раскладки);
+                  //     живым остаётся только input-путь textarea (печать). Ограничиваем ветку
+                  //     настоящими keypress. Полевой лог-доказательство: kbdiag 2026-07-16,
+                  //     `MONACO kc=0(Unknown) | raw kc=38 cc=63232` на каждой стрелке.
+                  { search: 'if (e.charCode) {', replace: "if (e.charCode && e.type === 'keypress') {" }
                 ]
               }
             }
