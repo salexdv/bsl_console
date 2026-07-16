@@ -90,7 +90,19 @@ module.exports = (env, argv) => {
                   //     (0.55-паттерны — new RegExp(inputRegex,'d') и lookbehind (?<=['"\s]) color-computer —
                   //     в 0.52.2 отсутствуют; те патчи и rAF→setTimeout-митигация убраны при переезде
                   //     0.55→0.52.2, т.к. пустой рендер 0.55 был 0.53+ регрессией, см. VAEditor PR #185.)
-                  { search: "(.*)$', 'd'", replace: "(.*)$', ''" }
+                  { search: "(.*)$', 'd'", replace: "(.*)$', ''" },
+                  // (3) extractKeyCode (keyboardEvent.js): WebKit поля 1С на macOS (WebView
+                  //     605.1.15 без токена Safari) заполняет charCode уже на KEYDOWN (стрелки —
+                  //     Apple PUA 63232-63235, BS=8, Enter=13, буквы — код символа раскладки).
+                  //     Ветка `if (e.charCode)` задумана под keypress, но срабатывает и на такой
+                  //     keydown: String.fromCharCode(PUA/контрол-чар) не находится в таблице имён
+                  //     → KeyCode.Unknown → keybinding-слой МОЛЧА игнорирует все клавиши-команды
+                  //     (стрелки/BS/Del/Enter/навигация suggest/хоткеи кириллической раскладки);
+                  //     живым остаётся только input-путь textarea (печать). Ограничиваем ветку
+                  //     настоящими keypress. Полевой лог-доказательство: kbdiag 2026-07-16 на
+                  //     0.55-ветке, `MONACO kc=0(Unknown) | raw kc=38 cc=63232` на каждой стрелке;
+                  //     код extractKeyCode идентичен в 0.52.2 и 0.55.1.
+                  { search: 'if (e.charCode) {', replace: "if (e.charCode && e.type === 'keypress') {" }
                 ]
               }
             }
