@@ -8493,7 +8493,7 @@ class bslHelper {
 			edits: [
 				{
 					resource: this.model.uri,
-					edit: {
+					textEdit: {
 						range: range,
 						text: text
 					}
