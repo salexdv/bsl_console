@@ -347,3 +347,5 @@ setLanguageMode('bsl');
 ## Благодарности
 
 Выражаю благодарность команде [1c-syntax](https://github.com/1c-syntax) и их [проекту для VSCode](https://github.com/1c-syntax/vsc-language-1c-bsl) за подробное описание внутренних конструкций языка в JSON, а также за коллекцию сниппетов.
+
+Благодарность [@vandalsvq](https://github.com/vandalsvq) за перевод на версиюю [0.55](https://github.com/salexdv/bsl_console/pull/383)
