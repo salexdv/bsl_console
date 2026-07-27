@@ -1,6 +1,17 @@
-//require.config( { 'vs/nls': { availableLanguages: { '*': "ru" } } } );
+// Порядок импортов критичен: ESM исполняет модули сверху вниз, каждый — ПОЛНОСТЬЮ до
+// следующего, и все import-ы выполняются раньше любого top-level кода этого файла (в т.ч.
+// регистрации языков/тем и createEditor ниже). Слои совместимости и публикация глобального
+// monaco ДОЛЖНЫ отработать до того, как наш код (bsl_language → bsl_helper, finder, actions)
+// впервые коснётся monaco:
+//   1) polyfills          — рантайм-API старого WebKit ДО любого кода monaco
+//   2) monaco-environment — self.MonacoEnvironment (globalAPI + blob-воркер) ДО monaco
+//   3) product-service    — registerSingleton(IProductService) ДО StandaloneServices
+//   4) expose-monaco      — import monaco (editor.main: API + ВСЕ контрибы) + window.monaco
+import './polyfills';
+import './monaco-environment';
+import './product-service';
+import monaco from './expose-monaco';
 
-import "@babel/polyfill";
 import languages from './bsl_language';
 import { getActions, permanentActions } from './actions';
 import './decorations.css'
@@ -8,12 +19,9 @@ import './tingle.css'
 import tingle from './tingle.js'
 import './tree/tree.css'
 import Treeview from './tree/tree.js'
-import { setLocaleData } from 'monaco-editor-nls';
-import ruLocale from 'monaco-editor-nls/locale/ru';
 import Finder from "./finder";
 import SnippetsParser from "./parsers";
-
-const monaco = require('monaco-editor/esm/vs/editor/editor.api');
+import { patchWebKit1C } from './1c-webkit-patch';
 
 // Иконки дерева переменных инлайнятся в бандл (data:-URI) через require.context, а не тянутся
 // отдельными файлами — это нужно для single-file сборки. В обычной сборке результат тот же:
@@ -29,13 +37,9 @@ function resolveTreeIcon(iconName) {
   return treeIcons[iconName] || treeIcons['undefined.png'] || '';
 }
 
-setLocaleData(ruLocale);
-
-window.MonacoEnvironment = {
-  getWorkerUrl: function (moduleId, label) {
-    return require("blob-url-loader?type=application/javascript!compile-loader?target=worker&emit=false!monaco-editor/esm/vs/editor/editor.worker");
-  }
-};
+// NLS: monaco-editor-nls (setLocaleData/ruLocale) удалён — несовместим с 0.55; UI monaco
+// по умолчанию английский (русская локализация — отдельным шагом). MonacoEnvironment
+// (blob-воркер + globalAPI) задаётся в ./monaco-environment (импортирован выше, до monaco).
 
 // #region global vars 
 window.languages = languages;
@@ -90,8 +94,9 @@ window.currentIssue = -1;
 window.wordWrap = function (enabled) {
 
   if (window.editor.navi) {
-    window.editor.originalEditor.updateOptions({ wordWrap: enabled });
-    window.editor.modifiedEditor.updateOptions({ wordWrap: enabled });
+    // 0.55: свойства .originalEditor/.modifiedEditor удалены — только методы get*Editor().
+    window.editor.getOriginalEditor().updateOptions({ wordWrap: enabled });
+    window.editor.getModifiedEditor().updateOptions({ wordWrap: enabled });
   }
   else {
     window.editor.updateOptions({ wordWrap: enabled })
@@ -181,7 +186,7 @@ window.updateText = function(txt, clearUndoHistory = true) {
   }
   else {
     window.removeAllBookmarks();
-    window.revomeAllBreakpoints();
+    window.removeAllBreakpoints();
   }
 
   if (mod_event)    
@@ -232,7 +237,19 @@ window.getText = function(txt) {
 
 window.getQuery = function () {
 
-  let bsl = new bslHelper(window.editor.getModel(), window.editor.getPosition());		
+  // В режиме запроса весь текст редактора и ЕСТЬ запрос — строкового литерала BSL тут нет, поэтому
+  // bslHelper.getQuery() (ищет строку-запрос в BSL-коде) вернул бы null, и кнопка «Конструктор
+  // запроса» не получала бы текст. Отдаём его в ТОМ ЖЕ виде {text, range}, что и запрос, вырезанный
+  // из BSL: text экранируем как тело BSL-литерала (кавычки удвоены), чтобы потребитель снял
+  // экранирование (ПодготовитьТекстЗапроса в консоли) и получил исходный запрос. Симметрично записи
+  // результата (ПриЗакрытииКонструктораЗапросов пишет в режиме запроса СЫРОЙ текст). range — весь
+  // документ: конструктор пишет результат обратно в него.
+  if (window.isQueryMode()) {
+    let model = window.editor.getModel();
+    return { text: model.getValue().replace(/"/g, '""'), range: model.getFullModelRange() };
+  }
+
+  let bsl = new bslHelper(window.editor.getModel(), window.editor.getPosition());
   return bsl.getQuery();
 
 }
@@ -245,9 +262,32 @@ window.getFormatString = function () {
 }
 
 window.updateMetadata = function (metadata, path = '') {
-      
-  let bsl = new bslHelper(window.editor.getModel(), window.editor.getPosition());		
-  return bsl.updateMetadata(metadata, path);
+
+  let bsl = new bslHelper(window.editor.getModel(), window.editor.getPosition());
+  let result = bsl.updateMetadata(metadata, path);
+
+  // Запрос метаданных асинхронный (EVENT_GET_METADATA): провайдер отдаёт список ДО ответа 1С,
+  // поэтому ПЕРВЫЙ показ блока автодополнения неполон — только уже загруженные имена (в поле,
+  // например, лишь менеджерное «ТипВсеСсылки» без объектов конфигурации). Когда данные пришли —
+  // если блок ещё открыт, обновляем его. ВАЖНО: один editor.action.triggerSuggest при уже
+  // открытом блоке НЕ опрашивает провайдер заново, а перефильтровывает уже показанный набор →
+  // список остаётся неполным (в этом и был баг «дозаполняется только по повторному вызову»).
+  // Поэтому сначала ПРЯЧЕМ блок (сброс сессии — hideSuggestWidget), затем через setTimeout
+  // триггерим заново — это чистый повторный опрос провайдера с уже загруженными метаданными.
+  // Тот же приём, что в checkEmptySuggestions. setTimeout — чтобы отработало в «живом» кадре
+  // после ввода (поле 1С красит ~1с после ввода); дедуп metadataRequests исключает повторное
+  // событие и петлю. Гейт по isSuggestWidgetVisible() (читает _ctxSuggestWidgetVisible, который
+  // monaco 0.55 ставит СИНХРОННО при показе; класс .visible вешается лишь через +100мс, т.е. к
+  // моменту ответа 1С его ещё нет — по нему гейтить нельзя) — чтобы suggest не выскакивал на
+  // bulk-загрузке метаданных при инициализации, когда блок не открыт.
+  try {
+    if (result === true && window.isSuggestWidgetVisible()) {
+      window.hideSuggestionsList();
+      setTimeout(function () { window.triggerSuggestions(); }, 10);
+    }
+  } catch (e) { /* best-effort */ }
+
+  return result;
 
 }
 
@@ -465,8 +505,8 @@ window.isUsingDebugger = function() {
 
 window.getCurrentLanguageId = function() {
 
-  let identifier = getActiveEditor().getModel().getLanguageIdentifier();
-  return identifier.language;
+  // 0.55 (breaking 0.30): model.getLanguageIdentifier() удалён — getLanguageId() отдаёт строку.
+  return getActiveEditor().getModel().getLanguageId();
 
 }
 
@@ -761,6 +801,22 @@ window.compare = function (text, sideBySide, highlight, markLines = true, ignore
       scrollBeyondLastLine: false,
       renderSideBySide: sideBySide,
       ignoreTrimWhitespace: ignoreWhitespace,
+      // 0.55: гасим новые интерактивные элементы diff-виджета (revert-иконки, gutter-меню,
+      // авто-инлайн, свёртку неизменённых) — несовместимы со сценарием просмотра в поле 1С.
+      useInlineViewWhenSpaceIsLimited: false,
+      renderMarginRevertIcon: false,
+      renderGutterMenu: false,
+      hideUnchangedRegions: { enabled: false },
+      // 0.55: гасим встроенный '*'-color-provider (worker-регэксп с lookbehind несовместим с
+      // WebKit поля 1С) и подсветку «неоднозначных»/невидимых символов (кириллица). Наш
+      // registerColorProvider при defaultColorDecorators:'never' продолжает работать.
+      defaultColorDecorators: 'never',
+      unicodeHighlight: {
+        ambiguousCharacters: false,
+        invisibleCharacters: false,
+        nonBasicASCII: false
+      },
+      useShadowDOM: false,
       find: {
         addExtraSpaceOnTop: false
       }
@@ -773,10 +829,16 @@ window.compare = function (text, sideBySide, highlight, markLines = true, ignore
       original: originalModel,
       modified: modifiedModel
     });
-    window.editor.navi = monaco.editor.createDiffNavigator(editor, {
-      followsCaret: true,
-      ignoreCharChanges: true
-    });
+    // Monaco 0.45: createDiffNavigator/IDiffNavigator удалены; navi — булев флаг diff-режима
+    // (читается как флаг в ~20 местах). Навигация теперь через diffEditor.goToDiff();
+    // getDiffLineInformationFor* (удалены в 0.40) реимплементированы поверх getLineChanges().
+    window.editor.navi = true;
+    window.editor.getDiffLineInformationForModified = function (lineNumber) {
+      return { equivalentLineNumber: getEquivalentDiffLine(this.getLineChanges(), lineNumber, true) };
+    };
+    window.editor.getDiffLineInformationForOriginal = function (lineNumber) {
+      return { equivalentLineNumber: getEquivalentDiffLine(this.getLineChanges(), lineNumber, false) };
+    };
     window.editor.markLines = markLines;
     window.editor.getModifiedEditor().diffDecor = {
       decor: [],
@@ -799,7 +861,8 @@ window.compare = function (text, sideBySide, highlight, markLines = true, ignore
           this.getOriginalEditor().diffDecor.line = original_line;
         }
         this.diffEditorUpdateDecorations();
-        window.editor.diffCount = window.editor.getLineChanges().length;
+        // 0.55: getLineChanges() отдаёт null пока дифф не посчитан (async) → guard || [].
+        window.editor.diffCount = (window.editor.getLineChanges() || []).length;
       }, 50);
     };
     window.editor.markDiffLines();
@@ -948,7 +1011,7 @@ window.showPreviousCustomSuggestions = function () {
 window.nextDiff = function() {
 
   if (window.editor.navi) {
-    window.editor.navi.next();
+    window.editor.goToDiff('next');
     window.editor.markDiffLines();
   }
 
@@ -957,7 +1020,7 @@ window.nextDiff = function() {
 window.previousDiff = function() {
 
   if (window.editor.navi) {
-    window.editor.navi.previous();
+    window.editor.goToDiff('previous');
     window.editor.markDiffLines();
   }
 
@@ -1049,7 +1112,8 @@ window.hideSignatureList = function () {
 
 window.hideHoverList = function() {
 
-  let hovers = document.querySelectorAll('.monaco-editor-hover .hover-row');
+  // 0.55: контейнер hover-виджета '.monaco-editor-hover' → '.monaco-hover' ('.hover-row' жив).
+  let hovers = document.querySelectorAll('.monaco-hover .hover-row');
   hovers.forEach(function(hover){
     hover.remove();
   });
@@ -1118,10 +1182,9 @@ window.showStatusBar = function(overlapScroll = true) {
 window.hideStatusBar = function() {
 
   if (window.statusBarWidget) {
-    if (window.editor.navi)
-        window.editor.getModifiedEditor().removeOverlayWidget(window.statusBarWidget);
-      else
-        window.editor.removeOverlayWidget(window.statusBarWidget);
+    let dom = window.statusBarWidget.domNode;
+    if (dom && dom.parentNode)
+      dom.parentNode.removeChild(dom);
     window.statusBarWidget = null;
   }
 
@@ -1249,20 +1312,28 @@ window.setActiveSuggestLabel = function (label) {
 window.setSuggestItemDetailById = function (rowId, detailInList, documentation = null) {
 
   let i = parseInt(rowId);
-  let suggestWidget = getSuggestWidget();
+  let widget = getSuggestWidget();
 
-  if (suggestWidget && i < suggestWidget.widget.list.view.items.length) {
+  // 0.55: widget.list → widget._list; элемент по индексу — публичный List.element(i);
+  // DOM-строку берём по data-index (list.view.items[i].row умер).
+  if (widget && i < widget._list.length) {
 
-    let suggest_item = suggestWidget.widget.list.view.items[i];
-    suggest_item.element.completion.detail = detailInList;      
-    
-    if (documentation)
-      suggest_item.element.completion.documentation = documentation;      
-   
-    let detail_element = getChildWithClass(suggest_item.row.domNode,'details-label');
+    let item = widget._list.element(i);
+
+    if (item) {
+
+      item.completion.detail = detailInList;
+
+      if (documentation)
+        item.completion.documentation = documentation;
+
+    }
+
+    let row = document.querySelector('.monaco-list-rows .monaco-list-row[data-index="' + i + '"]');
+    let detail_element = row ? getChildWithClass(row, 'details-label') : null;
 
     if (detail_element)
-      detail_element.innerText = detailInList
+      detail_element.innerText = detailInList;
 
   }
 
@@ -1275,23 +1346,27 @@ window.setActiveSuggestDetail = function (detailInList, detailInSide = null, max
   if (listRowDetail)
     listRowDetail.innerText = detailInList;
 
-  let sideDetailHeader = document.querySelector('.suggest-widget.docs-side .details .header');
-  
-  if (sideDetailHeader) {
-    
+  // 0.55: панель доков — отдельный overlay .suggest-details-container > .suggest-details (не
+  // .suggest-widget.docs-side .details). Пишем в p.type ('.header .type'), а не в .header целиком
+  // (иначе снесём codicon-кнопку закрытия). [T4: высоту, возможно, перебивает ResizableHTMLElement —
+  // при мигании переключить на '.suggest-details-container'.]
+  let sideDetailType = document.querySelector('.suggest-details .header .type');
+
+  if (sideDetailType) {
+
     if (!detailInSide)
       detailInSide = detailInList;
 
-    sideDetailHeader.innerText = detailInSide;
-    
-    let sideDetailElement = document.querySelector('.suggest-widget.docs-side .details');      
-    let contentHeightInPixels = sideDetailHeader.scrollHeight;
+    sideDetailType.innerText = detailInSide;
+
+    let sideDetailElement = document.querySelector('.suggest-details');
+    let contentHeightInPixels = sideDetailType.scrollHeight;
     let viewportHeightInPixels = Math.min(maxSideHeightInPixels, contentHeightInPixels);
 
     sideDetailElement.style.height = viewportHeightInPixels.toString() + 'px';
 
   }
-  
+
 }
 
 window.hasTextFocus = function () {
@@ -1457,8 +1532,10 @@ window.isParameterHintsWidgetVisible = function () {
 }
 
 window.isSuggestWidgetVisible = function() {
-  
-  return getSuggestWidget().widget.suggestWidgetVisible.get();
+
+  // 0.55: поле suggestWidgetVisible → _ctxSuggestWidgetVisible; getSuggestWidget() = сам виджет|null.
+  let widget = getSuggestWidget();
+  return widget ? widget._ctxSuggestWidgetVisible.get() === true : false;
 
 }
 
@@ -1509,17 +1586,17 @@ window.clearSnippets = function() {
 
 window.updateSnippetByGUID = function (snippetGUID) {
 
-  suggestWidget = getSuggestWidget();
+  let widget = getSuggestWidget();
 
-  if (suggestWidget) {
+  // 0.55: list.view.items → полный список _completionModel.items (все элементы, не только
+  // отрисованные — для поиска по GUID корректнее); .element.completion/.provider → item.completion/
+  // item.provider; resolveCompletionItem теперь (item, token) (bsl_language.js мигрирован).
+  if (widget && widget._completionModel) {
 
-    suggestWidget.widget.list.view.items.forEach((completionItem) => {
+    widget._completionModel.items.forEach((item) => {
 
-      if (completionItem.element.completion.guid == snippetGUID)
-        completionItem.element.provider.resolveCompletionItem(window.editor.getModel(),
-          window.editor.getPosition(),
-          completionItem.element.completion
-        );
+      if (item.completion.guid == snippetGUID)
+        item.provider.resolveCompletionItem(item.completion, null);
 
     });
 
@@ -1704,9 +1781,10 @@ window.getDifferences = function () {
 
   if (editor.navi) {
 
-    diff = window.editor.getLineChanges();
-    let original_model = window.editor.originalEditor.getModel();
-    let modified_model = window.editor.modifiedEditor.getModel();
+    // 0.55: getLineChanges() null пока дифф async; .originalEditor/.modifiedEditor удалены → get*.
+    diff = window.editor.getLineChanges() || [];
+    let original_model = window.editor.getOriginalEditor().getModel();
+    let modified_model = window.editor.getModifiedEditor().getModel();
 
     diff.forEach(function (value) {
               
@@ -1840,17 +1918,50 @@ window.createEditor = function(language_id, text, theme) {
     value: text,
     language: language_id,
     contextmenu: true,
-    wordBasedSuggestions: false,
+    // КРИТИЧНО для «Поля HTML документа» 1С (старый WebKit-webview красит по событию ВВОДА, не
+    // постоянно). Monaco вставляет строки suggest АСИНХРОННО (rAF, suggestWidget.js). Без
+    // automaticLayout наш ResizeObserver-полифил @juggle не стартует → нет «насоса» перерисовки
+    // (body-MutationObserver → rAF → чтение clientWidth = форс-reflow), и асинхронно вставленные
+    // строки автодополнения висят НЕНАРИСОВАННЫМИ до следующего ввода = пустой блок suggest.
+    // boot.js (смоук Этапов 1-2, где suggest работал) и diff-редакторы его держат; при переходе
+    // entry на editor.js он потерялся. VAEditor держит automaticLayout:true — паритет с рабочим
+    // референсом (у него нет программного triggerSuggest, поэтому там баг и не всплывал).
+    automaticLayout: true,
+    // fixedOverflowWidgets: overflow-виджеты (suggest/hover/param-hints) в fixed-контейнере на
+    // document.body. Наследие экспериментов по #3 (пустой блок автодополнения в поле 1С); НЕ является
+    // фиксом — реальная причина была в per-call записи в стиль виджета из провайдера автодополнения
+    // (см. resetSuggestWidgetDisplay в bsl_language.js). Оставлено как рабочая опция; кандидат на ревизию.
+    fixedOverflowWidgets: true,
+    // 0.55: wordBasedSuggestions boolean → строковый enum; false === 'off'.
+    wordBasedSuggestions: 'off',
     scrollBeyondLastLine: false,
     insertSpaces: false,
     trimAutoWhitespace: false,
-    autoIndent: true,
+    // 0.55: autoIndent boolean → EditorAutoIndentStrategy; прежнее true === 'full'
+    // (migrateOptions true→'full'), сохраняет учёт наших indentationRules. НЕ 'advanced'.
+    autoIndent: 'full',
+    // 0.55: не подсвечивать «неоднозначные»/невидимые/не-ASCII символы — иначе кириллица
+    // трактуется как двойники латиницы (а/a, е/e, о/o) и зашумляет весь BSL-код.
+    unicodeHighlight: {
+      ambiguousCharacters: false,
+      invisibleCharacters: false,
+      nonBasicASCII: false
+    },
+    // 0.55: гасим ТОЛЬКО встроенный '*'-color-provider (worker-регэксп с lookbehind (?<=['"\s])
+    // падает на WebKit поля 1С). Наш registerColorProvider продолжает работать. colorDecorators
+    // НЕ трогаем: false выключил бы и наши цвета (colorDetector читает именно эту опцию).
+    defaultColorDecorators: 'never',
+    // Поле 1С: без Shadow DOM — стабильнее измерения/стили в старом WebKit.
+    useShadowDOM: false,
+    // 0.55: bracket-pair colorization (радуга скобок по вложенности) — выключить глобально;
+    // в 0.20 её не было, наши токены скобок задают цвет сами (дубль к colorizedBracketPairs:[]).
+    bracketPairColorization: { enabled: false },
     find: {
       addExtraSpaceOnTop: false
     },
     parameterHints: {
       cycle: true
-    },    
+    },
     lineNumbers: window.getLineNumber,
     customOptions: true,
     renderValidationDecorations: "on"
@@ -1858,8 +1969,8 @@ window.createEditor = function(language_id, text, theme) {
 
   changeCommandKeybinding('editor.action.revealDefinition', monaco.KeyCode.F12);
   changeCommandKeybinding('editor.action.peekDefinition', monaco.KeyMod.CtrlCmd | monaco.KeyCode.F12);
-  changeCommandKeybinding('editor.action.deleteLines',  monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_L);
-  changeCommandKeybinding('editor.action.selectToBracket',  monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.KEY_B);
+  changeCommandKeybinding('editor.action.deleteLines',  monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyL);
+  changeCommandKeybinding('editor.action.selectToBracket',  monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.KeyB);
 
   window.lineNumbersDedocrations = [];
   window.setDefaultStyle();
@@ -1907,10 +2018,14 @@ for (const [key, lang] of Object.entries(window.languages)) {
   monaco.languages.registerDefinitionProvider(language.id, lang.definitionProvider);
   monaco.languages.registerCodeActionProvider(language.id, lang.codeActionProvider);  
 
+  // 0.55: два setLanguageConfiguration подряд — второй ЗАМЕЩАЕТ первый (не мержит), поэтому
+  // indentationRules + brackets/autoClosingPairs сливаем в ОДИН вызов (иначе теряются отступы).
+  // colorizedBracketPairs:[] гасит bracket-pair colorization 0.55: у нас свои токены скобок, иначе
+  // скобки методов красятся «радугой» по уровню вложенности (в 0.20 такого не было).
+  var langCfg = { brackets: lang.brackets, autoClosingPairs: lang.autoClosingPairs, colorizedBracketPairs: [] };
   if (lang.autoIndentation && lang.indentationRules)
-    monaco.languages.setLanguageConfiguration(language.id, { indentationRules: lang.indentationRules });
-
-  monaco.languages.setLanguageConfiguration(language.id, { brackets: lang.brackets, autoClosingPairs: lang.autoClosingPairs });
+    langCfg.indentationRules = lang.indentationRules;
+  monaco.languages.setLanguageConfiguration(language.id, langCfg);
 
   if (!window.editor) {
 
@@ -1977,11 +2092,25 @@ for (const [key, lang] of Object.entries(window.languages)) {
 
 };
 
+const commandOnlyActions = ['saveref', 'requestMetadata'];
+
 for (const [action_id, action] of Object.entries(permanentActions)) {
+
+  if (commandOnlyActions.indexOf(action_id) != -1) {
+    // 0.55: служебные действия, вызываемые из команд элементов автодополнения
+    // (CompletionItem.command = {id:'bsl.saveref'|'bsl.requestMetadata'}), нельзя регистрировать
+    // через addAction (тот вешает id 'editorId:saveref') — только глобальной командой.
+    // handler(accessor, ...args); callback(e, obj) читает только obj → e=accessor, obj=args[0].
+    monaco.editor.registerCommand('bsl.' + action_id, action.callback);
+    continue;
+  }
+
   window.editor.addAction({
     id: action_id,
     label: action.label,
-    keybindings: [action.key, action.cmd],
+    // 0.55: addAction не терпит null/undefined в keybindings (0.20 их игнорил) — фильтруем
+    // (действия без горячей клавиши: key/cmd = null/undefined → [] → пункт только в контекстном меню).
+    keybindings: [action.key, action.cmd].filter(function (k) { return k; }),
     precondition: null,
     keybindingContext: null,
     contextMenuGroupId: null,
@@ -2158,6 +2287,24 @@ function initEditorEventListenersAndProperies() {
     onDidPaste(e);
   });
 
+  // 0.55: гасим пустой suggest-виджет («No suggestions»). При ПЕРЕ-триггере автодополнения
+  // (после updateMetadata в потоке метаданных консоли, или командой suggest_type у элемента)
+  // явный editor.action.triggerSuggest с пустым результатом показывал висящий пустой блок.
+  // Ловим onDidSuggest модели с пустой completionModel и отменяем: обработчики Emitter
+  // выполняются синхронно, поэтому show+cancel проходят ДО отрисовки — блок не мелькает.
+  // (Наш провайдер уже возвращает undefined на пусто, но это не гасит ЯВНЫЙ триггер.)
+  try {
+    let suggestCtrl = window.editor.getContribution('editor.contrib.suggestController');
+    if (suggestCtrl && suggestCtrl.model && typeof suggestCtrl.model.onDidSuggest === 'function') {
+      suggestCtrl.model.onDidSuggest(function (e) {
+        try {
+          if (e && !e.triggerOptions.shy && e.completionModel && e.completionModel.items.length === 0)
+            suggestCtrl.model.cancel();
+        } catch (err) { /* ignore */ }
+      });
+    }
+  } catch (e) { /* ignore */ }
+
 }
 // #endregion
   
@@ -2204,7 +2351,7 @@ window.generateEscapeEvent = function() {
   let position = window.editor.getPosition();
   let bsl = new bslHelper(window.editor.getModel(), position);
 
-  eventParams = {
+  let eventParams = {
     current_word: bsl.word,
     last_word: bsl.lastRawExpression,
     last_expression: bsl.lastExpression,
@@ -2276,16 +2423,23 @@ window.disposeEditor = function() {
   if (window.editor) {
 
     if (window.editor.navi) {
-      window.editor.getOriginalEditor().getModel().dispose();
-      window.editor.getOriginalEditor().dispose();
-      window.editor.getModifiedEditor().getModel().dispose();
-      window.editor.getModifiedEditor().dispose();
+      // 0.55: НЕ диспозим суб-редакторы вручную — их владелец diff-редактор снимет сам при своём
+      // dispose(). Модели original/modified создавали мы (createModel в compare()), поэтому снимаем
+      // их отдельно, взяв с diff-редактора getModel() → {original, modified} ДО его dispose().
+      // Прежний ручной обход `getOriginalEditor().getModel().dispose()` на 0.55 падал: getModel()
+      // суб-редактора мог вернуть null → TypeError в compare() при ВЫХОДЕ, и режим сравнения не
+      // закрывался (сначала здесь, ранее — в getCurrentThemeName).
+      let diff_model = window.editor.getModel();
+      window.editor.dispose();
+      if (diff_model) {
+        if (diff_model.original) diff_model.original.dispose();
+        if (diff_model.modified) diff_model.modified.dispose();
+      }
     }
     else {
       window.editor.getModel().dispose();
+      window.editor.dispose();
     }
-
-    window.editor.dispose();
 
   }
 
@@ -2371,8 +2525,14 @@ function onDidPaste(e) {
     });
 
     if (text_changed && text) {
-      window.setText(query.join('\n'), e.range, true);
-      window.editor._modelData.model._commandManager.currentOpenStackElement.editOperations.pop();
+      // 0.55: _modelData.model._commandManager.currentOpenStackElement умер (undo перестроен).
+      // Сшиваем очистку с элементом undo вставки: popUndoStop() переоткрывает элемент вставки,
+      // bslHelper.setText → executeEdits добавляет очистку в него, pushUndoStop() закрывает —
+      // один Ctrl+Z откатывает вставку+очистку. window.setText НЕЛЬЗЯ: он делает pushUndoStop ДО
+      // правки, и очистка ушла бы в отдельный шаг отмены.
+      window.editor.popUndoStop();
+      bslHelper.setText(query.join('\n'), e.range, true);
+      window.editor.pushUndoStop();
     }
 
   }
@@ -2576,7 +2736,8 @@ function startStopSuggestActivationObserver() {
         else if (mutation.target.classList.contains('type') || mutation.target.classList.contains('docs')) {
           let element = document.querySelector('.monaco-list-rows .focused');
           if (element) {
-            if (hasParentWithClass(mutation.target, 'details') && hasParentWithClass(mutation.target, 'suggest-widget')) {
+            // 0.55: p.type/p.docs теперь внутри overlay .suggest-details (не .details в .suggest-widget).
+            if (hasParentWithClass(mutation.target, 'suggest-details')) {
               window.generateEventWithSuggestData('EVENT_ON_DETAIL_SUGGEST_ROW', 'focus', element);
             }
           }
@@ -2597,7 +2758,10 @@ function startStopSuggestActivationObserver() {
 
 function startStopSuggestSelectionObserver() {
 
-  let widget = getSuggestWidget().widget;
+  // 0.55: getSuggestWidget() = сам виджет (не .widget); метод onListMouseDownOrTap →
+  // _onListMouseDownOrTap. Override инстанс-свойства работает: список зовёт
+  // this._onListMouseDownOrTap(e) с динамическим резолвом в момент вызова.
+  let widget = getSuggestWidget();
 
   if (widget) {
 
@@ -2606,9 +2770,9 @@ function startStopSuggestSelectionObserver() {
     if (fire_event) {
 
       if (!widget.onListMouseDownOrTapOrig)
-        widget.onListMouseDownOrTapOrig = widget.onListMouseDownOrTap;
+        widget.onListMouseDownOrTapOrig = widget._onListMouseDownOrTap;
 
-      widget.onListMouseDownOrTap = function (e) {
+      widget._onListMouseDownOrTap = function (e) {
         let element = getParentWithClass(e.browserEvent.target, 'monaco-list-row');
 
         if (element) {
@@ -2622,7 +2786,7 @@ function startStopSuggestSelectionObserver() {
     }
     else if (widget.onListMouseDownOrTapOrig) {
 
-      widget.onListMouseDownOrTap = widget.onListMouseDownOrTapOrig;
+      widget._onListMouseDownOrTap = widget.onListMouseDownOrTapOrig;
 
     }
 
@@ -2671,9 +2835,15 @@ function startStopSignatureObserver() {
 }
 
 function changeCommandKeybinding(command, keybinding) {
-  
-  window.editor._standaloneKeybindingService.addDynamicKeybinding('-' + command);
-  window.editor._standaloneKeybindingService.addDynamicKeybinding(command, keybinding);
+
+  // 0.55: приватный _standaloneKeybindingService.addDynamicKeybinding сменил сигнатуру и
+  // безусловно регистрирует команду (при handler===undefined бросает Error). Публичный путь —
+  // monaco.editor.addKeybindingRules: правило {keybinding:0, command:'-'+cmd} снимает дефолтную
+  // привязку команды при любом ключе, второе правило вешает новый ключ (ПЕРЕбиндинг как в 0.20).
+  monaco.editor.addKeybindingRules([
+    { keybinding: 0, command: '-' + command },
+    { keybinding: keybinding, command: command }
+  ]);
 
 }
 
@@ -2721,7 +2891,16 @@ function getQueryDelimiterDecorations(decorations) {
 
 function getSuggestWidget() {
 
-  return window.editor._contentWidgets['editor.widget.suggestWidget'];
+  // 0.55.1: реальный SuggestWidget живёт в контрибуции suggestController (WindowIdleValue.value);
+  // _contentWidgets хранит лишь SuggestContentWidget-обёртку. Возвращаем сам виджет (или null) —
+  // поэтому вызывающие используют getSuggestWidget() напрямую, без .widget. isInitialized не
+  // форсирует создание (до первого показа подсказок вернём null).
+  let controller = window.editor.getContribution('editor.contrib.suggestController');
+
+  if (controller && controller.widget && controller.widget.isInitialized)
+    return controller.widget.value;
+
+  return null;
 
 }
 
@@ -2766,16 +2945,25 @@ window.generateEventWithSuggestData = function(eventName, trigger, row, suggestR
 
   if (row_id) {
 
-    let suggestWidget = getSuggestWidget();
+    let widget = getSuggestWidget();
 
-    if (suggestWidget && row_id < suggestWidget.widget.list.view.items.length) {
-      let suggest_item = suggestWidget.widget.list.view.items[row_id];
-      insert_text = suggest_item.element.completion.insertText;
+    if (widget) {
+
+      // 0.55: widget.list → widget._list; элемент по индексу — List.element(idx). row_id —
+      // строка из data-index, приводим к числу.
+      let idx = parseInt(row_id);
+
+      if (idx < widget._list.length) {
+        let item = widget._list.element(idx);
+        if (item)
+          insert_text = item.completion.insertText;
+      }
+
     }
 
   }
 
-  eventParams = {
+  let eventParams = {
     trigger: trigger,
     current_word: bsl.word,
     last_word: bsl.lastRawExpression,
@@ -2791,7 +2979,9 @@ window.generateEventWithSuggestData = function(eventName, trigger, row, suggestR
   if (row) {
     
     eventParams['kind'] = getChildWithClass(row, 'suggest-icon').className;
-    eventParams['sideDetailIsOpened'] = (null != document.querySelector('.suggest-widget.docs-side .details .header'));
+    // 0.55: панель доков — overlay .suggest-details-container (docs-side/.details мертвы);
+    // её наличие в DOM = открыта (add/removeOverlayWidget при show/hide).
+    eventParams['sideDetailIsOpened'] = (null != document.querySelector('.suggest-details-container'));
 
     if (eventName == 'EVENT_ON_ACTIVATE_SUGGEST_ROW' || eventName == 'EVENT_ON_DETAIL_SUGGEST_ROW')
       eventParams['focused'] = row.getAttribute('aria-label');
@@ -2923,7 +3113,7 @@ function diffEditorOnDidChangeCursorPosition(e) {
     window.editor.getOriginalEditor().diffDecor.position = 0;
     getActiveDiffEditor().diffDecor.position = e.position.lineNumber;
     window.editor.diffEditorUpdateDecorations();
-    window.editor.diffCount = window.editor.getLineChanges().length;
+    window.editor.diffCount = (window.editor.getLineChanges() || []).length;
     const line_number = e.position.lineNumber;
 
     if (window.editor.getModifiedEditor().getPosition().equals(e.position)) {
@@ -2949,6 +3139,52 @@ function diffEditorOnDidLayoutChange(e) {
 
   setTimeout(() => { resizeStatusBar(); } , 50);
 
+}
+
+// Monaco 0.40: IDiffEditor.getDiffLineInformationForModified/Original удалены. Точный порт
+// DiffEditorWidget._getEquivalentLineFor*LineNumber из Monaco 0.20 (бинарный поиск изменения
+// at-or-before + интерполяция внутри блока) поверх getLineChanges(). forModified=true: строка
+// modified-редактора → эквивалент в original (и наоборот). Хелпер НИКОГДА не возвращает null
+// (getLineChanges() в 0.55 отдаёт null до конца async-вычисления — вызывающие берут результат
+// без null-check), поэтому пустой lineChanges → тождественный номер строки.
+function getLineChangeAtOrBefore(lineChanges, lineNumber, startExtractor) {
+  if (lineChanges.length === 0 || lineNumber < startExtractor(lineChanges[0]))
+    return null;
+  let min = 0, max = lineChanges.length - 1;
+  while (min < max) {
+    let mid = Math.floor((min + max) / 2);
+    let midStart = startExtractor(lineChanges[mid]);
+    let midEnd = (mid + 1 <= max) ? startExtractor(lineChanges[mid + 1]) : 1073741824;
+    if (lineNumber < midStart) max = mid - 1;
+    else if (lineNumber >= midEnd) min = mid + 1;
+    else { min = mid; max = mid; }
+  }
+  return lineChanges[min];
+}
+
+function getEquivalentDiffLine(lineChanges, lineNumber, forModified) {
+  if (!lineChanges || lineChanges.length === 0)
+    return lineNumber;
+  let lineChange = getLineChangeAtOrBefore(
+    lineChanges, lineNumber,
+    forModified
+      ? function (c) { return c.modifiedStartLineNumber; }
+      : function (c) { return c.originalStartLineNumber; }
+  );
+  if (!lineChange)
+    return lineNumber;
+  let originalEquivalent = lineChange.originalStartLineNumber + (lineChange.originalEndLineNumber > 0 ? -1 : 0);
+  let modifiedEquivalent = lineChange.modifiedStartLineNumber + (lineChange.modifiedEndLineNumber > 0 ? -1 : 0);
+  let originalLength = (lineChange.originalEndLineNumber > 0 ? (lineChange.originalEndLineNumber - lineChange.originalStartLineNumber + 1) : 0);
+  let modifiedLength = (lineChange.modifiedEndLineNumber > 0 ? (lineChange.modifiedEndLineNumber - lineChange.modifiedStartLineNumber + 1) : 0);
+  let sourceEquivalent = forModified ? modifiedEquivalent : originalEquivalent;
+  let targetEquivalent = forModified ? originalEquivalent : modifiedEquivalent;
+  let sourceLength = forModified ? modifiedLength : originalLength;
+  let targetLength = forModified ? originalLength : modifiedLength;
+  let delta = lineNumber - sourceEquivalent;
+  return (delta <= sourceLength)
+    ? targetEquivalent + Math.min(delta, targetLength)
+    : targetEquivalent + targetLength - sourceLength + delta;
 }
 
 function getActiveDiffEditor() {
@@ -3126,7 +3362,9 @@ function  initContextMenuActions() {
     let menuAction = window.editor.addAction({
       id: action_id,
       label: action.label,
-      keybindings: [action.key, action.cmd],
+      // 0.55: addAction не терпит null/undefined в keybindings (0.20 их игнорил) — фильтруем
+      // (действия без горячей клавиши: key/cmd = null/undefined → [] → пункт только в контекстном меню).
+      keybindings: [action.key, action.cmd].filter(function (k) { return k; }),
       precondition: null,
       keybindingContext: null,
       contextMenuGroupId: 'navigation',
@@ -3262,7 +3500,25 @@ function updateStatusBar() {
     if (!window.engLang)
       status = status.replace('Ln', 'Стр').replace('Col', 'Кол');
 
-    window.statusBarWidget.domNode.firstElementChild.innerText = status;
+    let dom = window.statusBarWidget.domNode;
+    if (!dom) return;
+
+    // Структурная причина пустого статус-бара в поле 1С устранена в createStatusBarWidget (увод из
+    // 0-высотного overlay-контейнера Monaco в корень редактора). Здесь — дополнительно: на смену
+    // статуса ПЕРЕСОЗДАЁМ дочерний узел, а не мутируем textContent существующего — зеркалим то, что
+    // рисует suggest (виртуализированные строки Monaco пересоздаёт), т.к. в старом WebKit смена
+    // textContent у постоянного узла может не пере-растеризоваться.
+    let child = dom.firstElementChild;
+    if (child && child.textContent === status)
+      return; // без изменений — лишний churn не нужен
+
+    let fresh = document.createElement('div');
+    fresh.style.margin = 'auto 10px';
+    fresh.textContent = status;
+    if (child)
+      dom.replaceChild(fresh, child);
+    else
+      dom.appendChild(fresh);
   }
 
 }
@@ -3272,14 +3528,28 @@ function resizeStatusBar() {
   if (window.statusBarWidget) {
 
     let element = window.statusBarWidget.domNode;
+    if (!element) return;
 
+    // Позиционируем через bottom/right (плашка — absolute-ребёнок корня редактора, полная высота):
+    // при overlapScroll (дефолт) bottom/right='0', иначе с отступом под скроллбары.
+    let newBottom, newRight;
     if (window.statusBarWidget.overlapScroll) {
-      element.style.top = window.editor.getDomNode().clientHeight - 20 + 'px';
+      newBottom = '0';
+      newRight = '0';
     }
     else {
-      let layout = getActiveEditor().getLayoutInfo();      
-      element.style.top = (window.editor.getDomNode().offsetHeight - 20 - layout.horizontalScrollbarHeight) + 'px';
+      let layout = getActiveEditor().getLayoutInfo();
+      newBottom = layout.horizontalScrollbarHeight + 'px';
+      newRight = layout.verticalScrollbarWidth + 'px';
     }
+
+    // Поле 1С (старый WebKit): лишняя запись стиля КОНТЕЙНЕРА статус-бара рвёт растеризацию его
+    // текста (тот же класс, что resetSuggestWidgetDisplay у suggest). Пишем ТОЛЬКО при реальном
+    // изменении — при overlapScroll bottom/right не меняются, поэтому обычно не пишем вовсе.
+    if (element.style.bottom !== newBottom)
+      element.style.bottom = newBottom;
+    if (element.style.right !== newRight)
+      element.style.right = newRight;
 
   }
 
@@ -3501,7 +3771,12 @@ function checkEmptySuggestions() {
 function getCurrentThemeName() {
 
   let queryPostfix = '-query';
-  let currentTheme = window.editor._themeService.getTheme().themeName;
+  // 0.55: StandaloneThemeService.getTheme() → getColorTheme(); поле _themeService и .themeName живы.
+  // ВАЖНО: в режиме сравнения window.editor — это diff-редактор, у которого _themeService НЕТ
+  // (он есть только у код-редакторов). getActiveEditor() отдаёт код-редактор в обоих режимах (в
+  // diff — модифицированный/исходный суб-редактор), поэтому тема читается и при ВЫХОДЕ из сравнения.
+  // Иначе compare() (выключение) падал здесь ещё до disposeEditor() и режим сравнения не закрывался.
+  let currentTheme = getActiveEditor()._themeService.getColorTheme().themeName;
   let is_query = (queryMode || DCSMode);
 
   if (is_query && currentTheme.indexOf(queryPostfix) == -1)
@@ -3601,53 +3876,34 @@ function calculateDiff() {
 
 function createStatusBarWidget(overlapScroll) {
 
-  window.statusBarWidget = {
-    domNode: null,
-    overlapScroll: overlapScroll,
-    getId: function () {
-      return 'bsl.statusbar.widget';
-    },
-    getDomNode: function () {
+  // В «Поле HTML документа» 1С (старый WebKit ~Safari 11) статус-бар как overlay-виджет Monaco
+  // оставался ПУСТЫМ: контейнер .overlayWidgets имеет height:0 (Monaco задаёт ему в render()
+  // только width), и поле не композитит содержимое, вылезающее за 0-высотный контейнер через
+  // absolute-позиционирование. (suggest в поле рисуется, т.к. с fixedOverflowWidgets живёт в
+  // ДРУГОМ, полноразмерном контейнере overflowing-виджетов — вот почему прошлые фиксы, оставлявшие
+  // бар в .overlayWidgets, не помогали.) Поэтому вешаем плашку СВОИМ absolute-элементом прямо в
+  // корневой DOM редактора (.monaco-editor, position:relative, полная высота) и позиционируем
+  // через bottom — авто-следование за ресайзом, без записи top на каждый layout (та запись рвала
+  // растеризацию текста, тот же класс бага, что resetSuggestWidgetDisplay у suggest).
+  let host = window.editor.navi
+    ? window.editor.getModifiedEditor().getDomNode()
+    : window.editor.getDomNode();
 
-      if (!this.domNode) {
+  let dom = document.createElement('div');
+  dom.classList.add('statusbar-widget');
+  dom.style.position = 'absolute';
+  dom.style.height = '20px';
+  dom.style.minWidth = '125px';
+  dom.style.textAlign = 'center';
+  dom.style.zIndex = '35';
+  dom.style.fontSize = '12px';
+  dom.style.pointerEvents = 'none'; // не перехватывать клики/скролл редактора
 
-        this.domNode = document.createElement('div');
-        this.domNode.classList.add('statusbar-widget');
-        if (this.overlapScroll) {
-          this.domNode.style.right = '0';
-          this.domNode.style.top = window.editor.getDomNode().offsetHeight - 20 + 'px';
-        }
-        else {
-          let layout = getActiveEditor().getLayoutInfo();
-          this.domNode.style.right = layout.verticalScrollbarWidth + 'px';
-          this.domNode.style.top = (window.editor.getDomNode().offsetHeight - 20 - layout.horizontalScrollbarHeight) + 'px';
-        }
-        this.domNode.style.height = '20px';
-        this.domNode.style.minWidth = '125px';
-        this.domNode.style.textAlign = 'center';
-        this.domNode.style.zIndex = 1;
-        this.domNode.style.fontSize = '12px';
+  window.statusBarWidget = { domNode: dom, overlapScroll: overlapScroll };
 
-        let pos = document.createElement('div');
-        pos.style.margin = 'auto 10px';
-        this.domNode.appendChild(pos);
-
-      }
-
-      return this.domNode;
-
-    },
-    getPosition: function () {
-      return null;
-    }
-  };
-
-  if (window.editor.navi)
-    window.editor.getModifiedEditor().addOverlayWidget(window.statusBarWidget);
-  else
-    window.editor.addOverlayWidget(window.statusBarWidget);
-
-  updateStatusBar();
+  host.appendChild(dom);
+  resizeStatusBar(); // выставить bottom/right под overlapScroll
+  updateStatusBar(); // создать дочерний узел с текстом (свежий узел красится в поле)
 
 }
 
@@ -3768,7 +4024,19 @@ function createDiffWidget(e) {
                 language: language_id,
                 contextmenu: false,
                 automaticLayout: true,
-                renderSideBySide: false
+                renderSideBySide: false,
+                // 0.55: те же защитные опции под поле 1С, что и в compare() выше.
+                useInlineViewWhenSpaceIsLimited: false,
+                renderMarginRevertIcon: false,
+                renderGutterMenu: false,
+                hideUnchangedRegions: { enabled: false },
+                defaultColorDecorators: 'never',
+                unicodeHighlight: {
+                  ambiguousCharacters: false,
+                  invisibleCharacters: false,
+                  nonBasicASCII: false
+                },
+                useShadowDOM: false
               });
 
               let originalModel = monaco.editor.createModel(window.editor.originalText);
@@ -3781,10 +4049,8 @@ function createDiffWidget(e) {
                 modified: modifiedModel
               });
 
-              window.inlineDiffEditor.navi = monaco.editor.createDiffNavigator(window.inlineDiffEditor, {
-                followsCaret: true,
-                ignoreCharChanges: true
-              });
+              // Monaco 0.45: createDiffNavigator удалён; navi — булев флаг diff-режима.
+              window.inlineDiffEditor.navi = true;
 
               setTimeout(() => {
                 window.inlineDiffEditor.revealLineInCenter(line_number);
@@ -4097,7 +4363,7 @@ function createReviewWidget(lineNumber, issue = null) {
         if (this.widget.domNode) {
           let layout = standaloneEditor.getLayoutInfo();
           let scrollWidth = window.editor.navi ? layout.verticalScrollbarWidth * 2 : layout.verticalScrollbarWidth;
-          let width = layout.width - scrollWidth - layout.minimapWidth;
+          let width = layout.width - scrollWidth - layout.minimap.minimapWidth;
           this.widget.domNode.style.top = top + 'px';
           this.widget.domNode.style.width = width + 'px';
         }
@@ -4280,7 +4546,9 @@ function setThemeVariablesDisplay(theme) {
 // #region browser events
 document.onclick = function (e) {
     
-  if (e.target.classList.contains('codicon-close')) {
+  // 0.55: иконка закрытия find-виджета — codicon 'widget-close' ('codicon-close' у кнопки
+  // закрытия панели доков подсказок, но её отсекает guard hasParentWithClass('find-widget')).
+  if (e.target.classList.contains('codicon-widget-close')) {
 
     if (hasParentWithClass(e.target, 'find-widget'))
       setFindWidgetDisplay('none');
@@ -4335,9 +4603,14 @@ window.addEventListener('resize', function(event) {
   
 }, true);
 
-document.getElementById("display-close").addEventListener("click", (event) => {    
-    
+document.getElementById("display-close").addEventListener("click", (event) => {
+
   hideVariablesDisplay();
 
 });
 // #endregion
+
+// Точечные патчи DOM/поведения под встроенный WebKit «Поля HTML документа» 1С (снять
+// 1С-скроллбар, отключить автоскролл средней кнопкой). isConnected-гвард вынесен в
+// polyfills.js (нужен ДО top-level createEditor). Вызывать в конце — после создания редактора.
+patchWebKit1C();

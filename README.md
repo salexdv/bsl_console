@@ -47,6 +47,10 @@ npm install
 npm run debug
 ```
 
+Помимо самого редактора (`http://localhost:9000/`), dev-сервер сразу отдаёт страницы тестов:
+`http://localhost:9000/test.html` (встроенный язык) и `http://localhost:9000/test_query.html`
+(язык запросов).
+
 ##### Сборка финального файла `./dist/index.html`
 
 ```js
@@ -79,8 +83,11 @@ npm run check:single
 Для передачи дополнительных опций, используемых при создании редактора, можно воспользоваться следующей командой:
 
 ```js
-npm run build  -- --customOptions "automaticLayout: true, someOption: false"
+npm run build -- --env customOptions="automaticLayout: true, someOption: false"
 ```
+
+Опции подставляются в вызов `editor.create()` (маркер `customOptions` в `src/editor.js`). Значение —
+через `--env` (webpack-cli 5+ не принимает произвольные флаги вроде `--customOptions`).
 
 ## Как запускать?
 

@@ -1269,7 +1269,19 @@ setTimeout(() => {
 
     }
 
-    mocha.run();
+    // Адаптер результатов (Этап 3c): по завершении прогона кладём runner.stats в
+    // window.mochaResults (headless-раннер их читает) и «кликаем» скрытую #AutotestResult
+    // (механика T3-автотеста в поле 1С по образцу VAEditor — для будущего гейта в .epf).
+    var __runner = mocha.run();
+    window.mochaFailures = [];
+    __runner.on('fail', function (test, err) {
+      window.mochaFailures.push({ title: (test.fullTitle ? test.fullTitle() : test.title), error: (err && err.message) || String(err) });
+    });
+    __runner.on('end', function () {
+      window.mochaResults = __runner.stats;
+      var __btn = document.getElementById('AutotestResult');
+      if (__btn) __btn.click();
+    });
 
   })
 

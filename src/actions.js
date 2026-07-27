@@ -135,8 +135,8 @@ let getActions = function(version1C) {
         if (overrideCopyPaste) {
             actions.copy_bsl = {
                 label: 'Копировать',
-                key: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_C,
-                cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_C),
+                key: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyC,
+                cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyC),
                 order: 1.1,
                 callback: function (ed) {
                     window.selectionText = window.editor.getModel().getValueInRange(window.editor.getSelection());
@@ -145,8 +145,8 @@ let getActions = function(version1C) {
             };
             actions.paste_bsl = {
                 label: 'Вставить',
-                key: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_V,
-                cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_V),
+                key: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyV,
+                cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyV),
                 order: 1.2,
                 callback: function (ed) {
                     window.setText(window.selectionText, null, false);
@@ -159,11 +159,14 @@ let getActions = function(version1C) {
             
             actions.query_bsl = {
                 label: 'Конструктор запроса...',
-                key: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_D,
-                cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_D),
+                key: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyD,
+                cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyD),
                 order: 1.3,
                 callback: function (ed) {
-                    let query_text = window.isQueryMode() ? window.getText() : window.getQuery();
+                    // getQuery мод-аварна (в режиме запроса отдаёт весь текст как {text, range}) —
+                    // единый путь для обоих режимов; EVENT_QUERY_CONSTRUCT всегда получает объект
+                    // {text, range}, как и ждёт обработчик в консоли (ПараметрыЗапроса.text/.range).
+                    let query_text = window.getQuery();
                     window.sendEvent('EVENT_QUERY_CONSTRUCT', query_text);
                     return null;
                 }
@@ -173,8 +176,8 @@ let getActions = function(version1C) {
 
         actions.comment_bsl = {
             label: 'Добавить комментарий',
-            key: monaco.KeyMod.CtrlCmd | monaco.KeyCode.NUMPAD_DIVIDE,
-            cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.NUMPAD_DIVIDE),
+            key: monaco.KeyMod.CtrlCmd | monaco.KeyCode.NumpadDivide,
+            cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.NumpadDivide),
             order: 1.5,
             callback: function (ed) {
                 window.addComment();
@@ -184,8 +187,8 @@ let getActions = function(version1C) {
 
         actions.uncomment_bsl = {
             label: 'Удалить комментарий',
-            key: monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.NUMPAD_DIVIDE,
-            cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.NUMPAD_DIVIDE),
+            key: monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.NumpadDivide,
+            cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.NumpadDivide),
             order: 1.6,
             callback: function (ed) {
                 window.removeComment();
@@ -208,8 +211,8 @@ let getActions = function(version1C) {
 
             actions.format_bsl = {
                 label: 'Форматировать',
-                key: monaco.KeyMod.Alt | monaco.KeyMod.Shift | monaco.KeyCode.KEY_F,
-                cmd: monaco.KeyMod.chord(monaco.KeyMod.Alt | monaco.KeyMod.Shift | monaco.KeyCode.KEY_F),
+                key: monaco.KeyMod.Alt | monaco.KeyMod.Shift | monaco.KeyCode.KeyF,
+                cmd: monaco.KeyMod.chord(monaco.KeyMod.Alt | monaco.KeyMod.Shift | monaco.KeyCode.KeyF),
                 order: 1.7,
                 callback: function (ed) {
                     window.editor.trigger('', 'editor.action.formatDocument');
@@ -350,8 +353,8 @@ let permanentActions = {
     },
     jumpToBracketOpen: {
         label: 'Перейти к скобке',
-        key: monaco.KeyMod.CtrlCmd | monaco.KeyCode.US_OPEN_SQUARE_BRACKET,
-        cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.US_OPEN_SQUARE_BRACKET),
+        key: monaco.KeyMod.CtrlCmd | monaco.KeyCode.BracketLeft,
+        cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.BracketLeft),
         order: 0,
         callback: function (ed) {
             window.jumpToBracket();
@@ -360,8 +363,8 @@ let permanentActions = {
     },
     jumpToBracketClose: {
         label: 'Перейти к скобке',
-        key: monaco.KeyMod.CtrlCmd | monaco.KeyCode.US_CLOSE_SQUARE_BRACKET,
-        cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.US_CLOSE_SQUARE_BRACKET),
+        key: monaco.KeyMod.CtrlCmd | monaco.KeyCode.BracketRight,
+        cmd: monaco.KeyMod.chord(monaco.KeyMod.CtrlCmd | monaco.KeyCode.BracketRight),
         order: 0,
         callback: function (ed) {
             window.jumpToBracket();

@@ -343,13 +343,13 @@ let bsl_language = {
                     {token: ''},
                     {token: 'keyword'},
                     {token: 'funcdef'},
-                    {token: 'delimiter.square'},
+                    {token: 'delimiter.parenthesis'},
                 ]],
                 [/(\s+)(новый|new)(\s*[a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]+\s*)(\()/, [
                     {token: ''},
                     {token: 'keyword'},
                     {token: 'construct'},
-                    {token: 'delimiter.square'},
+                    {token: 'delimiter.parenthesis'},
                 ]],
                 [/(\s+)([a-zA-Z\u0410-\u044F_][a-zA-Z\u0410-\u044F_0-9]+)(\s*)(\()/, [
                     {token: ''},
@@ -358,7 +358,7 @@ let bsl_language = {
                         '@default': 'func'
                     }},
                     {token: ''},
-                    {token: 'delimiter.square'},
+                    {token: 'delimiter.parenthesis'},
                 ]],
                 [/(перейти|goto)(\s+)(~[a-zA-Z\u0410-\u044F_0-9]*)/, ['keyword', '', 'gotomark']],
                 [/(~[a-zA-Z\u0410-\u044F_0-9]*)(:)/, ['gotomark', 'delimiter']],
@@ -642,17 +642,26 @@ let languages = {
         languageDef: bsl_language,
         completionProvider: {
             triggerCharacters: ['.', '"', ' ', '&'],
-            provideCompletionItems: function (model, position, context, token) {                    
+            provideCompletionItems: function (model, position, context, token) {
                 resetSuggestWidgetDisplay();
                 let bsl = new bslHelper(model, position);
                 let completion = bsl.getCompletion(context, token);
                 bsl.onProvideCompletion(context, completion);
-                return completion;
+                // 0.55: пусто → undefined, иначе на авто-триггере (пробел/точка/&) висит блок
+                // «No suggestions» (в 0.20 return [] его не показывал). Ctrl+Space monaco обработает сам.
+                return (completion && completion.suggestions && completion.suggestions.length) ? completion : undefined;
             },
-            resolveCompletionItem: function (model, position, item) {
+            resolveCompletionItem: function (item, token) {
+                // 0.55: сигнатура (item, token) — model/position не передаются. Тело
+                // bslHelper.resolveCompletionItem работает только с самим item (snippet
+                // guid + prepareSnippetCode), поэтому даём временную модель из insertText (по И4).
+                let text = (item && item.insertText) || '';
+                let model = monaco.editor.createModel(text);
+                let position = model.getPositionAt(text.length);
                 let bsl = new bslHelper(model, position);
                 item = bsl.resolveCompletionItem(item);
-                return model;
+                model.dispose();
+                return item;
             }
         },
         foldingProvider: {
@@ -765,7 +774,9 @@ let languages = {
                 let bsl = new bslHelper(model, position);
                 let completion = bsl.getQueryCompletion(context);
                 bsl.onProvideCompletion(context, completion);
-                return completion;
+                // 0.55: пусто → undefined, иначе на авто-триггере (пробел/точка/&) висит блок
+                // «No suggestions» (в 0.20 return [] его не показывал). Ctrl+Space monaco обработает сам.
+                return (completion && completion.suggestions && completion.suggestions.length) ? completion : undefined;
             }
         },
         foldingProvider: {
@@ -847,7 +858,9 @@ let languages = {
                 let bsl = new bslHelper(model, position);
                 let completion = bsl.getDCSCompletion();
                 bsl.onProvideCompletion(context, completion);
-                return completion;
+                // 0.55: пусто → undefined, иначе на авто-триггере (пробел/точка/&) висит блок
+                // «No suggestions» (в 0.20 return [] его не показывал). Ctrl+Space monaco обработает сам.
+                return (completion && completion.suggestions && completion.suggestions.length) ? completion : undefined;
             }
         },
         foldingProvider: {
@@ -935,14 +948,16 @@ function onProvideSignature(bsl, context, position) {
 }
 
 function resetSuggestWidgetDisplay() {
-
-    let widget = document.querySelector('.suggest-widget');
-
-    if (widget) {
-        widget.style.display = '';
-        widget.style.visibility = '';      
-    }
-
+    // НАМЕРЕННО ПУСТО (2026-07-14). Раньше здесь была БЕЗУСЛОВНАЯ запись в
+    // .suggest-widget.style.display/visibility на КАЖДЫЙ provideCompletionItems. В «Поле HTML
+    // документа» 1С (старый WebKit ~Safari 11) эта запись РВЁТ растеризацию строк suggest: строки
+    // есть в DOM (корректные, сверху, не накрыты), но не покрашены — «пустой блок автодополнения».
+    // Виджет param-hints (не виртуализированный) не страдал; страдал именно виртуализированный
+    // ListView suggest. Причина найдена bisect'ом mini↔боевая: dummy-провайдер БЕЗ этой записи в поле
+    // рисует, С ней — пустеет на повторных вызовах; отключение записи чинит боевые подсказки.
+    // Костыль вестигиальный — ничто не прячет suggest-виджет инлайн-стилем (grep чист; hideSuggestionsList
+    // использует нативный monaco 'hideSuggestWidget'). Оставлено пустой функцией, чтобы не трогать
+    // 3 места вызова. Если понадобится показать спрятанный виджет — делать это БЕЗ per-call записи в стиль.
 }
 
 function resetSignatureWidgetDisplay() {
