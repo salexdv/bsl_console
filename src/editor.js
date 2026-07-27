@@ -801,12 +801,10 @@ window.compare = function (text, sideBySide, highlight, markLines = true, ignore
       scrollBeyondLastLine: false,
       renderSideBySide: sideBySide,
       ignoreTrimWhitespace: ignoreWhitespace,
-      // 0.55: гасим новые интерактивные элементы diff-виджета (revert-иконки, gutter-меню,
-      // авто-инлайн, свёртку неизменённых) — несовместимы со сценарием просмотра в поле 1С.
       useInlineViewWhenSpaceIsLimited: false,
-      renderMarginRevertIcon: false,
+      renderMarginRevertIcon: true,
       renderGutterMenu: false,
-      hideUnchangedRegions: { enabled: false },
+      hideUnchangedRegions: { enabled: true },
       // 0.55: гасим встроенный '*'-color-provider (worker-регэксп с lookbehind несовместим с
       // WebKit поля 1С) и подсветку «неоднозначных»/невидимых символов (кириллица). Наш
       // registerColorProvider при defaultColorDecorators:'never' продолжает работать.
@@ -2348,8 +2346,8 @@ function updateSelectedQueryDelimiters(e) {
 
 window.generateEscapeEvent = function() {
 
-  let position = window.editor.getPosition();
-  let bsl = new bslHelper(window.editor.getModel(), position);
+  let position = getActiveEditor().getPosition();
+  let bsl = new bslHelper(getActiveEditor().getModel(), position);
 
   let eventParams = {
     current_word: bsl.word,
@@ -4025,11 +4023,10 @@ function createDiffWidget(e) {
                 contextmenu: false,
                 automaticLayout: true,
                 renderSideBySide: false,
-                // 0.55: те же защитные опции под поле 1С, что и в compare() выше.
                 useInlineViewWhenSpaceIsLimited: false,
-                renderMarginRevertIcon: false,
+                renderMarginRevertIcon: true,
                 renderGutterMenu: false,
-                hideUnchangedRegions: { enabled: false },
+                hideUnchangedRegions: { enabled: true },
                 defaultColorDecorators: 'never',
                 unicodeHighlight: {
                   ambiguousCharacters: false,
