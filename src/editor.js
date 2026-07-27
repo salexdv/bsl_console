@@ -910,8 +910,14 @@ window.compare = function (text, sideBySide, highlight, markLines = true, ignore
 }
 
 window.triggerSuggestions = function() {
-  
+
   window.editor.trigger('', 'editor.action.triggerSuggest', {});
+
+  setTimeout(() => {
+    startStopSuggestSelectionObserver();
+    startStopSuggestActivationObserver();
+    decorateSuggestWidgetRows();
+  }, 20);
 
 }
 
@@ -963,16 +969,17 @@ window.requestMetadata = function (metadata, trigger, data) {
 }
 
 window.showCustomSuggestions = function(suggestions) {
-  
+
   window.customSuggestions = [];
-  
+
   try {
-          
+
     let suggestObj = JSON.parse(suggestions);
-    
+    let currentPosition = window.editor.getPosition();
+
     for (const [key, value] of Object.entries(suggestObj)) {
 
-      window.customSuggestions.push({
+      let suggestion = {
         label: value.name,
         kind: monaco.languages.CompletionItemKind[value.kind],
         insertText: value.text,
@@ -980,8 +987,28 @@ window.showCustomSuggestions = function(suggestions) {
         detail: value.detail,
         documentation: value.documentation,
         filterText: value.hasOwnProperty('filter') ? value.filter : value.name,
-        sortText: value.hasOwnProperty('sort') ? value.sort : value.name
-      });
+        sortText: value.hasOwnProperty('sort') ? value.sort : value.name,
+        preselect: !!value.preselect
+      };
+
+      if (value.event) {
+        suggestion.insertText = '';
+        suggestion.insertTextRules = undefined;
+        suggestion.range = new monaco.Range(
+          currentPosition.lineNumber,
+          currentPosition.column,
+          currentPosition.lineNumber,
+          currentPosition.column
+        );
+        suggestion.eventSuggestion = true;
+        suggestion.eventName = value.event;
+        suggestion.codicon = value.codicon ? value.codicon : 'codicon-symbol-event';
+      }
+
+      if (!suggestion.codicon && value.codicon)
+        suggestion.codicon = value.codicon;
+
+      window.customSuggestions.push(suggestion);
 
     }
 
@@ -2733,49 +2760,51 @@ function startStopSuggestActivationObserver() {
 
   onSuggestListMouseOver(fire_event);
 
-  if (fire_event) {
+  window.suggestObserver = new MutationObserver(function (mutations) {
 
-    window.suggestObserver = new MutationObserver(function (mutations) {
+    mutations.forEach(function (mutation) {
 
-      mutations.forEach(function (mutation) {
+      decorateSuggestWidgetRows();
 
-        if (mutation.target.classList.contains('monaco-list-rows') && mutation.addedNodes.length) {
-          let element = mutation.addedNodes[0];
-          if (element.classList.contains('monaco-list-row') && element.classList.contains('focused')) {
-            removeSuggestListInactiveDetails();
-            window.generateEventWithSuggestData('EVENT_ON_ACTIVATE_SUGGEST_ROW', 'focus', element);
-            let alwaysDisplaySuggestDetails = window.getOption('alwaysDisplaySuggestDetails');
-            if (alwaysDisplaySuggestDetails) {
-              document.querySelectorAll('.monaco-list-rows .details-label').forEach(function (node) {
-                node.classList.add('inactive-detail');
-              });
-              document.querySelector('.monaco-list-rows .focused .details-label').classList.remove('inactive-detail');
-            }
+      if (fire_event && mutation.target.classList
+        && mutation.target.classList.contains('monaco-list-rows')
+        && mutation.addedNodes.length) {
+        let element = mutation.addedNodes[0];
+        if (element.classList.contains('monaco-list-row') && element.classList.contains('focused')) {
+          removeSuggestListInactiveDetails();
+          window.generateEventWithSuggestData('EVENT_ON_ACTIVATE_SUGGEST_ROW', 'focus', element);
+          let alwaysDisplaySuggestDetails = window.getOption('alwaysDisplaySuggestDetails');
+          if (alwaysDisplaySuggestDetails) {
+            document.querySelectorAll('.monaco-list-rows .details-label').forEach(function (node) {
+              node.classList.add('inactive-detail');
+            });
+            let focusedDetails = document.querySelector('.monaco-list-rows .focused .details-label');
+            if (focusedDetails)
+              focusedDetails.classList.remove('inactive-detail');
           }
         }
-        else if (mutation.target.classList.contains('type') || mutation.target.classList.contains('docs')) {
-          let element = document.querySelector('.monaco-list-rows .focused');
-          if (element) {
-            // 0.55: p.type/p.docs теперь внутри overlay .suggest-details (не .details в .suggest-widget).
-            if (hasParentWithClass(mutation.target, 'suggest-details')) {
-              window.generateEventWithSuggestData('EVENT_ON_DETAIL_SUGGEST_ROW', 'focus', element);
-            }
+      }
+      else if (fire_event && mutation.target.classList
+        && (mutation.target.classList.contains('type') || mutation.target.classList.contains('docs'))) {
+        let element = document.querySelector('.monaco-list-rows .focused');
+        if (element) {
+          // 0.55: p.type/p.docs теперь внутри overlay .suggest-details (не .details в .suggest-widget).
+          if (hasParentWithClass(mutation.target, 'suggest-details')) {
+            window.generateEventWithSuggestData('EVENT_ON_DETAIL_SUGGEST_ROW', 'focus', element);
           }
         }
-
-      })
+      }
 
     });
 
-    window.suggestObserver.observe(document, {
-      childList: true,
-      subtree: true,
-    });
+  });
 
-  }
+  window.suggestObserver.observe(document, {
+    childList: true,
+    subtree: true,
+  });
 
 }
-
 function startStopSuggestSelectionObserver() {
 
   // 0.55: getSuggestWidget() = сам виджет (не .widget); метод onListMouseDownOrTap →
@@ -2787,32 +2816,30 @@ function startStopSuggestSelectionObserver() {
 
     let fire_event = window.getOption('generateSelectSuggestEvent');
 
-    if (fire_event) {
+    if (!widget.onListMouseDownOrTapOrig)
+      widget.onListMouseDownOrTapOrig = widget._onListMouseDownOrTap;
 
-      if (!widget.onListMouseDownOrTapOrig)
-        widget.onListMouseDownOrTapOrig = widget._onListMouseDownOrTap;
+    widget._onListMouseDownOrTap = function (e) {
+      let element = getParentWithClass(e.browserEvent.target, 'monaco-list-row');
+      let suggestItem = getSuggestItemByRow(element);
 
-      widget._onListMouseDownOrTap = function (e) {
-        let element = getParentWithClass(e.browserEvent.target, 'monaco-list-row');
+      if (element && fire_event)
+        window.generateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', 'selection', element);
 
-        if (element) {
-          window.generateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', 'selection', element);
-        }
-
-        widget.onListMouseDownOrTapOrig(e);
-
+      if (handleEventSuggestSelection(suggestItem)) {
+        e.browserEvent.preventDefault();
+        e.browserEvent.stopPropagation();
+        return;
       }
 
-    }
-    else if (widget.onListMouseDownOrTapOrig) {
-
-      widget._onListMouseDownOrTap = widget.onListMouseDownOrTapOrig;
+      widget.onListMouseDownOrTapOrig(e);
 
     }
 
   }
 
 }
+
 
 function startStopSignatureObserver() {
 
@@ -2921,6 +2948,103 @@ function getSuggestWidget() {
     return controller.widget.value;
 
   return null;
+
+}
+
+function getSuggestItemByRow(row) {
+
+  if (!row)
+    return null;
+
+  let widget = getSuggestWidget();
+
+  if (!widget || !widget._list)
+    return null;
+
+  let rowId = parseInt(row.getAttribute('data-index'), 10);
+
+  if (isNaN(rowId) || rowId < 0 || rowId >= widget._list.length)
+    return null;
+
+  return widget._list.element(rowId);
+
+}
+
+function getFocusedSuggestItem() {
+
+  return getSuggestItemByRow(document.querySelector('.suggest-widget .monaco-list-row.focused'));
+
+}
+
+function isEventSuggestItem(suggestItem) {
+
+  return suggestItem
+    && suggestItem.completion
+    && suggestItem.completion.eventSuggestion;
+
+}
+
+function handleEventSuggestSelection(suggestItem) {
+
+  if (!isEventSuggestItem(suggestItem))
+    return false;
+
+  let position = window.editor.getPosition();
+  let bsl = new bslHelper(window.editor.getModel(), position);
+  let completion = suggestItem.completion;
+  let eventParams = {
+    current_word: bsl.word,
+    last_word: bsl.lastRawExpression,
+    last_expression: bsl.lastExpression,
+    position: position
+  };
+
+  window.hideSuggestionsList();
+  window.sendEvent(completion.eventName, eventParams);
+
+  setTimeout(() => {
+    window.editor.focus();
+  }, 0);
+
+  return true;
+
+}
+
+function decorateSuggestWidgetRows() {
+
+  let rows = document.querySelectorAll('.suggest-widget .monaco-list-row');
+
+  rows.forEach(function (rowNode) {
+    let suggestItem = getSuggestItemByRow(rowNode);
+    let completion = suggestItem ? suggestItem.completion : null;
+    let iconNode = getChildWithClass(rowNode, 'suggest-icon');
+
+    rowNode.classList.remove('event-suggestion');
+
+    if (iconNode && iconNode.bslCustomCodicon) {
+      if (iconNode.classList.contains(iconNode.bslCustomCodicon)) {
+        iconNode.className = '';
+        iconNode.bslDefaultClasses.forEach(function (className) {
+          iconNode.classList.add(className);
+        });
+      }
+
+      iconNode.bslCustomCodicon = null;
+      iconNode.bslDefaultClasses = null;
+    }
+
+    if (isEventSuggestItem(suggestItem))
+      rowNode.classList.add('event-suggestion');
+
+    if (iconNode && completion && completion.codicon) {
+      iconNode.bslDefaultClasses = Array.from(iconNode.classList);
+      iconNode.bslCustomCodicon = completion.codicon;
+      iconNode.className = '';
+      iconNode.classList.add('suggest-icon');
+      iconNode.classList.add('codicon');
+      iconNode.classList.add(completion.codicon);
+    }
+  });
 
 }
 
@@ -3291,6 +3415,16 @@ function editorOnKeyDown(e) {
   generateOnKeyDownEvent(e);
 
   window.editor.lastKeyCode = e.keyCode;
+
+  if ((e.keyCode == 3 || e.keyCode == 2) && window.isSuggestWidgetVisible()) {
+    let eventSuggestItem = getFocusedSuggestItem();
+
+    if (handleEventSuggestSelection(eventSuggestItem)) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+  }
 
   if (e.keyCode == 16 && window.editor.getPosition().lineNumber == 1)
     // ArrowUp
@@ -4593,6 +4727,11 @@ document.onkeypress = function (e) {
     let element = document.querySelector('.monaco-list-row.focused');
 
     if (element) {
+
+      let suggestItem = getSuggestItemByRow(element);
+
+      if (handleEventSuggestSelection(suggestItem))
+        return false;
 
       let fire_event = window.getOption('generateSelectSuggestEvent');
 
