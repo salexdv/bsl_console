@@ -56,6 +56,7 @@ window.version1C = '';
 window.userName = '';
 window.contextActions = [];
 window.customHovers = {};
+window.customInlineSuggestion = [];
 window.immediateHover = [];
 window.customSignatures = {};
 window.customCodeLenses = [];
@@ -88,6 +89,7 @@ window.lineNumbersDedocrations = [];
 window.selectedQueryDelimiters = new Map();
 window.reviewWidgets = new Map();
 window.currentIssue = -1;
+window.inlineSuggestionsChanged = new monaco.Emitter();
 // #endregion
 
 // #region public API
@@ -1003,6 +1005,23 @@ window.showPreviousCustomSuggestions = function () {
   else {
     return false;
   }
+
+}
+
+window.showInlineSuggestion = function(suggestions) {
+
+  window.customInlineSuggestion = [];
+
+  try {
+
+    window.customInlineSuggestion = JSON.parse(suggestions);
+    window.inlineSuggestionsChanged.fire();
+    return true;
+
+	}
+	catch (e) {
+		return { errorDescription: e.message };
+	}
 
 }
 
@@ -2014,7 +2033,10 @@ for (const [key, lang] of Object.entries(window.languages)) {
   monaco.languages.registerDocumentFormattingEditProvider(language.id, lang.formatProvider);
   monaco.languages.registerColorProvider(language.id, lang.colorProvider);
   monaco.languages.registerDefinitionProvider(language.id, lang.definitionProvider);
-  monaco.languages.registerCodeActionProvider(language.id, lang.codeActionProvider);  
+  monaco.languages.registerCodeActionProvider(language.id, lang.codeActionProvider);
+  
+  lang.inlineCompletionProvider.onDidChangeInlineCompletions  = window.inlineSuggestionsChanged.event;
+  monaco.languages.registerInlineCompletionsProvider(language.id, lang.inlineCompletionProvider);
 
   // 0.55: два setLanguageConfiguration подряд — второй ЗАМЕЩАЕТ первый (не мержит), поэтому
   // indentationRules + brackets/autoClosingPairs сливаем в ОДИН вызов (иначе теряются отступы).

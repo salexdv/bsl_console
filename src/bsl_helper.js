@@ -8534,6 +8534,39 @@ class bslHelper {
 
 	}
 
+	/**
+	 * Provide the code action
+	 * @param {InlineCompletionContext} context completion context
+	 * @param {CancellationToken} token
+	 * 
+	 * @returns {array} actions[]
+	 */
+	provideInlineCompletions(context, token) {
+
+		if (token.isCancellationRequested || !window.customInlineSuggestion.length)
+			return new Promise(function(resolve, reject) {
+    			resolve(null);
+	  		});
+
+		const suggestions = window.customInlineSuggestion;
+    	window.customInlineSuggestion = [];
+
+		const result = {
+			enableForwardStability: true,
+			suppressSuggestions: true,
+			items: suggestions.map(function(value) {
+          	  return {
+                	insertText: value.replaceAll('```', '')
+            	};
+        	})
+		}; 
+
+		return new Promise(function(resolve, reject) {
+    		resolve(result)
+  		});
+
+	}
+
 }
 
 export default bslHelper;
