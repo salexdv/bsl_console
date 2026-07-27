@@ -15,6 +15,20 @@ import SnippetsParser from "./parsers";
 
 const monaco = require('monaco-editor/esm/vs/editor/editor.api');
 
+// Иконки дерева переменных инлайнятся в бандл (data:-URI) через require.context, а не тянутся
+// отдельными файлами — это нужно для single-file сборки. В обычной сборке результат тот же:
+// url-loader инлайнит эти PNG (< 8 КБ), а копия в dist/tree/icons остаётся невостребованной.
+const treeIconsContext = require.context('./tree/icons', false, /\.png$/);
+const treeIcons = {};
+treeIconsContext.keys().forEach(function (key) {
+  const mod = treeIconsContext(key);
+  treeIcons[key.replace('./', '')] = (mod && mod.default) ? mod.default : mod;
+});
+// Резолвер имени иконки ("int.png") в data:-URI; неизвестное имя откатывается на undefined.png.
+function resolveTreeIcon(iconName) {
+  return treeIcons[iconName] || treeIcons['undefined.png'] || '';
+}
+
 setLocaleData(ruLocale);
 
 window.MonacoEnvironment = {
@@ -1627,7 +1641,7 @@ window.showVariablesDescription = function(variablesJSON) {
       hideVariablesDisplay();
 
     const variables = JSON.parse(variablesJSON);
-    window.treeview = new Treeview("#variables-tree", window.editor, "./tree/icons/");
+    window.treeview = new Treeview("#variables-tree", window.editor, resolveTreeIcon);
     window.treeview.replaceData(variables);
     showVariablesDisplay();
 
