@@ -107,6 +107,23 @@
 	visibility: visible !important;
 }
 
+.suggest-widget .monaco-list .monaco-list-row.event-suggestion {
+	background-color: #e6e6e6 !important;
+}
+
+.suggest-widget .monaco-list .monaco-list-row.event-suggestion.focused {
+	background-color: #d8d8d8 !important;
+}
+
+.suggest-widget .monaco-list .monaco-list-row.event-suggestion .contents,
+.suggest-widget .monaco-list .monaco-list-row.event-suggestion .main,
+.suggest-widget .monaco-list .monaco-list-row.event-suggestion .monaco-icon-label,
+.suggest-widget .monaco-list .monaco-list-row.event-suggestion .monaco-icon-label .label-name,
+.suggest-widget .monaco-list .monaco-list-row.event-suggestion .monaco-icon-label .label-description,
+.suggest-widget .monaco-list .monaco-list-row.event-suggestion .details-label {
+	font-weight: bold !important;
+}
+
 
 div:has(> .add-review) {
 	background-color: #ddd;
