@@ -740,6 +740,13 @@ let languages = {
                 };
             }
         },
+        inlineCompletionProvider: {
+            provideInlineCompletions(model, position, context, token) {
+                let bsl = new bslHelper(model, position);
+                return bsl.provideInlineCompletions(context, token);
+            },
+            disposeInlineCompletions(completions, reason) {}
+        },
         autoIndentation: true,
         indentationRules: {
             increaseIndentPattern: /^\s*(функция|function|процедура|procedure|если|if|#если|#if|пока|while|для|for|попытка|try|исключение|except).*$/i,
@@ -837,6 +844,13 @@ let languages = {
                 };
             }
         },
+        inlineCompletionProvider: {
+            provideInlineCompletions(model, position, context, token) {
+                let bsl = new bslHelper(model, position);
+                return bsl.provideInlineCompletions(context, token);
+            },
+            disposeInlineCompletions(completions, reason) {}
+        },
         autoIndentation: false,
         indentationRules: {
             increaseIndentPattern: /^\s*(выбрать|из|выбор|когда).*$/i,
@@ -915,6 +929,13 @@ let languages = {
                     dispose: () => {}
                 };
             }
+        },
+        inlineCompletionProvider: {
+            provideInlineCompletions(model, position, context, token) {
+                let bsl = new bslHelper(model, position);
+                return bsl.provideInlineCompletions(context, token);
+            },
+            disposeInlineCompletions(completions, reason) {}
         },
         autoIndentation: false,
         indentationRules: null,
