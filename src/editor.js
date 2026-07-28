@@ -4319,7 +4319,7 @@ function createReviewWidget(lineNumber, issue = null) {
       if (textarea.value) {
         let widget = window.reviewWidgets.get(this.widgetId);
         let reviewText = this.domNode.getElementsByClassName("review-text")[0];
-        reviewText.innerHTML = textarea.value;
+        reviewText.textContent = textarea.value;
         let reviewTitle = this.domNode.getElementsByClassName("review-title")[0];
         let date = new Date(Date.now());
         function addZero(num) {
@@ -4331,10 +4331,10 @@ function createReviewWidget(lineNumber, issue = null) {
             hours = addZero(date.getHours()),
             minutes = addZero(date.getMinutes());
         let issueDate = `${day}.${month}.${year} ${hours}:${minutes}`;
-        if (!reviewTitle.innerHTML) {
-          reviewTitle.innerHTML = issueDate;
+        if (!reviewTitle.textContent) {
+          reviewTitle.textContent = issueDate;
           if (userName)
-            reviewTitle.innerHTML += ' @' + userName;
+            reviewTitle.textContent += ' @' + userName;
         }
         widget.date = issueDate;
         widget.author = userName;
@@ -4383,10 +4383,10 @@ function createReviewWidget(lineNumber, issue = null) {
       if (issue) {
           this.domNode.classList.add('review-' + issue.severity);
           let title = this.domNode.getElementsByClassName("review-title")[0];
-          title.innerHTML = issue.date;
+          title.textContent = issue.date;
           if (issue.author)
-            title.innerHTML += ' @' + issue.author;
-          this.domNode.getElementsByClassName('review-text')[0].innerHTML = issue.message;
+            title.textContent += ' @' + issue.author;
+          this.domNode.getElementsByClassName('review-text')[0].textContent = issue.message;
           this.domNode.getElementsByTagName('textarea')[0].value = issue.message;
           this.domNode.querySelector('.severity label .' + issue.severity).previousSibling.checked = true;
           let widget = window.reviewWidgets.get(this.widgetId);

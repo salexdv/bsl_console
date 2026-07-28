@@ -14,13 +14,15 @@
 <section>
 <div id="variables-tree"></div>
 </section>
-<script src="./tree.js"></script>
-<script type="text/javascript">
+<script type="module">
+    import Treeview from "./tree.js";
+
     let treeview = new Treeview("#variables-tree", null, "./icons/");
     let cat = {
       ПриходнаяНакладная: {
         label: "ПриходнаяНакладная",
-        value: '<a href="#1">Приходная накладная 000-2398 от 22.08.2022 21:32:59</a>',
+        value: "Приходная накладная 000-2398 от 22.08.2022 21:32:59",
+        valueLink: { href: "#1", label: "Приходная накладная 000-2398 от 22.08.2022 21:32:59" },
         type: "ДокументСсылка.ПриходнаяНакладаная",
         children: {
           "Номер": { label: "Код", value: "000-2398", type: "Число", icon: "int.png" },
@@ -37,7 +39,8 @@
           },
           "Контрагент": {
             label: "Контрагент",
-            value: '<a href="#1">Иванов И.И."</a>',
+            value: "Иванов И.И.\"",
+            valueLink: { href: "#1", label: "Иванов И.И.\"" },
             type: "СправочникСсылка.Контрагенты",
             children: {
               "Код": { label: "Код", value: "0000052", type: "Число" },
@@ -53,8 +56,8 @@
                 label: "Методы",
                 icon: "func.png",
                 children: {
-                  "Выгрузить": { label: "<a href='#1'>Выгрузить()</a>", icon: "func.png", class: "final" },
-                  "Свернуть": { label: "<a href='#1'>Свернуть()</a>", icon: "proc.png", class: "final" }
+                  "Выгрузить": { label: "Выгрузить()", labelLink: { href: "#1", label: "Выгрузить()" }, icon: "func.png", class: "final" },
+                  "Свернуть": { label: "Свернуть()", labelLink: { href: "#1", label: "Свернуть()" }, icon: "proc.png", class: "final" }
                 }
               },
               "Строка 0": {
