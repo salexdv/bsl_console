@@ -770,6 +770,13 @@ window.getPositionOffset = function() {
 
 }
 
+window.setDiffSideBySideMode = function (sideBySide) {
+  editor.updateOptions({
+    renderSideBySide: sideBySide
+  });
+  return true;
+}
+
 function getDiffEditorOption(optionName) {
 
   const optionValue = window.editor_options[optionName];
