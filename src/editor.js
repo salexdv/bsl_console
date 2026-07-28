@@ -862,6 +862,8 @@ window.compare = function (text, sideBySide, highlight, markLines = true, ignore
         if (diffCount < window.editor.initialDiffCount)
           sendEvent("EVENT_COMPARE_COMPLETE", {});
       }
+      if (window.getOption('generateModificationEvent'))
+        sendEvent('EVENT_CONTENT_CHANGED', '');
     });
     if (highlight) {
       monaco.editor.setModelLanguage(originalModel, language_id);
