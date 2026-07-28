@@ -95,7 +95,12 @@ let themes = {
             { token: 'number.floatbsl', foreground: 'b5cea8' },
             { token: 'preprocbsl', foreground: '963200' },
             { token: 'compilebsl', foreground: '963200' },
-            { token: 'gotomarkbsl', foreground: 'ff9000' }
+            { token: 'gotomarkbsl', foreground: 'ff9000' },
+            { token: 'delimiter.xml', foreground: '808080' },
+            { token: 'attribute.name.xml', foreground: '9ddcfe' },
+            { token: 'attribute.value.xml', foreground: '966c5b' },
+            { token: 'tag.xml', foreground: '5599D2' },
+            { token: '', foreground: 'cccccc' }
         ],
         darkQueryOff: [
             { token: 'querybsl', foreground: 'c3602c' },                    
@@ -187,6 +192,7 @@ let themes = {
     colors: {
         dark: {
             'foreground': '#d4d4d4',
+            'editor.foreground': '#cccccc',
             'editor.background': '#1e1e1e',
             'editor.selectionBackground': '#062f4a',
             'editor.selectionHighlightBackground': '#495662',
