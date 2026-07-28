@@ -64,7 +64,7 @@ function serve() {
   try {
     const page = await browser.newPage();
     page.on('console', (msg) => { if (msg.type() === 'error') errors.push('console.error: ' + msg.text()); });
-    page.on('pageerror', (err) => errors.push('pageerror: ' + ((err && err.message) || err)));
+    page.on('pageerror', (err) => errors.push('pageerror: ' + ((err && err.stack) || (err && err.message) || err)));
     page.on('requestfailed', (req) => {
       const u = req.url();
       if (u.indexOf('favicon') >= 0) return;
@@ -129,11 +129,59 @@ function serve() {
           step('setLanguageMode(bsl)', () => window.setLanguageMode('bsl'));
           step('isSuggestWidgetVisible', () => window.isSuggestWidgetVisible());
           step('isParameterHintsWidgetVisible', () => window.isParameterHintsWidgetVisible());
+          step('compare(default options)', () => {
+            window.compare(window.getText() + '\n// Изменение', false, true);
+            const options = window.editor._options._options.get();
+            const hideUnchangedRegions = options.hideUnchangedRegions && options.hideUnchangedRegions.enabled;
+            if (options.renderMarginRevertIcon !== false || hideUnchangedRegions !== false)
+              out.errors.push('опции compare по умолчанию не равны false');
+          });
+          step('setOption(compare options)', () => {
+            window.setOption('renderMarginRevertIcon', true);
+            window.setOption('hideUnchangedRegions', true);
+            const options = window.editor._options._options.get();
+            const hideUnchangedRegions = options.hideUnchangedRegions && options.hideUnchangedRegions.enabled;
+            if (options.renderMarginRevertIcon !== true || hideUnchangedRegions !== true)
+              out.errors.push('setOption не обновил опции открытого compare');
+          });
         } catch (e) { /* остановились на первом бросившем шаге; он уже в out.errors */ }
         return out;
       });
       console.log('[headless] bridge шаги ok: ' + bridge.steps.join(', ') + ' | lang=' + bridge.lang);
       bridge.errors.forEach((e) => errors.push('bridge: ' + e));
+
+      // Встроенный diff-виджет создаётся отдельным путём через setOriginalText + клик по diff-navi.
+      try {
+        await page.waitForFunction('window.editor.navi && typeof window.editor.diffCount === "number"', { timeout: 5000 });
+        await page.evaluate(() => {
+          window.compare();
+          window.setText('Значение = 2;', undefined, false);
+          window.setOption('renderMarginRevertIcon', false);
+          window.setOption('hideUnchangedRegions', false);
+          window.setOriginalText('Значение = 1;');
+        });
+        await page.waitForSelector('.diff-navi', { timeout: 5000 });
+        await page.evaluate(() => {
+          const element = document.querySelector('.diff-navi');
+          window.editor._onMouseDown.fire({
+            event: { leftButton: false, ctrlKey: false, detail: 1 },
+            target: { element: element, position: new window.monaco.Position(1, 1) }
+          });
+        });
+        await page.waitForFunction('!!window.inlineDiffEditor', { timeout: 5000 });
+        const inlineDiffOptions = await page.evaluate(() => {
+          const options = window.inlineDiffEditor._options._options.get();
+          return {
+            renderMarginRevertIcon: options.renderMarginRevertIcon,
+            hideUnchangedRegions: options.hideUnchangedRegions && options.hideUnchangedRegions.enabled
+          };
+        });
+        if (inlineDiffOptions.renderMarginRevertIcon !== false || inlineDiffOptions.hideUnchangedRegions !== false)
+          errors.push('createDiffWidget не применил опции compare');
+        console.log('[headless] createDiffWidget options:', JSON.stringify(inlineDiffOptions));
+      } catch (e) {
+        errors.push('createDiffWidget check threw: ' + ((e && e.stack) || (e && e.message) || e));
+      }
     }
 
     // Если появился mochaResults (этап 3) — учтём failures.

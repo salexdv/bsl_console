@@ -33,6 +33,10 @@ setOption("skipInsertSuggestionAcceptor", true);
 * `disableNativeCodeAction` - *boolean*, отключает стандартные подсказки по форматированию кода
 * `showSnippetsOnCustomSuggestions` - *boolean*, включает показ стандартных сниппетов при выводе пользовательских подсказок через [`showCustomSuggestions`](custom_suggestions.md)
 
+##### Управление режимом сравнения
+* `renderMarginRevertIcon` - *boolean*, включает/отключает отображение значка отмены изменений на полях редактора сравнения. Значение по умолчанию: `false`
+* `hideUnchangedRegions` - *boolean*, включает/отключает скрытие неизмененных областей текста в редакторе сравнения. Значение по умолчанию: `false`
+
 ##### Различные настройки редактора
 * `skipInsertSuggestionAcceptor` - *boolean*, позволяет пропустить вставку символа, заданного функцией *setActiveSuggestionAcceptors* и вызвавшего выбор активного пункта подсказки
 * `skipAcceptionSelectedSuggestion` - *boolean*, позволяет пропустить вставку текста активного пункта подсказки при нажатии символа, заданного функцией *setActiveSuggestionAcceptors*

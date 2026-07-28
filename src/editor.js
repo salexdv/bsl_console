@@ -770,6 +770,28 @@ window.getPositionOffset = function() {
 
 }
 
+function getDiffEditorOption(optionName) {
+
+  const optionValue = window.editor_options[optionName];
+  return optionValue === undefined ? false : optionValue;
+
+}
+
+function updateDiffEditorOption(optionName, optionValue) {
+
+  let option = {};
+  option[optionName] = optionName == 'hideUnchangedRegions'
+    ? { enabled: optionValue }
+    : optionValue;
+
+  if (window.editor.navi)
+    window.editor.updateOptions(option);
+
+  if (window.inlineDiffEditor)
+    window.inlineDiffEditor.updateOptions(option);
+
+}
+
 window.compare = function (text, sideBySide, highlight, markLines = true, ignoreWhitespace = true) {
   
   let language_id = window.getCurrentLanguageId();
@@ -804,9 +826,9 @@ window.compare = function (text, sideBySide, highlight, markLines = true, ignore
       renderSideBySide: sideBySide,
       ignoreTrimWhitespace: ignoreWhitespace,
       useInlineViewWhenSpaceIsLimited: false,
-      renderMarginRevertIcon: true,
+      renderMarginRevertIcon: getDiffEditorOption('renderMarginRevertIcon'),
       renderGutterMenu: false,
-      hideUnchangedRegions: { enabled: true },
+      hideUnchangedRegions: { enabled: getDiffEditorOption('hideUnchangedRegions') },
       // 0.55: гасим встроенный '*'-color-provider (worker-регэксп с lookbehind несовместим с
       // WebKit поля 1С) и подсветку «неоднозначных»/невидимых символов (кириллица). Наш
       // registerColorProvider при defaultColorDecorators:'never' продолжает работать.
@@ -1441,6 +1463,9 @@ window.setOption = function (optionName, optionValue) {
 
   window.editor[optionName] = optionValue;
   window.editor_options[optionName] = optionValue;
+
+  if (optionName == 'renderMarginRevertIcon' || optionName == 'hideUnchangedRegions')
+    updateDiffEditorOption(optionName, optionValue);
 
   if (optionName == 'generateBeforeSignatureEvent')
       startStopSignatureObserver();
@@ -4180,9 +4205,9 @@ function createDiffWidget(e) {
                 automaticLayout: true,
                 renderSideBySide: false,
                 useInlineViewWhenSpaceIsLimited: false,
-                renderMarginRevertIcon: true,
+                renderMarginRevertIcon: getDiffEditorOption('renderMarginRevertIcon'),
                 renderGutterMenu: false,
-                hideUnchangedRegions: { enabled: true },
+                hideUnchangedRegions: { enabled: getDiffEditorOption('hideUnchangedRegions') },
                 defaultColorDecorators: 'never',
                 unicodeHighlight: {
                   ambiguousCharacters: false,
