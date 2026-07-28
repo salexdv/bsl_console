@@ -4698,7 +4698,7 @@ function setThemeVariablesDisplay(theme) {
 
 // #region browser events
 document.onclick = function (e) {
-    
+
   // 0.55: иконка закрытия find-виджета — codicon 'widget-close' ('codicon-close' у кнопки
   // закрытия панели доков подсказок, но её отсекает guard hasParentWithClass('find-widget')).
   if (e.target.classList.contains('codicon-widget-close')) {
@@ -4707,8 +4707,8 @@ document.onclick = function (e) {
       setFindWidgetDisplay('none');
 
   }
-  else if (e.target.id == 'event-button' && events_queue.length) {
-    let eventData1C = events_queue.shift();
+  else if (e.target.id == 'event-button' && window.events_queue.length) {
+    let eventData1C = window.events_queue.shift();
     e.eventData1C = eventData1C;
     console.debug(eventData1C.event, eventData1C.params);
 

@@ -348,6 +348,13 @@
   Доставлено `console-single-b-monaco055-pack.epf` (3.92 МБ, со ВСЕМИ фиксами #1/#3/узкий-entry) — владельцу сравнить старт с e4fix.
   **Дальше:** ре-тест поля (#1 скобки, #3 пустой блок, #2 шаги, pack время старта); затем Этап 5 (профиль старта — parse vs
   marshal; при parse-боттлнеке — данные bsl* на JSON.parse) / кросс-платформа.
+- **2026-07-28 — Выявлено ограничение `build:pack` в 1С под Linux.**
+  `build:single` работает штатно, а в полной `build:pack` выполняется JavaScript-обработчик
+  `document.onclick`, но 1С не генерирует событие `ПолеHTMLПриНажатии`. Изолированные проверки
+  `appendChild`, наличия `pako` и полной цепочки gzip/base64 → `pako.ungzip` → `appendChild` проходят,
+  вынос `window.sendEvent` и `document.onclick` в `index.html` результатов не дал,
+  поэтому конкретная причина не установлена. Решение до дальнейшего расследования: считать
+  `build:pack` на Linux экспериментальной и использовать `npm run build:single`.
 - **2026-07-14 — Полевой фидбек раунд 3 (ДИАГНОСТИЧЕСКАЯ СБОРКА окупилась): #2 работает, #3 добит, #5 найден. Коммиты `2d39624`, `b373ce8`.**
   Владелец предложил гонять диагностику в поле → собрана `npm run build:diag` (--env diag, `src/diag.js` + `diag-entry.js`):
   экранный оверлей (pointer-events:none), оборачивает функции моста (init/setLanguageMode/setText/setOption/updateMetadata/
