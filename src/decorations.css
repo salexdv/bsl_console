@@ -546,3 +546,65 @@ div:has(> .add-review) {
 .code-marker.marker-warning {
 	border-left: 10px solid #eaac0e;
 }
+
+.expand-widget {
+	align-items: center;
+	background-color: #eee;
+	border-top: 1px solid #e5e5e5;
+	box-sizing: border-box;
+	color: #616161;
+	cursor: pointer;
+	display: flex;
+	font-size: 14px;
+	line-height: 19px;
+	overflow: hidden;
+	position: relative;
+	transition: transform .1s ease-in-out;
+	z-index: 1;
+}
+
+.expand-widget > .codicon {
+	align-items: center;
+	color: #424242;
+	cursor: pointer;
+	display: flex;
+	height: inherit;
+	justify-content: center;
+	left: 0;
+	opacity: 0.6;
+	position: absolute;
+	text-align: center;
+	top: 0;
+	width: 18px;
+}
+
+.expand-widget:hover > .codicon {
+	color: #007acc;
+	opacity: 1;
+}
+
+.collapse-hidden-block:hover {
+	opacity: 1;
+}
+
+.expand-widget-label {
+	cursor: pointer;
+	display: block;
+	font-size: 13px;
+	height: 14px;
+	line-height: 14px;
+	overflow: hidden;
+	padding-left: 22px;
+	position: absolute;
+	text-overflow: ellipsis;
+	top: 0;
+	user-select: none;
+	white-space: nowrap;
+}
+
+.collapse-hidden-block {
+	color: #424242;
+	cursor: pointer;
+	opacity: 0.6;
+	text-align: center;
+}

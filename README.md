@@ -142,6 +142,8 @@ npm run build -- --env customOptions="automaticLayout: true, someOption: false"
 | `revealDefinition`             | Переход к определению переменной, функции или поля запроса `F12`                              |
 | `peekDefinition`               | Быстрый просмотр определения переменной, функции или поля запроса `CTRL+F12`                  |
 | [`getDifferences`](docs/get_differences.md) | Возвращает список различий в режиме сравнения                                    |
+| [`hideBlocks`](docs/hide_blocks.md) | Сворачивает переданные диапазоны строк в обычном редакторе                               |
+| [`showHiddenBlocks`](docs/show_hidden_blocks.md) | Раскрывает области, свернутые функцией `hideBlocks`                         |
 
 ### Управление режимом работы / настройками
 

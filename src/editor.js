@@ -13,6 +13,7 @@ import './product-service';
 import monaco from './expose-monaco';
 
 import { languages, setHighlightInnerQuotes} from './bsl_language';
+import HiddenBlocksController from './hidden_blocks';
 import { getActions, permanentActions } from './actions';
 import './decorations.css'
 import './tingle.css'
@@ -22,6 +23,10 @@ import Treeview from './tree/tree.js'
 import Finder from "./finder";
 import SnippetsParser from "./parsers";
 import { patchWebKit1C } from './1c-webkit-patch';
+
+const hiddenBlocksController = new HiddenBlocksController(monaco, function () {
+  return window.engLang;
+});
 
 // Иконки дерева переменных инлайнятся в бандл (data:-URI) через require.context, а не тянутся
 // отдельными файлами — это нужно для single-file сборки. В обычной сборке результат тот же:
@@ -1916,6 +1921,24 @@ window.getDifferences = function () {
 
 }
 
+window.hideBlocks = function (blocks) {
+
+  if (!window.editor || window.editor.navi)
+    return;
+
+  hiddenBlocksController.hideBlocks(window.editor, blocks);
+
+}
+
+window.showHiddenBlocks = function () {
+
+  if (!window.editor || window.editor.navi)
+    return;
+
+  hiddenBlocksController.showEditor(window.editor);
+
+}
+
 window.goNextIssue = function () {
 
   let sortedIssues = getSortedIssues();
@@ -2536,6 +2559,7 @@ window.disposeEditor = function() {
       }
     }
     else {
+      hiddenBlocksController.disposeEditor(window.editor);
       window.editor.getModel().dispose();
       window.editor.dispose();
     }
