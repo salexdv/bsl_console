@@ -782,6 +782,20 @@ window.setDiffSideBySideMode = function (sideBySide) {
   return true;
 }
 
+window.hideUnchangedBlocks = function () {
+
+  if (window.editor.navi)
+    window.setOption('hideUnchangedRegions', true);
+
+}
+
+window.showUnchangedBlocks = function () {
+
+  if (window.editor.navi)
+    window.setOption('hideUnchangedRegions', false);
+
+}
+
 function getDiffEditorOption(optionName) {
 
   const optionValue = window.editor_options[optionName];

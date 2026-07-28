@@ -160,6 +160,8 @@ npm run build -- --env customOptions="automaticLayout: true, someOption: false"
 | [`wordWrap`](docs/word_wrap.md)| Включает/выключает перенос строк                                                              |
 | [`compare`](docs/compare.md)   | Включает/выключает режим сравнения текстов                                                    |
 | `setDiffSideBySideMode`        | Включает/выключает двусторонее сравнение                                                      |
+| `hideUnchangedBlocks`          | Скрывает неизмененные блоки в режиме сравнения                                                |
+| `showUnchangedBlocks`          | Показывает неизмененные блоки в режиме сравнения                                              |
 | `getDiffCount`                 | Возвращает количество изменений в режиме сравнения                                            |
 | `nextDiff`                     | Переход с следующему изменению в режиме сравнения                                             |
 | `previousDiff`                 | Переход с предыдущему изменению в режиме сравнения                                            |
