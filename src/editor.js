@@ -850,6 +850,19 @@ window.compare = function (text, sideBySide, highlight, markLines = true, ignore
         addExtraSpaceOnTop: false
       }
     });
+    window.editor.countDiffEvents = 0;
+    window.editor.initialDiffCount = 0;
+    window.editor.onDidUpdateDiff(e => {
+      if (window.getOption('generateCompareCompleteEvent')) {
+        const diffCount = (window.editor.getLineChanges() || []).length;
+        if (window.editor.initialDiffCount == 0) {
+          sendEvent("EVENT_COMPARE_COMPLETE", {});
+          window.editor.initialDiffCount = diffCount;
+        }
+        if (diffCount < window.editor.initialDiffCount)
+          sendEvent("EVENT_COMPARE_COMPLETE", {});
+      }
+    });
     if (highlight) {
       monaco.editor.setModelLanguage(originalModel, language_id);
       monaco.editor.setModelLanguage(modifiedModel, language_id);

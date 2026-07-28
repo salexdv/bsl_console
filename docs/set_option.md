@@ -36,6 +36,7 @@ setOption("skipInsertSuggestionAcceptor", true);
 ##### Управление режимом сравнения
 * `renderMarginRevertIcon` - *boolean*, включает/отключает отображение значка отмены изменений на полях редактора сравнения. Значение по умолчанию: `false`
 * `hideUnchangedRegions` - *boolean*, включает/отключает скрытие неизмененных областей текста в редакторе сравнения. Значение по умолчанию: `false`
+* `generateCompareCompleteEvent` - *boolean*, включает генерацию [события](compare_complete_event.md) при завершения сравнения
 
 ##### Различные настройки редактора
 * `skipInsertSuggestionAcceptor` - *boolean*, позволяет пропустить вставку символа, заданного функцией *setActiveSuggestionAcceptors* и вызвавшего выбор активного пункта подсказки
