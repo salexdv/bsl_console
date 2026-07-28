@@ -12,7 +12,7 @@ import './monaco-environment';
 import './product-service';
 import monaco from './expose-monaco';
 
-import languages from './bsl_language';
+import { languages, setHighlightInnerQuotes} from './bsl_language';
 import { getActions, permanentActions } from './actions';
 import './decorations.css'
 import './tingle.css'
@@ -1497,6 +1497,11 @@ window.setOption = function (optionName, optionValue) {
 
   if (optionName == 'disableDefinitionMessage')
     startStopDefinitionMessegeObserver();
+
+  if (optionName == 'highlightInnerQuotes' && typeof setHighlightInnerQuotes == 'function') {
+    setHighlightInnerQuotes(optionValue);
+    window.setTheme(getCurrentThemeFullName());
+  }
 
 }
 
@@ -3969,6 +3974,12 @@ function checkEmptySuggestions() {
 
 }
 
+function getCurrentThemeFullName() {
+
+  return getActiveEditor()._themeService.getColorTheme().themeName;
+
+}
+
 function getCurrentThemeName() {
 
   let queryPostfix = '-query';
@@ -3977,7 +3988,7 @@ function getCurrentThemeName() {
   // (он есть только у код-редакторов). getActiveEditor() отдаёт код-редактор в обоих режимах (в
   // diff — модифицированный/исходный суб-редактор), поэтому тема читается и при ВЫХОДЕ из сравнения.
   // Иначе compare() (выключение) падал здесь ещё до disposeEditor() и режим сравнения не закрывался.
-  let currentTheme = getActiveEditor()._themeService.getColorTheme().themeName;
+  let currentTheme = getCurrentThemeFullName();
   let is_query = (queryMode || DCSMode);
 
   if (is_query && currentTheme.indexOf(queryPostfix) == -1)

@@ -47,3 +47,4 @@ setOption("skipInsertSuggestionAcceptor", true);
 * `renderQueryDelimiters` - *boolean*, включает выделение цветом разделителей запросов
 * `disableDefinitionMessage` - *boolean*, отключает показ сообщения `Определение для ххх не найдено` при переходе к определению по F12 или CTRL+F12
 * `disableFolding` - *boolean*, отключает сворачивание блоков кода
+* `highlightInnerQuotes` - *boolean*, включает/отключает подсветку экранированных двойных кавычек `""` внутри строк
