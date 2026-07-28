@@ -1522,6 +1522,19 @@ window.setOption = function (optionName, optionValue) {
     window.setTheme(getCurrentThemeFullName());
   }
 
+  if (optionName == 'disableFolding')
+    refreshFoldingState();
+
+  if (optionName == 'showDiffDecorations') {
+    if (isShowDiffDecorationsEnabled() && window.editor.calculateDiff)
+      calculateDiff();
+    else {
+      window.editor.removeDiffWidget();
+      window.editor.diff_decorations = [];
+      window.editor.updateDecorations([]);
+    }
+  }
+
 }
 
 window.getOption = function (optionName) {
@@ -1588,8 +1601,12 @@ window.setOriginalText = function (originalText, setEmptyOriginalText = false) {
     window.editor.removeDiffWidget();
     window.editor.diff_decorations = [];
   }
-  else
+  else if (isShowDiffDecorationsEnabled())
     calculateDiff();
+  else {
+    window.editor.removeDiffWidget();
+    window.editor.diff_decorations = [];
+  }
 
   window.editor.updateDecorations([]);
 
@@ -4055,6 +4072,13 @@ function isDiffEditorHasChanges() {
 
 function getDiffChanges() {
 
+  if (!isShowDiffDecorationsEnabled()) {
+    window.editor.removeDiffWidget();
+    window.editor.diff_decorations = [];
+    window.editor.updateDecorations([]);
+    return;
+  }
+
   const changes = window.diffEditor.getLineChanges();
 
   if (Array.isArray(changes)) {
@@ -4108,7 +4132,7 @@ function getDiffChanges() {
 
 function calculateDiff() {
 
-  if (window.editor.calculateDiff) {
+  if (window.editor.calculateDiff && isShowDiffDecorationsEnabled()) {
 
     if (window.editor.diffTimer)
       clearTimeout(window.editor.diffTimer);
@@ -4130,6 +4154,26 @@ function calculateDiff() {
     }, 50);
 
   }
+
+}
+
+function refreshFoldingState() {
+
+  const folding_enabled = !window.getOption('disableFolding');
+  const editors = window.editor.navi
+    ? [window.editor.getModifiedEditor(), window.editor.getOriginalEditor()]
+    : [window.editor];
+
+  editors.forEach((standalone_editor) => {
+    standalone_editor.updateOptions({ folding: folding_enabled });
+    standalone_editor.trigger('', 'editor.unfoldAll');
+  });
+
+}
+
+function isShowDiffDecorationsEnabled() {
+
+  return window.getOption('showDiffDecorations') !== false;
 
 }
 
