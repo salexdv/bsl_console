@@ -1315,6 +1315,18 @@ setTimeout(() => {
 
       });
 
+      it("проверка поиска определения для функции, вызываемой внутри конструкции", function () {
+        const model = getModel('Функция СкопироватьРекурсивно(Источник)\n// Какой-то код\nКонецФункции\n\nСтруктура.Вставить(Обход.Ключ, СкопироватьРекурсивно(Обход.Значение));');
+        let position = new monaco.Position(5, 33);
+        bsl = new bslHelper(model, position);
+        let locations = bsl.provideDefinition();
+        expect(locations).to.be.an('array').that.not.is.empty;
+        position = new monaco.Position(5, 1);
+        bsl = new bslHelper(model, position);
+        locations = bsl.provideDefinition();
+        assert.equal(locations, null);
+      });
+
     }
 
     // Адаптер результатов (Этап 3c): по завершении прогона кладём runner.stats в
