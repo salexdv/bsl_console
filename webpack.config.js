@@ -227,6 +227,18 @@ module.exports = (env, argv) => {
       port: 9000,
       open: true,
       hot: false,
+      client: {
+        overlay: {
+          // Chromium отправляет это служебное уведомление через window.onerror, когда открытие
+          // DevTools меняет viewport во время layout Monaco. Редактор продолжает работать,
+          // поэтому не показываем только этот известный ResizeObserver-шум; остальные runtime-
+          // ошибки по-прежнему попадают в overlay.
+          runtimeErrors: function (error) {
+            return !/^ResizeObserver loop (?:limit exceeded|completed with undelivered notifications)\.?$/
+              .test(error && error.message || '');
+          }
+        }
+      },
       // Страницы тестов грузят mocha/chai тегами <script src="node_modules/...">. dev-server
       // отдаёт из памяти только собранные ассеты, поэтому реальный node_modules с диска мапим
       // статикой — иначе mocha не загружается и тесты падают с «describe is not defined».
