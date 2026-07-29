@@ -878,6 +878,9 @@ window.compare = function (text="", sideBySide=true, highlight=true, markLines =
       useShadowDOM: false,
       find: {
         addExtraSpaceOnTop: false
+      },
+      stickyScroll: {
+        enabled: false
       }
     });
     window.editor.countDiffEvents = 0;
@@ -2127,7 +2130,10 @@ window.createEditor = function(language_id, text, theme) {
     },
     lineNumbers: window.getLineNumber,
     customOptions: true,
-    renderValidationDecorations: "on"
+    renderValidationDecorations: "on",
+    stickyScroll: {
+      enabled: false
+    }
   });
 
   changeCommandKeybinding('editor.action.revealDefinition', monaco.KeyCode.F12);
@@ -4700,7 +4706,10 @@ function createDiffWidget(e) {
                   invisibleCharacters: false,
                   nonBasicASCII: false
                 },
-                useShadowDOM: false
+                useShadowDOM: false,
+                stickyScroll: {
+                  enabled: false
+                }
               });
 
               let originalModel = monaco.editor.createModel(window.editor.originalText);
