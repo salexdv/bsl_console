@@ -51,8 +51,14 @@ class Treeview {
           else if (eventData.target.classList.contains("final")) {
             eventData.preventDefault();
           }
+          else {
+            eventData.preventDefault();
+            this.open(eventData.target.id);
+          }
         }
         else if (eventData.target.nodeName == "SUMMARY" && eventData.target.parentNode.hasAttribute("open")) {
+          eventData.preventDefault();
+          this.close(eventData.target.id);
         }
         else {
           eventData.preventDefault();
@@ -118,7 +124,7 @@ class Treeview {
 
     summary.id = String(key);
     summary.dataset.label = this.getText(item.label);
-    summary.dataset.requested = "false";
+    summary.dataset.requested = item.children ? "true" : "false";
     summary.dataset.path = this.getText(item.path);
     this.applyClasses(summary, item.class);
 

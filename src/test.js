@@ -183,6 +183,54 @@ setTimeout(() => {
       assert.equal(bslLoaded, true);
     });
 
+    it("проверка сворачивания раскрытого узла дерева переменных", function () {
+      let variables = {
+        "tree-parent": {
+          label: "Родитель",
+          children: {
+            "tree-child": {
+              label: "Дочерний узел",
+              children: {
+                "tree-leaf": { label: "Лист", class: "final" }
+              }
+            }
+          }
+        }
+      };
+
+      try {
+        assert.equal(window.showVariablesDescription(JSON.stringify(variables)), true);
+        window.treeview.open("tree-child");
+
+        let summary = document.getElementById("tree-parent");
+        let prevented = false;
+        window.treeview.on("click", {
+          target: summary,
+          preventDefault: function () {
+            prevented = true;
+          }
+        });
+
+        assert.equal(prevented, true);
+        assert.equal(summary.parentNode.hasAttribute("open"), false);
+        assert.equal(document.getElementById("tree-child").parentNode.hasAttribute("open"), false);
+
+        prevented = false;
+        window.treeview.on("click", {
+          target: summary,
+          preventDefault: function () {
+            prevented = true;
+          }
+        });
+
+        assert.equal(prevented, true);
+        assert.equal(summary.parentNode.hasAttribute("open"), true);
+      }
+      finally {
+        document.getElementById("display-close").click();
+      }
+    });
+
     if (bslLoaded) {
 
       it("проверка существования глобальной переменной editor", function () {
