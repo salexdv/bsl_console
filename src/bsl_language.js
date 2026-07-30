@@ -95,15 +95,20 @@ let themes = {
             { token: 'number.floatbsl', foreground: 'b5cea8' },
             { token: 'preprocbsl', foreground: '963200' },
             { token: 'compilebsl', foreground: '963200' },
-            { token: 'gotomarkbsl', foreground: 'ff9000' }
+            { token: 'gotomarkbsl', foreground: 'ff9000' },
+            { token: 'delimiter.xml', foreground: '808080' },
+            { token: 'attribute.name.xml', foreground: '9ddcfe' },
+            { token: 'attribute.value.xml', foreground: '966c5b' },
+            { token: 'tag.xml', foreground: '5599D2' },
+            { token: '', foreground: 'cccccc' }
         ],
         darkQueryOff: [
-            { token: 'querybsl', foreground: 'c3602c' },                    
+            { token: 'querybsl', foreground: 'c3602c' },
             { token: 'query.quotebsl', foreground: 'c3602c' },
             { token: 'query.stringbsl', foreground: 'c3602c' },
             { token: 'query.keywordbsl', foreground: 'c3602c' },
             { token: 'query.expbsl', foreground: 'c3602c' },
-            { token: 'query.parambsl', foreground: 'c3602c' },                    
+            { token: 'query.parambsl', foreground: 'c3602c' },
             { token: 'query.bracketsbsl', foreground: 'c3602c' },
             { token: 'query.operatorbsl', foreground: 'c3602c' },
             { token: 'query.floatbsl', foreground: 'c3602c' },
@@ -111,12 +116,12 @@ let themes = {
             { token: 'query.commentbsl', foreground: 'c3602c' }
         ],
         darkQueryOn: [
-            { token: 'querybsl', foreground: 'e7db6a' },                    
+            { token: 'querybsl', foreground: 'e7db6a' },
             { token: 'query.quotebsl', foreground: 'e7db6a' },
             { token: 'query.stringbsl', foreground: 'ff4242' },
             { token: 'query.keywordbsl', foreground: 'f92472' },
             { token: 'query.expbsl', foreground: 'a50000' },
-            { token: 'query.parambsl', foreground: '007b7c' },                    
+            { token: 'query.parambsl', foreground: '007b7c' },
             { token: 'query.bracketsbsl', foreground: 'd4d4d4' },
             { token: 'query.operatorbsl', foreground: 'd4d4d4' },
             { token: 'query.floatbsl', foreground: 'ff00ff' },
@@ -187,6 +192,7 @@ let themes = {
     colors: {
         dark: {
             'foreground': '#d4d4d4',
+            'editor.foreground': '#cccccc',
             'editor.background': '#1e1e1e',
             'editor.selectionBackground': '#062f4a',
             'editor.selectionHighlightBackground': '#495662',
