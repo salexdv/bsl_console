@@ -1357,6 +1357,9 @@ window.setOption = function (optionName, optionValue) {
     window.setTheme(getCurrentThemeFullName());
   }
 
+  if (optionName == 'disableFolding')
+    refreshFoldingState();
+
   if (optionName == 'showDiffDecorations') {
     if (isShowDiffDecorationsEnabled() && window.editor.calculateDiff)
       calculateDiff();
@@ -4495,6 +4498,18 @@ function calculateDiff() {
 function isShowDiffDecorationsEnabled() {
 
   return window.getOption('showDiffDecorations') !== false;
+
+}
+
+function refreshFoldingState() {
+
+  const folding_enabled = !window.getOption('disableFolding');
+  const editors = window.editor.navi ? [window.editor.getModifiedEditor(), window.editor.getOriginalEditor()] : [window.editor];
+
+  editors.forEach((standalone_editor) => {
+    standalone_editor.updateOptions({ folding: folding_enabled });
+    standalone_editor.trigger('', 'editor.unfoldAll');
+  });
 
 }
 
