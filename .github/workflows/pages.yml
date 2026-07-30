@@ -1,7 +1,8 @@
 name: Публикация GitHub Pages
 
 on:
-  push:
+  release:
+    types: [published]
     branches:
       - webpack
   workflow_dispatch:
