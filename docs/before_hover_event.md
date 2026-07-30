@@ -18,12 +18,22 @@ setOption('generateBeforeHoverEvent', false);
 ```json
 {
   "word": {
-    "word": "Документы",
-    "startColumn": 8,
-    "endColumn": 17
+    "word": "Документ",
+    "startColumn": 2,
+    "endColumn": 10
   },
   "token": "identifierbsl",
-  "line": 4,
-  "column": 12
+  "line": 11,
+  "column": 6,
+  "definition": {
+    "code": "Для Каждого Документ Из МассивДокументов Цикл",
+    "iterator": "МассивДокументов",
+    "range": {
+      "endColumn": 46,
+      "endLineNumber": 1,
+      "startColumn": 1,
+      "startLineNumber": 10
+    }
+  }
 }
 ```

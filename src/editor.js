@@ -1,3237 +1,5294 @@
-require.config( { 'vs/nls': { availableLanguages: { '*': "ru" } } } );
+// Порядок импортов критичен: ESM исполняет модули сверху вниз, каждый — ПОЛНОСТЬЮ до
+// следующего, и все import-ы выполняются раньше любого top-level кода этого файла (в т.ч.
+// регистрации языков/тем и createEditor ниже). Слои совместимости и публикация глобального
+// monaco ДОЛЖНЫ отработать до того, как наш код (bsl_language → bsl_helper, finder, actions)
+// впервые коснётся monaco:
+//   1) polyfills          — рантайм-API старого WebKit ДО любого кода monaco
+//   2) monaco-environment — self.MonacoEnvironment (globalAPI + blob-воркер) ДО monaco
+//   3) product-service    — registerSingleton(IProductService) ДО StandaloneServices
+//   4) expose-monaco      — import monaco (editor.main: API + ВСЕ контрибы) + window.monaco
+import './polyfills';
+import './monaco-environment';
+import './product-service';
+import monaco from './expose-monaco';
 
-define(['bslGlobals', 'bslMetadata', 'snippets', 'bsl_language', 'vs/editor/editor.main', 'actions', 'bslQuery', 'bslDCS', 'colors'], function () {
+import { languages, setHighlightInnerQuotes} from './bsl_language';
+import queryModelService from './query_model_service';
+import HiddenBlocksController from './hidden_blocks';
+import { getActions, permanentActions } from './actions';
+import './decorations.css'
+import './tingle.css'
+import tingle from './tingle.js'
+import './tree/tree.css'
+import Treeview from './tree/tree.js'
+import Finder from "./finder";
+import SnippetsParser from "./parsers";
+import { patchWebKit1C } from './1c-webkit-patch';
 
-  // #region global vars 
-  selectionText = '';
-  engLang = false;
-  contextData = new Map();
-  readOnlyMode = false;
-  queryMode = false;
-  DCSMode = false;
-  version1C = '';
-  contextActions = [];
-  customHovers = {};
-  customSignatures = {};
-  customCodeLenses = [];
-  originalText = '';
-  metadataRequests = new Map();
-  customSuggestions = [];
-  contextMenuEnabled = false;
-  err_tid = 0;
-  suggestObserver = null;
-  signatureObserver = null;
-  definitionObserver = null;
-  statusBarWidget = null;
-  ctrlPressed = false;
-  altPressed = false;
-  shiftPressed = false;  
-  signatureVisible = true;
-  currentBookmark = -1;
-  currentMarker = -1;
-  activeSuggestionAcceptors = [];
-  diffEditor = null;  
-  inlineDiffEditor = null;
-  inlineDiffWidget = null;
-  events_queue = [];
-  editor_options = [];
-  snippets = {};
-  treeview = null;
-  // #endregion
+const hiddenBlocksController = new HiddenBlocksController(monaco, function () {
+  return window.engLang;
+});
 
-  // #region public API
-  reserMark = function() {
+// Иконки дерева переменных инлайнятся в бандл (data:-URI) через require.context, а не тянутся
+// отдельными файлами — это нужно для single-file сборки. В обычной сборке результат тот же:
+// url-loader инлайнит эти PNG (< 8 КБ), а копия в dist/tree/icons остаётся невостребованной.
+const treeIconsContext = require.context('./tree/icons', false, /\.png$/);
+const treeIcons = {};
+treeIconsContext.keys().forEach(function (key) {
+  const mod = treeIconsContext(key);
+  treeIcons[key.replace('./', '')] = (mod && mod.default) ? mod.default : mod;
+});
+// Резолвер имени иконки ("int.png") в data:-URI; неизвестное имя откатывается на undefined.png.
+function resolveTreeIcon(iconName) {
+  return treeIcons[iconName] || treeIcons['undefined.png'] || '';
+}
 
-    clearInterval(err_tid);
-    editor.updateDecorations([]);
+// NLS: monaco-editor-nls (setLocaleData/ruLocale) удалён — несовместим с 0.55; UI monaco
+// по умолчанию английский (русская локализация — отдельным шагом). MonacoEnvironment
+// (blob-воркер + globalAPI) задаётся в ./monaco-environment (импортирован выше, до monaco).
 
+// #region global vars 
+window.languages = languages;
+
+window.selectionText = '';
+window.engLang = false;
+window.contextData = new Map();
+window.readOnlyMode = false;
+window.queryMode = false;
+window.DCSMode = false;
+window.debugMode = false;
+window.usingDebugger = false;
+window.version1C = '';
+window.userName = '';
+window.contextActions = [];
+window.customHovers = {};
+window.customInlineSuggestion = [];
+window.immediateHover = [];
+window.customSignatures = {};
+window.customCodeLenses = [];
+window.originalText = '';
+window.metadataRequests = new Map();
+window.customSuggestions = [];
+window.contextMenuEnabled = false;
+window.err_tid = 0;
+window.suggestObserver = null;
+window.signatureObserver = null;
+window.definitionObserver = null;
+window.statusBarWidget = null;
+window.ctrlPressed = false;
+window.altPressed = false;
+window.shiftPressed = false;  
+window.signatureVisible = true;
+window.currentBookmark = -1;
+window.currentMarker = -1;
+window.activeSuggestionAcceptors = [];
+window.diffEditor = null;  
+window.inlineDiffEditor = null;
+window.inlineDiffWidget = null;
+window.events_queue = [];
+window.colors = {};
+window.editor_options = [];
+window.snippets = {};
+window.bslSnippets = {};
+window.treeview = null;
+window.lineNumbersDedocrations = [];
+window.selectedQueryDelimiters = new Map();
+window.reviewWidgets = new Map();
+window.currentIssue = -1;
+window.inlineSuggestionsChanged = new monaco.Emitter();
+// #endregion
+
+// #region public API
+window.wordWrap = function (enabled) {
+
+  if (window.editor.navi) {
+    // 0.55: свойства .originalEditor/.modifiedEditor удалены — только методы get*Editor().
+    window.editor.getOriginalEditor().updateOptions({ wordWrap: enabled });
+    window.editor.getModifiedEditor().updateOptions({ wordWrap: enabled });
+  }
+  else {
+    window.editor.updateOptions({ wordWrap: enabled })
   }
 
-  sendEvent = function(eventName, eventParams) {
+}
 
-    console.debug(eventName, eventParams);
-    let lastEvent = new MouseEvent('click');
-    lastEvent.eventData1C = {event : eventName, params: eventParams};
-    return dispatchEvent(lastEvent);
-    // The new event model is disabled until fix https://github.com/salexdv/bsl_console/issues/#217
-    events_queue.push({event : eventName, params: eventParams});
+window.reserMark = function() {
+
+  clearInterval(window.err_tid);
+  window.editor.updateDecorations([]);
+
+}
+
+window.sendEvent = function(eventName, eventParams) {
+
+  window.events_queue.push({event : eventName, params: eventParams});
+  setTimeout(() => {
     document.getElementById('event-button').click();
-    
+  }, 10);  
+  
+}
+
+window.fireEvent = function() {
+
+  let button = document.getElementById('event-button');
+  button.click();
+
+
+}
+
+window.setDefaultStyle = function() {
+
+  window.setFontFamily("Courier New");
+  window.setFontSize(14);
+  window.setLineHeight(16);
+  window.setLetterSpacing(0);
+
+}
+
+window.setText = function(txt, range, usePadding) {
+
+  window.editor.pushUndoStop();
+  
+  window.editor.checkBookmarks = false;
+
+  window.reserMark();    
+  bslHelper.setText(txt, range, usePadding);
+  
+  if (window.getText()) {
+    checkBookmarksCount();
+    checkBreakpointsCount();
   }
-
-  setText = function(txt, range, usePadding) {
-
-    editor.pushUndoStop();
-    
-    editor.checkBookmarks = false;
-
-    reserMark();    
-    bslHelper.setText(txt, range, usePadding);
-    
-    if (getText())
-      checkBookmarksCount();
-    else
-      removeAllBookmarks();
-    
-    editor.checkBookmarks = true;
-
+  else {
+    window.removeAllBookmarks();
+    window.removeAllBreakpoints();
   }
   
-  updateText = function(txt, clearUndoHistory = true) {
+  window.editor.checkBookmarks = true;
 
-    let read_only = readOnlyMode;
-    let mod_event = getOption('generateModificationEvent');
-    editor.checkBookmarks = false;   
+}
 
-    reserMark();  
+window.updateText = function(txt, clearUndoHistory = true) {
 
-    if (read_only)
-      setReadOnly(false);
+  const read_only = window.readOnlyMode;
+  const mod_event = window.getOption('generateModificationEvent');
+  window.editor.checkBookmarks = false;   
 
-    if (mod_event)    
-      setOption('generateModificationEvent', false);
+  window.reserMark();  
 
-    eraseTextBeforeUpdate();
+  if (read_only)
+    window.setReadOnly(false);
+
+  if (mod_event)    
+    window.setOption('generateModificationEvent', false);
+
+  eraseTextBeforeUpdate();
+  
+  if (clearUndoHistory)
+    window.editor.setValue(txt);
+  else
+    window.setText(txt);
+
+  if (window.getText()) {
+    checkBookmarksCount();
+    checkBreakpointsCount();
+  }
+  else {
+    window.removeAllBookmarks();
+    window.removeAllBreakpoints();
+  }
+
+  if (mod_event)    
+    window.setOption('generateModificationEvent', true);
+
+  if (read_only)
+    window.setReadOnly(true);
+
+  window.editor.checkBookmarks = true;
+
+}
+
+window.setContent = function(text) {
+
+  const read_only = window.readOnlyMode;
+  const mod_event = window.getOption('generateModificationEvent');
+  
+  if (read_only)
+    window.setReadOnly(false);
+
+  if (mod_event)    
+    window.setOption('generateModificationEvent', false);
+
+  window.editor.setValue(text)
+
+  if (mod_event)    
+    window.setOption('generateModificationEvent', true);
+
+  if (read_only)
+    window.setReadOnly(true);
+
+}
+
+window.eraseText = function () {
+  
+  window.setText('', window.editor.getModel().getFullModelRange(), false);    
+
+  removeReviewWidgets();
+  window.currentIssue = -1;
+
+}
+
+window.getText = function(txt) {
+
+  return getActiveEditor().getValue();
+
+}
+
+window.getQuery = function () {
+
+  // В режиме запроса весь текст редактора и ЕСТЬ запрос — строкового литерала BSL тут нет, поэтому
+  // bslHelper.getQuery() (ищет строку-запрос в BSL-коде) вернул бы null, и кнопка «Конструктор
+  // запроса» не получала бы текст. Отдаём его в ТОМ ЖЕ виде {text, range}, что и запрос, вырезанный
+  // из BSL: text экранируем как тело BSL-литерала (кавычки удвоены), чтобы потребитель снял
+  // экранирование (ПодготовитьТекстЗапроса в консоли) и получил исходный запрос. Симметрично записи
+  // результата (ПриЗакрытииКонструктораЗапросов пишет в режиме запроса СЫРОЙ текст). range — весь
+  // документ: конструктор пишет результат обратно в него.
+  if (window.isQueryMode()) {
+    let model = window.editor.getModel();
+    return { text: model.getValue().replace(/"/g, '""'), range: model.getFullModelRange() };
+  }
+
+  let bsl = new bslHelper(window.editor.getModel(), window.editor.getPosition());
+  return bsl.getQuery();
+
+}
+
+window.getFormatString = function () {
+
+  let bsl = new bslHelper(window.editor.getModel(), window.editor.getPosition());		
+  return bsl.getFormatString();
+
+}
+
+window.updateMetadata = function (metadata, path = '') {
+
+  let bsl = new bslHelper(window.editor.getModel(), window.editor.getPosition());
+  let result = bsl.updateMetadata(metadata, path);
+
+  // Запрос метаданных асинхронный (EVENT_GET_METADATA): провайдер отдаёт список ДО ответа 1С,
+  // поэтому ПЕРВЫЙ показ блока автодополнения неполон — только уже загруженные имена (в поле,
+  // например, лишь менеджерное «ТипВсеСсылки» без объектов конфигурации). Когда данные пришли —
+  // если блок ещё открыт, обновляем его. ВАЖНО: один editor.action.triggerSuggest при уже
+  // открытом блоке НЕ опрашивает провайдер заново, а перефильтровывает уже показанный набор →
+  // список остаётся неполным (в этом и был баг «дозаполняется только по повторному вызову»).
+  // Поэтому сначала ПРЯЧЕМ блок (сброс сессии — hideSuggestWidget), затем через setTimeout
+  // триггерим заново — это чистый повторный опрос провайдера с уже загруженными метаданными.
+  // Тот же приём, что в checkEmptySuggestions. setTimeout — чтобы отработало в «живом» кадре
+  // после ввода (поле 1С красит ~1с после ввода); дедуп metadataRequests исключает повторное
+  // событие и петлю. Гейт по isSuggestWidgetVisible() (читает _ctxSuggestWidgetVisible, который
+  // monaco 0.55 ставит СИНХРОННО при показе; класс .visible вешается лишь через +100мс, т.е. к
+  // моменту ответа 1С его ещё нет — по нему гейтить нельзя) — чтобы suggest не выскакивал на
+  // bulk-загрузке метаданных при инициализации, когда блок не открыт.
+  try {
+    if (result === true && window.isSuggestWidgetVisible()) {
+      window.hideSuggestionsList();
+      setTimeout(function () { window.triggerSuggestions(); }, 10);
+    }
+  } catch (e) { /* best-effort */ }
+
+  return result;
+
+}
+
+window.parseCommonModule = function (moduleName, moduleText, isGlobal = false) {
+
+  return bslHelper.parseCommonModule(moduleName, moduleText, isGlobal);
+
+}
+
+window.parseMetadataModule = function (moduleText, path) {
+
+  return bslHelper.parseMetadataModule(moduleText, path);
+
+} 
+
+window.updateSnippets = function (snips, replace = false) {
+      
+  return bslHelper.updateSnippets(snips, replace);    
+
+}
+
+window.updateCustomFunctions = function (data) {
+      
+  return bslHelper.updateCustomFunctions(data);
+
+}
+
+window.setTheme = function (theme) {
+      
+  monaco.editor.setTheme(theme);
+  setThemeVariablesDisplay(theme);
+
+}
+
+window.setReadOnly = function (readOnly) {
+
+  window.readOnlyMode = readOnly;
+  window.editor.updateOptions({ readOnly: readOnly });
+
+  if (window.contextMenuEnabled)
+    window.editor.updateOptions({ contextmenu: !readOnly });
+  
+}
+
+window.getReadOnly = function () {
+
+  return window.readOnlyMode;
+
+}
+
+window.switchLang = function (language) {
     
-    if (clearUndoHistory)
-      editor.setValue(txt);
-    else
-      setText(txt);
+  if (language == undefined)
+    engLang = !engLang;
+  else
+    engLang = (language == 'en');
 
-    if (getText())
-      checkBookmarksCount();
-    else
-      removeAllBookmarks();
+  return engLang ? 'en' : 'ru';
+  
+}
 
-    if (mod_event)    
-      setOption('generateModificationEvent', true);
+window.addComment = function () {
+  
+  let bsl = new bslHelper(window.editor.getModel(), window.editor.getPosition());		
+  bsl.addComment();
 
-    if (read_only)
-      setReadOnly(true);
+}
 
-    editor.checkBookmarks = true;
+window.removeComment = function () {
+  
+  let bsl = new bslHelper(window.editor.getModel(), window.editor.getPosition());		
+  bsl.removeComment();
+  
+}
 
-  }
+window.markError = function (line, column) {
+  
+  window.reserMark();
+  window.editor.timer_count = 12;
 
-  setContent = function(text) {
-
-    let read_only = readOnlyMode;
-    let mod_event = getOption('generateModificationEvent');
+  window.err_tid = setInterval(function () {
     
-    if (read_only)
-      setReadOnly(false);
-
-    if (mod_event)    
-      setOption('generateModificationEvent', false);
-
-    editor.setValue(text)
-
-    if (mod_event)    
-      setOption('generateModificationEvent', true);
-
-    if (read_only)
-      setReadOnly(true);
-
-  }
-
-  eraseText = function () {
+    let newDecor = [];
     
-    setText('', editor.getModel().getFullModelRange(), false);    
+    if (window.editor.timer_count % 2 == 0) {
+      newDecor.push(
+        { range: new monaco.Range(line, 1, line), options: { isWholeLine: true, inlineClassName: 'error-string' } }
+      );
+      newDecor.push(
+        { range: new monaco.Range(line, 1, line), options: { isWholeLine: true, linesDecorationsClassName: 'error-mark' } },
+      );
+    }
 
+    window.editor.timer_count--;
+    window.editor.updateDecorations(newDecor);
+
+    if (window.editor.timer_count == 0) {
+      clearInterval(window.err_tid);
+    }
+
+  }, 300);
+
+  window.editor.revealLineInCenter(line);
+  window.editor.setPosition(new monaco.Position(line, column));
+
+}
+
+window.findText = function (string) {
+  let bsl = new bslHelper(window.editor.getModel(), window.editor.getPosition());
+  return bsl.findText(string);
+}
+
+window.init = function(version, user = '') {
+
+  window.version1C = version;
+  window.userName = user;
+  initContextMenuActions();
+  window.editor.layout();
+
+}
+
+window.enableQuickSuggestions = function (enabled) {
+
+  window.editor.updateOptions({ quickSuggestions: enabled });
+
+}
+
+window.minimap = function (enabled) {
+
+  window.editor.updateOptions({ minimap: { enabled: enabled } });
+  
+}
+
+window.addContextMenuItem = function(label, eventName) {
+
+  let time = new Date().getTime();
+  let id = time.toString() + '.' + Math.random().toString(36).substring(8);
+  window.editor.addAction({
+    id: id + "_bsl",
+    label: label,
+    contextMenuGroupId: 'navigation',
+    contextMenuOrder: time,
+    run: function () {     
+        window.sendEvent(eventName, "");
+        return null;
+    }
+  });
+
+}
+
+window.isQueryMode = function() {
+
+  return window.getCurrentLanguageId() == 'bsl_query';
+
+}
+
+window.isDCSMode = function() {
+
+  return window.getCurrentLanguageId() == 'dcs_query';
+
+}
+
+window.setLanguageMode = function(mode) {
+
+  let isCompareMode = (window.editor.navi != undefined);
+
+  window.queryMode = (mode == 'bsl_query');
+  window.DCSMode = (mode == 'dcs_query');
+
+  if (window.queryMode || window.DCSMode)
+    window.editor.updateOptions({ foldingStrategy: "indentation" });
+  else
+    window.editor.updateOptions({ foldingStrategy: "auto" });
+
+  if (isCompareMode) {
+    monaco.editor.setModelLanguage(window.editor.getModifiedEditor().getModel(), mode);
+    monaco.editor.setModelLanguage(window.editor.getOriginalEditor().getModel(), mode);
+  }
+  else {
+    monaco.editor.setModelLanguage(window.editor.getModel(), mode);
   }
 
-  getText = function(txt) {
+  let currentTheme = getCurrentThemeName();
+  window.setTheme(currentTheme);
 
-    return getActiveEditor().getValue();
+  initContextMenuActions();
 
-  }
-
-  getQuery = function () {
-
-    let bsl = new bslHelper(editor.getModel(), editor.getPosition());		
-    return bsl.getQuery();
-
-  }
-
-  getFormatString = function () {
-
-    let bsl = new bslHelper(editor.getModel(), editor.getPosition());		
-    return bsl.getFormatString();
-
-  }
-
-  updateMetadata = function (metadata, path = '') {
-        
-    let bsl = new bslHelper(editor.getModel(), editor.getPosition());		
-    return bsl.updateMetadata(metadata, path);
-
-  }
-
-  parseCommonModule = function (moduleName, moduleText, isGlobal = false) {
-
-    return bslHelper.parseCommonModule(moduleName, moduleText, isGlobal);
-
-  }
-
-  parseMetadataModule = function (moduleText, path) {
-
-    return bslHelper.parseMetadataModule(moduleText, path);
-
-  }  
-
-  updateSnippets = function (snips, replace = false) {
-        
-    return bslHelper.updateSnippets(snips, replace);    
-
-  }
-
-  updateCustomFunctions = function (data) {
-        
-    return bslHelper.updateCustomFunctions(data);
-
-  }
-
-  setTheme = function (theme) {
-        
-    monaco.editor.setTheme(theme);
-    setThemeVariablesDisplay(theme);
-
-  }
-
-  setReadOnly = function (readOnly) {
-
-    readOnlyMode = readOnly;
-    editor.updateOptions({ readOnly: readOnly });
-
-    if (contextMenuEnabled)
-      editor.updateOptions({ contextmenu: !readOnly });
-    
-  }
-
-  getReadOnly = function () {
-
-    return readOnlyMode;
-
-  }
-
-  switchLang = function (language) {
-    
-    if (language == undefined)
-      engLang = !engLang;
-    else
-      engLang = (language == 'en');
-
-    return engLang ? 'en' : 'ru';
-    
-  }
-
-  addComment = function () {
-    
-    let bsl = new bslHelper(editor.getModel(), editor.getPosition());		
-    bsl.addComment();
-
-  }
-
-  removeComment = function () {
-    
-    let bsl = new bslHelper(editor.getModel(), editor.getPosition());		
-    bsl.removeComment();
-    
-  }
-
-  markError = function (line, column) {
-    reserMark();
-    editor.timer_count = 12;
-    err_tid = setInterval(function () {
-      let newDecor = [];
-      if (editor.timer_count % 2 == 0) {
-        newDecor.push(
-          { range: new monaco.Range(line, 1, line), options: { isWholeLine: true, inlineClassName: 'error-string' } }
-        );
-        newDecor.push(
-          { range: new monaco.Range(line, 1, line), options: { isWholeLine: true, linesDecorationsClassName: 'error-mark' } },
-        );
-      }
-      editor.timer_count--;
-      editor.updateDecorations(newDecor);
-      if (editor.timer_count == 0) {
-        clearInterval(err_tid);
-      }
-    }, 300);
-    editor.revealLineInCenter(line);
-    editor.setPosition(new monaco.Position(line, column));
-  }
-
-  findText = function (string) {
-    let bsl = new bslHelper(editor.getModel(), editor.getPosition());
-    return bsl.findText(string);
-  }
-
-  init = function(version) {
-
-    version1C = version;
-    initContextMenuActions();
-    editor.layout();
-
-  }
-
-  enableQuickSuggestions = function (enabled) {
-
-    editor.updateOptions({ quickSuggestions: enabled });
-
-  }
-
-  minimap = function (enabled) {
-
-    editor.updateOptions({ minimap: { enabled: enabled } });
-    
-  }
-
-  addContextMenuItem = function(label, eventName) {
-
-    let time = new Date().getTime();
-    let id = time.toString() + '.' + Math.random().toString(36).substring(8);
-    editor.addAction({
-      id: id + "_bsl",
-      label: label,
-      contextMenuGroupId: 'navigation',
-      contextMenuOrder: time,
-      run: function () {     
-          sendEvent(eventName, "");
-          return null;
-      }
-    });
-
-  }
-
-  isQueryMode = function() {
-
-    return getCurrentLanguageId() == 'bsl_query';
-
-  }
-
-  isDCSMode = function() {
-
-    return getCurrentLanguageId() == 'dcs_query';
-
-  }
-
-  setLanguageMode = function(mode) {
-
-    let isCompareMode = (editor.navi != undefined);
-
-    queryMode = (mode == 'bsl_query');
-    DCSMode = (mode == 'dcs_query');
-
-    if (queryMode || DCSMode)
-      editor.updateOptions({ foldingStrategy: "indentation" });
-    else
-      editor.updateOptions({ foldingStrategy: "auto" });
-
+  if (mode == 'bsl_query') {
     if (isCompareMode) {
-      monaco.editor.setModelLanguage(editor.getModifiedEditor().getModel(), mode);
-      monaco.editor.setModelLanguage(editor.getOriginalEditor().getModel(), mode);
+      queryModelService.schedule(window.editor.getModifiedEditor().getModel(), 0);
+      queryModelService.schedule(window.editor.getOriginalEditor().getModel(), 0);
     }
     else {
-      monaco.editor.setModelLanguage(editor.getModel(), mode);
+      queryModelService.schedule(window.editor.getModel(), 0);
     }
-
-    let currentTheme = getCurrentThemeName();
-    setTheme(currentTheme);
-
-    initContextMenuActions();
-
   }
 
-  getCurrentLanguageId = function() {
+}
 
-    let identifier = getActiveEditor().getModel().getLanguageIdentifier();
-    return identifier.language;
+window.setDebugMode = function(mode) {
 
+  window.debugMode = mode;
+  initContextMenuActions();
+
+}
+
+window.isDebugMode = function() {
+
+  return window.debugMode;
+
+}
+
+window.setUsingDebugger = function(mode) {
+
+  window.usingDebugger = mode;
+  initContextMenuActions();
+
+}
+
+window.isUsingDebugger = function() {
+
+  return window.usingDebugger;
+
+}
+
+window.getCurrentLanguageId = function() {
+
+  // 0.55 (breaking 0.30): model.getLanguageIdentifier() удалён — getLanguageId() отдаёт строку.
+  return getActiveEditor().getModel().getLanguageId();
+
+}
+
+window.getSelectedText = function () {
+
+  const active_editor = getActiveEditor();
+  const model = active_editor.getModel();
+  const selection = active_editor.getSelection();
+
+  return model.getValueInRange(selection);
+
+}
+
+window.addWordWrap = function () {
+  
+  let bsl = new bslHelper(window.editor.getModel(), window.editor.getPosition());		
+  bsl.addWordWrap();
+
+}
+
+window.removeWordWrap = function () {
+  
+  let bsl = new bslHelper(window.editor.getModel(), window.editor.getPosition());		
+  bsl.removeWordWrap();
+  
+}
+
+window.setCustomHovers = function (hoversJSON) {
+  
+  try {
+		window.customHovers = JSON.parse(hoversJSON);			
+		return true;
+	}
+	catch (e) {
+    window.customHovers = {};
+		return { errorDescription: e.message };
+	}
+
+}
+
+window.setCustomSignatures = function(sigJSON) {
+
+  try {
+		window.customSignatures = JSON.parse(sigJSON);			
+		return true;
+	}
+	catch (e) {
+    window.customSignatures = {};
+		return { errorDescription: e.message };
+	}    
+
+}
+
+window.setCustomCodeLenses = function(lensJSON) {
+
+  try {
+    if (window.editor.navi)
+      window.editor.getModifiedEditor().updateOptions({ codeLens: true });
+    window.customCodeLenses = JSON.parse(lensJSON);
+    window.editor.updateCodeLens();
+    return true;
   }
+  catch (e) {
+    window.customCodeLenses = [];
+    return { errorDescription: e.message };
+  }    
 
-  getSelectedText = function() {
+}
 
-    const active_editor = getActiveEditor();
-    const model = active_editor.getModel();
-    const selection = active_editor.getSelection();
+window.getVarsNames = function (includeLineNumber = false) {
+  
+  let bsl = new bslHelper(window.editor.getModel(), window.editor.getPosition());		
+  return bsl.getVarsNames(0, includeLineNumber);
+  
+}
+
+window.getSelection = function() {
+
+  return window.editor.getSelection();
+
+}
+
+window.setSelection = function(startLineNumber, startColumn, endLineNumber, endColumn) {
+  
+  if (endLineNumber <= window.getLineCount()) {
+    let range = new monaco.Range(startLineNumber, startColumn, endLineNumber, endColumn);
+    window.editor.setSelection(range);
+    window.editor.revealPositionInCenterIfOutsideViewport(range.getEndPosition());
+    return true;
+  }
+  else
+    return false;
+
+}
+
+window.setSelectionByLength = function(start, end) {
+  
+  let startPosition = window.editor.getModel().getPositionAt(start - 1);
+  let endPosition = window.editor.getModel().getPositionAt(end - 1);
+  let range = new monaco.Range(startPosition.lineNumber, startPosition.column, endPosition.lineNumber, endPosition.column);    
+  window.editor.setSelection(range);
+  window.editor.revealPositionInCenterIfOutsideViewport(endPosition);
+
+  return true;
+
+}
+
+window.selectedText = function(text = undefined, keepSelection = false) {
+
+  if (text == undefined)
     
-    return model.getValueInRange(selection);
+    return window.getSelectedText();    
 
-  }
-
-  addWordWrap = function () {
+  else {      
     
-    let bsl = new bslHelper(editor.getModel(), editor.getPosition());		
-    bsl.addWordWrap();
+    if (window.getSelectedText()) {
 
-  }
+      let selection = window.getSelection();
+      let tempModel = monaco.editor.createModel(text);
+      let tempRange = tempModel.getFullModelRange();
+      
+      window.setText(text, window.getSelection(), false);
 
-  removeWordWrap = function () {
-    
-    let bsl = new bslHelper(editor.getModel(), editor.getPosition());		
-    bsl.removeWordWrap();
-    
-  }
+      if (keepSelection) {
+        if (tempRange.startLineNumber == tempRange.endLineNumber)
+          window.setSelection(selection.startLineNumber, selection.startColumn, selection.startLineNumber, selection.startColumn + tempRange.endColumn - 1);
+        else
+          window.setSelection(selection.startLineNumber, selection.startColumn, selection.startLineNumber + tempRange.endLineNumber - tempRange.startLineNumber, tempRange.endColumn);
+      }
 
-  setCustomHovers = function (hoversJSON) {
-    
-    try {
-			customHovers = JSON.parse(hoversJSON);			
-			return true;
-		}
-		catch (e) {
-      customHovers = {};
-			return { errorDescription: e.message };
-		}
-
-  }
-
-  setCustomSignatures = function(sigJSON) {
-
-    try {
-			customSignatures = JSON.parse(sigJSON);			
-			return true;
-		}
-		catch (e) {
-      customSignatures = {};
-			return { errorDescription: e.message };
-		}    
-
-  }
-
-  setCustomCodeLenses = function(lensJSON) {
-
-    try {
-			customCodeLenses = JSON.parse(lensJSON);
-      editor.updateCodeLens();
-			return true;
-		}
-		catch (e) {
-      customCodeLenses = [];
-			return { errorDescription: e.message };
-		}    
-
-  }
-
-  getVarsNames = function (includeLineNumber = false) {
-    
-    let bsl = new bslHelper(editor.getModel(), editor.getPosition());		
-    return bsl.getVarsNames(0, includeLineNumber);    
-    
-  }
-
-  getSelection = function() {
-
-    return editor.getSelection();
-
-  }
-
-  setSelection = function(startLineNumber, startColumn, endLineNumber, endColumn) {
-    
-    if (endLineNumber <= getLineCount()) {
-      let range = new monaco.Range(startLineNumber, startColumn, endLineNumber, endColumn);
-      editor.setSelection(range);
-      editor.revealPositionInCenterIfOutsideViewport(range.getEndPosition());
-      return true;
     }
     else
-      return false;
+      window.setText(text, undefined, false);
 
   }
 
-  setSelectionByLength = function(start, end) {
+}
+
+window.getLineCount = function() {
+  
+  return getActiveEditor().getModel().getLineCount();
+
+}
+
+window.getLineContent = function(lineNumber) {
+
+  return window.editor.getModel().getLineContent(lineNumber)
+
+}
+
+window.getCurrentLineContent = function() {
+
+  return window.getLineContent(window.editor.getPosition().lineNumber);
+
+}
+
+window.getCurrentLine = function() {
+
+  return window.editor.getPosition().lineNumber;
+
+}
+
+window.getCurrentColumn = function() {
+
+  return window.editor.getPosition().column;
+
+}
+
+window.setLineContent = function(lineNumber, text) {
+
+  if (lineNumber <= window.getLineCount()) {
+    let range = new monaco.Range(lineNumber, 1, lineNumber, window.editor.getModel().getLineMaxColumn(lineNumber));
+    window.setText(text, range, false);
+    return true;      
+  }
+  else {
+    return false;
+  }
+
+}
+
+window.insertLine = function(lineNumber, text) {
+
+  let model = window.editor.getModel();
+  let text_model = monaco.editor.createModel(text);
+  let text_range = text_model.getFullModelRange();
+  let total_lines = window.getLineCount();
+  let text_lines = text_range.endLineNumber - text_range.startLineNumber;
+  
+  if (total_lines < lineNumber)
+    lineNumber = total_lines + 1;
+
+  if (total_lines < lineNumber && window.getText())
+    text = '\n' + text;
+
+  text_range.startLineNumber = lineNumber;
+  text_range.endLineNumber = lineNumber + text_lines;
+
+  if (lineNumber <= total_lines) {
+
+    let next_range = new monaco.Range(lineNumber, 1, total_lines, model.getLineMaxColumn(total_lines));
+    let next_text = model.getValueInRange(next_range);
+
+    if (next_text) {
+      next_range.endLineNumber += text_lines + 1;
+      next_text = '\n'.repeat(text_lines + 1) + next_text;
+      window.editor.executeEdits('insertLine', [{
+        range: next_range,
+        text: next_text,
+        forceMoveMarkers: true
+      }]);
+    }
+
+  }
+
+  window.editor.executeEdits('insertLine', [{
+    range: text_range,
+    text: text,
+    forceMoveMarkers: true
+  }]);
+
+}
+
+window.addLine = function(text) {
+
+  let line = window.getLineCount();
+
+  if (window.getText()) {
+    text = '\n' + text;
+    line++;
+  }
+
+  window.editor.executeEdits('addLine', [{
+    range: new monaco.Range(line, 1, line, 1),
+    text: text,
+    forceMoveMarkers: true
+  }]);
+
+}
+
+window.deleteLine = function(lineNumber) {
+
+  window.editor.executeEdits('addLine', [{
+    range: new monaco.Range(lineNumber, 1, lineNumber + 1, 1),
+    text: null      
+  }]);
+
+}
+
+window.getPositionOffset = function() {
+
+  let position = window.editor.getPosition();
+  let v_pos = window.editor.getScrolledVisiblePosition(position);
+  let layer = window.editor.getLayoutInfo();
+  let top = Math.min(v_pos.top, layer.height);
+  let left = Math.min(v_pos.left, layer.width);
+
+  return {top: top, left: left}
+
+}
+
+window.setDiffSideBySideMode = function (sideBySide) {
+  editor.updateOptions({
+    renderSideBySide: sideBySide
+  });
+  return true;
+}
+
+window.hideUnchangedBlocks = function () {
+
+  if (window.editor.navi)
+    window.setOption('hideUnchangedRegions', true);
+
+}
+
+window.showUnchangedBlocks = function () {
+
+  if (window.editor.navi)
+    window.setOption('hideUnchangedRegions', false);
+
+}
+
+function getDiffEditorOption(optionName) {
+
+  const optionValue = window.editor_options[optionName];
+  return optionValue === undefined ? false : optionValue;
+
+}
+
+function updateDiffEditorOption(optionName, optionValue) {
+
+  let option = {};
+  option[optionName] = optionName == 'hideUnchangedRegions'
+    ? { enabled: optionValue }
+    : optionValue;
+
+  if (window.editor.navi)
+    window.editor.updateOptions(option);
+
+  if (window.inlineDiffEditor)
+    window.inlineDiffEditor.updateOptions(option);
+
+}
+
+window.compare = function (text="", sideBySide=true, highlight=true, markLines = true, ignoreWhitespace = true, newOriginalText = "") {
+  
+  let language_id = window.getCurrentLanguageId();
+  let currentTheme = getCurrentThemeName();
+  let previous_options = getActiveEditor().getRawOptions();
+
+  let status_bar = window.statusBarWidget ? true : false;
+  let overlapScroll = true
     
-    let startPosition = editor.getModel().getPositionAt(start - 1);
-    let endPosition = editor.getModel().getPositionAt(end - 1);
-    let range = new monaco.Range(startPosition.lineNumber, startPosition.column, endPosition.lineNumber, endPosition.column);    
-    editor.setSelection(range);
-    editor.revealPositionInCenterIfOutsideViewport(endPosition);
+  if (status_bar) {
+    overlapScroll = window.statusBarWidget.overlapScroll;
+    hideStatusBar();
+  }
+
+  if (text || newOriginalText) {
+
+    if (language_id == 'xml') {
+      language_id = 'xml';
+      currentTheme = 'vs';
+    }
+
+    let originalModel = window.originalText ? monaco.editor.createModel(window.originalText) : monaco.editor.createModel(window.editor.getModel().getValue());
+    let modifiedModel = monaco.editor.createModel(text);
+    window.originalText = originalModel.getValue();
+    disposeEditor();
+    window.editor = monaco.editor.createDiffEditor(document.getElementById("container"), {
+      theme: currentTheme,
+      language: language_id,
+      contextmenu: false,
+      automaticLayout: true,
+      scrollBeyondLastLine: false,
+      renderSideBySide: sideBySide,
+      ignoreTrimWhitespace: ignoreWhitespace,
+      useInlineViewWhenSpaceIsLimited: false,
+      renderMarginRevertIcon: getDiffEditorOption('renderMarginRevertIcon'),
+      renderGutterMenu: false,
+      hideUnchangedRegions: { enabled: getDiffEditorOption('hideUnchangedRegions') },
+      // 0.55: гасим встроенный '*'-color-provider (worker-регэксп с lookbehind несовместим с
+      // WebKit поля 1С) и подсветку «неоднозначных»/невидимых символов (кириллица). Наш
+      // registerColorProvider при defaultColorDecorators:'never' продолжает работать.
+      defaultColorDecorators: 'never',
+      unicodeHighlight: {
+        ambiguousCharacters: false,
+        invisibleCharacters: false,
+        nonBasicASCII: false
+      },
+      useShadowDOM: false,
+      find: {
+        addExtraSpaceOnTop: false
+      },
+      stickyScroll: {
+        enabled: false
+      }
+    });
+    window.editor.countDiffEvents = 0;
+    window.editor.initialDiffCount = 0;
+    window.editor.onDidUpdateDiff(e => {
+      if (window.getOption('generateCompareCompleteEvent')) {
+        const diffCount = (window.editor.getLineChanges() || []).length;
+        if (window.editor.initialDiffCount == 0) {
+          sendEvent("EVENT_COMPARE_COMPLETE", {});
+          window.editor.initialDiffCount = diffCount;
+        }
+        if (diffCount < window.editor.initialDiffCount)
+          sendEvent("EVENT_COMPARE_COMPLETE", {});
+      }
+      if (window.getOption('generateModificationEvent'))
+        sendEvent('EVENT_CONTENT_CHANGED', '');
+    });
+    if (highlight) {
+      monaco.editor.setModelLanguage(originalModel, language_id);
+      monaco.editor.setModelLanguage(modifiedModel, language_id);
+    }
+    window.editor.setModel({
+      original: originalModel,
+      modified: modifiedModel
+    });
+    // Monaco 0.45: createDiffNavigator/IDiffNavigator удалены; navi — булев флаг diff-режима
+    // (читается как флаг в ~20 местах). Навигация теперь через diffEditor.goToDiff();
+    // getDiffLineInformationFor* (удалены в 0.40) реимплементированы поверх getLineChanges().
+    window.editor.navi = true;
+    window.editor.getDiffLineInformationForModified = function (lineNumber) {
+      return { equivalentLineNumber: getEquivalentDiffLine(this.getLineChanges(), lineNumber, true) };
+    };
+    window.editor.getDiffLineInformationForOriginal = function (lineNumber) {
+      return { equivalentLineNumber: getEquivalentDiffLine(this.getLineChanges(), lineNumber, false) };
+    };
+    window.editor.markLines = markLines;
+    window.editor.getModifiedEditor().diffDecor = {
+      decor: [],
+      line: 0,
+      position: 0
+    };
+    window.editor.getOriginalEditor().diffDecor = {
+      decor: [],
+      line: 0,
+      position: 0
+    };      
+    window.editor.diffEditorUpdateDecorations = diffEditorUpdateDecorations;
+    window.editor.markDiffLines = function () {
+      setTimeout(() => {
+        const modified_line = this.getPosition().lineNumber;
+        const diff_info = this.getDiffLineInformationForModified(modified_line);
+        const original_line = diff_info ? diff_info.equivalentLineNumber : modified_line;
+        if (this.markLines) {
+          this.getModifiedEditor().diffDecor.line = modified_line;
+          this.getOriginalEditor().diffDecor.line = original_line;
+        }
+        this.diffEditorUpdateDecorations();
+        // 0.55: getLineChanges() отдаёт null пока дифф не посчитан (async) → guard || [].
+        window.editor.diffCount = (window.editor.getLineChanges() || []).length;
+      }, 50);
+    };
+    window.editor.markDiffLines();
+    window.editor.getModifiedEditor().onKeyDown(e => diffEditorOnKeyDown(e));
+    window.editor.getOriginalEditor().onKeyDown(e => diffEditorOnKeyDown(e));
+    window.editor.getModifiedEditor().onDidChangeCursorPosition(e => diffEditorOnDidChangeCursorPosition(e));
+    window.editor.getOriginalEditor().onDidChangeCursorPosition(e => diffEditorOnDidChangeCursorPosition(e));
+    window.editor.getModifiedEditor().onDidLayoutChange(e => diffEditorOnDidLayoutChange(e));
+    window.editor.getOriginalEditor().onDidLayoutChange(e => diffEditorOnDidLayoutChange(e));
+    window.editor.getModifiedEditor().onMouseMove(e => {
+      newReviewDecoration(e);
+    });
+    window.editor.getModifiedEditor().onMouseDown(e => {
+      if (e.target.element.classList.contains('add-review'))
+        createReviewWidget(e.target.position.lineNumber);
+    });
+    window.setDefaultStyle();
+  }
+  else
+  {
+    disposeEditor();
+    createEditor(language_id, originalText, currentTheme);
+    window.originalText = '';
+    window.editor.diffCount = 0;
+  }
+  
+  window.editor.updateOptions({ readOnly: window.readOnlyMode });
+  
+  if (status_bar)
+    window.showStatusBar(overlapScroll);
+
+  let current_options = getActiveEditor().getRawOptions();
+  for (const [key, value] of Object.entries(previous_options)) {
+    if (!current_options.hasOwnProperty(key)) {
+      let option = {};
+      option[key] = value;
+      window.editor.updateOptions(option);
+    }
+  }
+
+  for (const [key, value] of Object.entries(editor_options)) {
+    window.setOption(key, value);
+  }
+
+}
+
+window.triggerSuggestions = function() {
+
+  window.editor.trigger('', 'editor.action.triggerSuggest', {});
+
+  setTimeout(() => {
+    startStopSuggestSelectionObserver();
+    startStopSuggestActivationObserver();
+    decorateSuggestWidgetRows();
+  }, 20);
+
+}
+
+window.triggerHovers = function() {
+  
+  window.editor.trigger('', 'editor.action.showHover', {});
+
+}
+
+window.showImmediateHover = function(text, title) {
+    
+  window.immediateHover = [
+    { value: title },
+    { value: text }
+  ]
+  window.triggerHovers();
+
+}
+
+window.triggerSigHelp = function() {
+  
+  window.editor.trigger('', 'editor.action.triggerParameterHints', {});
+
+}
+
+window.requestMetadata = function (metadata, trigger, data) {
+
+  if (!trigger)
+    trigger = 'suggestion';
+
+  let metadata_name = metadata.toLowerCase();
+  let request = window.metadataRequests.get(metadata_name);
+
+  if (!request) {
+
+    window.metadataRequests.set(metadata_name, true);
+
+    let event_params = {
+      metadata: metadata_name,
+      trigger: trigger
+    }
+
+    if (data)
+      event_params = Object.assign(event_params, data);
+
+    window.sendEvent("EVENT_GET_METADATA", event_params);
+  }
+
+}
+
+window.showCustomSuggestions = function(suggestions) {
+
+  window.customSuggestions = [];
+
+  try {
+
+    let suggestObj = JSON.parse(suggestions);
+    let currentPosition = window.editor.getPosition();
+
+    for (const [key, value] of Object.entries(suggestObj)) {
+
+      let suggestion = {
+        label: value.name,
+        kind: monaco.languages.CompletionItemKind[value.kind],
+        insertText: value.text,
+        insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+        detail: value.detail,
+        documentation: value.documentation,
+        filterText: value.hasOwnProperty('filter') ? value.filter : value.name,
+        sortText: value.hasOwnProperty('sort') ? value.sort : value.name,
+        preselect: !!value.preselect
+      };
+
+      if (value.event) {
+        suggestion.insertText = '';
+        suggestion.insertTextRules = undefined;
+        suggestion.range = new monaco.Range(
+          currentPosition.lineNumber,
+          currentPosition.column,
+          currentPosition.lineNumber,
+          currentPosition.column
+        );
+        suggestion.eventSuggestion = true;
+        suggestion.eventName = value.event;
+        suggestion.codicon = value.codicon ? value.codicon : 'codicon-symbol-event';
+      }
+
+      if (!suggestion.codicon && value.codicon)
+        suggestion.codicon = value.codicon;
+
+      window.customSuggestions.push(suggestion);
+
+    }
+
+    window.triggerSuggestions();
+    return true;
+    
+	}
+	catch (e) {
+		return { errorDescription: e.message };
+	}
+
+}
+
+window.showPreviousCustomSuggestions = function () {
+
+  if (window.editor.previousCustomSuggestions) {
+    window.customSuggestions = [...window.editor.previousCustomSuggestions];
+    window.triggerSuggestions();
+    return true;
+  }
+  else {
+    return false;
+  }
+
+}
+
+window.showInlineSuggestion = function(suggestions) {
+
+  window.customInlineSuggestion = [];
+
+  try {
+
+    window.customInlineSuggestion = JSON.parse(suggestions);
+    window.inlineSuggestionsChanged.fire();
+    return true;
+
+	}
+	catch (e) {
+		return { errorDescription: e.message };
+	}
+
+}
+
+window.nextDiff = function() {
+
+  if (window.editor.navi) {
+    window.editor.goToDiff('next');
+    window.editor.markDiffLines();
+  }
+
+}
+
+window.previousDiff = function() {
+
+  if (window.editor.navi) {
+    window.editor.goToDiff('previous');
+    window.editor.markDiffLines();
+  }
+
+}
+
+window.disableContextMenu = function() {
+  
+  window.editor.updateOptions({ contextmenu: false });
+  window.contextMenuEnabled = false;
+
+}
+
+window.scrollToTop = function () {
+  
+  document.body.scrollTop = 0;
+  document.documentElement.scrollTop = 0;
+
+}
+
+window.hideLineNumbers = function() {
+      
+  window.editor.updateOptions({ lineNumbers: false, lineDecorationsWidth: 0 });
+
+}
+
+window.showLineNumbers = function() {
+      
+  window.editor.updateOptions({ lineNumbers: true, lineDecorationsWidth: 10 });
+  
+}
+
+window.clearMetadata = function() {
+
+  window.metadataRequests.clear();
+  for (let [key, value] of Object.entries(window.bslMetadata)) {
+    if (value.hasOwnProperty('items'))
+      window.bslMetadata[key].items = {};
+  }
+
+}
+
+window.hideScroll = function(type) {
+
+  document.getElementsByTagName('body')[0].style[type] = 'hidden';
+  document.getElementById('container').style[type] = 'hidden';
+
+}
+
+window.hideScrollX = function() {
+
+  window.hideScroll('overflowX');
+
+}
+
+window.hideScrollY = function() {
+
+  window.hideScroll('overflowY');
+
+}
+
+window.getTokenFromPosition = function(position) {
+
+  let bsl = new bslHelper(window.editor.getModel(), position);
+  return bsl.getLastToken();
+
+}
+
+window.getLastToken = function() {
+
+  return window.getTokenFromPosition(window.editor.getPosition());
+
+}
+
+window.hideSuggestionsList = function() {
+
+  editor.trigger("editor", "hideSuggestWidget");
+
+}
+
+window.hideSignatureList = function () {
+
+  window.signatureVisible = false;
+  let widget = document.querySelector('.parameter-hints-widget');
+
+  if (widget)
+    widget.style.display = 'none';
+
+}
+
+window.hideHoverList = function() {
+
+  // 0.55: контейнер hover-виджета '.monaco-editor-hover' → '.monaco-hover' ('.hover-row' жив).
+  let hovers = document.querySelectorAll('.monaco-hover .hover-row');
+  hovers.forEach(function(hover){
+    hover.remove();
+  });
+
+}
+
+window.openSearchWidget = function() {
+  
+  getActiveEditor().trigger('', 'actions.find');
+  setFindWidgetDisplay('inherit');    
+  focusFindWidgetInput();
+
+}
+
+window.closeSearchWidget = function() {
+  
+  getActiveEditor().trigger('', 'closeFindWidget')
+  setFindWidgetDisplay('none');
+
+}
+
+window.setFontSize = function(fontSize)  {
+  
+  window.editor.updateOptions({fontSize: fontSize});
+
+}
+
+window.setFontFamily = function(fontFamily)  {
+  
+  window.editor.updateOptions({fontFamily: fontFamily});
+
+}
+
+window.setFontWeight = function(fontWeight)  {
+
+  window.editor.updateOptions({fontWeight: fontWeight});
+
+}
+
+window.setLineHeight = function(lineHeight) {
+
+  window.editor.updateOptions({lineHeight: lineHeight});
+
+}
+
+window.setLetterSpacing = function(letterSpacing) {
+
+  window.editor.updateOptions({letterSpacing: letterSpacing});
+
+}
+
+window.renderWhitespace = function(enabled) {
+
+  let mode = enabled ? 'all' : 'none';
+  window.editor.updateOptions({renderWhitespace: mode});
+
+}
+
+window.showStatusBar = function(overlapScroll = true) {
+  
+  if (!window.statusBarWidget)
+    createStatusBarWidget(overlapScroll);    
+
+}
+
+window.hideStatusBar = function() {
+
+  if (window.statusBarWidget) {
+    let dom = window.statusBarWidget.domNode;
+    if (dom && dom.parentNode)
+      dom.parentNode.removeChild(dom);
+    window.statusBarWidget = null;
+  }
+
+}
+
+window.addBookmark = function(lineNumber) {
+
+  if (lineNumber < window.getLineCount()) {
+
+    let bookmark = window.editor.bookmarks.get(lineNumber);
+
+    if (!bookmark)
+      window.updateBookmarks(lineNumber);
+
+    return !bookmark ? true : false;
+
+  }
+  else {
+    
+    window.editor.bookmarks.delete(lineNumber);
+    return false;
+
+  }
+
+}
+
+window.removeBookmark = function(lineNumber) {
+
+  if (lineNumber < window.getLineCount()) {
+
+    let bookmark = window.editor.bookmarks.get(lineNumber);
+
+    if (bookmark)
+      window.updateBookmarks(lineNumber);    
+    
+    return bookmark ? true : false;
+
+  }
+  else {
+
+    window.editor.bookmarks.delete(lineNumber);
+    return false;
+
+  }
+
+}
+
+window.removeAllBookmarks = function() {
+
+  window.editor.bookmarks.clear();
+  window.updateBookmarks();
+
+}
+
+window.getBookmarks = function () {
+
+  let sorted_bookmarks = getSortedBookmarks();
+  return Array.from(sorted_bookmarks.keys());
+
+}
+
+window.removeAllBreakpoints = function() {
+
+  window.editor.breakpoints.clear();
+  window.editor.updateDecorations([]);
+
+}  
+
+window.getBreakpoints = function () {
+
+  let sorted_breakpoints = window.getSortedBreakpoints();
+  return JSON.stringify(Array.from(sorted_breakpoints.keys()));
+
+}
+
+window.setCurrentDebugLine = function (line) {
+  
+  window.editor.currentDebugLine.clear();
+
+  debugLine = {
+      range: new monaco.Range(line, 1, line),
+      options: {
+          isWholeLine: true,
+          className: 'debug-line',
+        }
+  }
+  
+  pointer = {
+    range: new monaco.Range(line, 1, line),
+    options: {
+        isWholeLine: true,
+        linesDecorationsClassName: 'debug-line-pointer',
+        overviewRuler: {
+            position: 1
+        }
+    }
+  }
+
+  DebugLineSet = {
+    line: debugLine,
+    pointer: pointer
+  }
+
+  window.editor.currentDebugLine.set(line, DebugLineSet);
+  window.editor.updateDecorations([]);
+
+}
+
+window.deleteCurrentDebugLine = function () {
+
+  window.editor.currentDebugLine.clear();
+  window.editor.updateDecorations([]);
+
+}
+
+window.setActiveSuggestLabel = function (label) {
+
+  let element = document.querySelector('.monaco-list-rows .focused .monaco-icon-name-container');
+
+  if (element)
+    element.innerText = label;
+
+}
+
+window.setSuggestItemDetailById = function (rowId, detailInList, documentation = null) {
+
+  let i = parseInt(rowId);
+  let widget = getSuggestWidget();
+
+  // 0.55: widget.list → widget._list; элемент по индексу — публичный List.element(i);
+  // DOM-строку берём по data-index (list.view.items[i].row умер).
+  if (widget && i < widget._list.length) {
+
+    let item = widget._list.element(i);
+
+    if (item) {
+
+      item.completion.detail = detailInList;
+
+      if (documentation)
+        item.completion.documentation = documentation;
+
+    }
+
+    let row = document.querySelector('.monaco-list-rows .monaco-list-row[data-index="' + i + '"]');
+    let detail_element = row ? getChildWithClass(row, 'details-label') : null;
+
+    if (detail_element)
+      detail_element.innerText = detailInList;
+
+  }
+
+}
+
+window.setActiveSuggestDetail = function (detailInList, detailInSide = null, maxSideHeightInPixels = 800) {
+
+  let listRowDetail = document.querySelector('.monaco-list-rows .focused .details-label');
+
+  if (listRowDetail)
+    listRowDetail.innerText = detailInList;
+
+  // 0.55: панель доков — отдельный overlay .suggest-details-container > .suggest-details (не
+  // .suggest-widget.docs-side .details). Пишем в p.type ('.header .type'), а не в .header целиком
+  // (иначе снесём codicon-кнопку закрытия). [T4: высоту, возможно, перебивает ResizableHTMLElement —
+  // при мигании переключить на '.suggest-details-container'.]
+  let sideDetailType = document.querySelector('.suggest-details .header .type');
+
+  if (sideDetailType) {
+
+    if (!detailInSide)
+      detailInSide = detailInList;
+
+    sideDetailType.innerText = detailInSide;
+
+    let sideDetailElement = document.querySelector('.suggest-details');
+    let contentHeightInPixels = sideDetailType.scrollHeight;
+    let viewportHeightInPixels = Math.min(maxSideHeightInPixels, contentHeightInPixels);
+
+    sideDetailElement.style.height = viewportHeightInPixels.toString() + 'px';
+
+  }
+
+}
+
+window.hasTextFocus = function () {
+
+  return window.editor.hasTextFocus();
+
+}
+
+window.setActiveSuggestionAcceptors = function (characters) {
+
+  window.activeSuggestionAcceptors = characters.split('|');
+
+}
+
+window.nextMatch = function () {
+
+  getActiveEditor().trigger('', 'editor.action.nextMatchFindAction');
+
+}
+
+window.previousMatch = function () {
+
+  getActiveEditor().trigger('', 'editor.action.previousMatchFindAction');
+
+}
+
+window.setOption = function (optionName, optionValue) {
+
+  window.editor[optionName] = optionValue;
+  window.editor_options[optionName] = optionValue;
+
+  if (optionName == 'renderMarginRevertIcon' || optionName == 'hideUnchangedRegions')
+    updateDiffEditorOption(optionName, optionValue);
+
+  if (optionName == 'generateBeforeSignatureEvent')
+      startStopSignatureObserver();
+
+  if (optionName == 'generateSelectSuggestEvent')
+    startStopSuggestSelectionObserver();
+
+  if (optionName == 'disableDefinitionMessage')
+    startStopDefinitionMessegeObserver();
+
+  if (optionName == 'highlightInnerQuotes' && typeof setHighlightInnerQuotes == 'function') {
+    setHighlightInnerQuotes(optionValue);
+    window.setTheme(getCurrentThemeFullName());
+  }
+
+  if (optionName == 'disableFolding')
+    refreshFoldingState();
+
+  if (optionName == 'showDiffDecorations') {
+    if (isShowDiffDecorationsEnabled() && window.editor.calculateDiff)
+      calculateDiff();
+    else {
+      window.editor.removeDiffWidget();
+      window.editor.diff_decorations = [];
+      window.editor.updateDecorations([]);
+    }
+  }
+
+}
+
+window.getOption = function (optionName) {
+
+  return window.editor[optionName];
+  
+}
+
+window.disableKeyBinding = function (keybinding) {
+
+  const bind_str = keybinding.toString();
+  const key_name = 'kbinding_' + bind_str;
+
+  if (window.editor[key_name])
+    window.editor[key_name].set(true);
+  else
+    window.editor[key_name] = window.editor.createContextKey(key_name, true);
+
+  window.editor.addCommand(keybinding, function() {window.sendEvent('EVENT_KEY_BINDING_' + bind_str)}, key_name);
+
+}
+
+window.enableKeyBinding = function (keybinding) {
+
+  const key_name = 'kbinding_' + keybinding;
+  const context_key = window.editor[key_name];
+  
+  if (context_key)
+    context_key.set(false);
+  
+}
+
+window.jumpToBracket = function () {
+
+  if (!jumpToIfBracket())
+    window.editor.trigger('', 'editor.action.jumpToBracket');
+
+}
+
+window.selectToBracket = function () {
+
+  if (!selectToIfBracket())
+    window.editor.trigger('', 'editor.action.selectToBracket');
+
+}
+
+window.revealDefinition = function() {
+
+  window.editor.trigger('', 'editor.action.revealDefinition');
+
+}
+
+window.peekDefinition = function() {
+
+  window.editor.trigger('', 'editor.action.peekDefinition');
+
+}
+
+window.setOriginalText = function (originalText, setEmptyOriginalText = false) {
+
+  window.editor.originalText = originalText;
+  window.editor.calculateDiff = (originalText || setEmptyOriginalText);
+
+  if (!window.editor.calculateDiff) {
+    window.editor.diffCount = 0;
+    window.editor.removeDiffWidget();
+    window.editor.diff_decorations = [];
+  }
+  else if (isShowDiffDecorationsEnabled())
+    calculateDiff();
+  else {
+    window.editor.removeDiffWidget();
+    window.editor.diff_decorations = [];
+  }
+
+  window.editor.updateDecorations([]);
+
+}
+
+window.getOriginalText = function () {
+
+  return window.editor.originalText;
+
+}
+
+window.revealLineInCenter = function (lineNumber) {
+
+  let line = Math.min(lineNumber, window.getLineCount())
+  window.editor.revealLineInCenter(lineNumber);    
+  window.editor.setPosition(new monaco.Position(line, 1));
+
+}
+
+window.saveViewState = function () {
+
+  return JSON.stringify(window.editor.saveViewState());
+
+}
+
+window.restoreViewState = function (state) {
+  
+  try {
+		window.editor.restoreViewState(JSON.parse(state));
+		return true;
+	}
+	catch (e) {      
+		return { errorDescription: e.message };
+	}
+
+}
+
+window.getDiffCount = function() {
+
+  return window.editor.diffCount ? window.editor.diffCount : 0;
+
+}
+
+window.formatDocument = function() {
+
+  window.editor.trigger('', 'editor.action.formatDocument');
+
+}
+
+window.isParameterHintsWidgetVisible = function () {
+
+  let content_widget = getParameterHintsWidget();
+  return content_widget ? content_widget.widget.visible : false;
+
+}
+
+window.isSuggestWidgetVisible = function() {
+
+  // 0.55: поле suggestWidgetVisible → _ctxSuggestWidgetVisible; getSuggestWidget() = сам виджет|null.
+  let widget = getSuggestWidget();
+  return widget ? widget._ctxSuggestWidgetVisible.get() === true : false;
+
+}
+
+window.insertSnippet = function(snippet) {
+
+  let controller = editor.getContribution("snippetController2");
+  
+  if (controller)
+    controller.insert(snippet);
+
+}
+
+window.parseSnippets = function(stData, unionSnippets = false) {
+
+  let parser = new SnippetsParser();
+  parser.setStream(stData);
+  parser.parse();
+  let loaded_snippets = parser.getSnippets();
+
+  if (loaded_snippets) {
+
+    let snip_obj = loaded_snippets;
+
+    if (unionSnippets)
+      snippets = Object.assign(snippets, snip_obj);
+    else
+      snippets = snip_obj;
 
     return true;
 
   }
-
-  selectedText = function(text = undefined, keepSelection = false) {
-
-    if (text == undefined)
-      
-      return getSelectedText();    
-
-    else {      
-      
-      if (getSelectedText()) {
-
-        let selection = getSelection();
-        let tempModel = monaco.editor.createModel(text);
-        let tempRange = tempModel.getFullModelRange();
-        
-        setText(text, getSelection(), false);
-
-        if (keepSelection) {
-          if (tempRange.startLineNumber == tempRange.endLineNumber)
-            setSelection(selection.startLineNumber, selection.startColumn, selection.startLineNumber, selection.startColumn + tempRange.endColumn - 1);
-          else
-            setSelection(selection.startLineNumber, selection.startColumn, selection.startLineNumber + tempRange.endLineNumber - tempRange.startLineNumber, tempRange.endColumn);
-        }
-
-      }
-      else
-        setText(text, undefined, false);
-
-    }
-
-  }
-
-  getLineCount = function() {
-    
-    return editor.getModel().getLineCount();
-
-  }
-
-  getLineContent = function(lineNumber) {
-
-    return editor.getModel().getLineContent(lineNumber)
-
-  }
-
-  getCurrentLineContent = function() {
-
-    return getLineContent(editor.getPosition().lineNumber);
-
-  }
-
-  getCurrentLine = function() {
-
-    return editor.getPosition().lineNumber;
-
-  }
-
-  getCurrentColumn = function() {
-
-    return editor.getPosition().column;
-
-  }
-
-  setLineContent = function(lineNumber, text) {
-
-    if (lineNumber <= getLineCount()) {
-      let range = new monaco.Range(lineNumber, 1, lineNumber, editor.getModel().getLineMaxColumn(lineNumber));
-      setText(text, range, false);
-      return true;      
-    }
-    else {
-      return false;
-    }
-
-  }
-
-  insertLine = function(lineNumber, text) {
-
-    let model = editor.getModel();
-    let text_model = monaco.editor.createModel(text);
-    let text_range = text_model.getFullModelRange();
-    let total_lines = getLineCount();
-    let text_lines = text_range.endLineNumber - text_range.startLineNumber;
-    
-    if (total_lines < lineNumber)
-      lineNumber = total_lines + 1;
-
-    if (total_lines < lineNumber && getText())
-      text = '\n' + text;
-
-    text_range.startLineNumber = lineNumber;
-    text_range.endLineNumber = lineNumber + text_lines;
-
-    if (lineNumber <= total_lines) {
-
-      let next_range = new monaco.Range(lineNumber, 1, total_lines, model.getLineMaxColumn(total_lines));
-      let next_text = model.getValueInRange(next_range);
-
-      if (next_text) {
-        next_range.endLineNumber += text_lines + 1;
-        next_text = '\n'.repeat(text_lines + 1) + next_text;
-        editor.executeEdits('insertLine', [{
-          range: next_range,
-          text: next_text,
-          forceMoveMarkers: true
-        }]);
-      }
-
-    }
-
-    editor.executeEdits('insertLine', [{
-      range: text_range,
-      text: text,
-      forceMoveMarkers: true
-    }]);
-
-  }
-
-  addLine = function(text) {
-
-    let line = getLineCount();
-
-    if (getText()) {
-      text = '\n' + text;
-      line++;
-    }
-
-    editor.executeEdits('addLine', [{
-      range: new monaco.Range(line, 1, line, 1),
-      text: text,
-      forceMoveMarkers: true
-    }]);
-
-  }
-
-  getPositionOffset = function() {
-
-    let position = editor.getPosition();
-    let v_pos = editor.getScrolledVisiblePosition(position);
-    let layer = editor.getLayoutInfo();
-    let top = Math.min(v_pos.top, layer.height);
-    let left = Math.min(v_pos.left, layer.width);
-
-    return {top: top, left: left}
-
-  }
-
-  compare = function (text, sideBySide, highlight, markLines = true) {
-    
-    let language_id = getCurrentLanguageId();
-    let currentTheme = getCurrentThemeName();
-    let previous_options = getActiveEditor().getRawOptions();
   
-    let status_bar = statusBarWidget ? true : false;
-    let overlapScroll = true;
-    
-    if (status_bar) {
-      overlapScroll = statusBarWidget.overlapScroll;
-      hideStatusBar();      
-    }
+  return false;
+  
+}
 
-    if (text) {      
-      
-      if (language_id == 'xml') {
-        language_id = 'xml';
-        currentTheme = 'vs';
-      }
-      
-      let originalModel = originalText ? monaco.editor.createModel(originalText) : monaco.editor.createModel(editor.getModel().getValue());
-      let modifiedModel = monaco.editor.createModel(text);
-      originalText = originalModel.getValue();
-      disposeEditor();
-      editor = monaco.editor.createDiffEditor(document.getElementById("container"), {
-        theme: currentTheme,
-        language: language_id,
-        contextmenu: false,
-        automaticLayout: true,
-        scrollBeyondLastLine: false,
-        renderSideBySide: sideBySide,
-        find: {
-          addExtraSpaceOnTop: false
-        }
-      });    
-      if (highlight) {
-        monaco.editor.setModelLanguage(originalModel, language_id);
-        monaco.editor.setModelLanguage(modifiedModel, language_id);
-      }
-      editor.setModel({
-        original: originalModel,
-        modified: modifiedModel
-      });
-      editor.navi = monaco.editor.createDiffNavigator(editor, {
-        followsCaret: true,
-        ignoreCharChanges: true
-      });
-      editor.markLines = markLines;
-      editor.getModifiedEditor().diffDecor = {
-        decor: [],
-        line: 0,
-        position: 0
-      };
-      editor.getOriginalEditor().diffDecor = {
-        decor: [],
-        line: 0,
-        position: 0
-      };      
-      editor.diffEditorUpdateDecorations = diffEditorUpdateDecorations;
-      editor.markDiffLines = function () {
-        setTimeout(() => {
-          const modified_line = this.getPosition().lineNumber;
-          const diff_info = this.getDiffLineInformationForModified(modified_line);
-          const original_line = diff_info ? diff_info.equivalentLineNumber : modified_line;
-          if (this.markLines) {
-            this.getModifiedEditor().diffDecor.line = modified_line;
-            this.getOriginalEditor().diffDecor.line = original_line;
-          }
-          this.diffEditorUpdateDecorations();
-          editor.diffCount = editor.getLineChanges().length;
-        }, 50);
-      };
-      editor.markDiffLines();
-      editor.getModifiedEditor().onKeyDown(e => diffEditorOnKeyDown(e));
-      editor.getOriginalEditor().onKeyDown(e => diffEditorOnKeyDown(e));
-      editor.getModifiedEditor().onDidChangeCursorPosition(e => diffEditorOnDidChangeCursorPosition(e));
-      editor.getOriginalEditor().onDidChangeCursorPosition(e => diffEditorOnDidChangeCursorPosition(e));
-      editor.getModifiedEditor().onDidLayoutChange(e => diffEditorOnDidLayoutChange(e));
-      editor.getOriginalEditor().onDidLayoutChange(e => diffEditorOnDidLayoutChange(e));
-      setDefaultStyle();
-    }
-    else
-    {
-      disposeEditor();
-      createEditor(language_id, originalText, currentTheme);
-      initEditorEventListenersAndProperies();
-      originalText = '';
-      editor.diffCount = 0;
-    }
-    
-    editor.updateOptions({ readOnly: readOnlyMode });
-    if (status_bar)
-      showStatusBar(overlapScroll);
+window.setDefaultSnippets = function() {
 
-    let current_options = getActiveEditor().getRawOptions();
-    for (const [key, value] of Object.entries(previous_options)) {
-      if (!current_options.hasOwnProperty(key)) {
-        let option = {};
-        option[key] = value;
-        editor.updateOptions(option);
-      }
-    }
+  window.snippets = window.bslSnippets;
 
-    for (const [key, value] of Object.entries(editor_options)) {
-      setOption(key, value);
-    }
+}
 
-  }
+window.clearSnippets = function() {
 
-  triggerSuggestions = function() {
-    
-    editor.trigger('', 'editor.action.triggerSuggest', {});
+  window.snippets = {};
 
-  }
+}
 
-  triggerHovers = function() {
-    
-    editor.trigger('', 'editor.action.showHover', {});
+window.updateSnippetByGUID = function (snippetGUID) {
 
-  }
+  let widget = getSuggestWidget();
 
-  triggerSigHelp = function() {
-    
-    editor.trigger('', 'editor.action.triggerParameterHints', {});
+  // 0.55: list.view.items → полный список _completionModel.items (все элементы, не только
+  // отрисованные — для поиска по GUID корректнее); .element.completion/.provider → item.completion/
+  // item.provider; resolveCompletionItem теперь (item, token) (bsl_language.js мигрирован).
+  if (widget && widget._completionModel) {
 
-  }
+    widget._completionModel.items.forEach((item) => {
 
-  requestMetadata = function (metadata, trigger, data) {
+      if (item.completion.guid == snippetGUID)
+        item.provider.resolveCompletionItem(item.completion, null);
 
-    if (!trigger)
-      trigger = 'suggestion';
-
-    let metadata_name = metadata.toLowerCase();
-    let request = metadataRequests.get(metadata_name);
-
-    if (!request) {
-
-      metadataRequests.set(metadata_name, true);
-
-      let event_params = {
-        metadata: metadata_name,
-        trigger: trigger
-      }
-
-      if (data)
-        event_params = Object.assign(event_params, data);
-
-      sendEvent("EVENT_GET_METADATA", event_params);
-    }
-
-  }
-
-  showCustomSuggestions = function(suggestions) {
-    
-    customSuggestions = [];
-    
-    try {
-            
-      let suggestObj = JSON.parse(suggestions);
-      
-      for (const [key, value] of Object.entries(suggestObj)) {
-
-        customSuggestions.push({
-          label: value.name,
-          kind: monaco.languages.CompletionItemKind[value.kind],
-          insertText: value.text,
-          insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-          detail: value.detail,
-          documentation: value.documentation,
-          filterText: value.hasOwnProperty('filter') ? value.filter : value.name,
-          sortText: value.hasOwnProperty('sort') ? value.sort : value.name
-        });
-
-      }
-
-      triggerSuggestions();
-      return true;
-      
-		}
-		catch (e) {
-			return { errorDescription: e.message };
-		}
-
-  }
-
-  showPreviousCustomSuggestions = function () {
-
-    if (editor.previousCustomSuggestions) {
-      customSuggestions = [...editor.previousCustomSuggestions];
-      triggerSuggestions();
-      return true;
-    }
-    else {
-      return false;
-    }
-
-  }
-
-  nextDiff = function() {
-
-    if (editor.navi) {
-      editor.navi.next();
-      editor.markDiffLines();
-    }
-
-  }
-
-  previousDiff = function() {
-
-    if (editor.navi) {
-      editor.navi.previous();
-      editor.markDiffLines();
-    }
-
-  }
-
-  disableContextMenu = function() {
-    
-    editor.updateOptions({ contextmenu: false });
-    contextMenuEnabled = false;
-
-  }
-
-  scrollToTop = function () {
-    
-    document.body.scrollTop = 0;
-    document.documentElement.scrollTop = 0;
-
-  }
-
-  hideLineNumbers = function() {
-        
-    editor.updateOptions({ lineNumbers: false, lineDecorationsWidth: 0 });
-
-  }
-
-  showLineNumbers = function() {
-        
-    editor.updateOptions({ lineNumbers: true, lineDecorationsWidth: 10 });
-    
-  }
-
-  clearMetadata = function() {
-
-    metadataRequests.clear();
-
-    for (let [key, value] of Object.entries(bslMetadata)) {
-
-      if (value.hasOwnProperty('items'))
-        bslMetadata[key].items = {};
-
-    }
-
-  }
-
-  hideScroll = function(type) {
-
-    document.getElementsByTagName('body')[0].style[type] = 'hidden';
-    document.getElementById('container').style[type] = 'hidden';
-
-  }
-
-  hideScrollX = function() {
-
-    hideScroll('overflowX');
-
-  }
-
-  hideScrollY = function() {
-
-    hideScroll('overflowY');
-
-  }
-
-  getTokenFromPosition = function(position) {
-
-    let bsl = new bslHelper(editor.getModel(), position);
-    return bsl.getLastToken();
-
-  }
-
-  getLastToken = function() {
-
-    return getTokenFromPosition(editor.getPosition());
-
-  }
-
-  hideSuggestionsList = function() {
-
-    editor.trigger("editor", "hideSuggestWidget"); // https://github.com/salexdv/bsl_console/issues/209
-
-  }
-
-  hideSignatureList = function () {
-
-    signatureVisible = false;
-    let widget = document.querySelector('.parameter-hints-widget');
-
-    if (widget)
-      widget.style.display = 'none';
-
-  }
-
-  hideHoverList = function() {
-
-    let hovers = document.querySelectorAll('.monaco-editor-hover .hover-row');
-    hovers.forEach(function(hover){
-      hover.remove();
     });
 
   }
 
-  openSearchWidget = function() {
-    
-    getActiveEditor().trigger('', 'actions.find');
-    setFindWidgetDisplay('inherit');    
-    focusFindWidgetInput();
+}
 
+window.setMarkers = function (markersJSON) {
+
+  try {
+    const markers_array = JSON.parse(markersJSON);
+    const model = window.editor.navi ? window.editor.getModifiedEditor().getModel() : window.editor.getModel();
+    setModelMarkers(model, markers_array)
+    return true;
+  }
+  catch (e) {
+    return { errorDescription: e.message };
   }
 
-  closeSearchWidget = function() {
-    
-    getActiveEditor().trigger('', 'closeFindWidget')
-    setFindWidgetDisplay('none');
+}
 
-  }
+window.getMarkers = function( ) {
 
-  setFontSize = function(fontSize)  {
-    
-    editor.updateOptions({fontSize: fontSize});
+  return getSortedMarkers();
 
-  }
+}
 
-  setFontFamily = function(fontFamily)  {
-    
-    editor.updateOptions({fontFamily: fontFamily});
+window.goNextMarker = function () {
 
-  }
+  let sorted_markers = getSortedMarkers();
 
-  setFontWeight = function(fontWeight)  {
+  if (sorted_markers.length - 1 <= currentMarker)
+    currentMarker = -1;
 
-    editor.updateOptions({fontWeight: fontWeight});
+  currentMarker++;
+  goToCurrentMarker(sorted_markers);
 
-  }
+}
 
-  setLineHeight = function(lineHeight) {
+window.goPreviousMarker = function () {
 
-    editor.updateOptions({lineHeight: lineHeight});
+  let sorted_markers = getSortedMarkers();
 
-  }
+  currentMarker--;
 
-  setLetterSpacing = function(letterSpacing) {
+  if (currentMarker < 0)
+  currentMarker = sorted_markers.length - 1;
 
-    editor.updateOptions({letterSpacing: letterSpacing});
+  goToCurrentMarker(sorted_markers);
 
-  }
+}
 
-  renderWhitespace = function(enabled) {
+window.goToFuncDefinition = function (funcName) {
 
-    let mode = enabled ? 'all' : 'none';
-    editor.updateOptions({renderWhitespace: mode});
+  if (funcName) {
 
-  }
+    let pattern = '(процедура|procedure|функция|function)\\s*' + funcName + '\\(';
+    let match = getActiveEditor().getModel().findPreviousMatch(pattern, window.editor.getPosition(), true);
 
-  showStatusBar = function(overlapScroll = true) {
-    
-    if (!statusBarWidget)
-      createStatusBarWidget(overlapScroll);    
-
-  }
-
-  hideStatusBar = function() {
-
-    if (statusBarWidget) {
-      if (editor.navi)
-        editor.getModifiedEditor().removeOverlayWidget(statusBarWidget);
-      else
-        editor.removeOverlayWidget(statusBarWidget);
-      statusBarWidget = null;
-    }
-
-  }
-
-  addBookmark = function(lineNumber) {
-
-    if (lineNumber <= getLineCount()) {
-
-      let bookmark = editor.bookmarks.get(lineNumber);
-
-      if (!bookmark)
-        updateBookmarks(lineNumber);
-
-      return !bookmark ? true : false;
-
-    }
-    else {
-      
-      editor.bookmarks.delete(lineNumber);
-      return false;
-
-    }
-
-  }
-
-  removeBookmark = function(lineNumber) {
-
-    if (lineNumber < getLineCount()) {
-
-      let bookmark = editor.bookmarks.get(lineNumber);
-
-      if (bookmark)
-        updateBookmarks(lineNumber);    
-      
-      return bookmark ? true : false;
-
-    }
-    else {
-
-      editor.bookmarks.delete(lineNumber);
-      return false;
-
-    }
-
-  }
-
-  removeAllBookmarks = function() {
-
-    editor.bookmarks.clear();
-    updateBookmarks();
-
-  }
-
-  getBookmarks = function () {
-
-    let sorted_bookmarks = getSortedBookmarks();
-    return Array.from(sorted_bookmarks.keys());
-
-  }
-
-  setActiveSuggestLabel = function (label) {
-
-    let element = document.querySelector('.monaco-list-rows .focused .monaco-icon-name-container');
-
-    if (element)
-      element.innerText = label;
-
-  }
-
-  setSuggestItemDetailById = function (rowId, detailInList, documentation = null) {
-
-    let i = parseInt(rowId);
-    let suggestWidget = getSuggestWidget();
-
-    if (suggestWidget && i < suggestWidget.widget.list.view.items.length) {
-
-      let suggest_item = suggestWidget.widget.list.view.items[i];
-      suggest_item.element.completion.detail = detailInList;      
-      
-      if (documentation)
-        suggest_item.element.completion.documentation = documentation;
-     
-      let detail_element = getChildWithClass(suggest_item.row.domNode,'details-label');
-
-      if (detail_element)
-        detail_element.innerText = detailInList
-
-    }
-
-  }
-
-  setActiveSuggestDetail = function (detailInList, detailInSide = null, maxSideHeightInPixels = 800) {
-
-    let listRowDetail = document.querySelector('.monaco-list-rows .focused .details-label');
-
-    if (listRowDetail)
-      listRowDetail.innerText = detailInList;
-
-    let sideDetailHeader = document.querySelector('.suggest-widget.docs-side .details .header');
-    
-    if (sideDetailHeader) {
-      
-      if (!detailInSide)
-        detailInSide = detailInList;
-
-      sideDetailHeader.innerText = detailInSide;
-      
-      let sideDetailElement = document.querySelector('.suggest-widget.docs-side .details');      
-      let contentHeightInPixels = sideDetailHeader.scrollHeight;
-      let viewportHeightInPixels = Math.min(maxSideHeightInPixels, contentHeightInPixels);
-
-      sideDetailElement.style.height = viewportHeightInPixels.toString() + 'px';
-
-    }
-    
-  }
-
-  hasTextFocus = function () {
-
-    return editor.hasTextFocus();
-
-  }
-
-  setActiveSuggestionAcceptors = function (characters) {
-
-    activeSuggestionAcceptors = characters.split('|');
-
-  }
-
-  nextMatch = function () {
-
-    getActiveEditor().trigger('', 'editor.action.nextMatchFindAction');
-
-  }
-
-  previousMatch = function () {
-
-    getActiveEditor().trigger('', 'editor.action.previousMatchFindAction');
-
-  }
-
-  setOption = function (optionName, optionValue) {
-
-    setTimeout(() => {
-
-      editor[optionName] = optionValue;
-      editor_options[optionName] = optionValue;
-
-      if (optionName == 'generateBeforeSignatureEvent')
-        startStopSignatureObserver();
-
-      if (optionName == 'generateSelectSuggestEvent')
-        startStopSuggestSelectionObserver();
-
-      if (optionName == 'disableDefinitionMessage')
-        startStopDefinitionMessegeObserver();
-
-      if (optionName == 'generateSuggestActivationEvent')
-        startStopSuggestActivationObserver();
-        
-    }, 10);
-
-  }
-
-  getOption = function (optionName) {
-
-    return editor[optionName];
-    
-  }
-
-  disableKeyBinding = function (keybinding) {
-
-    const bind_str = keybinding.toString();
-    const key_name = 'kbinding_' + bind_str;
-  
-    if (editor[key_name])
-      editor[key_name].set(true);
-    else
-      editor[key_name] = editor.createContextKey(key_name, true);
-
-    editor.addCommand(keybinding, function() {sendEvent('EVENT_KEY_BINDING_' + bind_str)}, key_name);
-
-  }
-
-  enableKeyBinding = function (keybinding) {
-  
-    const key_name = 'kbinding_' + keybinding;
-    const context_key = editor[key_name];
-    
-    if (context_key)
-      context_key.set(false);
-    
-  }
-
-  jumpToBracket = function () {
-
-    editor.trigger('', 'editor.action.jumpToBracket');
-
-  }
-
-  selectToBracket = function () {
-
-    editor.trigger('', 'editor.action.selectToBracket');
-
-  }
-
-  revealDefinition = function() {
-
-    editor.trigger('', 'editor.action.revealDefinition');
-
-  }
-
-  peekDefinition = function() {
-
-    editor.trigger('', 'editor.action.peekDefinition');
-
-  }
-
-  setOriginalText = function (originalText, setEmptyOriginalText = false) {
-
-    editor.originalText = originalText;
-    editor.calculateDiff = (originalText || setEmptyOriginalText);
-
-    if (!editor.calculateDiff) {
-      editor.diffCount = 0;
-      editor.removeDiffWidget();
-      editor.diff_decorations = [];
-    }
-    else
-      calculateDiff();
-
-    editor.updateDecorations([]);
-
-  }
-
-  getOriginalText = function () {
-
-    return editor.originalText;    
-
-  }
-
-  revealLineInCenter = function (lineNumber) {
-
-    let line = Math.min(lineNumber, getLineCount())
-    editor.revealLineInCenter(lineNumber);    
-    editor.setPosition(new monaco.Position(line, 1));
-
-  }
-
-  saveViewState = function () {
-
-    return JSON.stringify(editor.saveViewState());
-
-  }
-
-  restoreViewState = function (state) {
-    
-    try {
-			editor.restoreViewState(JSON.parse(state));
-			return true;
-		}
-		catch (e) {      
-			return { errorDescription: e.message };
-		}
-
-  }
-
-  getDiffCount = function() {
-
-    return editor.diffCount ? editor.diffCount : 0;
-
-  }
-
-  formatDocument = function() {
-
-    editor.trigger('', 'editor.action.formatDocument');
-  
-  }
-
-  isSuggestWidgetVisible = function () {
-
-    let content_widget = getSuggestWidget();
-    return content_widget ? content_widget.widget.suggestWidgetVisible.get() : false;
-
-  }
-
-  isParameterHintsWidgetVisible = function () {
-
-    let content_widget = getParameterHintsWidget();
-    return content_widget ? content_widget.widget.visible : false;
-
-  }
-
-  insertSnippet = function(snippet) {
-
-    let controller = editor.getContribution("snippetController2");
-    
-    if (controller)
-      controller.insert(snippet);
-
-  }
-
-  parseSnippets = function(stData, unionSnippets = false) {
-
-    let parser = new SnippetsParser();
-    parser.setStream(stData);
-    parser.parse();
-    let loaded_snippets = parser.getSnippets();
-
-    if (loaded_snippets) {
-
-      let snip_obj = loaded_snippets;
-
-      if (unionSnippets)
-        snippets = Object.assign(snippets, snip_obj);
-      else
-        snippets = snip_obj;
-
+    if (match) {
+      window.editor.revealLineInCenter(match.range.startLineNumber);
+      window.editor.setPosition(new monaco.Position(match.range.startLineNumber, match.range.startColumn));
+      window.editor.focus();
       return true;
-
     }
+  }
+
+  return false;
+
+}
+
+window.fold = function() {
+
+  window.editor.trigger('', 'editor.fold');
+
+}
+
+window.foldAll = function() {
+
+  window.editor.trigger('', 'editor.foldAll');
+
+}
+
+window.unfold = function() {
+
+  window.editor.trigger('', 'editor.unfold');
+
+}
+
+window.unfoldAll = function() {
+
+  window.editor.trigger('', 'editor.unfoldAll');
+
+}
+
+window.scale = function(direction) {
+
+  if (direction == 0)
+    window.editor.trigger('', 'editor.action.fontZoomReset');
+  else if (0 < direction)
+    window.editor.trigger('', 'editor.action.fontZoomIn');
+  else
+    window.editor.trigger('', 'editor.action.fontZoomOut');
+
+}
+
+window.gotoLine = function() {
+
+  window.editor.trigger('', 'editor.action.gotoLine');
+  getQuickOpenWidget().widget.quickOpenWidget.inputElement.focus();
+
+}
+
+window.showVariablesDescription = function(variablesJSON) {    
     
-    return false;
+  try {
+
+    if (window.treeview != null)
+      hideVariablesDisplay();
+
+    const variables = JSON.parse(variablesJSON);
+    window.treeview = new Treeview("#variables-tree", window.editor, resolveTreeIcon);
+    window.treeview.replaceData(variables);
+    showVariablesDisplay();
+
+    return true;
+
+  }
+  catch (e) {
+    return { errorDescription: e.message };
+  }
+
+}
+
+window.updateVariableDescription = function(variableId, variableJSON) { 
+
+  try {
+
+    const variables = JSON.parse(variableJSON);
+    window.treeview.replaceData(variables, variableId);
+    window.treeview.open(variableId);
+    return true;
+
+  }
+  catch (e) {
+    return { errorDescription: e.message };
+  }
+
+}
+
+window.setLineNumbersDecorations = function(decorations) {
+
+  window.lineNumbersDedocrations = [];
+  window.lineNumbersDedocrations.push();
+
+  try {
     
+    const decor = JSON.parse(decorations);
+    let length = 0;
+    decor.forEach(function (value) {
+      window.lineNumbersDedocrations.push(value);
+      length = Math.max(length, value.length)
+    });
+
+    const max_length = window.lineNumbersDedocrations.length.toString().length + 3
+    window.editor.updateOptions({ lineNumbersMinChars: 0 });
+    window.editor.updateOptions({ lineNumbersMinChars: length + max_length });
+    window.editor.layout();
+
+    return true;
+
+  }
+  catch (e) {
+    return { errorDescription: e.message };
   }
 
-  setDefaultSnippets = function() {
+}
 
-    snippets = bslSnippets;
+window.getDifferences = function () {
 
-  }
+  let diff = [];
 
-  clearSnippets = function() {
+  if (editor.navi) {
 
-    snippets = {};
+    // 0.55: getLineChanges() null пока дифф async; .originalEditor/.modifiedEditor удалены → get*.
+    diff = window.editor.getLineChanges() || [];
+    let original_model = window.editor.getOriginalEditor().getModel();
+    let modified_model = window.editor.getModifiedEditor().getModel();
 
-  }
+    diff.forEach(function (value) {
+              
+      value["originalText"] = getTextInLines(original_model, value.originalStartLineNumber, value.originalEndLineNumber);
+      value["modifiedText"] = getTextInLines(modified_model, value.modifiedStartLineNumber, value.modifiedEndLineNumber);        
 
-  updateSnippetByGUID = function (snippetGUID) {
-
-    suggestWidget = getSuggestWidget();
-
-    if (suggestWidget) {
-
-      suggestWidget.widget.list.view.items.forEach((completionItem) => {
-
-        if (completionItem.element.completion.guid == snippetGUID)
-          completionItem.element.provider.resolveCompletionItem(editor.getModel(),
-            editor.getPosition(),
-            completionItem.element.completion
+      if (Array.isArray(value.charChanges)) {
+        
+        value.charChanges.forEach(function (char) {
+          char["originalText"] = getTextInRange(
+            original_model,
+            char.originalStartLineNumber,
+            char.originalStartColumn,
+            char.originalEndLineNumber,
+            char.originalEndColumn
           );
-
-      });
-
-    }
-
-  }
-
-  setMarkers = function (markersJSON) {
-
-    try {
-      const markers_array = JSON.parse(markersJSON);
-      const model = editor.navi ? editor.getModifiedEditor().getModel() : editor.getModel();
-      setModelMarkers(model, markers_array)
-      return true;
-    }
-    catch (e) {
-      return { errorDescription: e.message };
-    }
-
-  }
-
-  getMarkers = function( ) {
-
-    return getSortedMarkers();
-
-  }
-
-  goNextMarker = function () {
-
-    let sorted_markers = getSortedMarkers();
-
-    if (sorted_markers.length - 1 <= currentMarker)
-      currentMarker = -1;
-
-    currentMarker++;
-    goToCurrentMarker(sorted_markers);
-
-  }
-
-  goPreviousMarker = function () {
-
-    let sorted_markers = getSortedMarkers();
-
-    currentMarker--;
-
-    if (currentMarker < 0)
-    currentMarker = sorted_markers.length - 1;
-
-    goToCurrentMarker(sorted_markers);
-
-  }
-
-  goToFuncDefinition = function (funcName) {
-
-    if (funcName) {
-
-      let pattern = '(процедура|procedure|функция|function)\\s*' + funcName + '\\(';
-      let match = getActiveEditor().getModel().findPreviousMatch(pattern, editor.getPosition(), true);
-
-      if (match) {
-        editor.revealLineInCenter(match.range.startLineNumber);
-        editor.setPosition(new monaco.Position(match.range.startLineNumber, match.range.startColumn));
-        editor.focus();
-        return true;
-      }
-    }
-
-    return false;
-
-  }
-
-  fold = function() {
-
-    editor.trigger('', 'editor.fold');
-
-  }
-
-  foldAll = function() {
-
-    editor.trigger('', 'editor.foldAll');
-
-  }
-
-  unfold = function() {
-
-    editor.trigger('', 'editor.unfold');
-
-  }
-
-  unfoldAll = function() {
-
-    editor.trigger('', 'editor.unfoldAll');
-
-  }
-
-  scale = function(direction) {
-
-    if (direction == 0)
-      editor.trigger('', 'editor.action.fontZoomReset');
-    else if (0 < direction)
-      editor.trigger('', 'editor.action.fontZoomIn');
-    else
-      editor.trigger('', 'editor.action.fontZoomOut');
-
-  }
-
-  gotoLine = function() {
-
-    editor.trigger('', 'editor.action.gotoLine');
-    getQuickOpenWidget().widget.quickOpenWidget.inputElement.focus();
-
-  }
-
-  showVariablesDescription = function(variablesJSON) {    
-    
-    try {
-      
-      if (treeview != null)
-        hideVariablesDisplay();
-
-      const variables = JSON.parse(variablesJSON);
-      treeview = new Treeview("#variables-tree", editor, "./tree/icons/");
-      treeview.replaceData(variables);
-      showVariablesDisplay();
-
-      return true;
-
-    }
-    catch (e) {
-      return { errorDescription: e.message };
-    }
-
-  }
-
-  updateVariableDescription = function(variableId, variableJSON) { 
-
-    try {
-
-      const variables = JSON.parse(variableJSON);
-      treeview.replaceData(variables, variableId);
-      treeview.open(variableId);
-      return true;
-
-    }
-    catch (e) {
-      return { errorDescription: e.message };
-    }
-
-  }   
-    
-  setDefaultStyle = function() {
-
-    setFontFamily("Courier New");
-    setFontSize(14);
-    setLineHeight(16);
-    setLetterSpacing(0);
-
-  }
-
-  generateEventWithSuggestData = function(eventName, trigger, row, suggestRows = []) {
-
-    let bsl = new bslHelper(editor.getModel(), editor.getPosition());
-    let row_id = row ? row.getAttribute('data-index') : "";
-    let insert_text = '';
-
-    if (row_id) {
-
-      let suggestWidget = getSuggestWidget();
-
-      if (suggestWidget && row_id < suggestWidget.widget.list.view.items.length) {
-        let suggest_item = suggestWidget.widget.list.view.items[row_id];
-        insert_text = suggest_item.element.completion.insertText;
-      }
-
-    }
-
-    eventParams = {
-      trigger: trigger,
-      current_word: bsl.word,
-      last_word: bsl.lastRawExpression,
-      last_expression: bsl.lastExpression,
-      rows: suggestRows.length ? suggestRows : getSuggestWidgetRows(row),
-      altKey: altPressed,
-      ctrlKey: ctrlPressed,
-      shiftKey: shiftPressed,
-      row_id: row_id,
-      insert_text: insert_text
-    }
-
-    if (row) {
-
-      eventParams['kind'] = getChildWithClass(row, 'suggest-icon').className;
-      eventParams['sideDetailIsOpened'] = (null != document.querySelector('.suggest-widget.docs-side .details .header'));
-
-      if (eventName == 'EVENT_ON_ACTIVATE_SUGGEST_ROW' || eventName == 'EVENT_ON_DETAIL_SUGGEST_ROW')
-        eventParams['focused'] = row.getAttribute('aria-label');
-      else if (eventName == 'EVENT_ON_SELECT_SUGGEST_ROW')
-        eventParams['selected'] = row.getAttribute('aria-label');
-
-    }
-
-    sendEvent(eventName, eventParams);
-
-  }
-  // #endregion
-
-  // #region init editor
-  editor = undefined;
-
-  function createEditor(language_id, text, theme) {
-
-    editor = monaco.editor.create(document.getElementById("container"), {
-      theme: theme,
-      value: text,
-      language: language_id,
-      contextmenu: true,
-      wordBasedSuggestions: false,
-      scrollBeyondLastLine: false,
-      insertSpaces: false,
-      trimAutoWhitespace: false,
-      autoIndent: true,
-      find: {
-        addExtraSpaceOnTop: false
-      },
-      parameterHints: {
-        cycle: true
-      },
-      customOptions: true
-    });
-
-    changeCommandKeybinding('editor.action.revealDefinition', monaco.KeyCode.F12);
-    changeCommandKeybinding('editor.action.peekDefinition', monaco.KeyMod.CtrlCmd | monaco.KeyCode.F12);
-    changeCommandKeybinding('editor.action.deleteLines',  monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_L);
-    changeCommandKeybinding('editor.action.selectToBracket',  monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.KEY_B);
-
-    setDefaultStyle();
-
-  }
-
-  function registerCodeLensProviders() {
-
-    setTimeout(() => {
-  
-      for (const [key, lang] of Object.entries(window.languages)) {
-        
-        let language = lang.languageDef;
-  
-        monaco.languages.registerCodeLensProvider(language.id, {
-          onDidChange: lang.codeLenses.onDidChange, 
-          provideCodeLenses: lang.codeLenses.provider, 
-          resolveCodeLens: lang.codeLenses.resolver
+          char["modifiedText"] = getTextInRange(
+            modified_model,
+            char.modifiedStartLineNumber,
+            char.modifiedStartColumn,
+            char.modifiedEndLineNumber,
+            char.modifiedEndColumn
+          );
         });
-  
-      }
-  
-    }, 50);
-  
-  }
 
-  // Register languages
-  for (const [key, lang] of Object.entries(languages)) {
-  
-    let language = lang.languageDef;
-
-    monaco.languages.register({ id: language.id });
-
-    // Register a tokens provider for the language
-    monaco.languages.setMonarchTokensProvider(language.id, language.rules);
-
-    // Register providers for the new language
-    monaco.languages.registerCompletionItemProvider(language.id, lang.completionProvider);
-    monaco.languages.registerFoldingRangeProvider(language.id, lang.foldingProvider);      
-    monaco.languages.registerSignatureHelpProvider(language.id, lang.signatureProvider);
-    monaco.languages.registerHoverProvider(language.id, lang.hoverProvider);    
-    monaco.languages.registerDocumentFormattingEditProvider(language.id, lang.formatProvider);
-    monaco.languages.registerColorProvider(language.id, lang.colorProvider);
-    monaco.languages.registerDefinitionProvider(language.id, lang.definitionProvider);
-
-    if (lang.autoIndentation && lang.indentationRules)
-      monaco.languages.setLanguageConfiguration(language.id, {indentationRules: lang.indentationRules});
-
-    monaco.languages.setLanguageConfiguration(language.id, {brackets: lang.brackets, autoClosingPairs: lang.autoClosingPairs});
-
-    if (!editor) {
-
-      for (const [key, value] of Object.entries(language.themes)) {
-        monaco.editor.defineTheme(value.name, value);
-        monaco.editor.setTheme(value.name);
       }
 
-      createEditor(language.id, getCode(), 'bsl-white');
-      registerCodeLensProviders();
-      setDefaultSnippets();
-    
-      contextMenuEnabled = editor.getRawOptions().contextmenu;
-      editor.originalText = '';
-
-    }
-
-  };
-  
-  for (const [action_id, action] of Object.entries(permanentActions)) {
-    editor.addAction({
-      id: action_id,
-      label: action.label,
-      keybindings: [action.key, action.cmd],
-      precondition: null,
-      keybindingContext: null,
-      contextMenuGroupId: null,
-      contextMenuOrder: action.order,
-      run: action.callback
     });
 
   }
 
+  return diff;
+
+}
+
+window.hideBlocks = function (blocks) {
+
+  if (!window.editor || window.editor.navi)
+    return;
+
+  hiddenBlocksController.hideBlocks(window.editor, blocks);
+
+}
+
+window.showHiddenBlocks = function () {
+
+  if (!window.editor || window.editor.navi)
+    return;
+
+  hiddenBlocksController.showEditor(window.editor);
+
+}
+
+window.goNextIssue = function () {
+
+  let sortedIssues = getSortedIssues();
+
+  if (sortedIssues.length - 1 <= window.currentIssue)
+  window.currentIssue = -1;
+
+  window.currentIssue++;
+  goToCurrentIssue(sortedIssues);
+
+}
+
+window.goPreviousIssue = function () {
+
+  let sortedIssues = getSortedIssues();
+
+  window.currentIssue--;
+
+  if (window.currentIssue < 0)
+    currentIssue = sortedIssues.length - 1;
+
+  goToCurrentIssue(sortedIssues);
+
+}
+
+window.getReviewIssues = function() {
+
+  let issues = [];
+
+  window.reviewWidgets.forEach((value, key, map) => {
+    let issue = {
+      startLineNumber: value.startLineNumber,
+      endLineNumber: value.startLineNumber,
+      date: value.date,
+      author: value.author,
+      severity: value.severity,       
+      message: value.message
+    }
+    issues.push(issue);
+  });
+
+  return issues;
+
+}
+
+window.setReviewIssues = function(issuesJSON) {
+
+  try {
+
+    const issues = JSON.parse(issuesJSON);
+    removeReviewWidgets();
+
+    for (let x = 0; x < issues.length; x++) {
+      let issue = issues[x];
+      createReviewWidget(issue.startLineNumber, issue);
+    }
+
+    return true;
+
+  }
+  catch (e) {
+    return { errorDescription: e.message };
+  }
+
+}
+
+window.startCodeReview = function(readOnlyCodeReview = false) {
+
+  window.setOption('reviewMode', true);
+  window.setOption('readOnlyCodeReview', readOnlyCodeReview);
+  window.currentIssue = -1;
+
+}
+
+window.stopCodeReview = function() {
+  
+  window.setOption('reviewMode', false);
+  removeReviewWidgets();
+
+}
+
+// #endregion
+
+// #region init editor
+window.editor = undefined;
+
+window.createEditor = function(language_id, text, theme) {
+
+  const container = document.getElementById("container");
+
+  if (!container)
+    return;
+
+  window.editor = monaco.editor.create(container, {
+    theme: theme,
+    value: text,
+    language: language_id,
+    contextmenu: true,
+    // КРИТИЧНО для «Поля HTML документа» 1С (старый WebKit-webview красит по событию ВВОДА, не
+    // постоянно). Monaco вставляет строки suggest АСИНХРОННО (rAF, suggestWidget.js). Без
+    // automaticLayout наш ResizeObserver-полифил @juggle не стартует → нет «насоса» перерисовки
+    // (body-MutationObserver → rAF → чтение clientWidth = форс-reflow), и асинхронно вставленные
+    // строки автодополнения висят НЕНАРИСОВАННЫМИ до следующего ввода = пустой блок suggest.
+    // boot.js (смоук Этапов 1-2, где suggest работал) и diff-редакторы его держат; при переходе
+    // entry на editor.js он потерялся. VAEditor держит automaticLayout:true — паритет с рабочим
+    // референсом (у него нет программного triggerSuggest, поэтому там баг и не всплывал).
+    automaticLayout: true,
+    // fixedOverflowWidgets: overflow-виджеты (suggest/hover/param-hints) в fixed-контейнере на
+    // document.body. Наследие экспериментов по #3 (пустой блок автодополнения в поле 1С); НЕ является
+    // фиксом — реальная причина была в per-call записи в стиль виджета из провайдера автодополнения
+    // (см. resetSuggestWidgetDisplay в bsl_language.js). Оставлено как рабочая опция; кандидат на ревизию.
+    fixedOverflowWidgets: true,
+    // 0.55: wordBasedSuggestions boolean → строковый enum; false === 'off'.
+    wordBasedSuggestions: 'off',
+    scrollBeyondLastLine: false,
+    insertSpaces: false,
+    trimAutoWhitespace: false,
+    // 0.55: autoIndent boolean → EditorAutoIndentStrategy; прежнее true === 'full'
+    // (migrateOptions true→'full'), сохраняет учёт наших indentationRules. НЕ 'advanced'.
+    autoIndent: 'full',
+    // 0.55: не подсвечивать «неоднозначные»/невидимые/не-ASCII символы — иначе кириллица
+    // трактуется как двойники латиницы (а/a, е/e, о/o) и зашумляет весь BSL-код.
+    unicodeHighlight: {
+      ambiguousCharacters: false,
+      invisibleCharacters: false,
+      nonBasicASCII: false
+    },
+    // 0.55: гасим ТОЛЬКО встроенный '*'-color-provider (worker-регэксп с lookbehind (?<=['"\s])
+    // падает на WebKit поля 1С). Наш registerColorProvider продолжает работать. colorDecorators
+    // НЕ трогаем: false выключил бы и наши цвета (colorDetector читает именно эту опцию).
+    defaultColorDecorators: 'never',
+    // Поле 1С: без Shadow DOM — стабильнее измерения/стили в старом WebKit.
+    useShadowDOM: false,
+    // 0.55: bracket-pair colorization (радуга скобок по вложенности) — выключить глобально;
+    // в 0.20 её не было, наши токены скобок задают цвет сами (дубль к colorizedBracketPairs:[]).
+    bracketPairColorization: { enabled: false },
+    find: {
+      addExtraSpaceOnTop: false
+    },
+    parameterHints: {
+      cycle: true
+    },
+    lineNumbers: window.getLineNumber,
+    customOptions: true,
+    renderValidationDecorations: "on",
+    stickyScroll: {
+      enabled: false
+    }
+  });
+
+  changeCommandKeybinding('editor.action.revealDefinition', monaco.KeyCode.F12);
+  changeCommandKeybinding('editor.action.peekDefinition', monaco.KeyMod.CtrlCmd | monaco.KeyCode.F12);
+  changeCommandKeybinding('editor.action.deleteLines',  monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyL);
+  changeCommandKeybinding('editor.action.selectToBracket',  monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.KeyB);
+
+  window.lineNumbersDedocrations = [];
+  window.setDefaultStyle();
   initEditorEventListenersAndProperies();
-  // #endregion
 
-  // #region editor events
-  function initEditorEventListenersAndProperies() {
+}
 
-    editor.sendEvent = sendEvent;
-    editor.decorations = [];
-    editor.bookmarks = new Map();
-    editor.checkBookmarks = true;
-    editor.diff_decorations = [];
+function registerCodeLensProviders() {
 
-    editor.updateDecorations = function (new_decorations) {
+  setTimeout(() => {
 
-      let permanent_decor = [];
+    for (const [key, lang] of Object.entries(window.languages)) {
+      
+      let language = lang.languageDef;
 
-      editor.bookmarks.forEach(function (value) {
-        permanent_decor.push(value);
+      monaco.languages.registerCodeLensProvider(language.id, {
+        onDidChange: lang.codeLenses.onDidChange, 
+        provideCodeLenses: lang.codeLenses.provider, 
+        resolveCodeLens: lang.codeLenses.resolver
       });
 
-      permanent_decor = permanent_decor.concat(editor.diff_decorations);
-
-      getQueryDelimiterDecorations(permanent_decor);
-
-      editor.decorations = editor.deltaDecorations(editor.decorations, permanent_decor.concat(new_decorations));
     }
 
-    editor.removeDiffWidget = function () {
+  }, 50);
 
-      if (editor.diffZoneId) {
+}
 
-        editor.removeOverlayWidget(inlineDiffWidget);
-        inlineDiffWidget = null;
-        inlineDiffEditor = null;
+// Register languages
+for (const [key, lang] of Object.entries(window.languages)) {
 
-        editor.changeViewZones(function (changeAccessor) {
-          changeAccessor.removeZone(editor.diffZoneId);
-          editor.diffZoneId = 0;
-        });
+  let language = lang.languageDef;
+
+  monaco.languages.register({ id: language.id });
+
+  // Register a tokens provider for the language
+  monaco.languages.setMonarchTokensProvider(language.id, language.rules);
+
+  // Register providers for the new language
+  monaco.languages.registerCompletionItemProvider(language.id, lang.completionProvider);
+  monaco.languages.registerFoldingRangeProvider(language.id, lang.foldingProvider);
+  monaco.languages.registerSignatureHelpProvider(language.id, lang.signatureProvider);
+  monaco.languages.registerHoverProvider(language.id, lang.hoverProvider);
+  monaco.languages.registerDocumentFormattingEditProvider(language.id, lang.formatProvider);
+  monaco.languages.registerColorProvider(language.id, lang.colorProvider);
+  monaco.languages.registerDefinitionProvider(language.id, lang.definitionProvider);
+  monaco.languages.registerCodeActionProvider(language.id, lang.codeActionProvider);
+  
+  lang.inlineCompletionProvider.onDidChangeInlineCompletions  = window.inlineSuggestionsChanged.event;
+  monaco.languages.registerInlineCompletionsProvider(language.id, lang.inlineCompletionProvider);
+
+  // 0.55: два setLanguageConfiguration подряд — второй ЗАМЕЩАЕТ первый (не мержит), поэтому
+  // indentationRules + brackets/autoClosingPairs сливаем в ОДИН вызов (иначе теряются отступы).
+  // colorizedBracketPairs:[] гасит bracket-pair colorization 0.55: у нас свои токены скобок, иначе
+  // скобки методов красятся «радугой» по уровню вложенности (в 0.20 такого не было).
+  var langCfg = { brackets: lang.brackets, autoClosingPairs: lang.autoClosingPairs, colorizedBracketPairs: [] };
+  if (lang.autoIndentation && lang.indentationRules)
+    langCfg.indentationRules = lang.indentationRules;
+  monaco.languages.setLanguageConfiguration(language.id, langCfg);
+
+  if (!window.editor) {
+
+    monaco.editor.onDidCreateEditor(e => {
+
+      if (!window.editor) {
+
+        import('./bslGlobals').then(({ default: bslGlobals }) => {
+          window.bslGlobals = bslGlobals
+        }).catch((error) => 'An error occurred while loading the bslGlobals');
+
+        import('./bslMetadata').then(({ default: bslMetadata }) => {
+          window.bslMetadata = bslMetadata
+        }).catch((error) => 'An error occurred while loading the bslMetadata');
+
+        import('./bslQuery').then(({ default: bslQuery }) => {
+          window.bslQuery = bslQuery
+        }).catch((error) => 'An error occurred while loading the bslQuery');
+
+        import('./bslDCS').then(({ default: bslDCS }) => {
+          window.bslDCS = bslDCS
+        }).catch((error) => 'An error occurred while loading the bslDCS');
+
+        import('./snippets').then(({ default: snippets }) => {
+          window.bslSnippets = snippets;
+          window.setDefaultSnippets();
+        }).catch((error) => 'An error occurred while loading the snippets');
+
+        import('./querySnippets').then(({ default: querySnippets }) => {
+          window.querySnippets = querySnippets;
+        }).catch((error) => 'An error occurred while loading the querySnippets');
+
+        import('./DCSSnippets').then(({ default: DCSSnippets }) => {
+          window.DCSSnippets = DCSSnippets;
+        }).catch((error) => 'An error occurred while loading the DCSSnippets');
+
+        import('./bsl_helper').then(({ default: bslHelper }) => {
+          window.bslHelper = bslHelper
+        }).catch((error) => 'An error occurred while loading the bsl_helper');
+
+        import('./colors').then(({ default: colors }) => {
+          window.colors = colors
+        }).catch((error) => 'An error occurred while loading the colors');
+
+        registerCodeLensProviders();
 
       }
 
+    });
+
+    for (const [key, value] of Object.entries(language.themes)) {
+      monaco.editor.defineTheme(value.name, value);
+      monaco.editor.setTheme(value.name);
     }
 
-    editor.onKeyDown(e => editorOnKeyDown(e));
+    createEditor(language.id, getCode(), 'bsl-white');
 
-    editor.onDidChangeModelContent(e => {
-      
-      calculateDiff();
-
-      if (getOption('generateModificationEvent'))
-        sendEvent('EVENT_CONTENT_CHANGED', '');
-
-      checkBookmarksAfterRemoveLine(e);
-      updateBookmarks(undefined);
-
-      setOption('lastContentChanges', e);
-          
-    });
-
-    editor.onKeyUp(e => {
-      
-      if (e.ctrlKey)
-        ctrlPressed = false;
-
-      if (e.altKey)
-        altPressed = false;
-
-      if (e.shiftKey)
-        shiftPressed = false;
-
-    });
-
-    editor.onMouseDown(e => {
-
-      if (e.event.leftButton && e.event.ctrlKey) {
-
-        let position = e.target.position;
-
-        if (position) {
-
-          let target = editor.getModel().getWordAtPosition(position);
-
-          if (target) {
-            let current_selection = editor.getSelection();
-            let target_selection = new monaco.Range(position.lineNumber, target.startColumn, position.lineNumber, target.endColumn);
-            if (!current_selection.containsRange(target_selection))
-              setSelection(position.lineNumber, target.startColumn, position.lineNumber, target.endColumn)
-          }
-
-        }
-
-      }
-
-      let element = e.target.element;
-      checkOnLinkClick(element);
-
-      if (e.event.detail == 2 && element.classList.contains('line-numbers')) {
-        let line = e.target.position.lineNumber;
-        updateBookmarks(line);
-      }
-
-      if (element.classList.contains('diff-navi')) {
-        createDiffWidget(e);
-      }    
-
-    });
-
-    editor.onDidScrollChange(e => {
-          
-      if (e.scrollTop == 0) {
-        scrollToTop();
-      }
-
-    });
-    
-    editor.onDidType(text => {
-
-      if (text === '\n') {
-        checkNewStringLine();
-        checkBookmarksAfterNewLine();
-      }
-
-    });
-
-    editor.onDidChangeCursorSelection(e => {
-
-      updateStatusBar();
-      onChangeSnippetSelection(e);
-
-    });
-
-    editor.onDidLayoutChange(e => {
-
-      setTimeout(() => { resizeStatusBar(); } , 50);
-
-    })
+    if (window.editor) {
+      window.contextMenuEnabled = window.editor.getRawOptions().contextmenu;
+      window.editor.definitionBreadcrumbs = [];
+    }
 
   }
-  // #endregion
+
+};
+
+const commandOnlyActions = ['saveref', 'requestMetadata'];
+
+for (const [action_id, action] of Object.entries(permanentActions)) {
+
+  if (commandOnlyActions.indexOf(action_id) != -1) {
+    // 0.55: служебные действия, вызываемые из команд элементов автодополнения
+    // (CompletionItem.command = {id:'bsl.saveref'|'bsl.requestMetadata'}), нельзя регистрировать
+    // через addAction (тот вешает id 'editorId:saveref') — только глобальной командой.
+    // handler(accessor, ...args); callback(e, obj) читает только obj → e=accessor, obj=args[0].
+    monaco.editor.registerCommand('bsl.' + action_id, action.callback);
+    continue;
+  }
+
+  window.editor.addAction({
+    id: action_id,
+    label: action.label,
+    // 0.55: addAction не терпит null/undefined в keybindings (0.20 их игнорил) — фильтруем
+    // (действия без горячей клавиши: key/cmd = null/undefined → [] → пункт только в контекстном меню).
+    keybindings: [action.key, action.cmd].filter(function (k) { return k; }),
+    precondition: null,
+    keybindingContext: null,
+    contextMenuGroupId: null,
+    contextMenuOrder: action.order,
+    run: action.callback
+  });
+
+}
+
+// #endregion
+
+// #region editor events
+function initEditorEventListenersAndProperies() {
+
+  window.editor.sendEvent = sendEvent;
+  window.editor.decorations = [];
+  window.editor.bookmarks = new Map();
+  window.editor.breakpoints = new Map();
+  window.editor.currentDebugLine = new Map();
+  window.editor.checkBookmarks = true;
+  window.editor.diff_decorations = [];
+  window.editor.ifDecorations = [];
+
+  window.editor.updateDecorations = function (new_decorations) {
+
+    let permanent_decor = [];
+
+    window.editor.bookmarks.forEach(function (value) {
+      permanent_decor.push(value);
+    });
+
+    window.editor.breakpoints.forEach(function (value) {
+      permanent_decor.push(value);
+    });
+
+    window.editor.currentDebugLine.forEach(function (value) {
+      permanent_decor.push(value.line);
+      permanent_decor.push(value.pointer);
+    });
+
+    permanent_decor = permanent_decor.concat(window.editor.diff_decorations);
+
+    getQueryDelimiterDecorations(permanent_decor);
+
+    window.editor.decorations = window.editor.deltaDecorations(window.editor.decorations, permanent_decor.concat(new_decorations));
+  }
+
+  window.editor.removeDiffWidget = function () {
+
+    if (window.editor.diffZoneId) {
+
+      window.editor.removeOverlayWidget(window.inlineDiffWidget);
+      window.inlineDiffWidget = null;
+      window.inlineDiffEditor = null;
+
+      window.editor.changeViewZones(function (changeAccessor) {
+        changeAccessor.removeZone(window.editor.diffZoneId);
+        window.editor.diffZoneId = 0;
+      });
+
+    }
+
+  }
+
+  window.editor.onMouseMove(e => {
+      
+    newReviewDecoration(e);
+            
+  });
+
+  window.editor.onKeyDown(e => editorOnKeyDown(e));
+
+  window.editor.onDidChangeModelContent(e => {
     
-  // #region non-public functions
-  function disposeEditor() {
+    calculateDiff();
 
-    if (editor) {
+    if (window.getOption('generateModificationEvent'))
+      window.sendEvent('EVENT_CONTENT_CHANGED', '');
 
-      if (editor.navi) {
-        editor.getOriginalEditor().getModel().dispose();
-        editor.getOriginalEditor().dispose();
-        editor.getModifiedEditor().getModel().dispose();
-        editor.getModifiedEditor().dispose();
+    checkBookmarksAfterRemoveLine(e);
+    checkBreakpointsAfterRemoveLine(e);
+    window.updateBookmarks(undefined);
+    window.updateBreakpoints(undefined);
+
+    setOption('lastContentChanges', e);
+
+    if (window.getCurrentLanguageId() == 'bsl_query') {
+      if (window.editor.navi) {
+        queryModelService.schedule(window.editor.getModifiedEditor().getModel());
+        queryModelService.schedule(window.editor.getOriginalEditor().getModel());
       }
       else {
-        editor.getModel().dispose();
+        queryModelService.schedule(window.editor.getModel());
       }
-
-      editor.dispose();
-
     }
+        
+  });
 
-  }
+  window.editor.onKeyUp(e => {
+    
+    if (e.ctrlKey)
+      window.ctrlPressed = false;
 
-  function generateSnippetEvent(e) {
+    if (e.altKey)
+      window.altPressed = false;
 
-    if (e.source == 'snippet') {
+    if (e.shiftKey)
+      window.shiftPressed = false;
 
-      let last_changes = getOption('lastContentChanges');
-      let generate = getOption('generateSnippetEvent');
+  });
 
-      if (generate && last_changes && last_changes.versionId == e.modelVersionId && e.modelVersionId == e.oldModelVersionId) {
+  window.editor.onMouseDown(e => {
 
-        if (last_changes.changes.length) {
+    if (e.event.leftButton && e.event.ctrlKey) {
 
-          let changes = last_changes.changes[0];
-          let change_range = changes.range;
-          let content_model = monaco.editor.createModel(changes.text);
-          let content_range = content_model.getFullModelRange();
+      let position = e.target.position;
 
-          let target_range = new monaco.Range(
-            change_range.startLineNumber,
-            change_range.startColumn,
-            change_range.startLineNumber + content_range.endLineNumber - 1,
-            content_range.endColumn
-          );
+      if (position) {
 
-          let event = {
-            text: changes.text,
-            range: target_range,
-            position: editor.getPosition(),
-            selection: getSelection(),
-            selected_text: getSelectedText()
-          }
+        let target = window.editor.getModel().getWordAtPosition(position);
 
-          sendEvent('EVENT_ON_INSERT_SNIPPET', event);
-
+        if (target) {
+          let current_selection = window.editor.getSelection();
+          let target_selection = new monaco.Range(position.lineNumber, target.startColumn, position.lineNumber, target.endColumn);
+          if (!current_selection.containsRange(target_selection))
+            window.setSelection(position.lineNumber, target.startColumn, position.lineNumber, target.endColumn)
         }
 
       }
 
     }
 
-  }
+    let element = e.target.element;
+    checkOnLinkClick(element);    
 
-  function onChangeSnippetSelection(e) {
-
-    if (e.source == 'snippet' || e.source == 'api') {
-
-      let text = editor.getModel().getValueInRange(e.selection);
-      
-      let events = new Map();
-      events.set('ТекстЗапроса', 'EVENT_QUERY_CONSTRUCT');
-      events.set('ФорматнаяСтрока', 'EVENT_FORMAT_CONSTRUCT');
-      events.set('ВыборТипа', 'EVENT_TYPE_CONSTRUCT');
-      events.set('КонструкторОписанияТипов', 'EVENT_TYPEDESCRIPTION_CONSTRUCT');
-
-      let event = events.get(text);
-
-      if (event) {
-
-        let mod_event = getOption('generateModificationEvent');
-
-        if (mod_event)
-          setOption('generateModificationEvent', false);
-
-        setText('', e.selection, false);
-        sendEvent(event);
-
-        if (mod_event)
-          setOption('generateModificationEvent', true);
-
-      }
-
+    if (e.event.detail == 2 && element.classList.contains('line-numbers')) {
+      let line = e.target.position.lineNumber;
+      window.updateBookmarks(line);
+      window.updateBreakpoints(line);
     }
 
-    generateSnippetEvent(e);
+    if (element.classList.contains('diff-navi')) {
+      createDiffWidget(e);
+    }
+
+    if (element.classList.contains('add-review')) {
+      createReviewWidget(e.target.position.lineNumber);
+    }
+
+  });
+
+  window.editor.onDidScrollChange(e => {
+        
+    if (e.scrollTop == 0) {
+      window.scrollToTop();
+    }
+
+  });
+
+  window.editor.onDidType(text => {
+
+    if (text === '\n') {
+      checkNewStringLine();
+      checkBookmarksAfterNewLine();
+      checkBreakpointsAfterNewLine();
+    }
+
+  });
+
+  window.editor.onDidChangeCursorSelection(e => {
+    
+    updateStatusBar();
+    onChangeSnippetSelection(e);
+    updateSelectedQueryDelimiters(e);
+    updateIfHighlights();
+    
+  });
+
+  window.editor.onDidLayoutChange(e => {
+
+    setTimeout(() => { resizeStatusBar(); } , 50);
+
+  })
+
+  window.editor.onDidPaste(e => {
+    onDidPaste(e);
+  });
+
+  // 0.55: гасим пустой suggest-виджет («No suggestions»). При ПЕРЕ-триггере автодополнения
+  // (после updateMetadata в потоке метаданных консоли, или командой suggest_type у элемента)
+  // явный editor.action.triggerSuggest с пустым результатом показывал висящий пустой блок.
+  // Ловим onDidSuggest модели с пустой completionModel и отменяем: обработчики Emitter
+  // выполняются синхронно, поэтому show+cancel проходят ДО отрисовки — блок не мелькает.
+  // (Наш провайдер уже возвращает undefined на пусто, но это не гасит ЯВНЫЙ триггер.)
+  try {
+    let suggestCtrl = window.editor.getContribution('editor.contrib.suggestController');
+    if (suggestCtrl && suggestCtrl.model && typeof suggestCtrl.model.onDidSuggest === 'function') {
+      suggestCtrl.model.onDidSuggest(function (e) {
+        try {
+          if (e && !e.triggerOptions.shy && e.completionModel && e.completionModel.items.length === 0)
+            suggestCtrl.model.cancel();
+        } catch (err) { /* ignore */ }
+      });
+    }
+  } catch (e) { /* ignore */ }
+
+}
+// #endregion
+  
+// #region non-public functions
+function mapsAreEqual(map1, map2) {
+    
+  let testVal;
+  
+  if (map1.size !== map2.size)
+    return false;
+  
+  for (let [key, val] of map1) {
+    testVal = map2.get(key);
+    if (testVal !== val || (testVal === undefined && !map2.has(key))) {
+      return false;
+    }
+  }
+
+  return true;
+
+}
+
+function updateSelectedQueryDelimiters(e) {
+
+  if (window.queryMode && window.editor.renderQueryDelimiters) {
+    
+    let prevSelectedDelimiters = new Map(window.selectedQueryDelimiters);
+    window.selectedQueryDelimiters = new Map();
+    const matches = Finder.findMatches(window.editor.getModel(), '^\\s*;\\s*$', e.selection);
+    
+    for (let idx = 0; idx < matches.length; idx++)
+      window.selectedQueryDelimiters.set(matches[idx].range.toString(), true);
+
+    if (!mapsAreEqual(prevSelectedDelimiters, window.selectedQueryDelimiters)) {
+      window.editor.updateDecorations([]);
+    }
 
   }
 
-  function getSuggestWidgetRows(element) {
+}
 
-    let rows = [];
+function getIfChainKeywordType(keyword) {
 
-    if (element) {
+  if (!keyword)
+    return null;
 
-      for (let i = 0; i < element.parentElement.childNodes.length; i++) {              
-        
-        let row = element.parentElement.childNodes[i];
-        
-        if (row.classList.contains('monaco-list-row'))
-          rows.push(row.getAttribute('aria-label'));
+  switch (keyword.toLowerCase()) {
+    case 'если':
+    case 'if':
+      return 'if';
+    case 'иначеесли':
+    case 'elsif':
+      return 'elseif';
+    case 'иначе':
+    case 'else':
+      return 'else';
+    case 'конецесли':
+    case 'endif':
+      return 'endif';
+  }
 
-      }
+  return null;
 
+}
+
+function getIfChainKeywordInfo(model, lineNumber) {
+
+  const lineContent = model.getLineContent(lineNumber);
+  const match = lineContent.match(/^\s*(иначеесли|конецесли|если|иначе|elsif|endif|if|else)(?=[\s;]|$)/i);
+
+  if (!match)
+    return null;
+
+  const type = getIfChainKeywordType(match[1]);
+
+  if (!type)
+    return null;
+
+  const startColumn = match[0].length - match[1].length + 1;
+  const endColumn = startColumn + match[1].length;
+
+  return {
+    type: type,
+    range: new monaco.Range(lineNumber, startColumn, lineNumber, endColumn)
+  };
+
+}
+
+function getIfChainBlock(model, activeRange) {
+
+  const stack = [];
+
+  for (let lineNumber = 1; lineNumber <= model.getLineCount(); lineNumber++) {
+    const keywordInfo = getIfChainKeywordInfo(model, lineNumber);
+
+    if (!keywordInfo)
+      continue;
+
+    if (keywordInfo.type == 'if') {
+      stack.push({
+        start: keywordInfo.range,
+        elseifs: [],
+        elseRange: null,
+        end: null
+      });
+      continue;
     }
 
-    return rows;
+    const currentBlock = stack[stack.length - 1];
 
+    if (!currentBlock)
+      continue;
+
+    if (keywordInfo.type == 'elseif') {
+      currentBlock.elseifs.push(keywordInfo.range);
+      continue;
+    }
+
+    if (keywordInfo.type == 'else') {
+      currentBlock.elseRange = keywordInfo.range;
+      continue;
+    }
+
+    if (keywordInfo.type == 'endif') {
+      currentBlock.end = keywordInfo.range;
+      stack.pop();
+
+      const ranges = [currentBlock.start].concat(currentBlock.elseifs);
+
+      if (currentBlock.elseRange)
+        ranges.push(currentBlock.elseRange);
+
+      ranges.push(currentBlock.end);
+
+      if (ranges.some(range => range.equalsRange(activeRange)))
+        return currentBlock;
+    }
+  }
+
+  return null;
+
+}
+
+function positionIsBeforeOrEqual(left, right) {
+
+  if (left.lineNumber != right.lineNumber)
+    return left.lineNumber < right.lineNumber;
+
+  return left.column <= right.column;
+
+}
+
+function rangeContainsPosition(range, position) {
+
+  const start = range.getStartPosition();
+  const end = range.getEndPosition();
+  return positionIsBeforeOrEqual(start, position) && positionIsBeforeOrEqual(position, end);
+
+}
+
+function getContainingIfChainBlock(model, position) {
+
+  const stack = [];
+
+  for (let lineNumber = 1; lineNumber <= model.getLineCount(); lineNumber++) {
+    const keywordInfo = getIfChainKeywordInfo(model, lineNumber);
+
+    if (!keywordInfo)
+      continue;
+
+    if (keywordInfo.type == 'if') {
+      stack.push({
+        start: keywordInfo.range,
+        elseifs: [],
+        elseRange: null,
+        end: null
+      });
+      continue;
+    }
+
+    const currentBlock = stack[stack.length - 1];
+
+    if (!currentBlock)
+      continue;
+
+    if (keywordInfo.type == 'elseif') {
+      currentBlock.elseifs.push(keywordInfo.range);
+      continue;
+    }
+
+    if (keywordInfo.type == 'else') {
+      currentBlock.elseRange = keywordInfo.range;
+      continue;
+    }
+
+    if (keywordInfo.type == 'endif') {
+      currentBlock.end = keywordInfo.range;
+      stack.pop();
+
+      const fullRange = new monaco.Range(
+        currentBlock.start.startLineNumber,
+        currentBlock.start.startColumn,
+        currentBlock.end.endLineNumber,
+        currentBlock.end.endColumn
+      );
+
+      if (rangeContainsPosition(fullRange, position))
+        return currentBlock;
+    }
+  }
+
+  return null;
+
+}
+
+function getIfChainRangesFromBlock(block) {
+
+  if (!block || !block.end)
+    return null;
+
+  let ranges = [block.start].concat(block.elseifs);
+
+  if (block.elseRange)
+    ranges.push(block.elseRange);
+
+  ranges.push(block.end);
+  return ranges;
+
+}
+
+function getIfBlockContext(active_editor = getActiveEditor()) {
+
+  if (!active_editor || !active_editor.getModel)
+    return null;
+
+  const model = active_editor.getModel();
+
+  if (!model || model.getLanguageId() != 'bsl')
+    return null;
+
+  const position = active_editor.getPosition();
+  const keywordInfo = getIfChainKeywordInfo(model, position.lineNumber);
+
+  if (keywordInfo && keywordInfo.range.containsPosition(position)) {
+    const keywordBlock = getIfChainBlock(model, keywordInfo.range);
+
+    if (keywordBlock && keywordBlock.end) {
+      return {
+        editor: active_editor,
+        position: position,
+        keywordInfo: keywordInfo,
+        block: keywordBlock,
+        ranges: getIfChainRangesFromBlock(keywordBlock),
+        fromKeyword: true
+      };
+    }
+  }
+
+  const containingBlock = getContainingIfChainBlock(model, position);
+
+  if (!containingBlock || !containingBlock.end)
+    return null;
+
+  return {
+    editor: active_editor,
+    position: position,
+    keywordInfo: null,
+    block: containingBlock,
+    ranges: getIfChainRangesFromBlock(containingBlock),
+    fromKeyword: false
+  };
+
+}
+
+function getIfContext(active_editor = getActiveEditor()) {
+
+  return getIfBlockContext(active_editor);
+
+}
+
+function jumpToIfBracket(active_editor = getActiveEditor()) {
+
+  const context = getIfContext(active_editor);
+
+  if (!context)
+    return false;
+
+  let target = null;
+
+  if (context.fromKeyword) {
+    target = context.keywordInfo.type == 'endif'
+      ? context.block.start.getStartPosition()
+      : context.block.end.getStartPosition();
+  }
+  else {
+    const position = context.position;
+    const start = context.block.start.getStartPosition();
+    const end = context.block.end.getStartPosition();
+    const startDistance = Math.abs(position.lineNumber - start.lineNumber) * 1000 + Math.abs(position.column - start.column);
+    const endDistance = Math.abs(position.lineNumber - end.lineNumber) * 1000 + Math.abs(position.column - end.column);
+    target = startDistance <= endDistance ? start : end;
+  }
+
+  context.editor.setPosition(target);
+  context.editor.revealPositionInCenterIfOutsideViewport(target);
+  return true;
+
+}
+
+function selectToIfBracket(active_editor = getActiveEditor()) {
+
+  const context = getIfContext(active_editor);
+
+  if (!context)
+    return false;
+
+  const range = new monaco.Range(
+    context.block.start.startLineNumber,
+    context.block.start.startColumn,
+    context.block.end.endLineNumber,
+    context.block.end.endColumn
+  );
+
+  context.editor.setSelection(range);
+  context.editor.revealPositionInCenterIfOutsideViewport(range.getEndPosition());
+  return true;
+
+}
+
+function clearIfHighlights(active_editor = getActiveEditor()) {
+
+  if (!active_editor)
+    return;
+
+  active_editor.ifDecorations = active_editor.deltaDecorations(active_editor.ifDecorations || [], []);
+
+}
+
+function updateIfHighlights(active_editor = getActiveEditor()) {
+
+  if (!active_editor || !active_editor.getModel)
+    return;
+
+  const model = active_editor.getModel();
+  const selection = active_editor.getSelection();
+
+  if (!model || !selection || !selection.isEmpty() || model.getLanguageId() != 'bsl') {
+    clearIfHighlights(active_editor);
+    return;
+  }
+
+  const context = getIfBlockContext(active_editor);
+
+  if (!context) {
+    clearIfHighlights(active_editor);
+    return;
+  }
+
+  const ranges = context.ranges;
+
+  if (!ranges || ranges.length == 0) {
+    clearIfHighlights(active_editor);
+    return;
+  }
+
+  active_editor.ifDecorations = active_editor.deltaDecorations(
+    active_editor.ifDecorations || [],
+    ranges.map(range => ({
+      range: range,
+      options: {
+        inlineClassName: 'bracket-match'
+      }
+    }))
+  );
+
+}
+
+window.generateEscapeEvent = function() {
+
+  let position = getActiveEditor().getPosition();
+  let bsl = new bslHelper(getActiveEditor().getModel(), position);
+
+  let eventParams = {
+    current_word: bsl.word,
+    last_word: bsl.lastRawExpression,
+    last_expression: bsl.lastExpression,
+    altKey: altPressed,
+    ctrlKey: ctrlPressed,
+    shiftKey: shiftPressed,
+    position: position
+  }
+
+  window.sendEvent('EVENT_ON_KEY_ESC', eventParams);
+
+}
+
+function getTextInLines(model, startLineNumber, endLineNumber) {
+
+  let text = '';
+
+  if (endLineNumber >= startLineNumber) {
+    let range = {
+      startLineNumber: startLineNumber,
+      startColumn: 1,
+      endLineNumber: endLineNumber,
+      endColumn: model.getLineMaxColumn(endLineNumber),
+    }
+    text = model.getValueInRange(range);
+  }
+
+  return text;
+
+}
+
+function getTextInRange(model, startLineNumber, startColumn, endLineNumber, endColumn) {
+
+  let range = {
+    startLineNumber: startLineNumber,
+    startColumn: startColumn,
+    endLineNumber: endLineNumber,
+    endColumn: endColumn,
+  }
+  return model.getValueInRange(range);
+
+}
+
+window.getLineNumber = function(originalLineNumber) {
+
+  if (window.getOption('reviewMode')) {
+    let standaloneEditor = window.editor;      
+    if (window.editor.navi)
+      standaloneEditor = window.editor.getModifiedEditor();
+    if (standaloneEditor.mousePosition && standaloneEditor.mousePosition.lineNumber == originalLineNumber) {
+      return '';
+    }
+    else
+      return originalLineNumber;
+  }
+  else {
+    if (originalLineNumber <= window.lineNumbersDedocrations.length) {
+      let str = window.lineNumbersDedocrations[originalLineNumber - 1].replace(/ /g, String.fromCharCode(160))
+      return str + getLineNumberMargin(originalLineNumber) + originalLineNumber;
+    }
   }
   
-  function goToCurrentMarker(sorted_marks) {
+  return originalLineNumber;
 
-    let idx = 0;
-    let count = getLineCount();
-    let decorations = [];
+}
 
-    sorted_marks.forEach(function (value) {
+window.disposeEditor = function() {
 
-      if (idx == currentMarker && value.startLineNumber <= count) {
+  if (window.editor) {
 
-        editor.revealLineInCenter(value.startLineNumber);
-        editor.setPosition(new monaco.Position(value.startLineNumber, value.startColumn));
+    if (window.editor.navi) {
+      // 0.55: НЕ диспозим суб-редакторы вручную — их владелец diff-редактор снимет сам при своём
+      // dispose(). Модели original/modified создавали мы (createModel в compare()), поэтому снимаем
+      // их отдельно, взяв с diff-редактора getModel() → {original, modified} ДО его dispose().
+      // Прежний ручной обход `getOriginalEditor().getModel().dispose()` на 0.55 падал: getModel()
+      // суб-редактора мог вернуть null → TypeError в compare() при ВЫХОДЕ, и режим сравнения не
+      // закрывался (сначала здесь, ранее — в getCurrentThemeName).
+      let diff_model = window.editor.getModel();
+      window.editor.dispose();
+      if (diff_model) {
+        if (diff_model.original) diff_model.original.dispose();
+        if (diff_model.modified) diff_model.modified.dispose();
+      }
+    }
+    else {
+      hiddenBlocksController.disposeEditor(window.editor);
+      window.editor.getModel().dispose();
+      window.editor.dispose();
+    }
 
-        let decor_class = 'code-marker';
+  }
 
-        switch (value.severity) {
-          case 8: decor_class += ' marker-error'; break;
-          case 1: decor_class += ' marker-hint'; break;
-          case 2: decor_class += ' marker-info'; break;
-          case 4: decor_class += ' marker-warning'; break;
-          default: decor_class += ' marker-error';
+}
+
+function generateSnippetEvent(e) {
+
+  if (e.source == 'snippet') {
+
+    let last_changes = getOption('lastContentChanges');
+    let generate = getOption('generateSnippetEvent');
+
+    if (generate && last_changes && last_changes.versionId == e.modelVersionId && e.modelVersionId == e.oldModelVersionId) {
+
+      if (last_changes.changes.length) {
+
+        let changes = last_changes.changes[0];
+        let change_range = changes.range;
+        let content_model = monaco.editor.createModel(changes.text);
+        let content_range = content_model.getFullModelRange();
+
+        let target_range = new monaco.Range(
+          change_range.startLineNumber,
+          change_range.startColumn,
+          change_range.startLineNumber + content_range.endLineNumber - 1,
+          content_range.endColumn
+        );
+
+        let event = {
+          text: changes.text,
+          range: target_range,
+          position: editor.getPosition(),
+          selection: getSelection(),
+          selected_text: getSelectedText()
         }
 
-        decorations.push({
-          range: new monaco.Range(value.startLineNumber, 1, value.startLineNumber),
-          options: {
-            isWholeLine: true,
-            linesDecorationsClassName: decor_class
-          }
-        });
+        sendEvent('EVENT_ON_INSERT_SNIPPET', event);
 
       }
 
-      idx++;
+    }
+
+  }
+
+}
+
+function removeQueryStringDelimiter(string) {
+
+  let text = string;
+
+  while (/^\s*\|/.test(text))
+    text = text.substr(1);
+
+  return text;
+
+}
+
+function onDidPaste(e) {
+
+  if (window.isQueryMode() && !window.readOnlyMode) {
+    
+    let text = window.editor.getModel().getValueInRange(e.range).trim();
+
+    if (text.toLowerCase().indexOf('выбрать') < 0 && text.toLowerCase().indexOf('select') < 0)
+        return;
+
+    let text_changed = false;
+
+    if (text.startsWith('"')) {
+      text = text.substr(1);
+      text_changed = true;
+    }
+
+    if (text.endsWith(';')) {
+      text = text.substr(0, text.length - 1);
+      text_changed = true;
+    }
+
+    if (text.endsWith('"')) {
+      text = text.substr(0, text.length - 1);
+      text_changed = true;
+    }
+
+    let strings = text.split('\n');
+    let query = [];
+
+    strings.forEach(string => {
+      const formated_string = removeQueryStringDelimiter(string);
+      if (formated_string != string)
+        text_changed = true
+      query.push(formated_string);
+    });
+
+    if (text_changed && text) {
+      // 0.55: _modelData.model._commandManager.currentOpenStackElement умер (undo перестроен).
+      // Сшиваем очистку с элементом undo вставки: popUndoStop() переоткрывает элемент вставки,
+      // bslHelper.setText → executeEdits добавляет очистку в него, pushUndoStop() закрывает —
+      // один Ctrl+Z откатывает вставку+очистку. window.setText НЕЛЬЗЯ: он делает pushUndoStop ДО
+      // правки, и очистка ушла бы в отдельный шаг отмены.
+      window.editor.popUndoStop();
+      bslHelper.setText(query.join('\n'), e.range, true);
+      window.editor.pushUndoStop();
+    }
+
+  }
+
+}
+
+function onChangeSnippetSelection(e) {
+
+  if (e.source == 'snippet' || e.source == 'api') {
+
+    let text = window.editor.getModel().getValueInRange(e.selection);
+    
+    let events = new Map();
+    events.set('ТекстЗапроса', 'EVENT_QUERY_CONSTRUCT');
+    events.set('ФорматнаяСтрока', 'EVENT_FORMAT_CONSTRUCT');
+    events.set('ВыборТипа', 'EVENT_TYPE_CONSTRUCT');
+    events.set('КонструкторОписанияТипов', 'EVENT_TYPEDESCRIPTION_CONSTRUCT');
+
+    let event = events.get(text);
+
+    if (event) {
+
+      let mod_event = window.getOption('generateModificationEvent');
+
+      if (mod_event)
+        window.setOption('generateModificationEvent', false);
+
+      window.setText('', e.selection, false);
+      window.sendEvent(event);
+
+      if (mod_event)
+        window.setOption('generateModificationEvent', true);
+
+    }
+
+  }
+
+  generateSnippetEvent(e);
+
+}
+
+function goToCurrentMarker(sorted_marks) {
+
+  let idx = 0;
+  let count = window.getLineCount();
+  let decorations = [];
+
+  sorted_marks.forEach(function (value) {
+
+    if (idx == currentMarker && value.startLineNumber <= count) {
+
+      window.editor.revealLineInCenter(value.startLineNumber);
+      window.editor.setPosition(new monaco.Position(value.startLineNumber, value.startColumn));
+
+      let decor_class = 'code-marker';
+
+      switch (value.severity) {
+        case 8: decor_class += ' marker-error'; break;
+        case 1: decor_class += ' marker-hint'; break;
+        case 2: decor_class += ' marker-info'; break;
+        case 4: decor_class += ' marker-warning'; break;
+        default: decor_class += ' marker-error';
+      }
+
+      decorations.push({
+        range: new monaco.Range(value.startLineNumber, 1, value.startLineNumber),
+        options: {
+          isWholeLine: true,
+          linesDecorationsClassName: decor_class
+        }
+      });
+
+    }
+
+    idx++;
+
+  });
+
+  window.editor.updateDecorations(decorations);
+
+}
+
+function getSortedMarks() {
+
+  return monaco.editor.getModelMarkers().sort((a, b) => a.startLineNumber - b.startLineNumber)
+
+}
+
+function setModelMarkers(model, markers_array) {
+    
+  let markers_data = [];
+  currentMarker = -1;
+  
+  markers_array.forEach(marker => {
+    
+    let severity;
+
+    switch (marker.severity) {
+      case "Error":
+        severity = monaco.MarkerSeverity.Error;
+        break;
+      case "Hint":
+        severity = monaco.MarkerSeverity.Hint;
+        break;
+      case "Info":
+        severity = monaco.MarkerSeverity.Info;
+        break;
+      case "Warning":
+        severity = monaco.MarkerSeverity.Warning;
+        break;
+      default:
+        severity = monaco.MarkerSeverity.Error;
+    }
+
+    markers_data.push({
+      startLineNumber: marker.lineNumber,
+      endLineNumber: marker.lineNumber,
+      startColumn: marker.startColumn ? marker.startColumn : model.getLineFirstNonWhitespaceColumn(marker.lineNumber),
+      endColumn: marker.endColumn ? marker.endColumn : model.getLineFirstNonWhitespaceColumn(marker.lineNumber),
+      severity: severity,
+      message: marker.message,
+      code: marker.code ? marker.code : '',
+      source: marker.source ? marker.source : ''
+    });
+
+  });
+
+  monaco.editor.setModelMarkers(model, "markers", markers_data);
+
+}
+
+function startStopDefinitionMessegeObserver() {
+
+  if (window.definitionObserver != null) {
+    window.definitionObserver.disconnect();
+    window.definitionObserver = null;
+  }
+
+  let disable_message = window.getOption('disableDefinitionMessage');
+
+  if (disable_message) {
+
+    window.definitionObserver = new MutationObserver(function (mutations) {
+
+      mutations.forEach(function (mutation) {
+
+        if (mutation.target.classList.contains('overflowingContentWidgets') && mutation.addedNodes.length) {
+          
+          let element = mutation.addedNodes[0];
+
+          if (element.classList.contains('monaco-editor-overlaymessage') && element.classList.contains('fadeIn')) {
+            element.style.display = 'none';
+          }
+
+        }
+
+      })
 
     });
 
-    editor.updateDecorations(decorations);
+    window.definitionObserver.observe(document, {
+      childList: true,
+      subtree: true
+    });
 
   }
 
-  function getSortedMarkers() {
+}
 
-    return monaco.editor.getModelMarkers().sort((a, b) => a.startLineNumber - b.startLineNumber)
+function startStopSuggestActivationObserver() {
 
+  if (window.suggestObserver != null) {
+    window.suggestObserver.disconnect();
+    window.suggestObserver = null;
   }
-  
-  function setModelMarkers(model, markers_array) {
-    
-    let markers_data = [];
-    currentMarker = -1;
-    
-    markers_array.forEach(marker => {
-      
-      let severity;
 
-      switch (marker.severity) {
-        case "Error":
-          severity = monaco.MarkerSeverity.Error;
-          break;
-        case "Hint":
-          severity = monaco.MarkerSeverity.Hint;
-          break;
-        case "Info":
-          severity = monaco.MarkerSeverity.Info;
-          break;
-        case "Warning":
-          severity = monaco.MarkerSeverity.Warning;
-          break;
-        default:
-          severity = monaco.MarkerSeverity.Error;
+  let fire_event = window.getOption('generateSuggestActivationEvent');
+
+  onSuggestListMouseOver(fire_event);
+
+  window.suggestObserver = new MutationObserver(function (mutations) {
+
+    mutations.forEach(function (mutation) {
+
+      decorateSuggestWidgetRows();
+
+      if (fire_event && mutation.target.classList
+        && mutation.target.classList.contains('monaco-list-rows')
+        && mutation.addedNodes.length) {
+        let element = mutation.addedNodes[0];
+        if (element.classList.contains('monaco-list-row') && element.classList.contains('focused')) {
+          removeSuggestListInactiveDetails();
+          window.generateEventWithSuggestData('EVENT_ON_ACTIVATE_SUGGEST_ROW', 'focus', element);
+          let alwaysDisplaySuggestDetails = window.getOption('alwaysDisplaySuggestDetails');
+          if (alwaysDisplaySuggestDetails) {
+            document.querySelectorAll('.monaco-list-rows .details-label').forEach(function (node) {
+              node.classList.add('inactive-detail');
+            });
+            let focusedDetails = document.querySelector('.monaco-list-rows .focused .details-label');
+            if (focusedDetails)
+              focusedDetails.classList.remove('inactive-detail');
+          }
+        }
       }
-
-      markers_data.push({
-        startLineNumber: marker.startLineNumber ? marker.startLineNumber : marker.lineNumber,
-        endLineNumber: marker.endLineNumber ? marker.endLineNumber : marker.lineNumber,
-        startColumn: marker.startColumn ? marker.startColumn : model.getLineFirstNonWhitespaceColumn(marker.lineNumber),
-        endColumn: marker.endColumn ? marker.endColumn : model.getLineFirstNonWhitespaceColumn(marker.lineNumber),
-        severity: severity,
-        message: marker.message,
-        code: marker.code ? marker.code : '',
-        source: marker.source ? marker.source : ''
-      });
+      else if (fire_event && mutation.target.classList
+        && (mutation.target.classList.contains('type') || mutation.target.classList.contains('docs'))) {
+        let element = document.querySelector('.monaco-list-rows .focused');
+        if (element) {
+          // 0.55: p.type/p.docs теперь внутри overlay .suggest-details (не .details в .suggest-widget).
+          if (hasParentWithClass(mutation.target, 'suggest-details')) {
+            window.generateEventWithSuggestData('EVENT_ON_DETAIL_SUGGEST_ROW', 'focus', element);
+          }
+        }
+      }
 
     });
 
-    monaco.editor.setModelMarkers(model, "markers", markers_data);
+  });
 
-  }
+  window.suggestObserver.observe(document, {
+    childList: true,
+    subtree: true,
+  });
 
-  function startStopDefinitionMessegeObserver() {
+}
+function startStopSuggestSelectionObserver() {
 
-    if (definitionObserver != null) {
-      definitionObserver.disconnect();
-      definitionObserver = null;
-    }
+  // 0.55: getSuggestWidget() = сам виджет (не .widget); метод onListMouseDownOrTap →
+  // _onListMouseDownOrTap. Override инстанс-свойства работает: список зовёт
+  // this._onListMouseDownOrTap(e) с динамическим резолвом в момент вызова.
+  let widget = getSuggestWidget();
 
-    let disable_message = getOption('disableDefinitionMessage');
+  if (widget) {
 
-    if (disable_message) {
+    let fire_event = window.getOption('generateSelectSuggestEvent');
 
-      definitionObserver = new MutationObserver(function (mutations) {
+    if (!widget.onListMouseDownOrTapOrig)
+      widget.onListMouseDownOrTapOrig = widget._onListMouseDownOrTap;
 
-        mutations.forEach(function (mutation) {
+    widget._onListMouseDownOrTap = function (e) {
+      let element = getParentWithClass(e.browserEvent.target, 'monaco-list-row');
+      let suggestItem = getSuggestItemByRow(element);
 
-          if (mutation.target.classList.contains('overflowingContentWidgets') && mutation.addedNodes.length) {
-            
-            let element = mutation.addedNodes[0];
+      if (element && fire_event)
+        window.generateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', 'selection', element);
 
-            if (element.classList.contains('monaco-editor-overlaymessage') && element.classList.contains('fadeIn')) {
-              element.style.display = 'none';
-            }
+      if (handleEventSuggestSelection(suggestItem)) {
+        e.browserEvent.preventDefault();
+        e.browserEvent.stopPropagation();
+        return;
+      }
 
-          }
-
-        })
-
-      });
-
-      definitionObserver.observe(document, {
-        childList: true,
-        subtree: true
-      });
-
-    }
-
-  }
-
-  function startStopSuggestActivationObserver() {
-
-    if (suggestObserver != null) {
-      suggestObserver.disconnect();
-      suggestObserver = null;
-    }
-
-    let fire_event = getOption('generateSuggestActivationEvent');
-
-    onSuggestListMouseOver(fire_event);
-
-    if (fire_event) {
-
-      suggestObserver = new MutationObserver(function (mutations) {
-
-        mutations.forEach(function (mutation) {
-
-          if (mutation.target.classList.contains('monaco-list-rows') && mutation.addedNodes.length) {
-            let element = mutation.addedNodes[0];
-            if (element.classList.contains('monaco-list-row') && element.classList.contains('focused')) {
-              removeSuggestListInactiveDetails();
-              generateEventWithSuggestData('EVENT_ON_ACTIVATE_SUGGEST_ROW', 'focus', element);
-              let alwaysDisplaySuggestDetails = getOption('alwaysDisplaySuggestDetails');
-              if (alwaysDisplaySuggestDetails) {
-                document.querySelectorAll('.monaco-list-rows .details-label').forEach(function (node) {
-                  node.classList.add('inactive-detail');
-                });
-                document.querySelector('.monaco-list-rows .focused .details-label').classList.remove('inactive-detail');
-              }
-            }
-          }
-          else if (mutation.target.classList.contains('type') || mutation.target.classList.contains('docs')) {
-            let element = document.querySelector('.monaco-list-rows .focused');
-            if (element) {
-              if (hasParentWithClass(mutation.target, 'details') && hasParentWithClass(mutation.target, 'suggest-widget')) {
-                generateEventWithSuggestData('EVENT_ON_DETAIL_SUGGEST_ROW', 'focus', element);
-              }
-            }
-          }
-
-        })
-
-      });
-
-      suggestObserver.observe(document, {
-        childList: true,
-        subtree: true,
-      });
+      widget.onListMouseDownOrTapOrig(e);
 
     }
 
   }
 
-  function startStopSuggestSelectionObserver() {
+}
 
-    let widget = getSuggestWidget().widget;
 
-    if (widget) {
+function startStopSignatureObserver() {
 
-      let fire_event = getOption('generateSelectSuggestEvent');
+  if (window.signatureObserver != null) {
+    window.signatureObserver.disconnect();
+    window.signatureObserver = null;
+  }
 
-      if (fire_event) {
+  let fire_event = window.getOption('generateBeforeSignatureEvent');
 
-        if (!widget.onListMouseDownOrTapOrig)
-          widget.onListMouseDownOrTapOrig = widget.onListMouseDownOrTap;
+  if (fire_event) {
 
-        widget.onListMouseDownOrTap = function (e) {
-          let element = getParentWithClass(e.browserEvent.target, 'monaco-list-row');
+    window.signatureObserver = new MutationObserver(function (mutations) {
 
-          if (element) {
-            generateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', 'selection', element);
+      mutations.forEach(function (mutation) {
+
+        if (mutation.target.classList.contains('overflowingContentWidgets') && mutation.addedNodes.length) {
+
+          let element = mutation.addedNodes[0];
+
+          if (element.classList.contains('parameter-hints-widget') && !window.signatureVisible) {
+            element.style.display = 'none';
+            window.signatureObserver.disconnect();
+            window.signatureObserver = null;
           }
-
-          widget.onListMouseDownOrTapOrig(e);
 
         }
 
-      }
-      else if (widget.onListMouseDownOrTapOrig) {
+      })
 
-        widget.onListMouseDownOrTap = widget.onListMouseDownOrTapOrig;
+    });
 
-      }
-
-    }
-
-  }
-
-  function startStopSignatureObserver() {
-
-    if (signatureObserver != null) {
-      signatureObserver.disconnect();
-      signatureObserver = null;
-    }
-
-    let fire_event = getOption('generateBeforeSignatureEvent');
-
-    if (fire_event) {
-
-      signatureObserver = new MutationObserver(function (mutations) {
-
-        mutations.forEach(function (mutation) {
-
-          if (mutation.target.classList.contains('overflowingContentWidgets') && mutation.addedNodes.length) {
-
-            let element = mutation.addedNodes[0];
-
-            if (element.classList.contains('parameter-hints-widget') && !signatureVisible) {
-              element.style.display = 'none';
-              signatureObserver.disconnect();
-              signatureObserver = null;
-            }
-
-          }
-
-        })
-
-      });
-
-      signatureObserver.observe(document, {
-        childList: true,
-        subtree: true
-      });
-
-    }
+    window.signatureObserver.observe(document, {
+      childList: true,
+      subtree: true
+    });
 
   }
 
-  function changeCommandKeybinding(command, keybinding) {
-  
-    editor._standaloneKeybindingService.addDynamicKeybinding('-' + command);
-    editor._standaloneKeybindingService.addDynamicKeybinding(command, keybinding);
+}
 
-  }
+function changeCommandKeybinding(command, keybinding) {
 
-  function getQueryDelimiterDecorations(decorations) {
+  // 0.55: приватный _standaloneKeybindingService.addDynamicKeybinding сменил сигнатуру и
+  // безусловно регистрирует команду (при handler===undefined бросает Error). Публичный путь —
+  // monaco.editor.addKeybindingRules: правило {keybinding:0, command:'-'+cmd} снимает дефолтную
+  // привязку команды при любом ключе, второе правило вешает новый ключ (ПЕРЕбиндинг как в 0.20).
+  monaco.editor.addKeybindingRules([
+    { keybinding: 0, command: '-' + command },
+    { keybinding: keybinding, command: command }
+  ]);
 
-    if (queryMode && editor.renderQueryDelimiters) {
+}
 
-      const matches = editor.getModel().findMatches('^\\s*;\\s*$', false, true, false, null, true);
+function getQueryDelimiterDecorations(decorations) {
+
+  if (window.queryMode && window.editor.renderQueryDelimiters) {
+
+    const matches = Finder.findMatches(window.editor.getModel(), '^\\s*;\\s*$');
+    const current_theme = getCurrentThemeName();
+    const is_dark_theme = (0 <= current_theme.indexOf('dark'));
+    
+    for (let idx = 0; idx < matches.length; idx++) {
       
       let color = '#f2f2f2';
       let class_name  = 'query-delimiter';
-      
-      const current_theme = getCurrentThemeName();
-      const is_dark_theme = (0 <= current_theme.indexOf('dark'));
 
       if (is_dark_theme) {
         class_name = 'query-delimiter-dark';
         color = '#2d2d2d'
       }
+      
+      let match = matches[idx];
 
-      for (let idx = 0; idx < matches.length; idx++) {
-        let match = matches[idx];
-        decorations.push({
-          range: new monaco.Range(match.range.startLineNumber, 1, match.range.startLineNumber),
-          options: {
-            isWholeLine: true,
-            className: class_name,
-            overviewRuler: {
-              color: color,
-              darkColor: color,
-              position: 7
-            }
+      if (window.selectedQueryDelimiters.get(match.range.toString()))
+        class_name += '-selected';
+
+      decorations.push({
+        range: new monaco.Range(match.range.startLineNumber, 1, match.range.startLineNumber),
+        options: {
+          isWholeLine: true,
+          className: class_name,
+          overviewRuler: {
+            color: color,
+            darkColor: color,
+            position: 7
           }
-        });
-
-      }
-
-    }
-
-  }
-
-  function getSuggestWidget() {
-
-    return editor._contentWidgets['editor.widget.suggestWidget'];
-  
-  }
-
-  function getParameterHintsWidget() {
-
-    return editor._contentWidgets['editor.widget.parameterHintsWidget'];
-  
-  }
-
-  function getFindWidget() {
-  
-    return getActiveEditor()._overlayWidgets['editor.contrib.findWidget'];
-
-  }
-
-  function getQuickOpenWidget() {
-  
-    return getActiveEditor()._overlayWidgets['editor.contrib.quickOpenEditorWidget'];
-
-  }
-
-  function getNativeLinkHref(element, isForwardDirection) {
-
-    let href = '';
-
-    if (element.classList.contains('detected-link-active')) {
-
-      href = element.innerText;
-
-  
-      if (isForwardDirection && element.nextSibling || isForwardDirection == null)
-        href += getNativeLinkHref(element.nextSibling, true);
-
-      if (!isForwardDirection && element.previousSibling)
-        href = getNativeLinkHref(element.previousSibling, false) + href;
-
-    }
-
-    return href;
-
-  }
-
-  function checkOnLinkClick(element) {
-
-    if (element.tagName.toLowerCase() == 'a') {
-
-      sendEvent("EVENT_ON_LINK_CLICK", { label: element.innerText, href: element.dataset.href });
-      setTimeout(() => {
-        editor.focus();
-      }, 100);
-
-    }
-    else if (element.classList.contains('detected-link-active')) {
-
-      let href = getNativeLinkHref(element, null);
-      if (href) {
-        sendEvent("EVENT_ON_LINK_CLICK", { label: href, href: href });
-        setTimeout(() => {
-          editor.focus();
-        }, 100);
-      }
-
-    }
-
-  }
-
-  function deltaDecorationsForDiffEditor(standalone_editor) {
-
-    let diffDecor = standalone_editor.diffDecor;
-    let decorations = [];
-
-    if (diffDecor.line)
-      decorations.push({ range: new monaco.Range(diffDecor.line, 1, diffDecor.line), options: { isWholeLine: true, linesDecorationsClassName: 'diff-mark' } });
-
-    if (diffDecor.position)
-      decorations.push({ range: new monaco.Range(diffDecor.position, 1, diffDecor.position), options: { isWholeLine: true, linesDecorationsClassName: 'diff-editor-position' } });
-
-    standalone_editor.diffDecor.decor = standalone_editor.deltaDecorations(standalone_editor.diffDecor.decor, decorations);
-
-  }
-
-  function diffEditorUpdateDecorations() {
-
-    deltaDecorationsForDiffEditor(this.getModifiedEditor());
-    deltaDecorationsForDiffEditor(this.getOriginalEditor());
-
-  }
-
-  function diffEditorOnDidChangeCursorPosition(e) {
-
-    if (e.source != 'api') {      
-      
-      editor.getModifiedEditor().diffDecor.position = 0;
-      editor.getOriginalEditor().diffDecor.position = 0;
-      getActiveDiffEditor().diffDecor.position = e.position.lineNumber;
-      editor.diffEditorUpdateDecorations();
-      editor.diffCount = editor.getLineChanges().length;
-
-      if (editor.getModifiedEditor().getPosition().equals(e.position))
-        editor.getOriginalEditor().setPosition(e.position);
-      else
-        editor.getModifiedEditor().setPosition(e.position);
-
-      updateStatusBar();
-
-    }
-
-  }
-
-  function diffEditorOnDidLayoutChange(e) {
-
-    setTimeout(() => { resizeStatusBar(); } , 50);
-
-  }
-
-  function getActiveDiffEditor() {
-
-    let active_editor = null;
-
-    if (editor.getModifiedEditor().diffDecor.position)
-      active_editor = editor.getModifiedEditor();
-    else if (editor.getOriginalEditor().diffDecor.position)
-      active_editor = editor.getOriginalEditor();
-    else
-      active_editor = editor.getModifiedEditor().hasTextFocus() ? editor.getModifiedEditor() : editor.getOriginalEditor();
-
-    return active_editor;
-
-  }
-
-  function getActiveEditor() {
-
-    return editor.navi ? getActiveDiffEditor() : editor;
-
-  }
-
-  function diffEditorOnKeyDown(e) {
-
-    if (e.ctrlKey && (e.keyCode == 36 || e.keyCode == 38)) {
-      // Ctrl+F or Ctrl+H
-      setFindWidgetDisplay('inherit');
-    }
-    else if (e.keyCode == 9) {
-      // Esc
-      closeSearchWidget();      
-    }
-    else if (e.keyCode == 61) {
-      // F3
-      let standalone_editor = getActiveDiffEditor();
-      if (!e.altKey && !e.shiftKey) {
-        if (e.ctrlKey) {
-          standalone_editor.trigger('', 'actions.find');
-          standalone_editor.focus();
-          previousMatch();
         }
-        else
-          standalone_editor.trigger('', 'editor.action.findWithSelection');
-        setFindWidgetDisplay('inherit');
-        standalone_editor.focus();
-        focusFindWidgetInput();
-      }
-    }
-
-  }
-
-  function generateOnKeyDownEvent(e) {
-
-    let fire_event = getOption('generateOnKeyDownEvent');
-    let filter = getOption('onKeyDownFilter');
-    let filter_list = filter ? filter.split(',') : [];
-    fire_event = fire_event && (!filter || 0 <= filter_list.indexOf(e.keyCode.toString()));
-
-    if (fire_event) {
-
-      let find_widget = getFindWidget();
-
-      let event_params = {
-        keyCode: e.keyCode,
-        suggestWidgetVisible: isSuggestWidgetVisible(),
-        parameterHintsWidgetVisible: isParameterHintsWidgetVisible(),
-        findWidgetVisible: (find_widget && find_widget.position) ? true : false,
-        ctrlPressed: e.ctrlKey,
-        altPressed: e.altKey,
-        shiftPressed: e.shiftKey,
-        position: editor.getPosition()
-      }
-
-      sendEvent('EVENT_ON_KEY_DOWN', event_params);
+      });
 
     }
 
   }
 
-  function editorOnKeyDown(e) {
+}
 
-    generateOnKeyDownEvent(e);
+function getSuggestWidget() {
 
-    editor.lastKeyCode = e.keyCode;
+  // 0.55.1: реальный SuggestWidget живёт в контрибуции suggestController (WindowIdleValue.value);
+  // _contentWidgets хранит лишь SuggestContentWidget-обёртку. Возвращаем сам виджет (или null) —
+  // поэтому вызывающие используют getSuggestWidget() напрямую, без .widget. isInitialized не
+  // форсирует создание (до первого показа подсказок вернём null).
+  let controller = window.editor.getContribution('editor.contrib.suggestController');
 
-    if (e.keyCode == 16 && editor.getPosition().lineNumber == 1)
-      // ArrowUp
-      scrollToTop();
-    else if (e.keyCode == 3 && getOption('generateSelectSuggestEvent')) {
-      // Enter
-      let element = document.querySelector('.monaco-list-row.focused');
-      if (element) {
-        e.preventDefault();
-        e.stopPropagation();
-        setTimeout(() => {
-          generateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', 'selection', element);
-        }, 10);
-      }
-    }
-    else if (e.ctrlKey && (e.keyCode == 36 || e.keyCode == 38)) {
-      // Ctrl+F or Ctrl+H
-      setFindWidgetDisplay('inherit');
-    }
-    else if (e.keyCode == 9) {
-      // Esc
-      setFindWidgetDisplay('none');
-      hideSuggestionsList();
-    }
-    else if (e.keyCode == 61) {
-      // F3
-      if (!e.altKey && !e.shiftKey) {
-        if (e.ctrlKey) {
-          editor.trigger('', 'actions.find');
-          previousMatch();
-        }
-        else
-          editor.trigger('', 'editor.action.findWithSelection');
-        setFindWidgetDisplay('inherit');
-        editor.focus();
-        focusFindWidgetInput();
-      }
-    }
-    else if (e.keyCode == 2) {
-      // Tab
-      let fire_event = getOption('generateSelectSuggestEvent');
-      if (fire_event) {
-        let element = document.querySelector('.monaco-list-row.focused');
-        if (element) {
-          e.preventDefault();
-          e.stopPropagation();
-          setTimeout(() => {
-            generateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', 'selection', element);
-          }, 10);
-        }
-      }
-    }
+  if (controller && controller.widget && controller.widget.isInitialized)
+    return controller.widget.value;
 
-    if (e.altKey && e.keyCode == 87) {
-      // fix https://github.com/salexdv/bsl_console/issues/147
-      e.preventDefault();
-      setText('[');
-    }
+  return null;
 
-    if (e.ctrlKey)
-      ctrlPressed = true;
+}
 
-    if (e.altKey)
-      altPressed = true;
+function getSuggestItemByRow(row) {
 
-    if (e.shiftKey)
-      shiftPressed = true;
-
-    checkEmptySuggestions();
-
-  }
-
-  function  initContextMenuActions() {
-
-    contextActions.forEach(action => {
-      action.dispose();
-    });
-
-    const actions = getActions(version1C);
-
-    for (const [action_id, action] of Object.entries(actions)) {
-      
-      let menuAction = editor.addAction({
-        id: action_id,
-        label: action.label,
-        keybindings: [action.key, action.cmd],
-        precondition: null,
-        keybindingContext: null,
-        contextMenuGroupId: 'navigation',
-        contextMenuOrder: action.order,
-        run: action.callback
-      });      
-
-      contextActions.push(menuAction)
-    }
-
-  }
-
-  function checkNewStringLine() {
-
-    if (getCurrentLanguageId() == 'bsl') {
-
-      const model = editor.getModel();
-      const position = editor.getPosition();
-      const line = position.lineNumber;
-      const length = model.getLineLength(line);
-      const expression = model.getValueInRange(new monaco.Range(line, position.column, line, length + 1));
-      const column = model.getLineLastNonWhitespaceColumn(line - 1);
-      const char = model.getValueInRange(new monaco.Range(line - 1, column - 1, line - 1, column));
-      const token = getTokenFromPosition(new monaco.Position(line - 1, column));
-
-      if (token == 'stringbsl' ||0 <= token.indexOf('string.invalid') || 0 <= token.indexOf('query') || char == '|') {
-
-        if (token != 'query.quotebsl' || char == '|') {
-
-          const range = new monaco.Range(line, position.column, line, length + 2);
-
-          let operation = {
-            range: range,
-            text: '|' + expression,
-            forceMoveMarkers: true
-          };
-
-          editor.executeEdits('nql', [operation]);
-          editor.setPosition(new monaco.Position(line, position.column + 1));
-
-        }
-
-      }
-
-    }
-
-  }
-
-  function hasParentWithClass(element, className) {
-
-    if (0 <= element.className.split(' ').indexOf(className))
-      return true;
-
-    return element.parentNode && hasParentWithClass(element.parentNode, className);
-
-  }
-
-  function getParentWithClass(element, className) {
-
-    if (element.className && 0 <= element.className.split(' ').indexOf(className))
-      return element;
-
-    if (element.parentNode)    
-      return getParentWithClass(element.parentNode, className);
-    else
-      return null;
-
-  }
-
-  function getChildWithClass(element, className) {
-
-    for (var i = 0; i < element.childNodes.length; i++) {
-      
-      let child = element.childNodes[i];
-
-      if (child.className && 0 <= child.className.split(' ').indexOf(className))
-        return child
-      else if (child.childNodes.length) {
-        child = getChildWithClass(child, className);
-        if (child)
-          return child;
-      }
-
-    }
-
+  if (!row)
     return null;
 
-  }
+  let widget = getSuggestWidget();
 
-  setFindWidgetDisplay = function(value) {
+  if (!widget || !widget._list)
+    return null;
 
-    let find_widget = getFindWidget();
-    
-    if (find_widget)
-      find_widget.widget._domNode.style.display = value;
+  let rowId = parseInt(row.getAttribute('data-index'), 10);
 
-  }
+  if (isNaN(rowId) || rowId < 0 || rowId >= widget._list.length)
+    return null;
 
-  function setFindWidgetDisplay(value) {
+  return widget._list.element(rowId);
 
-    let find_widget = getFindWidget();
-    
-    if (find_widget)
-      find_widget.widget._domNode.style.display = value;
+}
 
-  }
+function getFocusedSuggestItem() {
 
-  function focusFindWidgetInput() {
+  return getSuggestItemByRow(document.querySelector('.suggest-widget .monaco-list-row.focused'));
 
-    let find_widget = getFindWidget();
+}
 
-    if (find_widget)
-      find_widget.widget.focusFindInput();
+function isEventSuggestItem(suggestItem) {
 
-  }  
+  return suggestItem
+    && suggestItem.completion
+    && suggestItem.completion.eventSuggestion;
 
-  function updateStatusBar() {
-    
-    if (statusBarWidget) {
+}
+
+function handleEventSuggestSelection(suggestItem) {
+
+  if (!isEventSuggestItem(suggestItem))
+    return false;
+
+  let position = window.editor.getPosition();
+  let bsl = new bslHelper(window.editor.getModel(), position);
+  let completion = suggestItem.completion;
+  let eventParams = {
+    current_word: bsl.word,
+    last_word: bsl.lastRawExpression,
+    last_expression: bsl.lastExpression,
+    position: position
+  };
+
+  window.hideSuggestionsList();
+  window.sendEvent(completion.eventName, eventParams);
+
+  setTimeout(() => {
+    window.editor.focus();
+  }, 0);
+
+  return true;
+
+}
+
+function decorateSuggestWidgetRows() {
+
+  let rows = document.querySelectorAll('.suggest-widget .monaco-list-row');
+
+  rows.forEach(function (rowNode) {
+    let suggestItem = getSuggestItemByRow(rowNode);
+    let completion = suggestItem ? suggestItem.completion : null;
+    let iconNode = getChildWithClass(rowNode, 'suggest-icon');
+
+    rowNode.classList.remove('event-suggestion');
+
+    if (iconNode && iconNode.bslCustomCodicon) {
+      if (iconNode.classList.contains(iconNode.bslCustomCodicon)) {
+        iconNode.className = '';
+        iconNode.bslDefaultClasses.forEach(function (className) {
+          iconNode.classList.add(className);
+        });
+      }
+
+      iconNode.bslCustomCodicon = null;
+      iconNode.bslDefaultClasses = null;
+    }
+
+    if (isEventSuggestItem(suggestItem))
+      rowNode.classList.add('event-suggestion');
+
+    if (iconNode && completion && completion.codicon) {
+      iconNode.bslDefaultClasses = Array.from(iconNode.classList);
+      iconNode.bslCustomCodicon = completion.codicon;
+      iconNode.className = '';
+      iconNode.classList.add('suggest-icon');
+      iconNode.classList.add('codicon');
+      iconNode.classList.add(completion.codicon);
+    }
+  });
+
+}
+
+function getParameterHintsWidget() {
+
+  return editor._contentWidgets['editor.widget.parameterHintsWidget'];
+
+}
+
+function getFindWidget() {
+  
+  return getActiveEditor()._overlayWidgets['editor.contrib.findWidget'];
+
+}
+
+function getSuggestWidgetRows(element) {
+
+  let rows = [];
+
+  if (element) {
+
+    for (let i = 0; i < element.parentElement.childNodes.length; i++) {              
       
-      let status = '';
-
-      if (editor.navi) {
-        let standalone_editor = getActiveDiffEditor();
-        status = 'Ln ' + standalone_editor.getPosition().lineNumber;
-        status += ', Col ' + standalone_editor.getPosition().column;                
-      }
-      else {        
-        status = 'Ln ' + getCurrentLine();
-        status += ', Col ' + getCurrentColumn();
-      }
-
-      if (!engLang)
-        status = status.replace('Ln', 'Стр').replace('Col', 'Кол');
-
-      statusBarWidget.domNode.firstElementChild.innerText = status;
-    }
-
-  }
-
-  function resizeStatusBar() {
-
-    if (statusBarWidget) {
-
-      let element = statusBarWidget.domNode;
-
-      if (statusBarWidget.overlapScroll) {
-        element.style.top = editor.getDomNode().clientHeight - 20 + 'px';
-      }
-      else {        
-        let layout = getActiveEditor().getLayoutInfo();
-        element.style.top = (editor.getDomNode().offsetHeight - 20 - layout.horizontalScrollbarHeight) + 'px';
-      }
+      let row = element.parentElement.childNodes[i];
+      
+      if (row.classList.contains('monaco-list-row'))
+        rows.push(row.getAttribute('aria-label'));
 
     }
 
   }
 
-  function checkBookmarksAfterNewLine() {
+  return rows;
 
-    let line = getCurrentLine();
-    let content = getLineContent(line);
+}
 
-    if (content)
-      line--;
+window.generateEventWithSuggestData = function(eventName, trigger, row, suggestRows = []) {
 
-    let line_check = getLineCount();
+  let bsl = new bslHelper(window.editor.getModel(), window.editor.getPosition());		
+  let row_id = row ? row.getAttribute('data-index') : "";
+  let insert_text = '';
 
-    while (line <= line_check) {
+  if (row_id) {
 
-      let bookmark = editor.bookmarks.get(line_check);
+    let widget = getSuggestWidget();
 
-      if (bookmark) {
-        bookmark.range.startLineNumber = line_check + 1;
-        bookmark.range.endLineNumber = line_check + 1;
-        editor.bookmarks.set(line_check + 1, bookmark);
-        editor.bookmarks.delete(line_check);
-      }
+    if (widget) {
 
-      line_check--;
+      // 0.55: widget.list → widget._list; элемент по индексу — List.element(idx). row_id —
+      // строка из data-index, приводим к числу.
+      let idx = parseInt(row_id);
 
-    }
-
-    updateBookmarks(undefined);
-
-  }
-
-  function checkBookmarksAfterRemoveLine(contentChangeEvent) {
-
-    if (contentChangeEvent.changes.length && editor.checkBookmarks) {
-
-      let changes = contentChangeEvent.changes[0];
-      let range = changes.range;
-
-      if (!changes.text && range.startLineNumber != range.endLineNumber) {
-
-        let line = range.startLineNumber;
-        let prev_bookmark = editor.bookmarks.get(range.endLineNumber);
-
-        if (prev_bookmark) {
-
-          for (l = line; l <= range.endLineNumber; l++) {
-            editor.bookmarks.delete(l);
-          }
-
-          prev_bookmark.range.startLineNumber = line;
-          prev_bookmark.range.endLineNumber = line;
-          editor.bookmarks.set(line, prev_bookmark);
-
-        }
-
-        for (l = line + 1; l <= range.endLineNumber; l++) {
-          editor.bookmarks.delete(l);
-        }
-
-        let line_check = range.endLineNumber;
-        let diff = range.endLineNumber - line;
-
-        while (line_check < getLineCount()) {
-
-          let bookmark = editor.bookmarks.get(line_check);
-
-          if (bookmark) {
-            bookmark.range.startLineNumber = line_check - diff;
-            bookmark.range.endLineNumber = line_check - diff;
-            editor.bookmarks.set(line_check - diff, bookmark);
-            editor.bookmarks.delete(line_check);
-          }
-
-          line_check++;
-
-        }
-
+      if (idx < widget._list.length) {
+        let item = widget._list.element(idx);
+        if (item)
+          insert_text = item.completion.insertText;
       }
 
     }
 
   }
 
-  function checkBookmarksCount() {
+  let eventParams = {
+    trigger: trigger,
+    current_word: bsl.word,
+    last_word: bsl.lastRawExpression,
+    last_expression: bsl.lastExpression,                    
+    rows: suggestRows.length ? suggestRows : getSuggestWidgetRows(row),
+    altKey: window.altPressed,
+    ctrlKey: window.ctrlPressed,
+    shiftKey: window.shiftPressed,
+    row_id: row_id,
+    insert_text: insert_text
+  }
 
-    let count = getLineCount();
-    let keys = [];
+  if (row) {
+    
+    eventParams['kind'] = getChildWithClass(row, 'suggest-icon').className;
+    // 0.55: панель доков — overlay .suggest-details-container (docs-side/.details мертвы);
+    // её наличие в DOM = открыта (add/removeOverlayWidget при show/hide).
+    eventParams['sideDetailIsOpened'] = (null != document.querySelector('.suggest-details-container'));
 
-    editor.bookmarks.forEach(function (value, key) {
-      if (count < key)
-        keys.push(key);
+    if (eventName == 'EVENT_ON_ACTIVATE_SUGGEST_ROW' || eventName == 'EVENT_ON_DETAIL_SUGGEST_ROW')
+      eventParams['focused'] = row.getAttribute('aria-label');
+    else if (eventName == 'EVENT_ON_SELECT_SUGGEST_ROW')
+      eventParams['selected'] = row.getAttribute('aria-label');
+
+  }
+  
+  window.sendEvent(eventName, eventParams);
+
+}
+
+function getNativeLinkHref(element, isForwardDirection) {
+
+  let href = '';
+
+  if (element.classList.contains('detected-link-active')) {
+
+    href = element.innerText;
+
+
+    if (isForwardDirection && element.nextSibling || isForwardDirection == null)
+      href += getNativeLinkHref(element.nextSibling, true);
+
+    if (!isForwardDirection && element.previousSibling)
+      href = getNativeLinkHref(element.previousSibling, false) + href;
+
+  }
+
+  return href;
+
+}
+
+function checkOnLinkClick(element) {
+
+  if (element.tagName.toLowerCase() == 'a') {
+
+    window.sendEvent("EVENT_ON_LINK_CLICK", { label: element.innerText, href: element.dataset.href });
+    setTimeout(() => {
+      window.editor.focus();
+    }, 100);
+
+  }
+  else if (element.classList.contains('detected-link-active')) {
+
+    let href = getNativeLinkHref(element, null);
+
+    if (href) {
+      window.sendEvent("EVENT_ON_LINK_CLICK", { label: href, href: href });
+      setTimeout(() => {
+        window.editor.focus();
+      }, 100);
+    }
+
+  }
+
+}
+
+function deltaDecorationsForDiffEditor(standalone_editor) {
+
+  let diffDecor = standalone_editor.diffDecor;
+  let decorations = [];
+
+  if (diffDecor.line)
+    decorations.push({ range: new monaco.Range(diffDecor.line, 1, diffDecor.line), options: { isWholeLine: true, linesDecorationsClassName: 'diff-mark' } });
+
+  if (diffDecor.position)
+    decorations.push({ range: new monaco.Range(diffDecor.position, 1, diffDecor.position), options: { isWholeLine: true, linesDecorationsClassName: 'diff-editor-position' } });
+
+  if (standalone_editor.reviewDecorations)
+    decorations = decorations.concat(standalone_editor.reviewDecorations);
+
+  standalone_editor.diffDecor.decor = standalone_editor.deltaDecorations(standalone_editor.diffDecor.decor, decorations);
+
+}
+
+function diffEditorUpdateDecorations() {
+
+  deltaDecorationsForDiffEditor(this.getModifiedEditor());
+  deltaDecorationsForDiffEditor(this.getOriginalEditor());
+
+}
+
+function newReviewDecoration(e) {
+
+  if (window.getOption('reviewMode') && !window.getOption("readOnlyCodeReview") && e.target.position) {
+
+    let standaloneEditor = window.editor;
+    
+    if (window.editor.navi)
+      standaloneEditor = window.editor.getModifiedEditor();
+
+    standaloneEditor.reviewDecorations = [];
+    standaloneEditor.mousePosition = e.target.position;
+    standaloneEditor.updateOptions({ lineNumbers: undefined });
+    standaloneEditor.updateOptions({ lineNumbers: getLineNumber });
+
+    let range = new monaco.Range(e.target.position.lineNumber, 1, e.target.position.lineNumber, 1);
+        
+    standaloneEditor.reviewDecorations.push({
+      range: range,
+      options: {
+        isWholeLine: true,
+        linesDecorationsClassName: 'add-review',
+      }
     });
-
-    keys.forEach(function (key) {
-      editor.bookmarks.delete(key);
-    });
-
-  }
-
-  function checkEmptySuggestions() {
-
-    let msg_element = document.querySelector('.suggest-widget .message');
-
-    if (msg_element && msg_element.innerText && !msg_element.style.display) {
-
-      let word = editor.getModel().getWordAtPosition(editor.getPosition());
-
-      if (!word) {
-        hideSuggestionsList();
-        setTimeout(() => {
-          triggerSuggestions();
-        }, 10);
-      }
-
-    }
-
-  }
-
-  function getCurrentThemeName() {
-
-    let queryPostfix = '-query';
-    let currentTheme = editor._themeService.getTheme().themeName;
-    let is_query = (queryMode || DCSMode);
-
-    if (is_query && currentTheme.indexOf(queryPostfix) == -1)
-      currentTheme += queryPostfix;
-    else if (!is_query && currentTheme.indexOf(queryPostfix) >= 0)
-      currentTheme = currentTheme.replace(queryPostfix, '');
-
-    return currentTheme;
-
-  }
-
-  function isDiffEditorHasChanges() {
     
-    return diffEditor.getOriginalEditor().getValue() != diffEditor.getModifiedEditor().getValue();
-
-  }
-
-  function getDiffChanges() {
-
-    const changes = diffEditor.getLineChanges();
-  
-    if (Array.isArray(changes)) {
-  
-      editor.diffCount = changes.length;
-      editor.diff_decorations = [];
-  
-      if (isDiffEditorHasChanges()) {
-
-        changes.forEach(function (e) {
-    
-          const startLineNumber = e.modifiedStartLineNumber;
-          const endLineNumber = e.modifiedEndLineNumber || startLineNumber;
-    
-          let color = '#f8a62b';
-          let class_name = 'diff-changed';
-          let range = new monaco.Range(startLineNumber, 1, endLineNumber, 1);
-    
-          if (e.originalEndLineNumber === 0) {
-            color = '#10aa00';
-            class_name = 'diff-new';
-          } else if (e.modifiedEndLineNumber === 0) {
-            color = '#dd0000';
-            class_name = 'diff-removed';
-            range = new monaco.Range(startLineNumber, Number.MAX_VALUE, startLineNumber, Number.MAX_VALUE);
-          }
-    
-          editor.diff_decorations.push({
-            range: range,
-            options: {
-              isWholeLine: true,
-              linesDecorationsClassName: 'diff-navi ' + class_name,
-              overviewRuler: {
-                color: color,
-                darkColor: color,
-                position: 4
-              }
-            }
-          });
-        });
-
-      }
-  
-      editor.updateDecorations([]);
-      editor.diffTimer = 0;
-  
-    }
-  
-  }
-
-  function calculateDiff() {
-
-    if (editor.calculateDiff) {
-
-      if (editor.diffTimer)
-        clearTimeout(editor.diffTimer);
-
-      editor.diffTimer = setTimeout(() => {
-                
-        if (!diffEditor) {
-          diffEditor = monaco.editor.createDiffEditor(document.createElement("div"));
-          diffEditor.onDidUpdateDiff(() => {
-            getDiffChanges();
-          });
-        }
-
-        diffEditor.setModel({
-          original: monaco.editor.createModel(editor.originalText),
-          modified: editor.getModel()
-        });
-
-      }, 50);
-
-    }
-
-  }
-
-  function createStatusBarWidget(overlapScroll) {
-
-    statusBarWidget = {
-      domNode: null,
-      overlapScroll: overlapScroll,
-      getId: function () {
-        return 'bsl.statusbar.widget';
-      },
-      getDomNode: function () {
-
-        if (!this.domNode) {
-
-          this.domNode = document.createElement('div');
-          this.domNode.classList.add('statusbar-widget');
-          if (this.overlapScroll) {
-            this.domNode.style.right = '0';
-            this.domNode.style.top = editor.getDomNode().offsetHeight - 20 + 'px';
-          }
-          else {
-            let layout = getActiveEditor().getLayoutInfo();
-            this.domNode.style.right = layout.verticalScrollbarWidth + 'px';
-            this.domNode.style.top = (editor.getDomNode().offsetHeight - 20 - layout.horizontalScrollbarHeight) + 'px';
-          }
-          this.domNode.style.height = '20px';
-          this.domNode.style.minWidth = '125px';
-          this.domNode.style.textAlign = 'center';
-          this.domNode.style.zIndex = 1;
-          this.domNode.style.fontSize = '12px';
-
-          let pos = document.createElement('div');
-          pos.style.margin = 'auto 10px';
-          this.domNode.appendChild(pos);
-
-        }
-
-        return this.domNode;
-
-      },
-      getPosition: function () {
-        return null;
-      }
-    };
-
-    if (editor.navi)
-      editor.getModifiedEditor().addOverlayWidget(statusBarWidget);
+    if (window.editor.navi)
+      window.editor.diffEditorUpdateDecorations();
     else
-      editor.addOverlayWidget(statusBarWidget);
+      window.editor.updateDecorations(standaloneEditor.reviewDecorations);
+    
+    setTimeout(() => {
+      let lineElement = document.querySelector('.add-review');
+      if (lineElement) {
+        lineElement.parentElement.style.backgroundColor = '#ddd';
+      }
+    }, 5);
 
+  }
+
+}
+
+function diffEditorOnDidChangeCursorPosition(e) {
+
+  if (e.source != 'api') {
+
+    window.editor.getModifiedEditor().diffDecor.position = 0;
+    window.editor.getOriginalEditor().diffDecor.position = 0;
+    getActiveDiffEditor().diffDecor.position = e.position.lineNumber;
+    window.editor.diffEditorUpdateDecorations();
+    window.editor.diffCount = (window.editor.getLineChanges() || []).length;
+    const line_number = e.position.lineNumber;
+
+    if (window.editor.getModifiedEditor().getPosition().equals(e.position)) {
+      window.editor.getOriginalEditor().setPosition({
+        lineNumber: window.editor.getDiffLineInformationForModified(line_number).equivalentLineNumber,
+        column: 1
+      });
+    }
+    else {
+      window.editor.getModifiedEditor().setPosition({
+        lineNumber: window.editor.getDiffLineInformationForOriginal(line_number).equivalentLineNumber,
+        column: 1
+      });
+    }
+
+    updateIfHighlights(getActiveDiffEditor());
     updateStatusBar();
 
   }
-  
-  function createDiffWidget(e) {
 
-    if (inlineDiffWidget) {
-      
-      editor.removeDiffWidget();
+}
 
+function diffEditorOnDidLayoutChange(e) {
+
+  setTimeout(() => { resizeStatusBar(); } , 50);
+
+}
+
+// Monaco 0.40: IDiffEditor.getDiffLineInformationForModified/Original удалены. Точный порт
+// DiffEditorWidget._getEquivalentLineFor*LineNumber из Monaco 0.20 (бинарный поиск изменения
+// at-or-before + интерполяция внутри блока) поверх getLineChanges(). forModified=true: строка
+// modified-редактора → эквивалент в original (и наоборот). Хелпер НИКОГДА не возвращает null
+// (getLineChanges() в 0.55 отдаёт null до конца async-вычисления — вызывающие берут результат
+// без null-check), поэтому пустой lineChanges → тождественный номер строки.
+function getLineChangeAtOrBefore(lineChanges, lineNumber, startExtractor) {
+  if (lineChanges.length === 0 || lineNumber < startExtractor(lineChanges[0]))
+    return null;
+  let min = 0, max = lineChanges.length - 1;
+  while (min < max) {
+    let mid = Math.floor((min + max) / 2);
+    let midStart = startExtractor(lineChanges[mid]);
+    let midEnd = (mid + 1 <= max) ? startExtractor(lineChanges[mid + 1]) : 1073741824;
+    if (lineNumber < midStart) max = mid - 1;
+    else if (lineNumber >= midEnd) min = mid + 1;
+    else { min = mid; max = mid; }
+  }
+  return lineChanges[min];
+}
+
+function getEquivalentDiffLine(lineChanges, lineNumber, forModified) {
+  if (!lineChanges || lineChanges.length === 0)
+    return lineNumber;
+  let lineChange = getLineChangeAtOrBefore(
+    lineChanges, lineNumber,
+    forModified
+      ? function (c) { return c.modifiedStartLineNumber; }
+      : function (c) { return c.originalStartLineNumber; }
+  );
+  if (!lineChange)
+    return lineNumber;
+  let originalEquivalent = lineChange.originalStartLineNumber + (lineChange.originalEndLineNumber > 0 ? -1 : 0);
+  let modifiedEquivalent = lineChange.modifiedStartLineNumber + (lineChange.modifiedEndLineNumber > 0 ? -1 : 0);
+  let originalLength = (lineChange.originalEndLineNumber > 0 ? (lineChange.originalEndLineNumber - lineChange.originalStartLineNumber + 1) : 0);
+  let modifiedLength = (lineChange.modifiedEndLineNumber > 0 ? (lineChange.modifiedEndLineNumber - lineChange.modifiedStartLineNumber + 1) : 0);
+  let sourceEquivalent = forModified ? modifiedEquivalent : originalEquivalent;
+  let targetEquivalent = forModified ? originalEquivalent : modifiedEquivalent;
+  let sourceLength = forModified ? modifiedLength : originalLength;
+  let targetLength = forModified ? originalLength : modifiedLength;
+  let delta = lineNumber - sourceEquivalent;
+  return (delta <= sourceLength)
+    ? targetEquivalent + Math.min(delta, targetLength)
+    : targetEquivalent + targetLength - sourceLength + delta;
+}
+
+function getActiveDiffEditor() {
+
+  let active_editor = null;
+
+  if (window.editor.getModifiedEditor().diffDecor.position)
+    active_editor = window.editor.getModifiedEditor();
+  else if (window.editor.getOriginalEditor().diffDecor.position)
+    active_editor = window.editor.getOriginalEditor();
+  else
+    active_editor = window.editor.getModifiedEditor().hasTextFocus() ? window.editor.getModifiedEditor() : window.editor.getOriginalEditor();
+
+  return active_editor;
+
+}
+
+function getActiveEditor() {
+
+  return window.editor.navi ? getActiveDiffEditor() : window.editor;
+
+}
+
+function diffEditorOnKeyDown(e) {
+
+  if (e.ctrlKey && (e.keyCode == 36 || e.keyCode == 38)) {
+    // Ctrl+F or Ctrl+H
+    setFindWidgetDisplay('inherit');
+  }
+  else if (e.keyCode == 9) {
+    // Esc
+    window.generateEscapeEvent();
+    window.closeSearchWidget();      
+  }
+  else if (e.keyCode == 61) {
+    // F3
+    let standalone_editor = getActiveDiffEditor();
+    if (!e.altKey && !e.shiftKey) {
+      if (e.ctrlKey) {
+        standalone_editor.trigger('', 'actions.find');
+        standalone_editor.focus();
+        window.previousMatch();
+      }
+      else
+        standalone_editor.trigger('', 'editor.action.findWithSelection');
+      setFindWidgetDisplay('inherit');
+      standalone_editor.focus();
+      focusFindWidgetInput();
     }
-    else {
+  }
 
-      let element = e.target.element;
-      let line_number = e.target.position.lineNumber;
-      
-      let reveal_line = false;
-      
-      if (line_number == getLineCount()) {
-        line_number--;
-        reveal_line = true;
+}
+
+function generateOnKeyDownEvent(e) {
+
+  let fire_event = window.getOption('generateOnKeyDownEvent');
+  let filter = window.getOption('onKeyDownFilter');
+  let filter_list = filter ? filter.split(',') : [];
+  fire_event = fire_event && (!filter || 0 <= filter_list.indexOf(e.keyCode.toString()));
+
+  if (fire_event) {
+
+    let find_widget = getFindWidget();
+
+    let event_params = {
+      keyCode: e.keyCode,
+      suggestWidgetVisible: window.isSuggestWidgetVisible(),
+      parameterHintsWidgetVisible: window.isParameterHintsWidgetVisible(),
+      findWidgetVisible: (find_widget && find_widget.position) ? true : false,
+      ctrlPressed: e.ctrlKey,
+      altPressed: e.altKey,
+      shiftPressed: e.shiftKey,
+      position: window.editor.getPosition()
+    }
+
+    window.sendEvent('EVENT_ON_KEY_DOWN', event_params);
+
+  }
+
+}
+
+function editorOnKeyDown(e) {
+
+  generateOnKeyDownEvent(e);
+
+  window.editor.lastKeyCode = e.keyCode;
+
+  if ((e.keyCode == 3 || e.keyCode == 2) && window.isSuggestWidgetVisible()) {
+    let eventSuggestItem = getFocusedSuggestItem();
+
+    if (handleEventSuggestSelection(eventSuggestItem)) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+  }
+
+  if (e.keyCode == 16 && window.editor.getPosition().lineNumber == 1)
+    // ArrowUp
+    window.scrollToTop();
+  else if (e.keyCode == 3 && window.getOption('generateSelectSuggestEvent')) {
+    // Enter
+    let element = document.querySelector('.monaco-list-row.focused');
+    if (element) {
+      e.preventDefault();
+      e.stopPropagation();
+      setTimeout(() => {
+        window.generateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', 'selection', element);
+      }, 10);
+    }
+  }  
+  else if (e.ctrlKey && (e.keyCode == 36 || e.keyCode == 38)) {
+    // Ctrl+F or Ctrl+H
+    setFindWidgetDisplay('inherit');
+  }
+  else if (e.keyCode == 9) {
+    // Esc
+    window.generateEscapeEvent();
+    setFindWidgetDisplay('none');
+    window.hideSuggestionsList();
+  }
+  else if (e.keyCode == 61) {
+    // F3
+    if (!e.altKey && !e.shiftKey) {
+      if (e.ctrlKey) {
+        window.editor.trigger('', 'actions.find');
+        window.previousMatch();
+      }
+      else
+        window.editor.trigger('', 'editor.action.findWithSelection');
+      setFindWidgetDisplay('inherit');
+      window.editor.focus();
+      focusFindWidgetInput();
+    }
+  }
+  else if (e.keyCode == 2) {
+    // Tab
+    let fire_event = window.getOption('generateSelectSuggestEvent');
+    if (fire_event) {
+      let element = document.querySelector('.monaco-list-row.focused');
+      if (element) {
+        window.generateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', 'selection', element);
+      }
+    }
+  }
+
+  if (e.ctrlKey && e.keyCode == 83) {
+    e.preventDefault();    
+    if (window.editor.definitionBreadcrumbs.length) {
+      let position  = window.editor.definitionBreadcrumbs.pop();
+      window.editor.revealLineInCenter(position.lineNumber);
+      window.editor.setPosition(position);
+    }
+  }
+
+  if (e.altKey && e.keyCode == 87) {
+    // fix https://github.com/salexdv/bsl_console/issues/147
+    e.preventDefault();
+    window.setText('[');
+  }
+
+  if (e.ctrlKey)
+    window.ctrlPressed = true;
+
+  if (e.altKey)
+    window.altPressed = true;
+
+  if (e.shiftKey)
+    window.shiftPressed = true;
+
+  checkEmptySuggestions();
+
+}
+
+function  initContextMenuActions() {
+
+  window.contextActions.forEach(action => {
+    action.dispose();
+  });
+
+  const actions = getActions(window.version1C);
+
+  for (const [action_id, action] of Object.entries(actions)) {
+    
+    let menuAction = window.editor.addAction({
+      id: action_id,
+      label: action.label,
+      // 0.55: addAction не терпит null/undefined в keybindings (0.20 их игнорил) — фильтруем
+      // (действия без горячей клавиши: key/cmd = null/undefined → [] → пункт только в контекстном меню).
+      keybindings: [action.key, action.cmd].filter(function (k) { return k; }),
+      precondition: null,
+      keybindingContext: null,
+      contextMenuGroupId: 'navigation',
+      contextMenuOrder: action.order,
+      run: action.callback
+    });      
+
+    window.contextActions.push(menuAction)
+  }
+
+}
+
+function checkNewStringLine() {
+
+  if (window.getCurrentLanguageId() == 'bsl') {
+
+    const model = window.editor.getModel();
+    const position = window.editor.getPosition();
+    const line = position.lineNumber;
+    const length = model.getLineLength(line);
+    const expression = model.getValueInRange(new monaco.Range(line, position.column, line, length + 1));
+    const column = model.getLineLastNonWhitespaceColumn(line - 1);
+    const char = model.getValueInRange(new monaco.Range(line - 1, column - 1, line - 1, column));
+    const token = window.getTokenFromPosition(new monaco.Position(line - 1, column));
+
+    if (token == 'stringbsl' ||0 <= token.indexOf('string.invalid') || 0 <= token.indexOf('query') || char == '|') {
+
+      if (token != 'query.quotebsl' || char == '|') {
+
+        const range = new monaco.Range(line, position.column, line, length + 2);
+
+        let operation = {
+          range: range,
+          text: '|' + expression,
+          forceMoveMarkers: true
+        };
+
+        window.editor.executeEdits('nql', [operation]);
+        window.editor.setPosition(new monaco.Position(line, position.column + 1));
+
       }
 
-      let class_name = 'new-block';
+    }
 
-      if (element.classList.contains('diff-changed'))
-        class_name = 'changed-block';
-      else if (element.classList.contains('diff-removed'))
-        class_name = 'removed-block';
+  }
 
-      editor.changeViewZones(function (changeAccessor) {
+}
 
-        let domNode = document.getElementById('diff-zone');
+function hasParentWithClass(element, className) {
 
-        if (!domNode) {
-          domNode = document.createElement('div');
-          domNode.setAttribute('id', 'diff-zone');
+  if (0 <= element.className.split(' ').indexOf(className))
+    return true;
+
+  return element.parentNode && hasParentWithClass(element.parentNode, className);
+
+}
+
+function getParentWithClass(element, className) {
+
+  if (element.className && 0 <= element.className.split(' ').indexOf(className))
+    return element;
+
+  if (element.parentNode)    
+    return getParentWithClass(element.parentNode, className);
+  else
+    return null;
+
+}
+
+function getChildWithClass(element, className) {
+
+  for (var i = 0; i < element.childNodes.length; i++) {
+    
+    let child = element.childNodes[i];
+
+    if (child.className && 0 <= child.className.split(' ').indexOf(className))
+      return child
+    else if (child.childNodes.length) {
+      child = getChildWithClass(child, className);
+      if (child)
+        return child;
+    }
+
+  }
+
+  return null;
+
+}
+
+setFindWidgetDisplay = function(value) {
+
+  let find_widget = getFindWidget();
+  
+  if (find_widget)
+    find_widget.widget._domNode.style.display = value;
+
+}
+
+function setFindWidgetDisplay(value) {
+
+  let find_widget = getFindWidget();
+  
+  if (find_widget)
+    find_widget.widget._domNode.style.display = value;
+
+}
+
+function focusFindWidgetInput() {
+
+  let find_widget = getFindWidget();
+
+  if (find_widget)
+    find_widget.widget.focusFindInput();
+
+}  
+
+function updateStatusBar() {
+  
+  if (window.statusBarWidget) {
+    
+    let status = '';
+
+    if (window.editor.navi) {
+      let standalone_editor = getActiveDiffEditor();
+      status = 'Ln ' + standalone_editor.getPosition().lineNumber;
+      status += ', Col ' + standalone_editor.getPosition().column;
+    }
+    else {
+      status = 'Ln ' + window.getCurrentLine();
+      status += ', Col ' + window.getCurrentColumn();
+    }
+
+    if (!window.engLang)
+      status = status.replace('Ln', 'Стр').replace('Col', 'Кол');
+
+    let dom = window.statusBarWidget.domNode;
+    if (!dom) return;
+
+    // Структурная причина пустого статус-бара в поле 1С устранена в createStatusBarWidget (увод из
+    // 0-высотного overlay-контейнера Monaco в корень редактора). Здесь — дополнительно: на смену
+    // статуса ПЕРЕСОЗДАЁМ дочерний узел, а не мутируем textContent существующего — зеркалим то, что
+    // рисует suggest (виртуализированные строки Monaco пересоздаёт), т.к. в старом WebKit смена
+    // textContent у постоянного узла может не пере-растеризоваться.
+    let child = dom.firstElementChild;
+    if (child && child.textContent === status)
+      return; // без изменений — лишний churn не нужен
+
+    let fresh = document.createElement('div');
+    fresh.style.margin = 'auto 10px';
+    fresh.textContent = status;
+    if (child)
+      dom.replaceChild(fresh, child);
+    else
+      dom.appendChild(fresh);
+  }
+
+}
+
+function resizeStatusBar() {
+
+  if (window.statusBarWidget) {
+
+    let element = window.statusBarWidget.domNode;
+    if (!element) return;
+
+    // Позиционируем через bottom/right (плашка — absolute-ребёнок корня редактора, полная высота):
+    // при overlapScroll (дефолт) bottom/right='0', иначе с отступом под скроллбары.
+    let newBottom, newRight;
+    if (window.statusBarWidget.overlapScroll) {
+      newBottom = '0';
+      newRight = '0';
+    }
+    else {
+      let layout = getActiveEditor().getLayoutInfo();
+      newBottom = layout.horizontalScrollbarHeight + 'px';
+      newRight = layout.verticalScrollbarWidth + 'px';
+    }
+
+    // Поле 1С (старый WebKit): лишняя запись стиля КОНТЕЙНЕРА статус-бара рвёт растеризацию его
+    // текста (тот же класс, что resetSuggestWidgetDisplay у suggest). Пишем ТОЛЬКО при реальном
+    // изменении — при overlapScroll bottom/right не меняются, поэтому обычно не пишем вовсе.
+    if (element.style.bottom !== newBottom)
+      element.style.bottom = newBottom;
+    if (element.style.right !== newRight)
+      element.style.right = newRight;
+
+  }
+
+}
+
+function checkBookmarksAfterNewLine() {
+
+  let line = window.getCurrentLine();
+  let content = window.getLineContent(line);
+
+  if (content)
+    line--;
+
+  let line_check = window.getLineCount();
+
+  while (line <= line_check) {
+
+    let bookmark = window.editor.bookmarks.get(line_check);
+
+    if (bookmark) {
+      bookmark.range.startLineNumber = line_check + 1;
+      bookmark.range.endLineNumber = line_check + 1;
+      window.editor.bookmarks.set(line_check + 1, bookmark);
+      window.editor.bookmarks.delete(line_check);
+    }
+
+    line_check--;
+
+  }
+
+  window.updateBookmarks(undefined);
+
+}
+
+function checkBreakpointsAfterNewLine() {
+
+  let line = window.getCurrentLine();
+  let content = window.getLineContent(line);
+
+  if (content)
+    line--;
+
+  let line_check = window.getLineCount();
+
+  while (line <= line_check) {
+
+    let breakpoint = window.editor.breakpoints.get(line_check);
+
+    if (breakpoint) {
+      breakpoint.range.startLineNumber = line_check + 1;
+      breakpoint.range.endLineNumber = line_check + 1;
+      window.editor.breakpoints.set(line_check + 1, breakpoint);
+      window.editor.breakpoints.delete(line_check);
+    }
+
+    line_check--;
+
+  }
+
+  window.updateBreakpoints(undefined);
+
+}
+
+function checkBookmarksAfterRemoveLine(contentChangeEvent) {
+
+  if (contentChangeEvent.changes.length && window.editor.checkBookmarks) {
+
+    let changes = contentChangeEvent.changes[0];
+    let range = changes.range;
+
+    if (!changes.text && range.startLineNumber != range.endLineNumber) {
+
+      let line = range.startLineNumber;
+      let prev_bookmark = window.editor.bookmarks.get(range.endLineNumber);
+
+      if (prev_bookmark) {
+
+        for (let l = line; l <= range.endLineNumber; l++) {
+          window.editor.bookmarks.delete(l);
         }
 
-        editor.removeDiffWidget();
+        prev_bookmark.range.startLineNumber = line;
+        prev_bookmark.range.endLineNumber = line;
+        window.editor.bookmarks.set(line, prev_bookmark);
 
-        editor.diffZoneId = changeAccessor.addZone({
-          afterLineNumber: line_number,
-          afterColumn: 1,
-          heightInLines: 10,
-          domNode: domNode,
-          onDomNodeTop: function (top) {
-            if (inlineDiffWidget) {
-              let layout = editor.getLayoutInfo();
-              inlineDiffWidget.domNode.style.top = top + 'px';          
-              inlineDiffWidget.domNode.style.width = (layout.contentWidth - layout.verticalScrollbarWidth) + 'px';
+      }
+
+      for (let l = line + 1; l <= range.endLineNumber; l++) {
+        window.editor.bookmarks.delete(l);
+      }
+
+      let line_check = range.endLineNumber;
+      let diff = range.endLineNumber - line;
+
+      while (line_check < window.getLineCount()) {
+
+        let bookmark = window.editor.bookmarks.get(line_check);
+
+        if (bookmark) {
+          bookmark.range.startLineNumber = line_check - diff;
+          bookmark.range.endLineNumber = line_check - diff;
+          window.editor.bookmarks.set(line_check - diff, bookmark);
+          window.editor.bookmarks.delete(line_check);
+        }
+
+        line_check++;
+
+      }
+
+    }
+
+  }
+
+}
+
+function checkBreakpointsAfterRemoveLine(contentChangeEvent) {
+
+  if (contentChangeEvent.changes.length && window.editor.checkBookmarks) {
+
+    let changes = contentChangeEvent.changes[0];
+    let range = changes.range;
+
+    if (!changes.text && range.startLineNumber != range.endLineNumber) {
+
+      let line = range.startLineNumber;
+      let prev_breakpoint = window.editor.breakpoints.get(range.endLineNumber);
+
+      if (prev_breakpoint) {
+
+        for (let l = line; l <= range.endLineNumber; l++) {
+          window.editor.breakpoints.delete(l);
+        }
+
+        prev_breakpoint.range.startLineNumber = line;
+        prev_breakpoint.range.endLineNumber = line;
+        window.editor.breakpoints.set(line, prev_breakpoint);
+
+      }
+
+      for (let l = line + 1; l <= range.endLineNumber; l++) {
+        window.editor.breakpoints.delete(l);
+      }
+
+      let line_check = range.endLineNumber;
+      let diff = range.endLineNumber - line;
+
+      while (line_check < window.getLineCount()) {
+
+        let breakpoint = window.editor.breakpoints.get(line_check);
+
+        if (breakpoint) {
+          breakpoint.range.startLineNumber = line_check - diff;
+          breakpoint.range.endLineNumber = line_check - diff;
+          window.editor.breakpoints.set(line_check - diff, breakpoint);
+          window.editor.breakpoints.delete(line_check);
+        }
+
+        line_check++;
+
+      }
+
+    }
+
+  }
+
+}
+
+function checkBookmarksCount() {
+
+  let count = window.getLineCount();
+  let keys = [];
+
+  window.editor.bookmarks.forEach(function (value, key) {
+    if (count < key)
+      keys.push(key);
+  });
+
+  keys.forEach(function (key) {
+    window.editor.bookmarks.delete(key);
+  });
+
+}
+
+function checkBreakpointsCount() {
+
+  let count = window.getLineCount();
+  let keys = [];
+
+  window.editor.breakpoints.forEach(function (value, key) {
+    if (count < key)
+      keys.push(key);
+  });
+
+  keys.forEach(function (key) {
+    window.editor.breakpoints.delete(key);
+  });
+
+}
+
+function checkEmptySuggestions() {
+
+  let msg_element = document.querySelector('.suggest-widget .message');
+
+  if (msg_element && msg_element.innerText && !msg_element.style.display) {
+
+    let word = window.editor.getModel().getWordAtPosition(window.editor.getPosition());
+
+    if (!word) {
+      window.hideSuggestionsList();
+      setTimeout(() => {
+        window.triggerSuggestions();
+      }, 10);
+    }
+
+  }
+
+}
+
+function getCurrentThemeFullName() {
+
+  return getActiveEditor()._themeService.getColorTheme().themeName;
+
+}
+
+function getCurrentThemeName() {
+
+  let queryPostfix = '-query';
+  // 0.55: StandaloneThemeService.getTheme() → getColorTheme(); поле _themeService и .themeName живы.
+  // ВАЖНО: в режиме сравнения window.editor — это diff-редактор, у которого _themeService НЕТ
+  // (он есть только у код-редакторов). getActiveEditor() отдаёт код-редактор в обоих режимах (в
+  // diff — модифицированный/исходный суб-редактор), поэтому тема читается и при ВЫХОДЕ из сравнения.
+  // Иначе compare() (выключение) падал здесь ещё до disposeEditor() и режим сравнения не закрывался.
+  let currentTheme = getCurrentThemeFullName();
+  let is_query = (queryMode || DCSMode);
+
+  if (is_query && currentTheme.indexOf(queryPostfix) == -1)
+    currentTheme += queryPostfix;
+  else if (!is_query && currentTheme.indexOf(queryPostfix) >= 0)
+    currentTheme = currentTheme.replace(queryPostfix, '');
+
+  return currentTheme;
+
+}
+
+function isDiffEditorHasChanges() {
+    
+  return window.diffEditor.getOriginalEditor().getValue() != diffEditor.getModifiedEditor().getValue();
+
+}
+
+function getDiffChanges() {
+
+  if (!isShowDiffDecorationsEnabled()) {
+    window.editor.removeDiffWidget();
+    window.editor.diff_decorations = [];
+    window.editor.updateDecorations([]);
+    return;
+  }
+
+  const changes = window.diffEditor.getLineChanges();
+
+  if (Array.isArray(changes)) {
+
+    window.editor.diffCount = changes.length;
+    window.editor.diff_decorations = [];
+
+    if (isDiffEditorHasChanges()) {
+
+      changes.forEach(function (e) {
+
+        const startLineNumber = e.modifiedStartLineNumber;
+        const endLineNumber = e.modifiedEndLineNumber || startLineNumber;
+
+        let color = '#f8a62b';
+        let class_name = 'diff-changed';
+        let range = new monaco.Range(startLineNumber, 1, endLineNumber, 1);
+
+        if (e.originalEndLineNumber === 0) {
+          color = '#10aa00';
+          class_name = 'diff-new';
+        } else if (e.modifiedEndLineNumber === 0) {
+          color = '#dd0000';
+          class_name = 'diff-removed';
+          range = new monaco.Range(startLineNumber, Number.MAX_VALUE, startLineNumber, Number.MAX_VALUE);
+        }
+
+        window.editor.diff_decorations.push({
+          range: range,
+          options: {
+            isWholeLine: true,
+            linesDecorationsClassName: 'diff-navi ' + class_name,
+            overviewRuler: {
+              color: color,
+              darkColor: color,
+              position: 4
             }
           }
         });
 
       });
 
-      setTimeout(() => {
+    }
 
-        inlineDiffWidget = {
-          domNode: null,
-          getId: function () {
-            return 'bsl.diff.widget';
-          },
-          getDomNode: function () {
+    window.editor.updateDecorations([]);
+    window.editor.diffTimer = 0;
 
-            if (!this.domNode) {
+  }
 
-              this.domNode = document.createElement('div');
-              this.domNode.setAttribute("id", "diff-widget");
+}
 
-              let layout = editor.getLayoutInfo();
-              let diff_zone = document.getElementById('diff-zone');
-              let rect = diff_zone.getBoundingClientRect();
+function calculateDiff() {
 
-              this.domNode.style.left = (rect.left - 1) + 'px';
-              this.domNode.style.top = rect.top + 'px';
-              this.domNode.style.height = rect.height + 'px';
-              this.domNode.style.width = (layout.contentWidth - layout.verticalScrollbarWidth) + 'px';
+  if (window.editor.calculateDiff && isShowDiffDecorationsEnabled()) {
 
-              let currentTheme = getCurrentThemeName();
+    if (window.editor.diffTimer)
+      clearTimeout(window.editor.diffTimer);
 
-              let header = document.createElement('div');
-              header.classList.add('diff-header');
-              header.classList.add(class_name);
+    window.editor.diffTimer = setTimeout(() => {
+              
+      if (!window.diffEditor) {
+        window.diffEditor = monaco.editor.createDiffEditor(document.createElement("div"));
+        window.diffEditor.onDidUpdateDiff(() => {
+          getDiffChanges();
+        });
+      }
 
-              if (0 <= currentTheme.indexOf('dark'))
-                header.classList.add('dark');
+      window.diffEditor.setModel({
+        original: monaco.editor.createModel(window.editor.originalText),
+        modified: window.editor.getModel()
+      });
 
-              header.innerText = engLang ? 'changes': 'изменения';
+    }, 50);
 
-              let close_button = document.createElement('div');
-              close_button.classList.add('diff-close');
-              close_button.onclick = editor.removeDiffWidget;
-              header.appendChild(close_button);
+  }
 
-              this.domNode.appendChild(header);
+}
 
-              let body = document.createElement('div');
-              body.classList.add('diff-body');
-              body.classList.add(class_name);            
-              this.domNode.appendChild(body);
+function refreshFoldingState() {
+
+  const folding_enabled = !window.getOption('disableFolding');
+  const editors = window.editor.navi
+    ? [window.editor.getModifiedEditor(), window.editor.getOriginalEditor()]
+    : [window.editor];
+
+  editors.forEach((standalone_editor) => {
+    standalone_editor.updateOptions({ folding: folding_enabled });
+    standalone_editor.trigger('', 'editor.unfoldAll');
+  });
+
+}
+
+function isShowDiffDecorationsEnabled() {
+
+  return window.getOption('showDiffDecorations') !== false;
+
+}
+
+function createStatusBarWidget(overlapScroll) {
+
+  // В «Поле HTML документа» 1С (старый WebKit ~Safari 11) статус-бар как overlay-виджет Monaco
+  // оставался ПУСТЫМ: контейнер .overlayWidgets имеет height:0 (Monaco задаёт ему в render()
+  // только width), и поле не композитит содержимое, вылезающее за 0-высотный контейнер через
+  // absolute-позиционирование. (suggest в поле рисуется, т.к. с fixedOverflowWidgets живёт в
+  // ДРУГОМ, полноразмерном контейнере overflowing-виджетов — вот почему прошлые фиксы, оставлявшие
+  // бар в .overlayWidgets, не помогали.) Поэтому вешаем плашку СВОИМ absolute-элементом прямо в
+  // корневой DOM редактора (.monaco-editor, position:relative, полная высота) и позиционируем
+  // через bottom — авто-следование за ресайзом, без записи top на каждый layout (та запись рвала
+  // растеризацию текста, тот же класс бага, что resetSuggestWidgetDisplay у suggest).
+  let host = window.editor.navi
+    ? window.editor.getModifiedEditor().getDomNode()
+    : window.editor.getDomNode();
+
+  let dom = document.createElement('div');
+  dom.classList.add('statusbar-widget');
+  dom.style.position = 'absolute';
+  dom.style.height = '20px';
+  dom.style.minWidth = '125px';
+  dom.style.textAlign = 'center';
+  dom.style.zIndex = '35';
+  dom.style.fontSize = '12px';
+  dom.style.pointerEvents = 'none'; // не перехватывать клики/скролл редактора
+
+  window.statusBarWidget = { domNode: dom, overlapScroll: overlapScroll };
+
+  host.appendChild(dom);
+  resizeStatusBar(); // выставить bottom/right под overlapScroll
+  updateStatusBar(); // создать дочерний узел с текстом (свежий узел красится в поле)
+
+}
+
+function createDiffWidget(e) {
+
+  if (window.inlineDiffWidget) {
+    
+    window.editor.removeDiffWidget();
+
+  }
+  else {
+
+    let element = e.target.element;
+    let line_number = e.target.position.lineNumber;
+    
+    let reveal_line = false;
+    
+    if (line_number == window.getLineCount()) {
+      line_number--;
+      reveal_line = true;
+    }
+
+    let class_name = 'new-block';
+
+    if (element.classList.contains('diff-changed'))
+      class_name = 'changed-block';
+    else if (element.classList.contains('diff-removed'))
+      class_name = 'removed-block';
+
+    window.editor.changeViewZones(function (changeAccessor) {
+
+      let domNode = document.getElementById('diff-zone');
+
+      if (!domNode) {
+        domNode = document.createElement('div');
+        domNode.setAttribute('id', 'diff-zone');
+      }
+
+      window.editor.removeDiffWidget();
+
+      window.editor.diffZoneId = changeAccessor.addZone({
+        afterLineNumber: line_number,
+        afterColumn: 1,
+        heightInLines: 10,
+        domNode: domNode,
+        onComputedHeight: function(height) {
+          if (window.inlineDiffWidget) {
+            if (height == 0)
+              window.inlineDiffWidget.domNode.classList.add('invisible');
+            else
+              window.inlineDiffWidget.domNode.classList.remove('invisible');
+          }
+        },
+        onDomNodeTop: function (top) {
+          if (window.inlineDiffWidget) {
+            let layout = window.editor.getLayoutInfo();
+            const width = (layout.contentWidth + layout.decorationsWidth + layout.lineNumbersWidth - layout.verticalScrollbarWidth);
+            window.inlineDiffWidget.domNode.style.top = top + 'px';
+            window.inlineDiffWidget.domNode.style.width = width + 'px';
+          }
+        }
+      });
+
+    });
+
+    setTimeout(() => {
+
+      window.inlineDiffWidget = {
+        domNode: null,
+        getId: function () {
+          return 'bsl.diff.widget';
+        },
+        getDomNode: function () {
+
+          if (!this.domNode) {
+
+            this.domNode = document.createElement('div');
+            this.domNode.setAttribute("id", "diff-widget");
+
+            let layout = window.editor.getLayoutInfo();
+            let diff_zone = document.getElementById('diff-zone');
+            let rect = diff_zone.getBoundingClientRect();
+            const width = (layout.contentWidth + layout.decorationsWidth + layout.lineNumbersWidth - layout.verticalScrollbarWidth);
+
+            this.domNode.style.top = rect.top + 'px';
+            this.domNode.style.height = rect.height + 'px';
+            this.domNode.style.width = width + 'px';
+
+            let currentTheme = getCurrentThemeName();
+
+            let header = document.createElement('div');
+            header.classList.add('diff-header');
+            header.classList.add(class_name);
+
+            if (0 <= currentTheme.indexOf('dark'))
+              header.classList.add('dark');
+
+            header.innerText = window.engLang ? 'changes': 'изменения';
+
+            let close_button = document.createElement('div');
+            close_button.classList.add('diff-close');
+            close_button.onclick = window.editor.removeDiffWidget;
+            header.appendChild(close_button);
+
+            this.domNode.appendChild(header);
+
+            let body = document.createElement('div');
+            body.classList.add('diff-body');
+            body.classList.add(class_name);            
+            this.domNode.appendChild(body);
+
+            setTimeout(() => {
+
+              let language_id = window.getCurrentLanguageId();
+
+              window.inlineDiffEditor = monaco.editor.createDiffEditor(body, {
+                theme: currentTheme,
+                language: language_id,
+                contextmenu: false,
+                automaticLayout: true,
+                renderSideBySide: false,
+                useInlineViewWhenSpaceIsLimited: false,
+                renderMarginRevertIcon: getDiffEditorOption('renderMarginRevertIcon'),
+                renderGutterMenu: false,
+                hideUnchangedRegions: { enabled: getDiffEditorOption('hideUnchangedRegions') },
+                defaultColorDecorators: 'never',
+                unicodeHighlight: {
+                  ambiguousCharacters: false,
+                  invisibleCharacters: false,
+                  nonBasicASCII: false
+                },
+                useShadowDOM: false,
+                stickyScroll: {
+                  enabled: false
+                }
+              });
+
+              let originalModel = monaco.editor.createModel(window.editor.originalText);
+              let modifiedModel = window.editor.getModel();
+
+              monaco.editor.setModelLanguage(originalModel, language_id);
+
+              window.inlineDiffEditor.setModel({
+                original: originalModel,
+                modified: modifiedModel
+              });
+
+              // Monaco 0.45: createDiffNavigator удалён; navi — булев флаг diff-режима.
+              window.inlineDiffEditor.navi = true;
 
               setTimeout(() => {
-
-                let language_id = getCurrentLanguageId();              
-
-                inlineDiffEditor = monaco.editor.createDiffEditor(body, {
-                  theme: currentTheme,
-                  language: language_id,
-                  contextmenu: false,
-                  automaticLayout: true,
-                  renderSideBySide: false
-                });
-
-                let originalModel = monaco.editor.createModel(editor.originalText);
-                let modifiedModel = editor.getModel();
-
-                monaco.editor.setModelLanguage(originalModel, language_id);
-
-                inlineDiffEditor.setModel({
-                  original: originalModel,
-                  modified: modifiedModel
-                });
-
-                inlineDiffEditor.navi = monaco.editor.createDiffNavigator(inlineDiffEditor, {
-                  followsCaret: true,
-                  ignoreCharChanges: true
-                });
-
-                setTimeout(() => {
-                  inlineDiffEditor.revealLineInCenter(line_number);
-                }, 10);
-
-                if (reveal_line)
-                  editor.revealLine(line_number + 1);
-
+                window.inlineDiffEditor.revealLineInCenter(line_number);
               }, 10);
 
-            }
+              if (reveal_line)
+                editor.revealLine(line_number + 1);
 
-            return this.domNode;
-
-          },
-          getPosition: function () {
-            return null;
-          }
-        };
-
-        editor.addOverlayWidget(inlineDiffWidget);
-
-      }, 50);
-
-    }
-
-  }
-
-  function removeSuggestListInactiveDetails() {
-
-    document.querySelectorAll('.monaco-list-rows .details-label').forEach(function (node) {
-      node.classList.remove('inactive-detail');
-    });
-
-    document.querySelectorAll('.monaco-list-rows .readMore').forEach(function (node) {
-      node.classList.remove('inactive-more');
-    });
-
-  }
-  
-  function onSuggestListMouseOver(activationEventEnabled) {
-
-    let widget = getSuggestWidget().widget;
-
-    if (activationEventEnabled) {
-
-      widget.listElement.onmouseoverOrig = widget.listElement.onmouseover;
-      widget.listElement.onmouseover = function (e) {
-
-        removeSuggestListInactiveDetails();
-
-        let parent_row = getParentWithClass(e.target, 'monaco-list-row');
-
-        if (parent_row) {
-
-          if (!parent_row.classList.contains('focused')) {
-
-            let details = getChildWithClass(parent_row, 'details-label');
-
-            if (details) {
-              details.classList.add('inactive-detail');
-              generateEventWithSuggestData('EVENT_ON_ACTIVATE_SUGGEST_ROW', 'hover', parent_row);
-            }
-
-            let read_more = getChildWithClass(parent_row, 'readMore');
-
-            if (read_more)
-              read_more.classList.add('inactive-more');
-
-            if (typeof (widget.listElement.onmouseoverOrig) == 'function')
-              widget.listElement.onmouseoverOrig(e);
+            }, 10);
 
           }
 
+          return this.domNode;
+
+        },
+        getPosition: function () {
+          return null;
         }
+      };
+
+      window.editor.addOverlayWidget(window.inlineDiffWidget);
+
+    }, 50);
+
+  }
+
+}
+
+function createReviewWidget(lineNumber, issue = null) {
+
+  let startLineNumber = lineNumber;
+  let widgetId = 'bsl.review.widget.' + startLineNumber;
+
+  if (window.reviewWidgets.get(widgetId))
+    return;
+
+  let standaloneEditor = window.editor.navi ? window.editor.getModifiedEditor() : window.editor;
+
+  let reviewWidget = {
+    widgetId: widgetId,
+    domNode: null,
+    getId: function () {
+      return widgetId;
+    },
+    removeSeverity() {
+      this.domNode.classList.remove('review-error');
+      this.domNode.classList.remove('review-warning');
+      this.domNode.classList.remove('review-info');
+      this.domNode.classList.remove('review-hint');
+    },
+    close: function () {
+      let height = standaloneEditor.getOption(monaco.editor.EditorOption.lineHeight) * 4 + 'px'
+      let widget = window.reviewWidgets.get(this.widgetId);
+      this.domNode.classList.add('close');
+      this.domNode.getElementsByClassName("review-header")[0].style.display = 'flex';
+      this.domNode.getElementsByClassName("review-text")[0].style.display = 'block';
+      this.domNode.getElementsByClassName("review-edit")[0].style.display = 'none'
+      this.domNode.style.height = height;
+      document.querySelector('[monaco-view-zone="' + widget.zone + '"]').style.height = height;
+      standaloneEditor.changeViewZones(function (changeAccessor) {
+        changeAccessor.layoutZone(widget.zone);
+      });
+    },
+    save: function () {
+      let textarea = this.domNode.getElementsByTagName('textarea')[0];
+      if (textarea.value) {
+        let widget = window.reviewWidgets.get(this.widgetId);
+        let reviewText = this.domNode.getElementsByClassName("review-text")[0];
+        reviewText.textContent = textarea.value;
+        let reviewTitle = this.domNode.getElementsByClassName("review-title")[0];
+        let date = new Date(Date.now());
+        function addZero(num) {
+            return ("0" + num).slice(-2)
+        }
+        let year = date.getFullYear(),
+            month = addZero(date.getMonth() + 1),
+            day = addZero(date.getDate()),
+            hours = addZero(date.getHours()),
+            minutes = addZero(date.getMinutes());
+        let issueDate = `${day}.${month}.${year} ${hours}:${minutes}`;
+        if (!reviewTitle.textContent) {
+          reviewTitle.textContent = issueDate;
+          if (userName)
+            reviewTitle.textContent += ' @' + userName;
+        }
+        widget.date = issueDate;
+        widget.author = userName;
+        widget.message = textarea.value;
+        widget.severity = this.domNode.querySelector('input:checked').nextSibling.className;
+        this.removeSeverity();
+        this.domNode.classList.add("review-" + widget.severity);
+        this.close();
+        sendEvent("EVENT_ON_REVIEW_CHANGED", "");
+      }
+      else {
+        textarea.classList.add('required');
+      }
+    },
+    delete: function (generateEvent = true) {
+      let widget = window.reviewWidgets.get(this.widgetId);
+      standaloneEditor.removeOverlayWidget(widget.widget);
+      standaloneEditor.changeViewZones(function (changeAccessor) {
+        changeAccessor.removeZone(widget.zone);
+      });
+      window.reviewWidgets.delete(this.widgetId);
+      if (generateEvent)
+        sendEvent("EVENT_ON_REVIEW_CHANGED", "");
+    },
+    cancel: function () {
+      let widget = window.reviewWidgets.get(this.widgetId);
+      if (widget.message)
+        this.close();
+      else
+        this.delete();
+    },
+    edit: function () {
+      let widget = window.reviewWidgets.get(this.widgetId);
+      let height = standaloneEditor.getOption(monaco.editor.EditorOption.lineHeight) * 10 + 'px'
+      this.domNode.classList.remove('close');
+      this.domNode.getElementsByClassName("review-header")[0].style.display = 'none';
+      this.domNode.getElementsByClassName("review-text")[0].style.display = 'none';
+      this.domNode.getElementsByClassName("review-edit")[0].style.display = 'block';
+      this.domNode.style.height = height;
+      document.querySelector('[monaco-view-zone="' + widget.zone + '"]').style.height = height;
+      standaloneEditor.changeViewZones(function (changeAccessor) {
+        changeAccessor.layoutZone(widget.zone);
+      });
+    },
+    load(issue) {
+      if (issue) {
+          this.domNode.classList.add('review-' + issue.severity);
+          let title = this.domNode.getElementsByClassName("review-title")[0];
+          title.textContent = issue.date;
+          if (issue.author)
+            title.textContent += ' @' + issue.author;
+          this.domNode.getElementsByClassName('review-text')[0].textContent = issue.message;
+          this.domNode.getElementsByTagName('textarea')[0].value = issue.message;
+          this.domNode.querySelector('.severity label .' + issue.severity).previousSibling.checked = true;
+          let widget = window.reviewWidgets.get(this.widgetId);
+          widget.date = issue.date;
+          widget.author = issue.author;
+          widget.message = issue.message;
+          widget.severity = issue.severity;
+          this.close();
+      }
+    },
+    createSeverityButton(className, title, lineNumber, group) {
+      let label = document.createElement('label');
+      let input = document.createElement('input');
+      input.setAttribute('name', 'radio.' + lineNumber);
+      input.setAttribute('type', 'radio');
+      if (!group.hasChildNodes())
+        input.setAttribute('checked', '');
+      label.appendChild(input);
+      let span = document.createElement('span');          
+      span.classList.add(className);
+      span.innerHTML = title;
+      span.onclick = function() {
+        let inputs = this.parentElement.parentElement.querySelectorAll('input');
+        for (let x = 0; x < inputs.length; x++) {
+          inputs[x].checked = false;
+        }
+        this.parentElement.querySelector('input').checked = true;          
+      }
+      label.appendChild(span);
+      group.appendChild(label);
+    },
+    getDomNode: function () {
+
+      if (!this.domNode) {
+        
+        this.domNode = document.createElement('div');
+        this.domNode.classList.add('review-body');
+      
+        let header = document.createElement('div');
+        header.classList.add('review-header');
+        if (issue)
+          header.style.display = 'flex';
+        else
+          header.style.display = 'none';
+
+        let buttons = document.createElement('div');
+        buttons.classList.add('review-buttons');
+        header.appendChild(buttons);
+
+        let title = document.createElement('div');
+        title.classList.add('review-title');
+        header.appendChild(title);
+
+        let button = document.createElement('div');
+        button.classList.add('review-image');
+        buttons.appendChild(button);
+
+        button = document.createElement('div');
+        button.classList.add('review-modify');
+        button.setAttribute('widgetid', widgetId);
+        button.onclick = function() {
+          reviewWidgets.get(this.getAttribute("widgetid")).widget.edit();
+        }
+        buttons.appendChild(button);
+
+        if (getOption('reviewMode') && !getOption('readOnlyCodeReview')) {
+          button = document.createElement('div');
+          button.classList.add('review-delete');
+          button.setAttribute('widgetid', widgetId);
+          button.onclick = function () {
+            let modal = new tingle.modal({
+              footer: true,
+              stickyFooter: false,
+              closeMethods: [],
+              widgetid: this.getAttribute("widgetid")
+            });              
+            modal.setContent('<h3>Удалить замечание?</h3>');
+            modal.addFooterBtn('Да', 'tingle-btn tingle-btn--primary', function () {
+              reviewWidgets.get(modal.opts.widgetid).widget.delete();
+              modal.close();
+            });
+            modal.addFooterBtn('Нет', 'tingle-btn tingle-btn--danger', function () {
+              modal.close();
+            });
+            modal.open();
+          }
+          buttons.appendChild(button);
+        }
+        this.domNode.appendChild(header);
+
+        let text = document.createElement('div');
+        text.classList.add('review-text');
+        this.domNode.appendChild(text);
+        
+        if (issue)
+          text.style.display = 'block';
+        else
+          text.style.display = 'none';
+
+        let editGroup = document.createElement('div');
+        editGroup.classList.add('review-edit');
+        if (issue)
+          editGroup.style.display = 'none';
+
+        let div = document.createElement('div');
+        div.classList.add('severity');
+
+        let group = document.createElement('div');
+        div.appendChild(group)
+        this.createSeverityButton('error', 'Ошибка', lineNumber, group);
+        this.createSeverityButton('warning', 'Предупреждение', lineNumber, group);
+        this.createSeverityButton('info', 'Информация', lineNumber, group);
+        this.createSeverityButton('hint', 'Подсказка', lineNumber, group);
+        editGroup.appendChild(div);
+        
+        let textarea = document.createElement('textarea');
+        textarea.oninput = function() {
+          this.classList.remove('required');
+        }
+        textarea.classList.add('review-message');
+        editGroup.appendChild(textarea);
+
+        if (getOption('reviewMode') && !getOption('readOnlyCodeReview')) {
+          button = document.createElement('button');
+          button.setAttribute('widgetid', widgetId);
+          button.classList.add('review-save');
+          button.innerHTML = "Сохранить"
+          button.onclick = function() {
+            window.reviewWidgets.get(this.getAttribute("widgetid")).widget.save();
+          }
+          editGroup.appendChild(button);
+        }
+        
+        button = document.createElement('button');
+        button.setAttribute('widgetid', widgetId);
+        button.classList.add('review-cancel');
+        button.innerHTML = "Отмена"
+        button.onclick = function() {
+          window.reviewWidgets.get(this.getAttribute("widgetid")).widget.cancel();
+        }
+        editGroup.appendChild(button);
+        this.domNode.appendChild(editGroup);
 
       }
-
+      return this.domNode;
+    },
+    getPosition: function () {
+      return null;
     }
-    else {
+  };    
 
-      if (widget.listElement.onmouseoverOrig)
-        widget.listElement.onmouseover = suggestWidget.widget.listElement.onmouseoverOrig;
+  standaloneEditor.changeViewZones(function (changeAccessor) {
 
-    }
+    let domNode = document.createElement("div");
+    window.editor.domNode = domNode;
+    domNode.classList.add('review-zone');
 
-  }
-
-  function eraseTextBeforeUpdate() {
-
-    editor.checkBookmarks = false;
-    bslHelper.setText('', editor.getModel().getFullModelRange(), false);
-    editor.checkBookmarks = true;
-
-  }
-
-  function showVariablesDisplay() {
-
-    document.getElementById("container").style.height = "70%";
-    getActiveEditor().layout();
-    document.getElementById("display-title").innerHTML = engLang ? "Variables" : "Просмотр значений переменных:"
-    let element = document.getElementById("display");
-    element.style.height = "30%";
-    element.style.display = "block";
-
-  }
-
-  function hideVariablesDisplay() {
-    
-    document.getElementById("container").style.height = "100%";
-    getActiveEditor().layout();
-    let element = document.getElementById("display");
-    element.style.height = "0";
-    element.style.display = "none";
-    treeview.dispose();
-    treeview = null;
-
-  }
-
-  function setThemeVariablesDisplay(theme) {
-
-    if (0 < theme.indexOf('dark'))
-      document.getElementById("display").classList.add('dark');
-    else
-      document.getElementById("display").classList.remove('dark');
-
-  }
-  // #endregion
-
-  // #region browser events
-  document.onclick = function (e) {
-
-    if (e.target.classList.contains('codicon-close')) {
-
-      if (hasParentWithClass(e.target, 'find-widget'))
-        setFindWidgetDisplay('none');
-
-    }
-    else if (e.target.id == 'event-button' && events_queue.length) {
-      let eventData1C = events_queue.shift();
-      e.eventData1C = eventData1C;
-      console.debug(eventData1C.event, eventData1C.params);
-
-    }
-
-  }
-
-  document.onkeypress = function (e) {
-
-    editor.lastKeyCode = e.keyCode;
-
-    let char = String.fromCharCode(e.keyCode);
-
-    if (Array.isArray(activeSuggestionAcceptors) && 0 <= activeSuggestionAcceptors.indexOf(char.toLowerCase())) {
-
-      let element = document.querySelector('.monaco-list-row.focused');
-
-      if (element) {
-
-        let fire_event = getOption('generateSelectSuggestEvent');
-
-        if (fire_event) {
-          generateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', 'force-selection-' + char, element);
+    let zone_id = changeAccessor.addZone({
+      afterLineNumber: startLineNumber,
+      afterColumn: 1,
+      heightInLines: 10,
+      domNode: domNode,
+      widget: reviewWidget,
+      showInHiddenAreas: false,
+      onComputedHeight: function(height) {
+        if (this.widget.domNode) {
+          if (height == 0)
+            this.widget.domNode.classList.add('invisible');
+          else
+            this.widget.domNode.classList.remove('invisible');
         }
-
-        if (!editor.skipAcceptionSelectedSuggestion)
-          editor.trigger('', 'acceptSelectedSuggestion');
-
-        return editor.skipInsertSuggestionAcceptor ? false : true;
-
+      },
+      onDomNodeTop: function (top) {
+        if (this.widget.domNode) {
+          let layout = standaloneEditor.getLayoutInfo();
+          let scrollWidth = window.editor.navi ? layout.verticalScrollbarWidth * 2 : layout.verticalScrollbarWidth;
+          let width = layout.width - scrollWidth - layout.minimap.minimapWidth;
+          this.widget.domNode.style.top = top + 'px';
+          this.widget.domNode.style.width = width + 'px';
+        }
+      },
+      get heightInPx() {
+        if (this.widget.domNode)
+          return this.widget.domNode.offsetHeight;
       }
+    });
 
-    }
+    window.reviewWidgets.set(widgetId, {
+      zone: zone_id,
+      startLineNumber: startLineNumber,
+      widget: reviewWidget
+    });
 
-  };
+    standaloneEditor.layout();
+    setTimeout(() => {reviewWidget.load(issue)}, 10);
 
-  window.addEventListener('resize', function(event) {
-    
-    if (editor.autoResizeEditorLayout)
-      editor.layout();
-    else
-      resizeStatusBar();    
-    
-  }, true);
+  }); 
 
-  document.getElementById("display-close").addEventListener("click", (event) => {    
-    
-    hideVariablesDisplay();
+  standaloneEditor.addOverlayWidget(reviewWidget);    
 
+}
+
+function removeReviewWidgets() {
+
+  window.reviewWidgets.forEach((value, key, map) => {
+    value.widget.delete(false);
   });
-  // #endregion
+
+  let standaloneEditor = window.editor.navi ? window.editor.getModifiedEditor() : window.editor;
+  standaloneEditor.reviewDecorations = [];
+      
+  if (window.editor.navi)
+    window.editor.diffEditorUpdateDecorations();
+  else
+    window.editor.updateDecorations(standaloneEditor.reviewDecorations);
+
+}
+
+function goToCurrentIssue(sortedIssues) {
+
+  if (sortedIssues.length <= window.currentIssue)
+    return;
+
+  let standaloneEditor = window.editor.navi ? window.editor.getModifiedEditor() : window.editor;
+  let lineCount = standaloneEditor.getModel().getLineCount();
+  let issueLine = sortedIssues[window.currentIssue];
+
+  if (issueLine <= lineCount) {
+    
+    let smoothScrolling = standaloneEditor.getOption(monaco.editor.EditorOption.smoothScrolling);
+    standaloneEditor.updateOptions({ smoothScrolling: true });
+    standaloneEditor.revealRangeAtTop(new monaco.Range(issueLine, 1, issueLine, 1), 0);      
+    setTimeout(() => {      
+      standaloneEditor.setPosition(new monaco.Position(issueLine, 1));      
+      standaloneEditor.updateOptions({ smoothScrolling: smoothScrolling });
+    }, 50);
+  }
+
+}
+
+function getSortedIssues() {
+
+  let sortedIssues = [];
+  const sortedWidgets = new Map([...window.reviewWidgets].sort());
+
+  sortedWidgets.forEach((value, key, map) => {
+    sortedIssues.push(value.startLineNumber);
+  });
+
+  return sortedIssues;
+
+}
+
+function removeSuggestListInactiveDetails() {
+
+  document.querySelectorAll('.monaco-list-rows .details-label').forEach(function (node) {
+    node.classList.remove('inactive-detail');
+  });
+
+  document.querySelectorAll('.monaco-list-rows .readMore').forEach(function (node) {
+    node.classList.remove('inactive-more');
+  });
+
+}
+
+function onSuggestListMouseOver(activationEventEnabled) {
+
+  return; // Disabled until fix https://github.com/salexdv/bsl_console/issues/190
+
+  let widget = getSuggestWidget().widget;
+
+  if (activationEventEnabled) {
+
+    widget.listElement.onmouseoverOrig = widget.listElement.onmouseover;
+    widget.listElement.onmouseover = function (e) {
+
+      removeSuggestListInactiveDetails();
+
+      let parent_row = getParentWithClass(e.target, 'monaco-list-row');
+
+      if (parent_row) {
+
+        if (!parent_row.classList.contains('focused')) {
+
+          let details = getChildWithClass(parent_row, 'details-label');
+
+          if (details) {
+            details.classList.add('inactive-detail');
+            window.generateEventWithSuggestData('EVENT_ON_ACTIVATE_SUGGEST_ROW', 'hover', parent_row);
+          }
+
+          let read_more = getChildWithClass(parent_row, 'readMore');
+
+          if (read_more)
+            read_more.classList.add('inactive-more');
+
+          if (typeof (widget.listElement.onmouseoverOrig) == 'function')
+            widget.listElement.onmouseoverOrig(e);
+
+        }
+
+      }
+
+    }
+
+  }
+  else {
+
+    if (widget.listElement.onmouseoverOrig)
+      widget.listElement.onmouseover = suggestWidget.widget.listElement.onmouseoverOrig;
+
+  }
+
+}
+
+function eraseTextBeforeUpdate() {
+
+  window.editor.checkBookmarks = false;
+  bslHelper.setText('', window.editor.getModel().getFullModelRange(), false);
+  window.editor.checkBookmarks = true;
+
+}
+
+function showVariablesDisplay() {
+
+  document.getElementById("container").style.height = "70%";
+  getActiveEditor().layout();
+  document.getElementById("display-title").innerHTML = window.engLang ? "Variables" : "Просмотр значений переменных:"
+  let element = document.getElementById("display");
+  element.style.height = "30%";
+  element.style.display = "block";
+
+}
+
+function hideVariablesDisplay() {
+  
+  document.getElementById("container").style.height = "100%";
+  getActiveEditor().layout();
+  let element = document.getElementById("display");
+  element.style.height = "0";
+  element.style.display = "none";
+  window.treeview.dispose();
+  window.treeview = null;
+
+}
+
+function setThemeVariablesDisplay(theme) {
+
+  if (0 < theme.indexOf('dark'))
+    document.getElementById("display").classList.add('dark');
+  else
+    document.getElementById("display").classList.remove('dark');
+
+}
+// #endregion
+
+// #region browser events
+document.onclick = function (e) {
+
+  // 0.55: иконка закрытия find-виджета — codicon 'widget-close' ('codicon-close' у кнопки
+  // закрытия панели доков подсказок, но её отсекает guard hasParentWithClass('find-widget')).
+  if (e.target.classList.contains('codicon-widget-close')) {
+
+    if (hasParentWithClass(e.target, 'find-widget'))
+      setFindWidgetDisplay('none');
+
+  }
+  else if (e.target.id == 'event-button' && window.events_queue.length) {
+    let eventData1C = window.events_queue.shift();
+    e.eventData1C = eventData1C;
+    console.debug(eventData1C.event, eventData1C.params);
+
+  }
+
+}
+
+document.onkeypress = function (e) {
+
+  window.editor.lastKeyCode = e.keyCode;
+
+  let char = String.fromCharCode(e.keyCode);
+
+  if (Array.isArray(window.activeSuggestionAcceptors) && 0 <= window.activeSuggestionAcceptors.indexOf(char.toLowerCase())) {
+
+    let element = document.querySelector('.monaco-list-row.focused');
+
+    if (element) {
+
+      let suggestItem = getSuggestItemByRow(element);
+
+      if (handleEventSuggestSelection(suggestItem))
+        return false;
+
+      let fire_event = window.getOption('generateSelectSuggestEvent');
+
+      if (fire_event) {
+        window.generateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', 'force-selection-' + char, element);
+      }
+
+      if (!window.editor.skipAcceptionSelectedSuggestion)
+        window.editor.trigger('', 'acceptSelectedSuggestion');
+
+      return window.editor.skipInsertSuggestionAcceptor ? false : true;
+
+    }
+
+  }
+
+};
+
+window.addEventListener('resize', function(event) {
+  
+  if (window.editor.autoResizeEditorLayout)
+    window.editor.layout();
+  else
+    resizeStatusBar();    
+
+  resizeStatusBar();
+  
+}, true);
+
+document.getElementById("display-close").addEventListener("click", (event) => {
+
+  hideVariablesDisplay();
 
 });
+// #endregion
 
+// Точечные патчи DOM/поведения под встроенный WebKit «Поля HTML документа» 1С (снять
+// 1С-скроллбар, отключить автоскролл средней кнопкой). isConnected-гвард вынесен в
+// polyfills.js (нужен ДО top-level createEditor). Вызывать в конце — после создания редактора.
+patchWebKit1C();

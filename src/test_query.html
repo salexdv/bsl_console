@@ -4,14 +4,10 @@
 <head>
 	<title>Test BSL-editor (query mode)</title>
 	<meta charset="utf-8">
-	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/mocha/2.1.0/mocha.css">
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/mocha/2.1.0/mocha.js"></script>
-	<script>
-		mocha.setup('bdd');
-	</script>
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/chai/2.0.0/chai.js"></script>	
-	<link href="./decorations.css" rel="stylesheet">
-	<link href="./tree/tree.css" rel="stylesheet">  
+	<link rel="stylesheet" href="node_modules/mocha/mocha.css">
+  	<script src="node_modules/mocha/mocha.js"></script>
+  	<script src="node_modules/chai/chai.js"></script>
+  	<script>mocha.setup('bdd')</script>	
 </head>
 
 <body>
@@ -1119,7 +1115,7 @@
 		'	Продажи.Номенклатура КАК Продажи_Номенклатура',
 		'ИЗ',
 		'	Справочник.Товары КАК Товары',
-		'		ЛЕВОЕ СОЕДИНЕНИЕ РегистрСведений.ЦеныНоменклатуры.СрезПоследних(',
+		'			ЛЕВОЕ СОЕДИНЕНИЕ РегистрСведений.ЦеныНоменклатуры.СрезПоследних(',
 		'			&Период,',
 		'			Номенклатура.ВидНоменклатуры В (&СписокВидовНоменклатуры),',
 		'		) КАК Цены',
@@ -1188,14 +1184,6 @@
     </div>    
   </div>
   <button id="event-button"></button>
-
-  <script src="./vs/loader.js"></script>
-  <script src="./parsers.js"></script>
-  <script src="./finder.js"></script>
-  <script src="./bsl_helper.js"></script>
-  <script src="./test_query.js"></script>
-  <script src="./init.js"></script>
-  <script src="./tree/tree.js"></script>
 
   <div id="mocha"></div>
 

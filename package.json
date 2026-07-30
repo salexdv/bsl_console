@@ -1,0 +1,52 @@
+{
+  "name": "bsl-console",
+  "version": "1.0.0",
+  "description": "",
+  "main": "editor.js",
+  "homepage": "https://github.com/salexdv/bsl_console",
+  "scripts": {
+    "build": "webpack --mode production --progress",
+    "debug": "webpack serve --mode development --progress",
+    "dev": "webpack serve --mode development --progress",
+    "escheck": "es-check es2018 \"dist/*.js\"",
+    "test:headless": "node tools/run_tests_headless.js",
+    "build:test": "webpack --mode development --env test --progress",
+    "test:mocha": "node tools/run_mocha_headless.js",
+    "test:query-model-corpus": "node tests/query_model_corpus_test.js",
+    "build:single": "webpack --mode production --progress && node tools/make_single.js && node tools/check_single.js",
+    "build:pack": "webpack --mode production --progress && node tools/make_pack.js && node tools/check_single.js",
+    "check:single": "node tools/check_single.js"
+  },
+  "author": "Shkuraev Alexander",
+  "license": "MIT",
+  "browserslist": [
+    "safari >= 11",
+    "chrome >= 63",
+    "> 1%"
+  ],
+  "devDependencies": {
+    "@babel/core": "^7.23.0",
+    "@babel/preset-env": "^7.23.0",
+    "autoprefixer": "^10.5.0",
+    "babel-loader": "^9.1.3",
+    "chai": "^4.5.0",
+    "css-loader": "^7.1.4",
+    "es-check": "^9.6.4",
+    "esbuild-loader": "^4.5.0",
+    "html-webpack-plugin": "^5.6.0",
+    "mocha": "^10.8.2",
+    "pako": "^2.1.0",
+    "postcss": "^8.5.15",
+    "postcss-loader": "^8.2.1",
+    "puppeteer-core": "^24.43.1",
+    "style-loader": "^4.0.0",
+    "terser-webpack-plugin": "^5.6.0",
+    "webpack": "^5.99.0",
+    "webpack-cli": "^7.0.2",
+    "webpack-dev-server": "^5.2.0"
+  },
+  "dependencies": {
+    "@juggle/resize-observer": "^3.4.0",
+    "monaco-editor": "0.55.1"
+  }
+}

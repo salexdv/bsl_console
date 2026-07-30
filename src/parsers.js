@@ -424,3 +424,5 @@ class SnippetsParser {
     }
 
 }
+
+export default SnippetsParser;

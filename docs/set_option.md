@@ -30,7 +30,13 @@ setOption("skipInsertSuggestionAcceptor", true);
 * `disableNativeSuggestions` - *boolean*, отключает стандартные подсказки
 * `disableNativeSignatures` - *boolean*, отключает стандартные подсказки по вызову процедуры/функции
 * `disableNativeHovers` - *boolean*, отключает стандартные всплывающие подсказки при наведении курсора мыши на слово
+* `disableNativeCodeAction` - *boolean*, отключает стандартные подсказки по форматированию кода
 * `showSnippetsOnCustomSuggestions` - *boolean*, включает показ стандартных сниппетов при выводе пользовательских подсказок через [`showCustomSuggestions`](custom_suggestions.md)
+
+##### Управление режимом сравнения
+* `renderMarginRevertIcon` - *boolean*, включает/отключает отображение значка отмены изменений на полях редактора сравнения. Значение по умолчанию: `false`
+* `hideUnchangedRegions` - *boolean*, включает/отключает скрытие неизмененных областей текста в редакторе сравнения. Значение по умолчанию: `false`. В режиме сравнения значение также можно установить функциями [`hideUnchangedBlocks()` и `showUnchangedBlocks()`](compare.md#управление-неизмененными-блоками)
+* `generateCompareCompleteEvent` - *boolean*, включает генерацию [события](compare_complete_event.md) при завершения сравнения
 
 ##### Различные настройки редактора
 * `skipInsertSuggestionAcceptor` - *boolean*, позволяет пропустить вставку символа, заданного функцией *setActiveSuggestionAcceptors* и вызвавшего выбор активного пункта подсказки
@@ -40,3 +46,6 @@ setOption("skipInsertSuggestionAcceptor", true);
 * `autoResizeEditorLayout` - *boolean*, включает перерисовку редактора при изменении размеров окна
 * `renderQueryDelimiters` - *boolean*, включает выделение цветом разделителей запросов
 * `disableDefinitionMessage` - *boolean*, отключает показ сообщения `Определение для ххх не найдено` при переходе к определению по F12 или CTRL+F12
+* `disableFolding` - *boolean*, отключает сворачивание блоков кода
+* `highlightInnerQuotes` - *boolean*, включает/отключает подсветку экранированных двойных кавычек `""` внутри строк
+* `showDiffDecorations` - *boolean*, включает/отключает отображение различий при использовании функции [`setOriginalText`](set_original_text.md). Значение по умолчанию `true`

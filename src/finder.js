@@ -148,3 +148,5 @@ class Finder {
 	}
 
 }
+
+export default Finder;
