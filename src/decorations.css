@@ -6,9 +6,29 @@
 }
 
 #container {
-	background-image: url(loading.gif);
-	background-repeat: no-repeat;
-	background-position: center
+	position: relative;
+}
+
+#container:empty::before {
+	content: "\ea77";
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	color: #424242;
+	font: normal normal normal 16px/1 codicon;
+	text-rendering: auto;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+	animation: codicon-sync-spin 1s linear infinite;
+}
+
+@keyframes codicon-sync-spin {
+	from {
+		transform: translate(-50%, -50%) rotate(0deg);
+	}
+	to {
+		transform: translate(-50%, -50%) rotate(360deg);
+	}
 }
 
 #event-button {

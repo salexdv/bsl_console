@@ -1,3 +1,10 @@
+@font-face {
+  font-family: "codicon";
+  src: url("../node_modules/monaco-editor/dev/vs/base/browser/ui/codiconLabel/codicon/codicon.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
 #display {
   height: 0;
   display: none;
@@ -117,7 +124,25 @@
 }
 
 #variables-tree details > summary.loading:before {
-  background-image: url("./loading.gif") !important;
+  content: "\ea77";
+  padding-left: 0;
+  background-image: none !important;
+  color: #424242;
+  font: normal normal normal 16px/16px codicon;
+  text-rendering: auto;
+  text-align: center;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  animation: codicon-tree-sync-spin 1s linear infinite;
+}
+
+@keyframes codicon-tree-sync-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 #variables-tree details[open] > summary:before {
