@@ -735,7 +735,7 @@ window.compare = function (text="", sideBySide=true, highlight=true, markLines =
     hideStatusBar();
   }
 
-  if (!text || !newOriginalText) {
+  if (text || newOriginalText) {
 
     if (language_id == 'xml') {
       language_id = 'xml';
