@@ -4,8 +4,8 @@
 
 Для работы с платформами от **8.3.14.1565** до **8.3.23.2157** следует использовать архивные ветки:
 
-1. [develop_0_20](https://github.com/salexdv/bsl_console/tree/develop_0_20) - AMD-модули, набор файлов (чуть больше возможностей)
-2. [webpack_0_20](https://github.com/salexdv/bsl_console/tree/webpack_0_20) - ES-модули, с возможностью сборки в один файл (чуть меньше возможностей, но работает в linux)
+1. [webpack_0_20](https://github.com/salexdv/bsl_console/tree/webpack_0_20) - ES-модули, с возможностью сборки в один файл (работает в linux)
+2. [develop_0_20](https://github.com/salexdv/bsl_console/tree/develop_0_20) - AMD-модули, набор файлов
 
 ![](https://github.com/salexdv/git_images/blob/master/bslconsole_view.png?raw=true)
 
