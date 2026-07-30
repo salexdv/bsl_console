@@ -1,4 +1,5 @@
 import bslHelper from './bsl_helper';
+import Treeview from './tree/tree';
 
 setTimeout(() => {
 
@@ -225,6 +226,66 @@ setTimeout(() => {
 
         assert.equal(prevented, true);
         assert.equal(summary.parentNode.hasAttribute("open"), true);
+      }
+      finally {
+        document.getElementById("display-close").click();
+      }
+    });
+
+    it("проверка формирования адреса иконки дерева переменных", function () {
+      let resolvedIcons = [];
+      let treeview = Object.create(Treeview.prototype);
+      treeview.imageBase = function (iconName) {
+        resolvedIcons.push(iconName);
+        return "data:image/png;base64," + iconName;
+      };
+
+      assert.equal(treeview.iconSrc({ icon: "catalog.png" }), "data:image/png;base64,catalog.png");
+      assert.equal(treeview.iconSrc({ icon: "date.png" }), "data:image/png;base64,date.png");
+      assert.deepEqual(resolvedIcons, ["catalog.png", "date.png"]);
+
+      treeview.imageBase = "./tree/icons/";
+      assert.equal(treeview.iconSrc({ icon: "catalog.png" }), "./tree/icons/catalog.png");
+      assert.equal(treeview.iconSrc({ icon: "../date.png" }), "./tree/icons/undefined.png");
+    });
+
+    it("проверка встроенных иконок showVariablesDescription", function () {
+      let variables = {
+        "tree-catalog": {
+          label: "Справочник",
+          icon: "catalog.png",
+          class: "final"
+        },
+        "tree-date": {
+          label: "Дата",
+          icon: "date.png",
+          class: "final"
+        },
+        "tree-unknown": {
+          label: "Неизвестная иконка",
+          icon: "missing.png",
+          class: "final"
+        },
+        "tree-default": {
+          label: "Иконка по умолчанию",
+          class: "final"
+        }
+      };
+
+      try {
+        assert.equal(window.showVariablesDescription(JSON.stringify(variables)), true);
+
+        let icons = document.querySelectorAll("#variables-tree img.icon");
+        assert.equal(icons.length, 4);
+
+        Array.from(icons).forEach(function (icon) {
+          let src = icon.getAttribute("src");
+          assert.match(src, /^data:image\/png;base64,/);
+          assert.notInclude(src, "function");
+        });
+
+        assert.notEqual(icons[0].getAttribute("src"), icons[1].getAttribute("src"));
+        assert.equal(icons[2].getAttribute("src"), icons[3].getAttribute("src"));
       }
       finally {
         document.getElementById("display-close").click();

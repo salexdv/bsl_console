@@ -103,7 +103,10 @@ class Treeview {
   }
 
   iconSrc(item) {
-    return this.imageBase + this.getIconName(item);
+    let iconName = this.getIconName(item);
+    return typeof this.imageBase == "function"
+      ? this.imageBase(iconName)
+      : this.imageBase + iconName;
   }
 
   parseData(data) {
