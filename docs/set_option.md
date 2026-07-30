@@ -45,3 +45,4 @@ setOption("skipInsertSuggestionAcceptor", true);
 * `disableFolding` - *boolean*, отключает сворачивание блоков кода
 * `allowRevertBack` - *boolean*, включает/отключает возможность поблочного отката изменений в режиме сравнения
 * `highlightInnerQuotes` - *boolean*, включает/отключает подсветку экранированных двойных кавычек `""` внутри строк
+* `showDiffDecorations` - *boolean*, включает/отключает отображение различий при использовании функции [`setOriginalText`](set_original_text.md). Значение по умолчанию `true`
