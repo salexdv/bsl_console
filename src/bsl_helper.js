@@ -7176,7 +7176,54 @@ class bslHelper {
 
 		return ranges;
 
-	}	
+	}
+
+	/**
+	 * Finds nested region blocks (#Region...#EndRegion)
+	 *
+	 * @param {ITextModel} current model of editor
+	 *
+	 * @returns {array} - array of folding ranges
+	 */
+	static getRangesForRegions(model) {
+
+		let ranges = [];
+		let stack = [];
+
+		const startPattern = /^\s*#\s*(?:область|region)(?=\s|;|$)/i;
+		const endPattern = /^\s*#\s*(?:конецобласти|endregion)(?=\s|;|$)/i;
+		const lineCount = model.getLineCount();
+
+		for (let lineNumber = 1; lineNumber <= lineCount; lineNumber++) {
+
+			const content = model.getLineContent(lineNumber);
+
+			if (startPattern.test(content)) {
+				stack.push(lineNumber);
+			}
+			else if (endPattern.test(content)) {
+
+				const startLineNumber = stack.pop();
+
+				if (startLineNumber && startLineNumber < lineNumber) {
+					ranges.push(
+						{
+							kind: monaco.languages.FoldingRangeKind.Region,
+							start: startLineNumber,
+							end: lineNumber
+						}
+					)
+				}
+
+			}
+
+		}
+
+		ranges.sort((left, right) => left.start - right.start || left.end - right.end);
+
+		return ranges;
+
+	}
 
 	/**
 	 * Finds blocks like functions by regexp	 
@@ -7276,7 +7323,7 @@ class bslHelper {
 			ranges = ranges.concat(this.getRangesForConstruction(model, "пока|while", "конеццикла|enddo", true));
 			ranges = ranges.concat(this.getRangesForConstruction(model, "для .*(?:по|из) .*|for .* (?:to|each) .*", "конеццикла|enddo", true));
 			ranges = ranges.concat(this.getRangesForConstruction(model, "если|if", "конецесли|endif", true));
-			ranges = ranges.concat(this.getRangesForConstruction(model, "#область|#region", "#конецобласти|#endregion", false));
+			ranges = ranges.concat(this.getRangesForRegions(model));
 			ranges = ranges.concat(this.getRangesForConstruction(model, "#если|#if", "#конецесли|#endif", false));
 		}
 		
