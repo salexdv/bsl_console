@@ -714,6 +714,13 @@ window.getPositionOffset = function() {
 
 }
 
+window.setDiffSideBySideMode = function (sideBySide) {
+  window.editor.updateOptions({
+    renderSideBySide: sideBySide
+  });
+  return true;
+}
+
 window.compare = function (text, sideBySide, highlight, markLines = true, ignoreWhitespace = true) {
   
   let language_id = window.getCurrentLanguageId();
