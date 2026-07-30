@@ -44,6 +44,7 @@ window.customCodeLenses = [];
 window.originalText = '';
 window.metadataRequests = new Map();
 window.customSuggestions = [];
+window.customInlineSuggestions = [];
 window.contextMenuEnabled = false;
 window.err_tid = 0;
 window.suggestObserver = null;
@@ -71,6 +72,8 @@ window.selectedQueryDelimiters = new Map();
 window.reviewWidgets = new Map();
 window.currentIssue = -1;
 window.hiddenBlocks = new Map();
+window.inlineCompletionProviders = [];
+window.inlineSuggestEnabled = true;
 // #endregion
 
 // #region public API
@@ -266,6 +269,9 @@ window.setTheme = function (theme) {
       
   monaco.editor.setTheme(theme);
   setThemeVariablesDisplay(theme);
+
+  if (window.editor && window.editor.inlineSuggestController)
+    window.editor.inlineSuggestController.layout();
 
 }
 
@@ -862,6 +868,11 @@ window.triggerSuggestions = function() {
   
   window.editor.trigger('', 'editor.action.triggerSuggest', {});
 
+  setTimeout(() => {
+    startStopSuggestSelectionObserver();
+    decorateSuggestWidgetRows();
+  }, 20);
+
 }
 
 window.triggerHovers = function() {
@@ -912,16 +923,17 @@ window.requestMetadata = function (metadata, trigger, data) {
 }
 
 window.showCustomSuggestions = function(suggestions) {
-  
+
   window.customSuggestions = [];
-  
+
   try {
-          
+
     let suggestObj = JSON.parse(suggestions);
-    
+    let currentPosition = window.editor.getPosition();
+
     for (const [key, value] of Object.entries(suggestObj)) {
 
-      window.customSuggestions.push({
+      let suggestion = {
         label: value.name,
         kind: monaco.languages.CompletionItemKind[value.kind],
         insertText: value.text,
@@ -929,14 +941,29 @@ window.showCustomSuggestions = function(suggestions) {
         detail: value.detail,
         documentation: value.documentation,
         filterText: value.hasOwnProperty('filter') ? value.filter : value.name,
-        sortText: value.hasOwnProperty('sort') ? value.sort : value.name
-      });
+        sortText: value.hasOwnProperty('sort') ? value.sort : value.name,
+        preselect: !!value.preselect
+      };
+
+      if (value.event) {
+        suggestion.insertText = '';
+        suggestion.insertTextRules = undefined;
+        suggestion.range = new monaco.Range(currentPosition.lineNumber, currentPosition.column, currentPosition.lineNumber, currentPosition.column);
+        suggestion.eventSuggestion = true;
+        suggestion.eventName = value.event;
+        suggestion.codicon = value.codicon ? value.codicon : 'codicon-symbol-event';
+      }
+
+      if (!suggestion.codicon && value.codicon)
+        suggestion.codicon = value.codicon;
+
+      window.customSuggestions.push(suggestion);
 
     }
 
     window.triggerSuggestions();
     return true;
-    
+
 	}
 	catch (e) {
 		return { errorDescription: e.message };
@@ -954,6 +981,95 @@ window.showPreviousCustomSuggestions = function () {
   else {
     return false;
   }
+
+}
+
+window.showCustomInlineSuggestions = function (suggestions) {
+
+  window.customInlineSuggestions = [];
+
+  try {
+
+    let suggestObj = JSON.parse(suggestions);
+
+    for (const [key, value] of Object.entries(suggestObj)) {
+
+      let item = {
+        insertText: value.hasOwnProperty('text') ? value.text : value.name,
+        filterText: value.hasOwnProperty('filter') ? value.filter : value.name,
+        label: value.hasOwnProperty('label') ? value.label : value.name
+      };
+
+      if (value.range) {
+        item.range = value.range;
+      }
+      else if (value.hasOwnProperty('startLineNumber')) {
+        item.range = {
+          startLineNumber: value.startLineNumber,
+          startColumn: value.startColumn,
+          endLineNumber: value.endLineNumber,
+          endColumn: value.endColumn
+        };
+      }
+
+      if (value.command)
+        item.command = value.command;
+
+      if (value.additionalTextEdits)
+        item.additionalTextEdits = value.additionalTextEdits;
+
+      window.customInlineSuggestions.push(item);
+
+    }
+
+    window.triggerInlineSuggestions();
+    return true;
+
+  }
+  catch (e) {
+    window.customInlineSuggestions = [];
+    return { errorDescription: e.message };
+  }
+
+}
+
+window.showInlineSuggestion = function (lineNumber, column, text) {
+
+  if (!window.editor || !window.editor.inlineSuggestController)
+    return false;
+
+  return window.editor.inlineSuggestController.showText(lineNumber, column, text);
+
+}
+
+window.hideInlineSuggestions = function () {
+
+  if (window.editor && window.editor.inlineSuggestController)
+    window.editor.inlineSuggestController.hide();
+
+}
+
+window.triggerInlineSuggestions = function () {
+
+  if (window.editor && window.editor.inlineSuggestController)
+    window.editor.inlineSuggestController.trigger(true);
+
+}
+
+window.isInlineSuggestionsVisible = function () {
+
+  return window.editor && window.editor.inlineSuggestController ? window.editor.inlineSuggestController.isVisible() : false;
+
+}
+
+window.enableInlineSuggestions = function (enabled) {
+
+  window.inlineSuggestEnabled = enabled;
+
+  if (!enabled)
+    window.hideInlineSuggestions();
+  else
+    window.triggerInlineSuggestions();
 
 }
 
@@ -2048,6 +2164,7 @@ function initEditorEventListenersAndProperies() {
   window.editor.checkBookmarks = true;
   window.editor.diff_decorations = [];
   window.editor.ifDecorations = [];
+  window.editor.inlineSuggestController = createInlineSuggestController(window.editor);
 
   window.editor.updateDecorations = function (new_decorations) {
 
@@ -2110,8 +2227,9 @@ function initEditorEventListenersAndProperies() {
     window.updateBookmarks(undefined);
     window.updateBreakpoints(undefined);
 
-    setOption('lastContentChanges', e);
-        
+    window.setOption('lastContentChanges', e);
+    window.editor.inlineSuggestController.trigger(false, getInlineTriggerCharacter(e));
+
   });
 
   window.editor.onKeyUp(e => {
@@ -2168,10 +2286,12 @@ function initEditorEventListenersAndProperies() {
   });
 
   window.editor.onDidScrollChange(e => {
-        
+
     if (e.scrollTop == 0) {
       window.scrollToTop();
     }
+
+    window.editor.inlineSuggestController.layout();
 
   });
 
@@ -2192,11 +2312,17 @@ function initEditorEventListenersAndProperies() {
     updateSelectedQueryDelimiters(e);
     updateIfHighlights();
 
+    if (e.selection.isEmpty())
+      window.editor.inlineSuggestController.trigger(false);
+    else
+      window.editor.inlineSuggestController.hide();
+
   });
 
   window.editor.onDidLayoutChange(e => {
 
     setTimeout(() => { resizeStatusBar(); } , 50);
+    window.editor.inlineSuggestController.layout();
 
   })
 
@@ -2204,10 +2330,713 @@ function initEditorEventListenersAndProperies() {
     onDidPaste(e);
   });
 
+  setTimeout(() => {
+    startStopSuggestSelectionObserver();
+  }, 0);
+
 }
 // #endregion
   
 // #region non-public functions
+function inlineSelectorMatches(selector, languageId) {
+
+  if (!selector)
+    return false;
+
+  if (typeof selector == 'string')
+    return selector == '*' || selector == languageId;
+
+  if (selector instanceof Array)
+    return selector.some(item => inlineSelectorMatches(item, languageId));
+
+  if (typeof selector == 'function')
+    return selector({ language: languageId });
+
+  if (selector.language)
+    return selector.language == languageId;
+
+  return false;
+
+}
+
+function getInlineCompletionProviders(languageId) {
+
+  return inlineCompletionProviders
+    .filter(item => inlineSelectorMatches(item.selector, languageId))
+    .map(item => item.provider);
+
+}
+
+function isSnippetInlineCompletion(item) {
+
+  return (typeof item.insertText == 'object' && item.insertText && item.insertText.snippet)
+    || item.insertTextRules == monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet;
+
+}
+
+function getInlineCompletionInsertText(item) {
+
+  if (!item)
+    return '';
+
+  if (typeof item.insertText == 'string')
+    return item.insertText;
+
+  if (item.insertText && item.insertText.snippet)
+    return item.insertText.snippet;
+
+  if (typeof item.label == 'string')
+    return item.label;
+
+  if (item.label && item.label.label)
+    return item.label.label;
+
+  return '';
+
+}
+
+function getInlineCompletionPreviewText(item) {
+
+  let text = getInlineCompletionInsertText(item);
+
+  if (!text)
+    return '';
+
+  text = text.replace(/\$\{\d+:([^}]*)\}/g, '$1');
+  text = text.replace(/\$\{\d+\|([^}]*)\|\}/g, '$1');
+  text = text.replace(/\$\d+/g, '');
+  text = text.replace(/\$\{\d+\}/g, '');
+
+  return text;
+
+}
+
+function normalizeInlineCompletionRange(model, position, item) {
+
+  if (item.range) {
+    return new monaco.Range(item.range.startLineNumber, item.range.startColumn, item.range.endLineNumber, item.range.endColumn);
+  }
+
+  let word = model.getWordUntilPosition(position);
+  let startColumn = word ? word.startColumn : position.column;
+
+  return new monaco.Range(position.lineNumber, startColumn, position.lineNumber, position.column);
+
+}
+
+function normalizeInlineCompletionItem(model, position, item) {
+
+  if (!item)
+    return null;
+
+  let range = normalizeInlineCompletionRange(model, position, item);
+
+  if (range.startLineNumber != position.lineNumber || range.endLineNumber != position.lineNumber)
+    return null;
+
+  if (position.lineNumber != range.endLineNumber || position.column < range.startColumn || range.endColumn < position.column)
+    return null;
+
+  let insertText = getInlineCompletionInsertText(item);
+  let previewText = getInlineCompletionPreviewText(item);
+  let prefixText = model.getValueInRange(new monaco.Range(range.startLineNumber, range.startColumn, position.lineNumber, position.column));
+
+  if (!insertText || !previewText || prefixText.length > previewText.length)
+    return null;
+
+  if (previewText.substr(0, prefixText.length).toLowerCase() != prefixText.toLowerCase())
+    return null;
+
+  let suffix = previewText.substr(prefixText.length);
+  let remainder = model.getValueInRange(new monaco.Range(position.lineNumber, position.column, range.endLineNumber, range.endColumn));
+  let replacedPreview = previewText.substr(prefixText.length, Math.max(0, range.endColumn - position.column));
+
+  if (!suffix)
+    return null;
+
+  if (remainder && replacedPreview.toLowerCase() == remainder.toLowerCase() && suffix == replacedPreview)
+    return null;
+
+  return {
+    item: item,
+    range: range,
+    insertText: insertText,
+    previewText: previewText,
+    suffix: suffix
+  };
+
+}
+
+function getInlineCompletionsFromCustomSuggestions() {
+
+  let suggestions = customInlineSuggestions.slice();
+  customInlineSuggestions = [];
+  return suggestions;
+
+}
+
+function getDefaultInlineCompletionItems(model, position, context) {
+
+  return [];
+
+}
+
+function createDefaultInlineCompletionsProvider() {
+
+  return {
+    provideInlineCompletions: function (model, position, context, token) {
+
+      let items = getInlineCompletionsFromCustomSuggestions();
+
+      if (!items.length)
+        items = getDefaultInlineCompletionItems(model, position, context);
+
+      return { items: items };
+
+    },
+    freeInlineCompletions: function () { }
+  }
+
+}
+
+function escapeInlineCompletionText(text) {
+
+  return text
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"');
+
+}
+
+function createInlineGhostTextRenderer(codeEditor) {
+
+  let decorationIds = [];
+  let viewZoneId = 0;
+  let currentClassName = '';
+  let styleNode = document.createElement('style');
+  let zoneNode = document.createElement('div');
+  let zoneInnerNode = document.createElement('div');
+  let currentState = null;
+  let currentThemeName = '';
+  let currentAdditionalLinesCount = 0;
+
+  styleNode.type = 'text/css';
+  document.head.appendChild(styleNode);
+
+  zoneNode.className = 'inline-completion-additional-lines';
+  zoneInnerNode.className = 'inline-completion-additional-lines-inner';
+  zoneNode.appendChild(zoneInnerNode);
+
+  function clearDecorations() {
+
+    if (decorationIds.length)
+      decorationIds = codeEditor.deltaDecorations(decorationIds, []);
+
+  }
+
+  function clearViewZone() {
+
+    if (viewZoneId) {
+      codeEditor.changeViewZones(function (changeAccessor) {
+        changeAccessor.removeZone(viewZoneId);
+        viewZoneId = 0;
+      });
+    }
+
+    zoneInnerNode.textContent = '';
+    zoneNode.style.paddingLeft = '0px';
+    currentAdditionalLinesCount = 0;
+
+  }
+
+  function updateInlineText(lineText, themeName) {
+
+    clearDecorations();
+    styleNode.textContent = '';
+    currentClassName = '';
+
+    if (!lineText)
+      return;
+
+    currentClassName = 'inline-completion-inline-' + Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+    let color = themeName && 0 <= themeName.indexOf('dark') ? 'rgba(140, 140, 140, 0.9)' : 'rgba(120, 120, 120, 0.85)';
+    let content = escapeInlineCompletionText(lineText);
+
+    styleNode.textContent = '.' + currentClassName + '::after { content: "' + content + '"; color: ' + color + '; white-space: pre; pointer-events: none; }';
+
+    decorationIds = codeEditor.deltaDecorations(decorationIds, [{
+      range: new monaco.Range(currentState.position.lineNumber, currentState.position.column, currentState.position.lineNumber, currentState.position.column),
+      options: {
+        afterContentClassName: currentClassName
+      }
+    }]);
+
+  }
+
+  function updateAdditionalLinesLayout(themeName) {
+
+    if (!currentState || !currentAdditionalLinesCount)
+      return;
+
+    let visiblePosition = codeEditor.getScrolledVisiblePosition(currentState.position);
+    let left = visiblePosition ? visiblePosition.left : 0;
+    let options = codeEditor.getRawOptions();
+
+    zoneNode.className = 'inline-completion-additional-lines';
+    if (themeName && 0 <= themeName.indexOf('dark'))
+      zoneNode.className += ' inline-completion-additional-lines-dark';
+
+    zoneNode.style.paddingLeft = left + 'px';
+    zoneInnerNode.style.lineHeight = (options.lineHeight || 18) + 'px';
+    zoneInnerNode.style.fontSize = (options.fontSize || 14) + 'px';
+    zoneInnerNode.style.fontFamily = options.fontFamily || 'inherit';
+    zoneInnerNode.style.fontWeight = options.fontWeight || 'normal';
+  }
+
+  function updateAdditionalLines(lines, themeName) {
+
+    clearViewZone();
+
+    if (!lines.length)
+      return;
+
+    let lineHeight = (codeEditor.getRawOptions().lineHeight || 18);
+    currentAdditionalLinesCount = lines.length;
+    zoneInnerNode.textContent = lines.join('\n');
+    updateAdditionalLinesLayout(themeName);
+
+    codeEditor.changeViewZones(function (changeAccessor) {
+      viewZoneId = changeAccessor.addZone({
+        afterLineNumber: currentState.position.lineNumber,
+        heightInPx: lines.length * lineHeight,
+        suppressMouseDown: true,
+        domNode: zoneNode
+      });
+    });
+
+  }
+
+  return {
+    show: function (normalizedItem, position, themeName) {
+
+      currentState = {
+        normalizedItem: normalizedItem,
+        position: position
+      };
+      currentThemeName = themeName;
+
+      let lines = normalizedItem.suffix.split('\n');
+      let inlineText = lines.shift();
+      let additionalLines = lines;
+
+      updateInlineText(inlineText, themeName);
+      updateAdditionalLines(additionalLines, themeName);
+
+    },
+    hide: function () {
+      currentState = null;
+      clearDecorations();
+      clearViewZone();
+      styleNode.textContent = '';
+      currentClassName = '';
+      currentThemeName = '';
+    },
+    layout: function (position, themeName) {
+      if (currentState) {
+        currentState.position = position;
+        currentThemeName = themeName;
+        let lines = currentState.normalizedItem.suffix.split('\n');
+        updateInlineText(lines.shift(), themeName);
+        updateAdditionalLinesLayout(themeName);
+      }
+    },
+    dispose: function () {
+      this.hide();
+      if (styleNode.parentElement)
+        styleNode.parentElement.removeChild(styleNode);
+    }
+  };
+
+}
+
+function executeInlineCompletionCommand(command) {
+
+  if (!command || !command.id)
+    return;
+
+  if (editor._commandService)
+    editor._commandService.executeCommand.apply(editor._commandService, [command.id].concat(command.arguments || []));
+  else
+    editor.trigger('inlineSuggestion', command.id, command.arguments);
+
+}
+
+function applyInlineCompletion(normalizedItem) {
+
+  if (!normalizedItem)
+    return false;
+
+  let item = normalizedItem.item;
+  let edits = [];
+
+  if (item.additionalTextEdits && item.additionalTextEdits.length)
+    edits = edits.concat(item.additionalTextEdits);
+
+  edits.push({
+    range: normalizedItem.range,
+    text: isSnippetInlineCompletion(item) ? normalizedItem.previewText : normalizedItem.insertText,
+    forceMoveMarkers: true
+  });
+
+  editor.pushUndoStop();
+
+  if (isSnippetInlineCompletion(item)) {
+    if (edits.length > 1)
+      editor.executeEdits('inlineCompletion', edits.slice(0, edits.length - 1));
+    editor.setSelection(normalizedItem.range);
+    insertSnippet(normalizedItem.insertText);
+  }
+  else {
+    editor.executeEdits('inlineCompletion', edits);
+  }
+
+  editor.pushUndoStop();
+
+  if (item.command)
+    executeInlineCompletionCommand(item.command);
+
+  return true;
+
+}
+
+function createInlineCompletionFromText(lineNumber, column, text) {
+
+  if (!window.editor || !window.editor.getModel() || typeof text != 'string')
+    return null;
+
+  let model = window.editor.getModel();
+
+  if (lineNumber < 1 || model.getLineCount() < lineNumber)
+    return null;
+
+  let maxColumn = model.getLineMaxColumn(lineNumber);
+
+  if (column < 1 || maxColumn < column)
+    column = maxColumn;
+
+  return {
+    item: {
+      insertText: text,
+      range: {
+        startLineNumber: lineNumber,
+        startColumn: column,
+        endLineNumber: lineNumber,
+        endColumn: column
+      }
+    },
+    range: new monaco.Range(lineNumber, column, lineNumber, column),
+    insertText: text,
+    previewText: text,
+    suffix: text
+  };
+
+}
+
+function createInlineSuggestController(codeEditor) {
+
+  let renderer = createInlineGhostTextRenderer(codeEditor);
+  let activeCompletion = null;
+  let visible = false;
+  let timerId = 0;
+  let requestId = 0;
+
+  function hide() {
+
+    activeCompletion = null;
+    visible = false;
+    renderer.hide();
+
+  }
+
+  function isSelectionValid() {
+
+    let selection = codeEditor.getSelection();
+    return selection && selection.isEmpty();
+
+  }
+
+  function canShowInlineSuggestions() {
+
+    return window.inlineSuggestEnabled
+      && !window.readOnlyMode
+      && !codeEditor.navi
+      && codeEditor.hasModel()
+      && isSelectionValid()
+      && !isSuggestWidgetVisible()
+      && !isParameterHintsWidgetVisible();
+
+  }
+
+  function render(normalizedItem) {
+
+    activeCompletion = normalizedItem;
+    visible = true;
+    renderer.show(normalizedItem, codeEditor.getPosition(), getCurrentThemeName());
+
+  }
+
+  function trigger(explicit = false, triggerCharacter = '') {
+
+    clearTimeout(timerId);
+
+    if (!monaco.languages.registerInlineCompletionsProvider)
+      return;
+
+    if (!canShowInlineSuggestions()) {
+      hide();
+      return;
+    }
+
+    let currentRequestId = ++requestId;
+
+    timerId = setTimeout(function () {
+
+      if (!canShowInlineSuggestions()) {
+        hide();
+        return;
+      }
+
+      let model = codeEditor.getModel();
+      let position = codeEditor.getPosition();
+      let providers = getInlineCompletionProviders(model.getLanguageIdentifier().language);
+      let context = {
+        triggerKind: explicit ? monaco.languages.InlineCompletionTriggerKind.Explicit : monaco.languages.InlineCompletionTriggerKind.Automatic,
+        triggerCharacter: triggerCharacter
+      };
+
+      Promise.resolve().then(function () {
+
+        function findProvided(providerIndex) {
+
+          if (providers.length <= providerIndex)
+            return Promise.resolve(null);
+
+          let provider = providers[providerIndex];
+
+          return Promise.resolve(provider.provideInlineCompletions(model, position, context, null)).then(function (result) {
+
+            let items = result && result.items ? result.items : [];
+
+            for (let item_idx = 0; item_idx < items.length; item_idx++) {
+              let normalized = normalizeInlineCompletionItem(model, position, items[item_idx]);
+              if (normalized)
+                return normalized;
+            }
+
+            return findProvided(providerIndex + 1);
+
+          });
+
+        }
+
+        return findProvided(0).then(function (provided) {
+
+          if (currentRequestId != requestId || !canShowInlineSuggestions())
+            return;
+
+          if (provided)
+            render(provided);
+          else
+            hide();
+
+        });
+
+      }).catch(function () {
+        if (currentRequestId == requestId)
+          hide();
+      });
+
+    }, explicit ? 0 : 60);
+
+  }
+
+  return {
+    trigger: trigger,
+    hide: hide,
+    showText: function (lineNumber, column, text) {
+
+      clearTimeout(timerId);
+
+      if (!window.inlineSuggestEnabled || window.readOnlyMode || codeEditor.navi || !codeEditor.hasModel())
+        return false;
+
+      let normalizedItem = createInlineCompletionFromText(lineNumber, column, text);
+
+      if (!normalizedItem) {
+        hide();
+        return false;
+      }
+
+      activeCompletion = normalizedItem;
+      visible = true;
+      renderer.show(normalizedItem, new monaco.Position(lineNumber, column), getCurrentThemeName());
+      return true;
+
+    },
+    isVisible: function () {
+      return visible;
+    },
+    accept: function () {
+      if (!activeCompletion)
+        return false;
+
+      let accepted = applyInlineCompletion(activeCompletion);
+      hide();
+      return accepted;
+    },
+    layout: function () {
+      if (visible && activeCompletion)
+        renderer.layout(codeEditor.getPosition(), getCurrentThemeName());
+    },
+    dispose: function () {
+      clearTimeout(timerId);
+      hide();
+      renderer.dispose();
+    }
+  };
+
+}
+
+function getInlineTriggerCharacter(e) {
+
+  if (!e || !e.changes || e.changes.length != 1)
+    return '';
+
+  let change = e.changes[0];
+
+  if (!change.text || change.text.length != 1)
+    return '';
+
+  return change.text;
+
+}
+
+function getSuggestItemByRow(row) {
+
+  if (!row)
+    return null;
+
+  let suggestWidget = getSuggestWidget();
+
+  if (!suggestWidget || !suggestWidget.widget || !suggestWidget.widget.list)
+    return null;
+
+  let items = suggestWidget.widget.list.view.items;
+
+  for (let idx = 0; idx < items.length; idx++) {
+    let item = items[idx];
+    if (item.row && item.row.domNode === row)
+      return item;
+  }
+
+  let row_id = row.getAttribute('data-index');
+
+  if (row_id != null && row_id < items.length)
+    return items[row_id];
+
+  return null;
+
+}
+
+function getFocusedSuggestRow() {
+
+  return document.querySelector('.monaco-list-row.focused');
+
+}
+
+function getFocusedSuggestItem() {
+
+  return getSuggestItemByRow(getFocusedSuggestRow());
+
+}
+
+function isEventSuggestItem(suggestItem) {
+
+  return suggestItem
+    && suggestItem.element
+    && suggestItem.element.completion
+    && suggestItem.element.completion.eventSuggestion;
+
+}
+
+function handleEventSuggestSelection(suggestItem) {
+
+  if (!isEventSuggestItem(suggestItem))
+    return false;
+
+  let position = window.editor.getPosition();
+  let bsl = new bslHelper(window.editor.getModel(), position);
+  let completion = suggestItem.element.completion;
+
+  const eventParams = {
+    current_word: bsl.word,
+    last_word: bsl.lastRawExpression,
+    last_expression: bsl.lastExpression,
+    position: position
+  }
+
+  window.hideSuggestionsList();
+  window.sendEvent(completion.eventName, eventParams);
+  setTimeout(() => {
+    editor.focus();
+  }, 0);
+  return true;
+
+}
+
+function decorateSuggestWidgetRows() {
+
+  let suggestWidget = getSuggestWidget();
+
+  if (!suggestWidget || !suggestWidget.widget || !suggestWidget.widget.list)
+    return;
+
+  let items = suggestWidget.widget.list.view.items;
+
+  for (let idx = 0; idx < items.length; idx++) {
+    let item = items[idx];
+    if (item.row && item.row.domNode) {
+      let rowNode = item.row.domNode;
+      let completion = item.element ? item.element.completion : null;
+      let iconNode = getChildWithClass(rowNode, 'suggest-icon');
+
+      rowNode.classList.remove('event-suggestion');
+
+      if (iconNode) {
+        if (!iconNode.bslDefaultClasses)
+          iconNode.bslDefaultClasses = Array.from(iconNode.classList);
+
+        let defaultClasses = iconNode.bslDefaultClasses.slice();
+        iconNode.className = '';
+        defaultClasses.forEach(function (className) {
+          iconNode.classList.add(className);
+        });
+      }
+
+      if (isEventSuggestItem(item))
+        item.row.domNode.classList.add('event-suggestion');
+
+      if (iconNode && completion && completion.codicon) {
+        iconNode.className = '';
+        iconNode.classList.add('suggest-icon');
+        iconNode.classList.add(completion.codicon);
+        iconNode.classList.add('codicon');
+        iconNode.codiconClass = completion.codicon;
+      }
+    }
+  }
+
+}
+
 function mapsAreEqual(map1, map2) {
     
   let testVal;
@@ -2586,7 +3415,7 @@ window.generateEscapeEvent = function() {
   let position = window.editor.getPosition();
   let bsl = new bslHelper(window.editor.getModel(), position);
 
-  eventParams = {
+  const eventParams = {
     current_word: bsl.word,
     last_word: bsl.lastRawExpression,
     last_expression: bsl.lastExpression,
@@ -2724,9 +3553,42 @@ window.hideUnchangedBlocks = function (retryCount = 10) {
 
 }
 
+window.activateInlineCompletionsApi = function () {
+
+  if (!monaco.languages.InlineCompletionTriggerKind) {
+    monaco.languages.InlineCompletionTriggerKind = {
+      Automatic: 0,
+      Explicit: 1
+    };
+  }
+
+  if (!monaco.languages.registerInlineCompletionsProvider) {
+    monaco.languages.registerInlineCompletionsProvider = function (languageSelector, provider) {
+
+      let record = {
+        selector: languageSelector,
+        provider: provider
+      };
+
+      window.inlineCompletionProviders.push(record);
+
+      return {
+        dispose: function () {
+          window.inlineCompletionProviders = window.inlineCompletionProviders.filter(item => item !== record);
+        }
+      };
+
+    }
+  }
+
+}
+
 window.disposeEditor = function() {
 
   if (window.editor) {
+
+    if (window.editor.inlineSuggestController)
+      window.editor.inlineSuggestController.dispose();
 
     if (window.editor.diffRevertButtons)
       window.editor.diffRevertButtons.dispose();
@@ -2778,7 +3640,7 @@ function generateSnippetEvent(e) {
           selected_text: getSelectedText()
         }
 
-        sendEvent('EVENT_ON_INSERT_SNIPPET', event);
+        window.sendEvent('EVENT_ON_INSERT_SNIPPET', event);
 
       }
 
@@ -3027,6 +3889,7 @@ function startStopSuggestActivationObserver() {
         if (mutation.target.classList.contains('monaco-list-rows') && mutation.addedNodes.length) {
           let element = mutation.addedNodes[0];
           if (element.classList.contains('monaco-list-row') && element.classList.contains('focused')) {
+            decorateSuggestWidgetRows();
             removeSuggestListInactiveDetails();
             window.generateEventWithSuggestData('EVENT_ON_ACTIVATE_SUGGEST_ROW', 'focus', element);
             let alwaysDisplaySuggestDetails = window.getOption('alwaysDisplaySuggestDetails');
@@ -3039,6 +3902,7 @@ function startStopSuggestActivationObserver() {
           }
         }
         else if (mutation.target.classList.contains('type') || mutation.target.classList.contains('docs')) {
+          decorateSuggestWidgetRows();
           let element = document.querySelector('.monaco-list-rows .focused');
           if (element) {
             if (hasParentWithClass(mutation.target, 'details') && hasParentWithClass(mutation.target, 'suggest-widget')) {
@@ -3062,32 +3926,35 @@ function startStopSuggestActivationObserver() {
 
 function startStopSuggestSelectionObserver() {
 
-  let widget = getSuggestWidget().widget;
+  let suggestWidget = getSuggestWidget();
+
+  if (!suggestWidget || !suggestWidget.widget)
+    return;
+
+  let widget = suggestWidget.widget;
 
   if (widget) {
 
     let fire_event = window.getOption('generateSelectSuggestEvent');
 
-    if (fire_event) {
+    if (!widget.onListMouseDownOrTapOrig)
+      widget.onListMouseDownOrTapOrig = widget.onListMouseDownOrTap;
 
-      if (!widget.onListMouseDownOrTapOrig)
-        widget.onListMouseDownOrTapOrig = widget.onListMouseDownOrTap;
+    widget.onListMouseDownOrTap = function (e) {
+      let element = getParentWithClass(e.browserEvent.target, 'monaco-list-row');
+      let suggestItem = getSuggestItemByRow(element);
 
-      widget.onListMouseDownOrTap = function (e) {
-        let element = getParentWithClass(e.browserEvent.target, 'monaco-list-row');
-
-        if (element) {
-          window.generateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', 'selection', element);
-        }
-
-        widget.onListMouseDownOrTapOrig(e);
-
+      if (element && fire_event) {
+        generateEventWithSuggestData('EVENT_ON_SELECT_SUGGEST_ROW', 'selection', element);
       }
 
-    }
-    else if (widget.onListMouseDownOrTapOrig) {
+      if (handleEventSuggestSelection(suggestItem)) {
+        e.browserEvent.preventDefault();
+        e.browserEvent.stopPropagation();
+        return;
+      }
 
-      widget.onListMouseDownOrTap = widget.onListMouseDownOrTapOrig;
+      widget.onListMouseDownOrTapOrig(e);
 
     }
 
@@ -4016,7 +4883,7 @@ function createDiffRevertButtons(diff_editor) {
 
     button_layer.innerHTML = '';
 
-    if (!getDiffAllowRevertBack(diff_editor) || readOnlyMode)
+    if (!getDiffAllowRevertBack(diff_editor) || window.readOnlyMode)
       return;
 
     const line_changes = diff_editor.getLineChanges();
@@ -4260,6 +5127,15 @@ function editorOnKeyDown(e) {
 
   window.editor.lastKeyCode = e.keyCode;
 
+  if ((e.keyCode == 3 || e.keyCode == 2) && isSuggestWidgetVisible()) {
+    let eventSuggestItem = getFocusedSuggestItem();
+    if (handleEventSuggestSelection(eventSuggestItem)) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+  }
+
   if (e.keyCode == 16 && window.editor.getPosition().lineNumber == 1)
     // ArrowUp
     window.scrollToTop();
@@ -4283,6 +5159,7 @@ function editorOnKeyDown(e) {
     window.generateEscapeEvent();
     setFindWidgetDisplay('none');
     window.hideSuggestionsList();
+    window.hideInlineSuggestions();
   }
   else if (e.keyCode == 61) {
     // F3
@@ -4300,6 +5177,11 @@ function editorOnKeyDown(e) {
   }
   else if (e.keyCode == 2) {
     // Tab
+    if (window.editor.inlineSuggestController && window.editor.inlineSuggestController.accept()) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
     let fire_event = window.getOption('generateSelectSuggestEvent');
     if (fire_event) {
       let element = document.querySelector('.monaco-list-row.focused');
@@ -5132,7 +6014,7 @@ function createReviewWidget(lineNumber, issue = null) {
         this.removeSeverity();
         this.domNode.classList.add("review-" + widget.severity);
         this.close();
-        sendEvent("EVENT_ON_REVIEW_CHANGED", "");
+        window.sendEvent("EVENT_ON_REVIEW_CHANGED", "");
       }
       else {
         textarea.classList.add('required');
@@ -5146,7 +6028,7 @@ function createReviewWidget(lineNumber, issue = null) {
       });
       window.reviewWidgets.delete(this.widgetId);
       if (generateEvent)
-        sendEvent("EVENT_ON_REVIEW_CHANGED", "");
+        window.sendEvent("EVENT_ON_REVIEW_CHANGED", "");
     },
     cancel: function () {
       let widget = window.reviewWidgets.get(this.widgetId);
@@ -5565,6 +6447,11 @@ document.onkeypress = function (e) {
     let element = document.querySelector('.monaco-list-row.focused');
 
     if (element) {
+
+      let suggestItem = getSuggestItemByRow(element);
+
+      if (handleEventSuggestSelection(suggestItem))
+        return false;
 
       let fire_event = window.getOption('generateSelectSuggestEvent');
 

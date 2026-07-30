@@ -134,6 +134,37 @@
 	visibility: visible !important;
 }
 
+.suggest-widget .monaco-list .monaco-list-row.event-suggestion {
+	background-color: #e6e6e6 !important;
+}
+
+.suggest-widget .monaco-list .monaco-list-row.event-suggestion.focused {
+	background-color: #d8d8d8 !important;
+}
+
+.suggest-widget .monaco-list .monaco-list-row.event-suggestion .contents,
+.suggest-widget .monaco-list .monaco-list-row.event-suggestion .main,
+.suggest-widget .monaco-list .monaco-list-row.event-suggestion .monaco-icon-label,
+.suggest-widget .monaco-list .monaco-list-row.event-suggestion .monaco-icon-label .label-name,
+.suggest-widget .monaco-list .monaco-list-row.event-suggestion .monaco-icon-label .label-description,
+.suggest-widget .monaco-list .monaco-list-row.event-suggestion .details-label {
+	font-weight: bold !important;
+}
+
+.inline-completion-additional-lines {
+	pointer-events: none;
+	white-space: pre;
+	overflow: hidden;
+}
+
+.inline-completion-additional-lines-inner {
+	white-space: pre;
+	color: rgba(120, 120, 120, 0.85);
+}
+
+.inline-completion-additional-lines-dark .inline-completion-additional-lines-inner {
+	color: rgba(140, 140, 140, 0.9);
+}
 
 div:has(> .add-review) {
 	background-color: #ddd;
