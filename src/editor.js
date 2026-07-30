@@ -1033,12 +1033,30 @@ window.showCustomInlineSuggestions = function (suggestions) {
 
 }
 
-window.showInlineSuggestion = function (lineNumber, column, text) {
+window.showInlineSuggestion = function (suggestions) {
 
   if (!window.editor || !window.editor.inlineSuggestController)
     return false;
 
-  return window.editor.inlineSuggestController.showText(lineNumber, column, text);
+  try {
+
+    let suggestionItems = typeof suggestions == 'string' ? JSON.parse(suggestions) : suggestions;
+
+    if (!Array.isArray(suggestionItems))
+      throw new TypeError('Ожидается массив строк');
+
+    if (!suggestionItems.length)
+      return false;
+
+    if (typeof suggestionItems[0] != 'string')
+      throw new TypeError('Первый элемент массива должен быть строкой');
+
+    return window.editor.inlineSuggestController.showText(suggestionItems[0]);
+
+  }
+  catch (e) {
+    return { errorDescription: e.message };
+  }
 
 }
 
@@ -2708,12 +2726,13 @@ function applyInlineCompletion(normalizedItem) {
 
 }
 
-function createInlineCompletionFromText(lineNumber, column, text) {
+function createInlineCompletionFromText(model, position, text) {
 
-  if (!window.editor || !window.editor.getModel() || typeof text != 'string')
+  if (!model || !position || typeof text != 'string')
     return null;
 
-  let model = window.editor.getModel();
+  let lineNumber = position.lineNumber;
+  let column = position.column;
 
   if (lineNumber < 1 || model.getLineCount() < lineNumber)
     return null;
@@ -2862,14 +2881,15 @@ function createInlineSuggestController(codeEditor) {
   return {
     trigger: trigger,
     hide: hide,
-    showText: function (lineNumber, column, text) {
+    showText: function (text) {
 
       clearTimeout(timerId);
 
       if (!window.inlineSuggestEnabled || window.readOnlyMode || codeEditor.navi || !codeEditor.hasModel())
         return false;
 
-      let normalizedItem = createInlineCompletionFromText(lineNumber, column, text);
+      let currentPosition = codeEditor.getPosition();
+      let normalizedItem = createInlineCompletionFromText(codeEditor.getModel(), currentPosition, text);
 
       if (!normalizedItem) {
         hide();
@@ -2878,7 +2898,7 @@ function createInlineSuggestController(codeEditor) {
 
       activeCompletion = normalizedItem;
       visible = true;
-      renderer.show(normalizedItem, new monaco.Position(lineNumber, column), getCurrentThemeName());
+      renderer.show(normalizedItem, currentPosition, getCurrentThemeName());
       return true;
 
     },
