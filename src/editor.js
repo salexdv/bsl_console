@@ -2221,7 +2221,7 @@ function getTextInLines(model, startLineNumber, endLineNumber) {
 
   let text = '';
 
-  if (endLineNumber >= startLineNumber) {
+  if (0 < startLineNumber && endLineNumber >= startLineNumber) {
     let range = {
       startLineNumber: startLineNumber,
       startColumn: 1,
