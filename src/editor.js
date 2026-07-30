@@ -721,7 +721,7 @@ window.setDiffSideBySideMode = function (sideBySide) {
   return true;
 }
 
-window.compare = function (text, sideBySide, highlight, markLines = true, ignoreWhitespace = true) {
+window.compare = function (text="", sideBySide=true, highlight=true, markLines = true, ignoreWhitespace = true, newOriginalText = "") {
   
   let language_id = window.getCurrentLanguageId();
   let currentTheme = getCurrentThemeName();
@@ -735,8 +735,8 @@ window.compare = function (text, sideBySide, highlight, markLines = true, ignore
     hideStatusBar();
   }
 
-  if (text) {      
-    
+  if (!text || !newOriginalText) {
+
     if (language_id == 'xml') {
       language_id = 'xml';
       currentTheme = 'vs';
