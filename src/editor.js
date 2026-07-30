@@ -1,7 +1,7 @@
 //require.config( { 'vs/nls': { availableLanguages: { '*': "ru" } } } );
 
 import "@babel/polyfill";
-import languages from './bsl_language';
+import { languages, setHighlightInnerQuotes} from './bsl_language';
 import { getActions, permanentActions } from './actions';
 import './decorations.css'
 import './tingle.css'
@@ -1345,6 +1345,11 @@ window.setOption = function (optionName, optionValue) {
   if (optionName == 'allowRevertBack' && window.editor.navi) {
     window.editor.allowRevertBack = Boolean(optionValue);
     applyDiffAllowRevertBackOptions(window.editor);
+  }
+
+  if (optionName == 'highlightInnerQuotes' && typeof setHighlightInnerQuotes == 'function') {
+    setHighlightInnerQuotes(optionValue);
+    window.setTheme(getCurrentThemeFullName());
   }
 
 }
@@ -3763,10 +3768,16 @@ function checkEmptySuggestions() {
 
 }
 
+function getCurrentThemeFullName() {
+
+  return window.editor._themeService.getTheme().themeName;
+
+}
+
 function getCurrentThemeName() {
 
   let queryPostfix = '-query';
-  let currentTheme = window.editor._themeService.getTheme().themeName;
+  let currentTheme = getCurrentThemeFullName();
   let is_query = (queryMode || DCSMode);
 
   if (is_query && currentTheme.indexOf(queryPostfix) == -1)
