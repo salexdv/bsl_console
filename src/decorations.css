@@ -1,3 +1,10 @@
+@font-face {
+	font-family: "codicon";
+	src: url("../node_modules/monaco-editor/dev/vs/base/browser/ui/codiconLabel/codicon/codicon.ttf") format("truetype");
+	font-weight: normal;
+	font-style: normal;
+}
+
 #container {
 	background-image: url(loading.gif);
 	background-repeat: no-repeat;
@@ -518,6 +525,79 @@ div:has(> .add-review) {
 .diff-body {
 	border: 1px solid;
 	height: 100%;
+}
+
+.expand-widget {
+	align-items: center;
+	background-color: #eee;
+	border-top: 1px solid #e5e5e5;
+	box-sizing: border-box;
+	color: #616161;
+	cursor: pointer;
+	display: flex;
+	font-size: 14px;
+	line-height: 19px;
+	overflow: hidden;
+	position: relative;
+	transition: transform .1s ease-in-out;
+	z-index: 1;
+}
+
+.expand-widget a {
+	width: 18px;
+	height: inherit;
+	align-items: center;
+	display: flex;
+	justify-content: center;
+	cursor: pointer;
+	opacity: 0.6;
+	text-align: center;
+	flex: 0 0 18px;
+}
+
+.expand-widget:hover a {
+	opacity: 1;
+}
+
+.expand-widget:hover a::before {
+	color: #007acc;
+}
+
+.expand-widget a::before {
+	content: "\eb73";
+	color: #424242;
+	font: normal normal normal 16px/1 codicon;
+}
+
+.expand-widget-label {
+	cursor: pointer;
+	display: block;
+	font-size: 13px;
+	height: 14px;
+	line-height: 14px;
+	overflow: hidden;
+	padding-left: 22px;
+	position: absolute;
+	text-overflow: ellipsis;
+	top: 0px;
+	user-select: none;
+	white-space: nowrap;
+}
+
+.collapse-hidden-block {
+	cursor: pointer;
+	opacity: 0.6;
+	text-align: center;
+}
+
+.collapse-hidden-block:hover {
+	opacity: 1;
+}
+
+.collapse-hidden-block::before {
+	content: "\eaf5";
+	color: #424242;
+	font: normal normal normal 16px/19px codicon;
 }
 
 .new-block {
