@@ -751,6 +751,12 @@ window.compare = function (text, sideBySide, highlight, markLines = true, ignore
         addExtraSpaceOnTop: false
       }
     });
+    window.editor.countDiffEvents = 0; 
+      window.editor.onDidUpdateDiff(e => {
+        window.editor.countDiffEvents++;
+        if (window.editor.countDiffEvents == 1 && window.getOption('generateCompareCompleteEvent'))
+          window.sendEvent("EVENT_COMPARE_COMPLETE", {});
+      });
     if (highlight) {
       monaco.editor.setModelLanguage(originalModel, language_id);
       monaco.editor.setModelLanguage(modifiedModel, language_id);
