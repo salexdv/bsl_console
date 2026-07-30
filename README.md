@@ -101,7 +101,7 @@ npm run build -- --env customOptions="automaticLayout: true, someOption: false"
 
 ## Как запускать?
 
-1. Собрать проект и открыть в браузере файл `./dist/index.html`
+1. Собрать проект и открыть в браузере файл `./dist/index.html`, либо воспользоваться [ссылкой](https://salexdv.github.io/bsl_console/index.html)
 2. Для запуска в 1С можно использовать обработку **console.epf**, выкладываемую в [релизах](https://github.com/salexdv/bsl_console/releases) или сделать свою.
 3. Редактор используется на сайте [Paste1C](https://paste1c.ru/).
 4. На платформе **8.3.27+** (с включённой «Защитой от опасных действий») собрать single-file
