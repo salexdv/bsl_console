@@ -9,6 +9,8 @@ const CopyWebpackPlugin = require('copy-webpack-plugin');
 
 module.exports = (env, args) => {
 
+  const single = !!(env && (env.single || env === 'single'));
+
   return {
     context: path.resolve(__dirname, 'src'),
     entry: Object.assign(
@@ -143,7 +145,7 @@ module.exports = (env, args) => {
             {
               loader: 'url-loader',
               options: {
-                limit: 8192,
+                limit: single ? 10 * 1024 * 1024 : 8192,
               },
             },
           ],
@@ -160,7 +162,7 @@ module.exports = (env, args) => {
     },
     optimization: {
       minimize: args.mode === 'production',
-      splitChunks: {
+      splitChunks: single ? false : {
         chunks: 'all'
       }
     },
@@ -168,13 +170,13 @@ module.exports = (env, args) => {
       new MonacoWebpackPlugin({
         languages: ['xml'],
       }),
-      new CopyWebpackPlugin({
+      single ? false : new CopyWebpackPlugin({
         patterns: [
-          { from: './tree/icons', to: 'tree/icons'}
+          { from: './tree/icons', to: 'tree/icons' }
         ]
       }),
-      args.mode == 'production' ? new webpack.optimize.LimitChunkCountPlugin({
-        maxChunks: 10
+      args.mode == 'production' || single ? new webpack.optimize.LimitChunkCountPlugin({
+        maxChunks: single ? 1 : 10
       }) : false,
       new CleanWebpackPlugin(),
       new HtmlWebpackPlugin({
@@ -208,7 +210,7 @@ module.exports = (env, args) => {
         filename: 'test_query_model',
         cache: false
       }) : false,
-      args.mode == 'production' ? new RemovePlugin({
+      args.mode == 'production' || single ? new RemovePlugin({
         after: {
           include: [
             './dist/test.js',

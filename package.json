@@ -8,7 +8,10 @@
     "test": "mocha",
     "test:query-model-corpus": "node tests/query_model_corpus_test.js",
     "debug": "webpack-dev-server --mode development --progress",
-    "build": "webpack --mode production --progress"
+    "build": "webpack --mode production --progress",
+    "build:single": "webpack --mode production --env.single --progress && node tools/check_single.js",
+    "build:pack": "webpack --env.single --progress && node tools/make_pack.js && node tools/check_single.js",
+    "check:single": "node tools/check_single.js"
   },
   "author": "Shkuraev Alexander",
   "license": "MIT",
