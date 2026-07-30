@@ -1,6 +1,6 @@
 @font-face {
   font-family: "codicon";
-  src: url("../node_modules/monaco-editor/dev/vs/base/browser/ui/codiconLabel/codicon/codicon.ttf") format("truetype");
+  src: url("../../node_modules/monaco-editor/dev/vs/base/browser/ui/codiconLabel/codicon/codicon.ttf") format("truetype");
   font-weight: normal;
   font-style: normal;
 }
