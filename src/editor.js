@@ -2371,10 +2371,19 @@ function onDidPaste(e) {
   if (window.isQueryMode() && !window.readOnlyMode) {
     
     let text = window.editor.getModel().getValueInRange(e.range).trim();
+    
+    if (text.toLowerCase().indexOf('выбрать') < 0 && text.toLowerCase().indexOf('select') < 0)
+        return;
+      
     let text_changed = false;
 
     if (text.startsWith('"')) {
       text = text.substr(1);
+      text_changed = true;
+    }
+
+    if (text.endsWith(';')) {
+      text = text.substr(0, text.length - 1);
       text_changed = true;
     }
 
