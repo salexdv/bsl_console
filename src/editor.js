@@ -2,6 +2,7 @@
 
 import "@babel/polyfill";
 import { languages, setHighlightInnerQuotes} from './bsl_language';
+import queryModelService from './query_model_service';
 import { getActions, permanentActions } from './actions';
 import './decorations.css'
 import './tingle.css'
@@ -430,6 +431,16 @@ window.setLanguageMode = function(mode) {
   window.setTheme(currentTheme);
 
   initContextMenuActions();
+
+  if (mode == 'bsl_query') {
+    if (isCompareMode) {
+      queryModelService.schedule(window.editor.getModifiedEditor().getModel(), 0);
+      queryModelService.schedule(window.editor.getOriginalEditor().getModel(), 0);
+    }
+    else {
+      queryModelService.schedule(window.editor.getModel(), 0);
+    }
+  }
 
 }
 
@@ -2247,6 +2258,16 @@ function initEditorEventListenersAndProperies() {
 
     window.setOption('lastContentChanges', e);
     window.editor.inlineSuggestController.trigger(false, getInlineTriggerCharacter(e));
+
+    if (window.getCurrentLanguageId() == 'bsl_query') {
+      if (window.editor.navi) {
+        queryModelService.schedule(window.editor.getModifiedEditor().getModel());
+        queryModelService.schedule(window.editor.getOriginalEditor().getModel());
+      }
+      else {
+        queryModelService.schedule(window.editor.getModel());
+      }
+    }
 
   });
 

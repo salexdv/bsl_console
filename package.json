@@ -6,6 +6,7 @@
   "homepage": "https://github.com/salexdv/bsl_console",
   "scripts": {
     "test": "mocha",
+    "test:query-model-corpus": "node tests/query_model_corpus_test.js",
     "debug": "webpack-dev-server --mode development --progress",
     "build": "webpack --mode production --progress"
   },

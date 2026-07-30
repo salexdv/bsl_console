@@ -18,7 +18,8 @@ module.exports = (env, args) => {
       args.mode == 'development' ?
       {
         test: './test',
-        test_query: './test_query'
+        test_query: './test_query',
+        test_query_model: './test_query_model'
       }
       : {}
     ),
@@ -198,6 +199,13 @@ module.exports = (env, args) => {
         chunks: ['console', 'test_query'],
         template: './test_query.html',
         filename: 'test_query',
+        cache: false
+      }) : false,
+      args.mode == 'development' ? new HtmlWebpackPlugin({
+        inject: 'body',
+        chunks: ['console', 'test_query_model'],
+        template: './test_query_model.html',
+        filename: 'test_query_model',
         cache: false
       }) : false,
       args.mode == 'production' ? new RemovePlugin({

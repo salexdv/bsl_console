@@ -1,4 +1,5 @@
 import bslHelper from './bsl_helper';
+import queryModel from './query_model';
 
 setTimeout(() => {
 
@@ -58,6 +59,191 @@ setTimeout(() => {
     }
 
     let bsl = helper('', 1, 1);
+
+    it("проверка построения модели запроса", function () {
+      let model = queryModel.parse(`ВЫБРАТЬ
+        Товары.Ссылка КАК Ссылка,
+        Товары.Код КАК Код
+      ИЗ
+        Справочник.Товары КАК Товары
+      ГДЕ
+        Товары.Код = &Код
+      УПОРЯДОЧИТЬ ПО
+        Товары.Код`);
+
+      expect(model.statements).to.be.an('array').that.has.length(1);
+      expect(model.statements[0].branches).to.be.an('array').that.has.length(1);
+      expect(model.statements[0].branches[0].select.items).to.be.an('array').that.has.length(2);
+      assert.equal(model.statements[0].branches[0].select.items[0].alias.name, "Ссылка");
+      assert.equal(model.statements[0].branches[0].from.sources[0].base.alias.name, "Товары");
+      assert.equal(model.statements[0].branches[0].where.references.some(ref => ref.path === "Товары.Код"), true);
+    });
+
+    it("проверка полных имен источников в references модели запроса", function () {
+      let model = queryModel.parse(`ВЫБРАТЬ
+        Товары.Наименование КАК Наименование,
+        Продажи.Сумма КАК Сумма,
+        втТовары.Количество КАК Количество
+      ИЗ
+        Справочник.Товары КАК Товары,
+        AccountingRegister.Sales КАК Продажи,
+        втТовары КАК втТовары`);
+
+      let branch = model.statements[0].branches[0];
+      let catalogReference = branch.select.items[0].references[0];
+      let accountingRegisterReference = branch.select.items[1].references[0];
+      let tempTableReference = branch.select.items[2].references[0];
+
+      assert.equal(catalogReference.sourceName, "Товары");
+      assert.equal(catalogReference.fullSourceName, "Справочник.Товары");
+      assert.equal(catalogReference.metadataSourse, "Справочник");
+      assert.equal(accountingRegisterReference.fullSourceName, "AccountingRegister.Sales");
+      assert.equal(accountingRegisterReference.metadataSourse, "AccountingRegister");
+      assert.equal(tempTableReference.fullSourceName, "втТовары");
+      assert.equal(tempTableReference.metadataSourse, "");
+    });
+
+    it("проверка метрик производительности модели запроса", function () {
+      let model = queryModel.parse(`ВЫБРАТЬ
+        Товары.Ссылка КАК Ссылка
+      ИЗ
+        Справочник.Товары КАК Товары`);
+
+      expect(model.performance).to.be.an('object');
+      expect(model.performance.tokenizeMs).to.be.a('number');
+      expect(model.performance.parseMs).to.be.a('number');
+      expect(model.performance.totalMs).to.be.a('number');
+      expect(model.performance.tokenCount).to.be.a('number');
+      expect(model.performance.nodeCount).to.be.a('number');
+      expect(model.performance.errorCount).to.be.a('number');
+    });
+
+    it("проверка модели запроса с объединением", function () {
+      let model = queryModel.parse(`ВЫБРАТЬ
+        Источник.Период КАК Период,
+        Источник.Организация КАК Организация
+      ИЗ
+        Документ.Продажа КАК Источник
+      ОБЪЕДИНИТЬ ВСЕ
+      ВЫБРАТЬ
+        Источник.Период,
+        Источник.Организация
+      ИЗ
+        Документ.Возврат КАК Источник`);
+
+      expect(model.statements[0].branches).to.be.an('array').that.has.length(2);
+      assert.equal(model.statements[0].branches[1].from.sources[0].base.name, "Документ.Возврат");
+      assert.equal(model.statements[0].branches[1].from.sources[0].base.alias.name, "Источник");
+    });
+
+    it("проверка tolerant-модели объединения после лишней закрывающей скобки", function () {
+      let model = queryModel.parse(`ВЫБРАТЬ
+        Источник.Период КАК Период
+      ИЗ
+        Документ.Продажа КАК Источник
+      ГДЕ
+        Источник.Период В (ВЫБРАТЬ Данные.Период ИЗ Таблица КАК Данные)
+        И НЕ Данные.Период ЕСТЬ NULL)
+
+      ОБЪЕДИНИТЬ ВСЕ
+
+      ВЫБРАТЬ
+        Источник.Период
+      ИЗ
+        Документ.Возврат КАК Источник`);
+
+      let context = model.getContextAt(12, 18);
+      expect(model.statements[0].branches).to.be.an('array').that.has.length(2);
+      assert.equal(context.branch, model.statements[0].branches[1]);
+    });
+
+    it("проверка tolerant-модели для битого запроса", function () {
+      let model = queryModel.parse(`ВЫБРАТЬ
+        Товары.Ссылка КАК Ссылка,
+        ВЫБОР
+          КОГДА Товары.Код =
+      ИЗ
+        Справочник.Товары КАК Товары`);
+
+      expect(model.statements).to.be.an('array').that.not.is.empty;
+      expect(model.statements[0].branches[0].select.items).to.be.an('array').that.not.is.empty;
+      assert.equal(model.statements[0].branches[0].from.sources[0].base.alias.name, "Товары");
+    });
+
+    it("проверка контекста по позиции в модели запроса", function () {
+      let model = queryModel.parse(`ВЫБРАТЬ
+        Товары.Ссылка КАК Ссылка
+      ИЗ
+        Справочник.Товары КАК Товары
+      ГДЕ
+        Товары.Ссылка = &Ссылка`);
+
+      let context = model.getContextAt(6, 15);
+      assert.equal(context.branch.kind, "queryBranch");
+      assert.equal(context.clause.kind, "whereClause");
+      assert.equal(context.node.kind, "expression");
+    });
+
+    it("проверка query hover для ветвей объединения", function () {
+      let query = `ВЫБРАТЬ
+        Источник.Период КАК Период,
+        Источник.Организация КАК Организация
+      ИЗ
+        Документ.Продажа КАК Источник
+      ОБЪЕДИНИТЬ ВСЕ
+      ВЫБРАТЬ
+        &ДругойПериод,
+        ВЫБОР КОГДА Источник.Организация = &Организация ТОГДА Источник.Организация ИНАЧЕ NULL КОНЕЦ
+      ИЗ
+        Документ.Возврат КАК Источник`;
+
+      let queryHelper = helper(query, 8, 11);
+      let parsedQuery = queryHelper.getParsedQueryModel();
+      expect(parsedQuery, "модель запроса для hover").to.be.an('object');
+      expect(parsedQuery.getContextAt, "позиционный API модели запроса").to.be.a('function');
+
+      let context = parsedQuery.getContextAt(8, 11);
+      expect(context, "контекст параметра во второй ветви").to.be.an('object');
+      assert.equal(context.clause && context.clause.kind, "selectList");
+      assert.equal(context.branch, context.statement.branches[1]);
+
+      let modelHover = queryHelper.getQueryModelHover();
+      expect(modelHover, "hover объектной модели для параметра").to.be.an('object');
+
+      let hover = queryHelper.getQueryHover();
+      expect(hover, "параметр во второй ветви").to.be.an('object');
+      assert.equal(hover.contents[0].value, "Период");
+
+      hover = helper(query, 9, 32).getQueryHover();
+      expect(hover, "выражение ВЫБОР во второй ветви").to.be.an('object');
+      assert.equal(hover.contents[0].value, "Организация");
+
+      hover = helper(query, 2, 20).getQueryHover();
+      expect(hover, "поле первой ветви").to.be.an('object');
+      assert.equal(hover.contents[0].value, "Период");
+
+      let customHovers = window.customHovers;
+      let immediateHover = window.immediateHover;
+      let priorityHelper = helper(query, 8, 11);
+
+      window.customHovers = { "другойпериод": "Пользовательский hover" };
+      window.immediateHover = [{ value: "Немедленный hover" }];
+      hover = priorityHelper.getQueryHover();
+      assert.equal(hover.contents[0].value, "Пользовательский hover");
+
+      window.customHovers = {};
+      hover = priorityHelper.getQueryHover();
+      assert.equal(hover.contents[0].value, "Немедленный hover");
+
+      window.customHovers = customHovers;
+      window.immediateHover = immediateHover;
+
+      let fallbackHelper = helper(query, 8, 11);
+      fallbackHelper.getQueryModelHover = () => null;
+      hover = fallbackHelper.getQueryHover();
+      expect(hover, "эвристический fallback").to.be.an('object');
+      assert.equal(hover.contents[0].value, "Период");
+    });
     
     it("проверка существования глобальной переменной editor", function () {
       assert.notEqual(window.editor, undefined);

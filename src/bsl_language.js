@@ -850,7 +850,7 @@ export let languages = {
                 let bsl = new bslHelper(model, position);
                 bsl.onProvideHover();
                 if (!window.ctrlPressed) {                        
-                    return bsl.getCustomHover();
+                    return bsl.getQueryHover();
                 }
                 else {
                     return null;
