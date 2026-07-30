@@ -1,0 +1,44 @@
+name: Сборка single-file HTML
+
+# Собирает единый самодостаточный dist/index.html (npm run build:single) и прикладывает его
+# к релизу как bsl_console.single.html. Ручной запуск (workflow_dispatch) кладёт файл в артефакты.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-single:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '16'
+
+      - name: Установка зависимостей
+        run: npm install --no-audit --no-fund
+
+      - name: Сборка single-file (+ проверка zero-external)
+        run: npm run build:single
+
+      - name: Переименование артефакта
+        run: cp dist/index.html bsl_console.single.html
+
+      - name: Приложить к релизу
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" bsl_console.single.html --clobber
+
+      - name: Артефакт (для ручного запуска)
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: bsl_console-single-html
+          path: bsl_console.single.html
