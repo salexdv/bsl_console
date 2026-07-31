@@ -1,6 +1,6 @@
 //require.config( { 'vs/nls': { availableLanguages: { '*': "ru" } } } );
 
-import "@babel/polyfill";
+import 'core-js/stable';
 import { languages, setHighlightInnerQuotes} from './bsl_language';
 import queryModelService from './query_model_service';
 import { getActions, permanentActions } from './actions';
@@ -9,16 +9,13 @@ import './tingle.css'
 import tingle from './tingle.js'
 import './tree/tree.css'
 import Treeview from './tree/tree.js'
-import { setLocaleData } from 'monaco-editor-nls';
-import ruLocale from 'monaco-editor-nls/locale/ru';
 import Finder from "./finder";
 import SnippetsParser from "./parsers";
 
-const monaco = require('monaco-editor/esm/vs/editor/editor.api');
-
+const monaco = require('./monaco');
 // Иконки дерева переменных инлайнятся в бандл (data:-URI) через require.context, а не тянутся
 // отдельными файлами — это нужно для single-file сборки. В обычной сборке результат тот же:
-// url-loader инлайнит эти PNG (< 8 КБ), а копия в dist/tree/icons остаётся невостребованной.
+// asset modules инлайнят эти PNG (< 8 КБ), а копия в dist/tree/icons остаётся невостребованной.
 const treeIconsContext = require.context('./tree/icons', false, /\.png$/);
 const treeIcons = {};
 treeIconsContext.keys().forEach(function (key) {
@@ -30,15 +27,7 @@ function resolveTreeIcon(iconName) {
   return treeIcons[iconName] || treeIcons['undefined.png'] || '';
 }
 
-setLocaleData(ruLocale);
-
-window.MonacoEnvironment = {
-  getWorkerUrl: function (moduleId, label) {
-    return require("blob-url-loader?type=application/javascript!compile-loader?target=worker&emit=false!monaco-editor/esm/vs/editor/editor.worker");
-  }
-};
-
-// #region global vars 
+// #region global vars
 window.languages = languages;
 
 window.selectionText = '';

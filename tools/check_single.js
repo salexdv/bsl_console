@@ -46,7 +46,7 @@ if (extra.length > 0) {
   console.error('[check:single] ПРОВАЛ: в dist/ остались внешние файлы кроме ' + EXPECTED + ':');
   extra.forEach((f) => console.error('  - ' + f));
   console.error('[check:single] Ожидается ровно один self-contained файл ' + EXPECTED + '.');
-  console.error('[check:single] Проверьте: maxChunks=1, инлайн картинок (url-loader), отключение CopyWebpackPlugin, Blob-воркер.');
+  console.error('[check:single] Проверьте: maxChunks=1, asset/inline для картинок, отключение CopyWebpackPlugin, inline worker-loader.');
   process.exit(1);
 }
 

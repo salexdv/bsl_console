@@ -3,7 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
-const babel = require('@babel/core');
+const esbuild = require('esbuild');
 
 const ROOT = path.resolve(__dirname, '..');
 const DEFAULT_QUERIES_DIR = path.join(__dirname, 'queries');
@@ -88,16 +88,11 @@ function printUsage() {
 
 function loadQueryModel() {
     let source = fs.readFileSync(queryModelPath, 'utf8');
-    let transformed = babel.transformSync(source, {
-        filename: queryModelPath,
-        babelrc: false,
-        configFile: false,
-        presets: [
-            [require.resolve('@babel/preset-env'), {
-                targets: { node: 'current' },
-                modules: 'commonjs'
-            }]
-        ]
+    let transformed = esbuild.transformSync(source, {
+        sourcefile: queryModelPath,
+        loader: 'js',
+        target: 'node22',
+        format: 'cjs'
     }).code;
     let sandbox = {
         console: {

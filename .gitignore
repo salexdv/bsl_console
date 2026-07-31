@@ -6,4 +6,3 @@ node_modules/
 src/.vscode/
 src/src.zip
 tests/queries/*.txt
-package-lock.json

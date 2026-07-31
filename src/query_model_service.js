@@ -1,5 +1,5 @@
 import queryModel from './query_model';
-const queryModelWorkerUrl = require('blob-url-loader?type=application/javascript!compile-loader?target=worker&emit=false!./query_model_worker');
+const QueryModelWorker = require('worker-loader?inline=no-fallback&esModule=false!./query_model_worker');
 
     const QUERY_MODEL_PARSE_DELAY_MS = 250;
     const QUERY_MODEL_SYNC_PARSE_LIMIT = 20000;
@@ -58,7 +58,7 @@ const queryModelWorkerUrl = require('blob-url-loader?type=application/javascript
         workerInitializing = true;
 
         try {
-            worker = new Worker(queryModelWorkerUrl);
+            worker = new QueryModelWorker();
             worker.onmessage = onWorkerMessage;
             worker.onerror = error => {
                 workerAvailable = false;

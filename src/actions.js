@@ -1,4 +1,4 @@
-const monaco = require('monaco-editor/esm/vs/editor/editor.api');
+const monaco = require('./monaco');
 
 window.getSortedBookmarks = function () {
 
