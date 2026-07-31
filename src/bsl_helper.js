@@ -9096,15 +9096,25 @@ class bslHelper {
 
 		if (this.word) {
 
+			let pattern_word = this.word;
 			let exp_arr = this.lastExpression.split('.');
+
+			if (1 < exp_arr.length) {
+				const word_data = this.wordData;
+				const line_number = this.lineNumber;
+				const after_range = new monaco.Range(line_number, word_data.endColumn, line_number, word_data.endColumn + 1);
+				if (this.model.getValueInRange(after_range) == '(') {
+					exp_arr = [pattern_word];
+				}
+			}
 
 			if (exp_arr.length == 1) {
 
-				let pattern = this.word + '\\s*=\\s*.*';
+				let pattern = pattern_word  + '\\s*=\\s*.*';
 				let is_function = this.isItFunction()
 
 				if (is_function)
-					pattern = '(процедура|procedure|функция|function)\\s*' + this.word + '\\(';
+					pattern = '(процедура|procedure|функция|function)\\s*' + pattern_word  + '\\(';
 
 				let position = new monaco.Position(this.lineNumber, 1);
 				let match = Finder.findPreviousMatch(this.model, pattern, position, false);
@@ -9119,7 +9129,7 @@ class bslHelper {
 
 				if (!definition) {
 
-					pattern = '(?:для каждого|for each)\\s*' + this.word + '\\s*(?:из|in)\\s*(.*)\\s*(?:цикл|do)';
+					pattern = '(?:для каждого|for each)\\s*' + pattern_word  + '\\s*(?:из|in)\\s*(.*)\\s*(?:цикл|do)';
 					position = new monaco.Position(this.lineNumber, 999);
 					match = Finder.findPreviousMatch(this.model, pattern, position, false);
 
