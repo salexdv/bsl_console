@@ -9083,12 +9083,18 @@ class bslHelper {
 
 				let pattern = pattern_word + '\\s*=\\s*.*';
 				let is_function = this.isItFunction()
-
-				if (is_function)
-					pattern = '(процедура|procedure|функция|function)\\s*' + pattern_word + '\\(';
-
 				let position = new monaco.Position(this.lineNumber, 1);
-				let match = Finder.findPreviousMatch(this.model, pattern, position, false);
+				let match = null;
+
+				if (is_function) {
+					pattern = '(процедура|procedure|функция|function)\\s*' + pattern_word + '\\(';
+					const matches = Finder.findMatches(this.model, pattern);
+					if (matches.length)
+						match = matches[0];
+				}
+				else {				
+					match = Finder.findPreviousMatch(this.model, pattern, position, false);
+				}
 
 				if (match && (is_function || match.range.startLineNumber < this.lineNumber)) {
 					definition = {
