@@ -19,7 +19,7 @@ const distDir = path.resolve(__dirname, '..', 'dist');
 const htmlPath = path.join(distDir, 'index.html');
 const jsName = 'console.js';
 const jsPath = path.join(distDir, jsName);
-const pakoPath = path.resolve(__dirname, '..', 'node_modules', 'pako', 'dist', 'pako_inflate.min.js');
+const pakoPath = require.resolve('pako/browser/inflate');
 
 if (!fs.existsSync(htmlPath) || !fs.existsSync(jsPath)) {
   console.error('[make:pack] Нет dist/index.html или dist/console.js — сначала `npm run build`.');
@@ -47,7 +47,7 @@ const scriptContent =
     'var n=b.length,u=new Uint8Array(n);' +
     'for(var i=0;i<n;i++){u[i]=b.charCodeAt(i)&255;}' +
     'b=null;' +
-    'var js=pako.ungzip(u,{to:"string"});u=null;' +
+    'var js=pako.ungzip(u,{toText:true});u=null;' +
     'var s=document.createElement("script");' +
     's.text=js;js=null;' +
     'document.body.appendChild(s);' +
