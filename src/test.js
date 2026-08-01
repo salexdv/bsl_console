@@ -995,6 +995,14 @@ setTimeout(() => {
           assert.equal(suggestions.some(suggest => suggest.label === "К1"), false);
         });
 
+        it("Колонки.Вставить добавляет колонку: имя идёт вторым аргументом", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('ТЗ = Новый ТаблицаЗначений;\nТЗ.Колонки.Добавить("Имя1");\nТЗ.Колонки.Вставить(1, "Имя2");\nТЗ.').getRefCompletion(suggestions);
+          assert.equal(suggestions.some(suggest => suggest.label === "Имя1"), true);
+          assert.equal(suggestions.some(suggest => suggest.label === "Имя2"), true);
+        });
+
         it("строка таблицы наследует её колонки", function () {
           window.contextData = new Map();
           let suggestions = [];

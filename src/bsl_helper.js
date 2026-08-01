@@ -2228,10 +2228,16 @@ class bslHelper {
 			rules.push({ kind: 'clear', re: head + '\\.\\s*(?:Очистить|Clear)\\s*\\(' });
 		}
 		else {
+
+			let columns = head + '\\.\\s*(?:Колонки|Columns)\\s*\\.\\s*';
+
 			rules.push({ kind: 'clear', re: head + '=\\s*(?:Новый|New)\\s+(?:ТаблицаЗначений|ValueTable|ДеревоЗначений|ValueTree)' });
-			rules.push({ kind: 'add', re: head + '\\.\\s*(?:Колонки|Columns)\\s*\\.\\s*(?:Добавить|Add)\\s*\\(\\s*"([^"]*)"' });
-			rules.push({ kind: 'remove', re: head + '\\.\\s*(?:Колонки|Columns)\\s*\\.\\s*(?:Удалить|Delete)\\s*\\(\\s*"([^"]*)"' });
-			rules.push({ kind: 'clear', re: head + '\\.\\s*(?:Колонки|Columns)\\s*\\.\\s*(?:Очистить|Clear)\\s*\\(' });
+			rules.push({ kind: 'add', re: columns + '(?:Добавить|Add)\\s*\\(\\s*"([^"]*)"' });
+			// У Вставить имя идёт ВТОРЫМ: Вставить(Индекс, Имя, Тип, Заголовок, Ширина).
+			rules.push({ kind: 'add', re: columns + '(?:Вставить|Insert)\\s*\\(\\s*[^,]*,\\s*"([^"]*)"' });
+			rules.push({ kind: 'remove', re: columns + '(?:Удалить|Delete)\\s*\\(\\s*"([^"]*)"' });
+			rules.push({ kind: 'clear', re: columns + '(?:Очистить|Clear)\\s*\\(' });
+
 		}
 
 		let operations = [];
