@@ -241,7 +241,7 @@ module.exports = (env = {}, args = {}) => {
           })
     ].filter(Boolean),
     devServer: {
-      port: 9000,
+      port: 9001,
       open: true
     }
   };
