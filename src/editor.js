@@ -243,6 +243,18 @@ window.getText = function(txt) {
 
 }
 
+window.getModuleMethods = function() {
+
+  return JSON.stringify(bslHelper.getModuleMethods(getActiveEditor().getModel()));
+
+}
+
+window.showModuleMethods = function() {
+
+  getActiveEditor().trigger('', 'editor.action.quickOutline');
+
+}
+
 window.getQuery = function () {
 
   // В режиме запроса весь текст редактора и ЕСТЬ запрос — строкового литерала BSL тут нет, поэтому
@@ -2140,6 +2152,7 @@ window.createEditor = function(language_id, text, theme) {
   changeCommandKeybinding('editor.action.peekDefinition', monaco.KeyMod.CtrlCmd | monaco.KeyCode.F12);
   changeCommandKeybinding('editor.action.deleteLines',  monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyL);
   changeCommandKeybinding('editor.action.selectToBracket',  monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.KeyB);
+  changeCommandKeybinding('editor.action.quickOutline',  monaco.KeyMod.CtrlCmd | monaco.KeyMod.Alt | monaco.KeyCode.KeyP);
 
   window.lineNumbersDedocrations = [];
   window.setDefaultStyle();
@@ -2180,6 +2193,9 @@ for (const [key, lang] of Object.entries(window.languages)) {
   // Register providers for the new language
   monaco.languages.registerCompletionItemProvider(language.id, lang.completionProvider);
   monaco.languages.registerFoldingRangeProvider(language.id, lang.foldingProvider);
+  if (lang.documentSymbolProvider)
+    monaco.languages.registerDocumentSymbolProvider(language.id, lang.documentSymbolProvider);
+
   monaco.languages.registerSignatureHelpProvider(language.id, lang.signatureProvider);
   monaco.languages.registerHoverProvider(language.id, lang.hoverProvider);
   monaco.languages.registerDocumentFormattingEditProvider(language.id, lang.formatProvider);

@@ -1335,6 +1335,119 @@ setTimeout(() => {
 
       });
 
+      it("проверка списка процедур и функций модуля", function () {
+
+        const model = getModel([
+          '// Функция ЛожнаяФункция() Экспорт',
+          'Текст = "Процедура ЛожнаяПроцедура() Экспорт";',
+          '',
+          'Процедура БезПараметров()',
+          'КонецПроцедуры',
+          '',
+          'фУнКцИя ЭтоЧисло(',
+          '  Знач ПроверяемоеЗначение,',
+          '  Настройка = "a,b=c",',
+          '  ПустаяСтрока = "",',
+          '  Выражение = Обертка(1, 2)',
+          ') Экспорт',
+          'КонецФункции',
+          '',
+          'Procedure EnglishMethod(',
+          '  Val Value = Undefined,',
+          '  Reference',
+          ') Export',
+          'EndProcedure'
+        ].join('\n'));
+
+        const methods = bslHelper.getModuleMethods(model);
+
+        assert.equal(methods.length, 3);
+        assert.deepEqual(methods.map(method => method.name), ['БезПараметров', 'ЭтоЧисло', 'EnglishMethod']);
+
+        assert.deepInclude(methods[0], {
+          line: 4,
+          type: 'procedure',
+          isExport: false,
+          hasParameters: false
+        });
+        assert.deepEqual(methods[0].parameters, []);
+
+        assert.deepInclude(methods[1], {
+          line: 7,
+          type: 'function',
+          isExport: true,
+          hasParameters: true
+        });
+        assert.deepEqual(methods[1].parameters, [
+          { name: 'ПроверяемоеЗначение', byValue: true, hasDefaultValue: false, defaultValue: null },
+          { name: 'Настройка', byValue: false, hasDefaultValue: true, defaultValue: '"a,b=c"' },
+          { name: 'ПустаяСтрока', byValue: false, hasDefaultValue: true, defaultValue: '""' },
+          { name: 'Выражение', byValue: false, hasDefaultValue: true, defaultValue: 'Обертка(1, 2)' }
+        ]);
+
+        assert.deepInclude(methods[2], {
+          line: 15,
+          type: 'procedure',
+          isExport: true,
+          hasParameters: true
+        });
+        assert.deepEqual(methods[2].parameters, [
+          { name: 'Value', byValue: true, hasDefaultValue: true, defaultValue: 'Undefined' },
+          { name: 'Reference', byValue: false, hasDefaultValue: false, defaultValue: null }
+        ]);
+
+      });
+
+      it("проверка символов процедур и функций для Monaco", function () {
+
+        const model = getModel([
+          'Процедура ВыполнитьДействие()',
+          'КонецПроцедуры',
+          '',
+          'Функция ПолучитьЗначение() Экспорт',
+          'КонецФункции'
+        ].join('\n'));
+
+        const symbols = bslHelper.provideDocumentSymbols(model);
+
+        assert.equal(symbols.length, 2);
+        assert.equal(symbols[0].kind, monaco.languages.SymbolKind.Method);
+        assert.equal(symbols[1].kind, monaco.languages.SymbolKind.Function);
+        assert.equal(symbols[0].selectionRange.startLineNumber, 1);
+        assert.equal(symbols[1].selectionRange.startLineNumber, 4);
+        assert.equal(symbols[1].selectionRange.startColumn, 9);
+
+      });
+
+      it("проверка публичной функции getModuleMethods", function () {
+
+        const originalText = window.editor.getValue();
+
+        try {
+          window.editor.setValue('Функция Публичная(Знач Параметр = Ложь) Экспорт\nКонецФункции');
+          const methods = JSON.parse(window.getModuleMethods());
+
+          assert.equal(methods.length, 1);
+          assert.deepInclude(methods[0], {
+            name: 'Публичная',
+            line: 1,
+            type: 'function',
+            isExport: true,
+            hasParameters: true
+          });
+          assert.deepEqual(methods[0].parameters[0], {
+            name: 'Параметр',
+            byValue: true,
+            hasDefaultValue: true,
+            defaultValue: 'Ложь'
+          });
+        }
+        finally {
+          window.editor.setValue(originalText);
+        }
+
+      });
+
     }
 
     // Адаптер результатов (Этап 3c): по завершении прогона кладём runner.stats в
