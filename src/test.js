@@ -1003,6 +1003,28 @@ setTimeout(() => {
           assert.equal(suggestions.some(suggest => suggest.label === "Владелец"), true);
         });
 
+        it("Удалить снимает и имя, объявленное комментарием", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('// Структура:\n//\t* Ключ1 - Строка\n//\t* Ключ2 - Число\nБ = Тест();\nБ.Удалить("Ключ2");\nБ.').getRefCompletion(suggestions);
+          assert.equal(suggestions.some(suggest => suggest.label === "Ключ1"), true);
+          assert.equal(suggestions.some(suggest => suggest.label === "Ключ2"), false);
+        });
+
+        it("Очистить снимает все имена, включая объявленные комментарием", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('// Структура:\n//\t* Ключ1 - Строка\nБ = Тест();\nБ.Очистить();\nБ.').getRefCompletion(suggestions);
+          assert.equal(suggestions.some(suggest => suggest.label === "Ключ1"), false);
+        });
+
+        it("тип объявленного свойства сохраняется после операций над набором", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('// Структура:\n//\t* Таблица - ТаблицаЗначений\n//\t* Лишний - Строка\nПарам = Тест();\nПарам.Удалить("Лишний");\nТЗ = Парам.Таблица;\nТЗ.').getRefCompletion(suggestions);
+          assert.equal(suggestions.some(suggest => suggest.label === "ВыгрузитьКолонку"), true);
+        });
+
         it("ключи соответствия не подсказываются: точкой к ним не обращаются", function () {
           window.contextData = new Map();
           let suggestions = [];

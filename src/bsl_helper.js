@@ -2162,10 +2162,10 @@ class bslHelper {
 		if (!context)
 			return null;
 
-		// Тип мог прийти из комментария, а ключи и колонки набираются кодом — берём и то, и другое.
-		let collected = this.collectMembers(varName, position, context.ref);
+		// Комментарий задаёт начальный набор имён, код меняет его дальше — в обе стороны.
+		let members = this.collectMembers(varName, position, context.ref, context.properties);
 
-		return { ref: context.ref, properties: this.mergeProperties(context.properties, collected) };
+		return { ref: context.ref, properties: members };
 
 	}
 
@@ -2198,18 +2198,23 @@ class bslHelper {
 	 * Операции ищутся по всему тексту сразу и применяются в порядке следования, поэтому
 	 * несколько операций в одной строке отрабатывают правильно.
 	 *
+	 * Имена, объявленные типизирующим комментарием, образуют НАЧАЛЬНЫЙ набор: операции кода
+	 * применяются поверх них и в том числе снимают объявленное — иначе `Удалить("Ключ2")`
+	 * не убирал бы ключ, пришедший из блока `// Структура:`.
+	 *
 	 * @param {string} varName имя переменной
 	 * @param {IPosition} position позиция курсора
 	 * @param {string} ref ref типа переменной
+	 * @param {array} initial начальный набор свойств вида {name, type}
 	 *
 	 * @returns {array} свойства вида {name, type}
 	 */
-	collectMembers(varName, position, ref) {
+	collectMembers(varName, position, ref, initial) {
 
 		let kind = this.getMembersKindByRef(ref);
 
 		if (!kind)
-			return [];
+			return initial || [];
 
 		// Имена ключей и колонок живут в строковых литералах, поэтому строки не маскируем.
 		let text = this.getMaskedTextBefore(position, true);
@@ -2243,18 +2248,21 @@ class bslHelper {
 
 		operations.sort((left, right) => left.index - right.index);
 
-		let names = [];
+		// Объявленные комментарием имена несут ещё и тип — сохраняем его при переносе.
+		let members = (initial || []).slice();
 
 		operations.forEach(operation => {
 
 			if (operation.kind == 'clear') {
-				names = [];
+				members = [];
 				return;
 			}
 
 			if (operation.kind == 'reset') {
 				// `Новый Структура("Ключ1, Ключ2")` — ключи перечислены в первом аргументе.
-				names = operation.value ? operation.value.split(',').map(name => name.trim()).filter(name => name) : [];
+				members = operation.value
+					? operation.value.split(',').map(name => name.trim()).filter(name => name).map(name => ({ name: name, type: '' }))
+					: [];
 				return;
 			}
 
@@ -2262,16 +2270,16 @@ class bslHelper {
 				return;
 
 			if (operation.kind == 'add') {
-				if (!names.some(name => name.toLowerCase() == operation.value.toLowerCase()))
-					names.push(operation.value);
+				if (!members.some(member => member.name.toLowerCase() == operation.value.toLowerCase()))
+					members.push({ name: operation.value, type: '' });
 			}
 			else {
-				names = names.filter(name => name.toLowerCase() != operation.value.toLowerCase());
+				members = members.filter(member => member.name.toLowerCase() != operation.value.toLowerCase());
 			}
 
 		});
 
-		return names.map(name => ({ name: name, type: '' }));
+		return members;
 
 	}
 
@@ -2287,30 +2295,6 @@ class bslHelper {
 	isRowOfCollection(ownerRef, resultRef) {
 
 		return bslHelper.COLUMNS_REFS.indexOf(ownerRef) >= 0 && bslHelper.ROW_REFS.indexOf(resultRef) >= 0;
-
-	}
-
-	/**
-	 * Объединяет два списка свойств, не допуская дублей: первый список приоритетнее,
-	 * потому что объявленное в комментарии несёт ещё и тип.
-	 *
-	 * @param {array} primary приоритетный список
-	 * @param {array} secondary дополняющий список
-	 *
-	 * @returns {array} объединённый список
-	 */
-	mergeProperties(primary, secondary) {
-
-		let result = (primary || []).slice();
-
-		(secondary || []).forEach(property => {
-
-			if (!result.some(existing => existing.name.toLowerCase() == property.name.toLowerCase()))
-				result.push(property);
-
-		});
-
-		return result;
 
 	}
 
