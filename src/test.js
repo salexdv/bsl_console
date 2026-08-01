@@ -815,6 +815,303 @@ setTimeout(() => {
         window.contextData = new Map();
       });
 
+      describe("вывод типов переменных из текста (specs/type-inference, Этап 1)", function () {
+
+        it("тип из конструктора Новый", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('Таблица = Новый ТаблицаЗначений;\nТаблица.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.not.is.empty;
+          assert.equal(suggestions.some(suggest => suggest.label === "ВыгрузитьКолонку"), true);
+        });
+
+        it("тип из конструктора Новый на английском", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('Таблица = New ValueTable;\nТаблица.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.not.is.empty;
+          assert.equal(suggestions.some(suggest => suggest.label === "ВыгрузитьКолонку"), true);
+        });
+
+        it("проброс типа при присваивании переменной", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('Таблица = Новый ТаблицаЗначений;\nТЗ = Таблица;\nТЗ.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.not.is.empty;
+          assert.equal(suggestions.some(suggest => suggest.label === "ВыгрузитьКолонку"), true);
+        });
+
+        it("тип результата метода: строка таблицы значений", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('Таблица = Новый ТаблицаЗначений;\nСтр = Таблица.Добавить();\nСтр.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.not.is.empty;
+          assert.equal(suggestions.some(suggest => suggest.label === "Владелец"), true);
+        });
+
+        it("тип результата свойства: коллекция колонок", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('Таблица = Новый ТаблицаЗначений;\nКолонки = Таблица.Колонки;\nКолонки.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.not.is.empty;
+          assert.equal(suggestions.some(suggest => suggest.label === "Добавить"), true);
+        });
+
+        it("берётся последнее присваивание выше позиции", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('Значение = Новый Массив;\nЗначение = Новый ТаблицаЗначений;\nЗначение.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.not.is.empty;
+          assert.equal(suggestions.some(suggest => suggest.label === "ВыгрузитьКолонку"), true);
+        });
+
+        it("присваивание внутри строки или комментария не типизирует", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('Текст = "Таблица = Новый ТаблицаЗначений";\n// Таблица = Новый ТаблицаЗначений\nТаблица.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.is.empty;
+        });
+
+        it("сравнение не принимается за присваивание", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('Если Таблица == Неопределено Тогда\nКонецЕсли;\nТаблица.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.is.empty;
+        });
+
+        it("циклическое присваивание не вешает разбор", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('А = Б;\nБ = А;\nА.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.is.empty;
+        });
+
+        it("неизвестный тип не даёт подсказок и не бросает", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('Объект = Новый ЧегоТакогоНетВСправочнике;\nОбъект.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.is.empty;
+        });
+
+        it("тип переменной не подменяется типом из соседнего вызова (issue #305)", function () {
+          // Полевой отчёт: после `А.` предлагались свойства КОЛОНКИ (Заголовок, Имя, Ширина,
+          // ТипЗначения), потому что эвристика lookBehind переиспользовала тип из
+          // `А.Колонки.Добавить(...)`, сохранённый в contextData при выборе подсказки.
+          window.contextData = new Map([
+            [2, new Map([
+              ["колонки", { "ref": "types.КоллекцияКолонокТаблицыЗначений", "sig": null }],
+              ["добавить", { "ref": "types.КолонкаТаблицыЗначений", "sig": null }]
+            ])],
+            [5, new Map([["добавить", { "ref": "types.СтрокаТаблицыЗначений", "sig": null }]])]
+          ]);
+          let suggestions = [];
+          helper('А = Новый ТаблицаЗначений();\nА.Колонки.Добавить("Колонка1");\n\nСтр = А.Добавить();\n\nА.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.not.is.empty;
+          assert.equal(suggestions.some(suggest => suggest.label === "ВыгрузитьКолонку"), true);
+          assert.equal(suggestions.some(suggest => suggest.label === "ТипЗначения"), false);
+          window.contextData = new Map();
+        });
+
+        it("тип от 1С сильнее выведенного из текста", function () {
+          let suggestions = [];
+          window.contextData = new Map([
+            [2, new Map([["таблица", { "ref": "catalogs.Товары", "sig": null }]])]
+          ]);
+          helper('Таблица = Новый ТаблицаЗначений;\nТаблица.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.not.is.empty;
+          assert.equal(suggestions.some(suggest => suggest.label === "СтавкаНДС"), true);
+          assert.equal(suggestions.some(suggest => suggest.label === "ВыгрузитьКолонку"), false);
+          window.contextData = new Map();
+        });
+
+      });
+
+      describe("типизирующие комментарии (specs/type-inference, Этап 2)", function () {
+
+        it("форма `// Имя - Тип` без присваивания", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('// Таб - ТаблицаЗначений\nТаб.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.not.is.empty;
+          assert.equal(suggestions.some(suggest => suggest.label === "ВыгрузитьКолонку"), true);
+        });
+
+        it("форма `// Имя - Тип` над присваиванием", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('// Таб - ТаблицаЗначений\nТаб = ПолучитьТаблицу();\nТаб.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.not.is.empty;
+          assert.equal(suggestions.some(suggest => suggest.label === "ВыгрузитьКолонку"), true);
+        });
+
+        it("тип в конце строки присваивания", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('Таб = ПолучитьТаблицу(); // ТаблицаЗначений\nТаб.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.not.is.empty;
+          assert.equal(suggestions.some(suggest => suggest.label === "ВыгрузитьКолонку"), true);
+        });
+
+        it("блок `// Структура:` добавляет объявленные свойства", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('// Структура:\n//    * Свойство1 - Строка\n//    * Свойство2 - Число\nПарам = ПолучитьПараметры();\nПарам.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.not.is.empty;
+          assert.equal(suggestions.some(suggest => suggest.label === "Свойство1"), true);
+          assert.equal(suggestions.some(suggest => suggest.label === "Свойство2"), true);
+          assert.equal(suggestions.some(suggest => suggest.label === "Вставить"), true);
+        });
+
+        it("тип объявленного свойства работает по цепочке", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('// Структура:\n//    * Таблица - ТаблицаЗначений\nПарам = ПолучитьПараметры();\nТЗ = Парам.Таблица;\nТЗ.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.not.is.empty;
+          assert.equal(suggestions.some(suggest => suggest.label === "ВыгрузитьКолонку"), true);
+        });
+
+        it("комментарий сильнее вывода из кода", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('Знач = Новый Массив; // ТаблицаЗначений\nЗнач.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.not.is.empty;
+          assert.equal(suggestions.some(suggest => suggest.label === "ВыгрузитьКолонку"), true);
+        });
+
+        it("неизвестный тип в комментарии игнорируется", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('// Таб - ЧегоТакогоНетВСправочнике\nТаб.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.is.empty;
+        });
+
+        it("блок свойств рвётся строкой кода", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('// Структура:\n//    * Свойство1 - Строка\nВыполнить();\nПарам = ПолучитьПараметры();\nПарам.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.is.empty;
+        });
+
+      });
+
+      describe("состояние коллекций: ключи и колонки (specs/type-inference, Этап 3)", function () {
+
+        function helperAt(string, lineNumber, column) {
+          let model = getModel(string);
+          return new bslHelper(model, new monaco.Position(lineNumber, column));
+        }
+
+        it("ключи из конструктора Новый Структура", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('С = Новый Структура("Ключ1, Ключ2");\nС.').getRefCompletion(suggestions);
+          assert.equal(suggestions.some(suggest => suggest.label === "Ключ1"), true);
+          assert.equal(suggestions.some(suggest => suggest.label === "Ключ2"), true);
+        });
+
+        it("Вставить добавляет ключ к типу из комментария", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('А = ПолучитьСтруктуру(); // Структура\nА.Вставить("Ключ1", "");\nА.').getRefCompletion(suggestions);
+          assert.equal(suggestions.some(suggest => suggest.label === "Ключ1"), true);
+          assert.equal(suggestions.some(suggest => suggest.label === "Вставить"), true);
+        });
+
+        it("Удалить снимает ключ", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('С = Новый Структура("Ключ1, Ключ2");\nС.Удалить("Ключ1");\nС.').getRefCompletion(suggestions);
+          assert.equal(suggestions.some(suggest => suggest.label === "Ключ2"), true);
+          assert.equal(suggestions.some(suggest => suggest.label === "Ключ1"), false);
+        });
+
+        it("Очистить снимает все ключи", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('С = Новый Структура("Ключ1, Ключ2");\nС.Очистить();\nС.').getRefCompletion(suggestions);
+          assert.equal(suggestions.some(suggest => suggest.label === "Ключ1"), false);
+          assert.equal(suggestions.some(suggest => suggest.label === "Ключ2"), false);
+        });
+
+        it("операции применяются по порядку: удалили и вставили снова", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('С = Новый Структура;\nС.Вставить("Ключ1", 1);\nС.Удалить("Ключ1");\nС.Вставить("Ключ1", 2);\nС.').getRefCompletion(suggestions);
+          assert.equal(suggestions.some(suggest => suggest.label === "Ключ1"), true);
+        });
+
+        it("учитываются только операции выше курсора", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helperAt('С = Новый Структура;\nС.Вставить("Ключ1", 1);\nС.\nС.Вставить("Ключ2", 2);', 3, 3).getRefCompletion(suggestions);
+          assert.equal(suggestions.some(suggest => suggest.label === "Ключ1"), true);
+          assert.equal(suggestions.some(suggest => suggest.label === "Ключ2"), false);
+        });
+
+        it("колонки таблицы значений добавляются и снимаются", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('ТЗ = Новый ТаблицаЗначений;\nТЗ.Колонки.Добавить("К1");\nТЗ.Колонки.Добавить("К2");\nТЗ.Колонки.Удалить("К1");\nТЗ.').getRefCompletion(suggestions);
+          assert.equal(suggestions.some(suggest => suggest.label === "К2"), true);
+          assert.equal(suggestions.some(suggest => suggest.label === "К1"), false);
+        });
+
+        it("Колонки.Вставить добавляет колонку: имя идёт вторым аргументом", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('ТЗ = Новый ТаблицаЗначений;\nТЗ.Колонки.Добавить("Имя1");\nТЗ.Колонки.Вставить(1, "Имя2");\nТЗ.').getRefCompletion(suggestions);
+          assert.equal(suggestions.some(suggest => suggest.label === "Имя1"), true);
+          assert.equal(suggestions.some(suggest => suggest.label === "Имя2"), true);
+        });
+
+        it("строка таблицы наследует её колонки", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('ТЗ = Новый ТаблицаЗначений;\nТЗ.Колонки.Добавить("К1");\nСтр = ТЗ.Добавить();\nСтр.').getRefCompletion(suggestions);
+          assert.equal(suggestions.some(suggest => suggest.label === "К1"), true);
+          assert.equal(suggestions.some(suggest => suggest.label === "Владелец"), true);
+        });
+
+        it("Удалить снимает и имя, объявленное комментарием", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('// Структура:\n//\t* Ключ1 - Строка\n//\t* Ключ2 - Число\nБ = Тест();\nБ.Удалить("Ключ2");\nБ.').getRefCompletion(suggestions);
+          assert.equal(suggestions.some(suggest => suggest.label === "Ключ1"), true);
+          assert.equal(suggestions.some(suggest => suggest.label === "Ключ2"), false);
+        });
+
+        it("Очистить снимает все имена, включая объявленные комментарием", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('// Структура:\n//\t* Ключ1 - Строка\nБ = Тест();\nБ.Очистить();\nБ.').getRefCompletion(suggestions);
+          assert.equal(suggestions.some(suggest => suggest.label === "Ключ1"), false);
+        });
+
+        it("тип объявленного свойства сохраняется после операций над набором", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('// Структура:\n//\t* Таблица - ТаблицаЗначений\n//\t* Лишний - Строка\nПарам = Тест();\nПарам.Удалить("Лишний");\nТЗ = Парам.Таблица;\nТЗ.').getRefCompletion(suggestions);
+          assert.equal(suggestions.some(suggest => suggest.label === "ВыгрузитьКолонку"), true);
+        });
+
+        it("ключи соответствия не подсказываются: точкой к ним не обращаются", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('М = Новый Соответствие;\nМ.Вставить("Ключ1", 1);\nМ.').getRefCompletion(suggestions);
+          assert.equal(suggestions.some(suggest => suggest.label === "Вставить"), true);
+          assert.equal(suggestions.some(suggest => suggest.label === "Ключ1"), false);
+        });
+
+        it("ключ из строкового литерала не принимается за код", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('Текст = "С.Вставить(""Фейк"", 1)";\nС = Новый Структура;\nС.Вставить("Ключ1", 1);\nС.').getRefCompletion(suggestions);
+          assert.equal(suggestions.some(suggest => suggest.label === "Ключ1"), true);
+          assert.equal(suggestions.some(suggest => suggest.label === "Фейк"), false);
+        });
+
+      });
+
       it("проверка подсказки параметров для функции ВыгрузитьКолонку таблицы значений, полученной из другой таблицы", function () {
         bsl = helper('Таблица1 = Новый ТаблицаЗначений();\nТаблица2 = Таблица1.Скопировать();\nТаблица2.ВыгрузитьКолонку(');
         let suggestions = [];  
