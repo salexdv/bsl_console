@@ -1787,7 +1787,7 @@ class bslHelper {
 	 *
 	 * @returns {string} текст той же длины без содержимого комментариев и литералов
 	 */
-	maskCommentsAndStrings(text) {
+	maskCommentsAndStrings(text, keepStrings) {
 
 		let result = text.split('');
 		let inString = false;
@@ -1808,7 +1808,7 @@ class bslHelper {
 				// для наших целей (спрятать содержимое) этого достаточно.
 				if (char == '"' || char == '\n')
 					inString = false;
-				else
+				else if (!keepStrings)
 					result[i] = ' ';
 			}
 			else if (char == '/' && text[i + 1] == '/') {
@@ -1834,17 +1834,21 @@ class bslHelper {
 	 *
 	 * @returns {string} замаскированный текст до позиции
 	 */
-	getMaskedTextBefore(position) {
+	getMaskedTextBefore(position, keepStrings) {
 
 		let versionId = this.model.getVersionId ? this.model.getVersionId() : 0;
 		let cache = this.model._maskedTextCache;
+		let slot = keepStrings ? 'withStrings' : 'masked';
 
 		if (!cache || cache.versionId != versionId) {
-			cache = { versionId: versionId, text: this.maskCommentsAndStrings(this.model.getValue()) };
+			cache = { versionId: versionId };
 			this.model._maskedTextCache = cache;
 		}
 
-		return cache.text.substr(0, this.model.getOffsetAt(position));
+		if (!cache[slot])
+			cache[slot] = this.maskCommentsAndStrings(this.model.getValue(), keepStrings);
+
+		return cache[slot].substr(0, this.model.getOffsetAt(position));
 
 	}
 
@@ -2091,7 +2095,10 @@ class bslHelper {
 					? this.getRefByTypeName(declared.type)
 					: this.getMemberResultRef(context.ref, name);
 
-				context = ref ? { ref: ref, properties: [] } : null;
+				// `Стр = ТЗ.Добавить()` — у строки те же колонки, что у самой таблицы.
+				let inherited = ref && this.isRowOfCollection(context.ref, ref) ? context.properties : [];
+
+				context = ref ? { ref: ref, properties: inherited } : null;
 
 			}
 
@@ -2134,24 +2141,176 @@ class bslHelper {
 
 		// Явное объявление в комментарии сильнее вывода из кода: разработчик написал его
 		// как раз потому, что вывести тип нельзя (specs/type-inference/spec.md §3.1).
-		let declared = this.inferContextFromComment(varName, position);
+		let context = this.inferContextFromComment(varName, position);
 
-		if (declared)
-			return declared;
+		if (!context) {
 
-		let text = this.getMaskedTextBefore(position);
-		// Отсекаем `==`, `>=`, `<=`, `<>`, чтобы сравнение не принять за присваивание.
-		let regexp = new RegExp('(?:^|[^a-zA-Z0-9А-яЁё_.])' + varName + '\\s*=(?!=)\\s*([^;\\n]*)', 'gmi');
-		let match = null;
-		let assignment = null;
+			let text = this.getMaskedTextBefore(position);
+			// Отсекаем `==`, `>=`, `<=`, `<>`, чтобы сравнение не принять за присваивание.
+			let regexp = new RegExp('(?:^|[^a-zA-Z0-9А-яЁё_.])' + varName + '\\s*=(?!=)\\s*([^;\\n]*)', 'gmi');
+			let match = null;
+			let assignment = null;
 
-		while ((match = regexp.exec(text)) !== null)
-			assignment = match;
+			while ((match = regexp.exec(text)) !== null)
+				assignment = match;
 
-		if (!assignment)
+			if (assignment)
+				context = this.inferExpressionContext(assignment[1].trim(), position, seen);
+
+		}
+
+		if (!context)
 			return null;
 
-		return this.inferExpressionContext(assignment[1].trim(), position, seen);
+		// Тип мог прийти из комментария, а ключи и колонки набираются кодом — берём и то, и другое.
+		let collected = this.collectMembers(varName, position, context.ref);
+
+		return { ref: context.ref, properties: this.mergeProperties(context.properties, collected) };
+
+	}
+
+	/**
+	 * Определяет, чем являются «имена» у типа: ключами (структура, соответствие) или
+	 * колонками (таблица, дерево значений). Для остальных типов состояние не собирается.
+	 *
+	 * @param {string} ref ref типа
+	 *
+	 * @returns {string} 'keys' | 'columns' | ''
+	 */
+	getMembersKindByRef(ref) {
+
+		if (bslHelper.KEYS_REFS.indexOf(ref) >= 0)
+			return 'keys';
+
+		if (bslHelper.COLUMNS_REFS.indexOf(ref) >= 0)
+			return 'columns';
+
+		return '';
+
+	}
+
+	/**
+	 * Собирает имена, которых нет в справочнике: ключи структуры и колонки таблицы значений.
+	 * Набор — результат применения операций ВЫШЕ позиции курсора по порядку: Вставить и
+	 * Колонки.Добавить добавляют, Удалить убирает, Очистить снимает всё
+	 * (specs/type-inference/spec.md §3.4).
+	 *
+	 * Операции ищутся по всему тексту сразу и применяются в порядке следования, поэтому
+	 * несколько операций в одной строке отрабатывают правильно.
+	 *
+	 * @param {string} varName имя переменной
+	 * @param {IPosition} position позиция курсора
+	 * @param {string} ref ref типа переменной
+	 *
+	 * @returns {array} свойства вида {name, type}
+	 */
+	collectMembers(varName, position, ref) {
+
+		let kind = this.getMembersKindByRef(ref);
+
+		if (!kind)
+			return [];
+
+		// Имена ключей и колонок живут в строковых литералах, поэтому строки не маскируем.
+		let text = this.getMaskedTextBefore(position, true);
+		let head = '(?:^|[^a-zA-Z0-9А-яЁё_.])' + varName + '\\s*';
+		let rules = [];
+
+		if (kind == 'keys') {
+			rules.push({ kind: 'reset', re: head + '=\\s*(?:Новый|New)\\s+(?:Структура|Structure|ФиксированнаяСтруктура|FixedStructure)\\s*\\(\\s*(?:"([^"]*)")?' });
+			rules.push({ kind: 'add', re: head + '\\.\\s*(?:Вставить|Insert)\\s*\\(\\s*"([^"]*)"' });
+			rules.push({ kind: 'remove', re: head + '\\.\\s*(?:Удалить|Delete)\\s*\\(\\s*"([^"]*)"' });
+			rules.push({ kind: 'clear', re: head + '\\.\\s*(?:Очистить|Clear)\\s*\\(' });
+		}
+		else {
+			rules.push({ kind: 'clear', re: head + '=\\s*(?:Новый|New)\\s+(?:ТаблицаЗначений|ValueTable|ДеревоЗначений|ValueTree)' });
+			rules.push({ kind: 'add', re: head + '\\.\\s*(?:Колонки|Columns)\\s*\\.\\s*(?:Добавить|Add)\\s*\\(\\s*"([^"]*)"' });
+			rules.push({ kind: 'remove', re: head + '\\.\\s*(?:Колонки|Columns)\\s*\\.\\s*(?:Удалить|Delete)\\s*\\(\\s*"([^"]*)"' });
+			rules.push({ kind: 'clear', re: head + '\\.\\s*(?:Колонки|Columns)\\s*\\.\\s*(?:Очистить|Clear)\\s*\\(' });
+		}
+
+		let operations = [];
+
+		rules.forEach(rule => {
+
+			let regexp = new RegExp(rule.re, 'gmi');
+			let match = null;
+
+			while ((match = regexp.exec(text)) !== null)
+				operations.push({ index: match.index, kind: rule.kind, value: match[1] || '' });
+
+		});
+
+		operations.sort((left, right) => left.index - right.index);
+
+		let names = [];
+
+		operations.forEach(operation => {
+
+			if (operation.kind == 'clear') {
+				names = [];
+				return;
+			}
+
+			if (operation.kind == 'reset') {
+				// `Новый Структура("Ключ1, Ключ2")` — ключи перечислены в первом аргументе.
+				names = operation.value ? operation.value.split(',').map(name => name.trim()).filter(name => name) : [];
+				return;
+			}
+
+			if (!operation.value)
+				return;
+
+			if (operation.kind == 'add') {
+				if (!names.some(name => name.toLowerCase() == operation.value.toLowerCase()))
+					names.push(operation.value);
+			}
+			else {
+				names = names.filter(name => name.toLowerCase() != operation.value.toLowerCase());
+			}
+
+		});
+
+		return names.map(name => ({ name: name, type: '' }));
+
+	}
+
+	/**
+	 * Проверяет, что результат метода — строка коллекции, которой достаются колонки
+	 * самой коллекции: `Стр = ТЗ.Добавить()` даёт строку с колонками таблицы.
+	 *
+	 * @param {string} ownerRef ref коллекции
+	 * @param {string} resultRef ref результата
+	 *
+	 * @returns {boolean} наследует ли результат имена владельца
+	 */
+	isRowOfCollection(ownerRef, resultRef) {
+
+		return bslHelper.COLUMNS_REFS.indexOf(ownerRef) >= 0 && bslHelper.ROW_REFS.indexOf(resultRef) >= 0;
+
+	}
+
+	/**
+	 * Объединяет два списка свойств, не допуская дублей: первый список приоритетнее,
+	 * потому что объявленное в комментарии несёт ещё и тип.
+	 *
+	 * @param {array} primary приоритетный список
+	 * @param {array} secondary дополняющий список
+	 *
+	 * @returns {array} объединённый список
+	 */
+	mergeProperties(primary, secondary) {
+
+		let result = (primary || []).slice();
+
+		(secondary || []).forEach(property => {
+
+			if (!result.some(existing => existing.name.toLowerCase() == property.name.toLowerCase()))
+				result.push(property);
+
+		});
+
+		return result;
 
 	}
 
@@ -9958,5 +10117,12 @@ class bslHelper {
 // Реальные цепочки короткие; ограничение защищает от зацикливания и от разбора,
 // растущего на больших модулях (см. specs/type-inference/plan.md, раздел «Риски»).
 bslHelper.INFER_DEPTH_LIMIT = 5;
+
+// Типы, у которых имена свойств задаются кодом, а не справочником (specs/type-inference/spec.md §3.4).
+// Соответствия здесь нет намеренно: к его ключам через точку не обращаются — только
+// `Получить("Ключ")` или `[...]`, поэтому в подсказке после точки им не место.
+bslHelper.KEYS_REFS = ['classes.Структура', 'classes.ФиксированнаяСтруктура'];
+bslHelper.COLUMNS_REFS = ['classes.ТаблицаЗначений', 'classes.ДеревоЗначений'];
+bslHelper.ROW_REFS = ['types.СтрокаТаблицыЗначений', 'types.СтрокаДереваЗначений'];
 
 export default bslHelper;

@@ -933,6 +933,94 @@ setTimeout(() => {
 
       });
 
+      describe("состояние коллекций: ключи и колонки (specs/type-inference, Этап 3)", function () {
+
+        function helperAt(string, lineNumber, column) {
+          let model = getModel(string);
+          return new bslHelper(model, new monaco.Position(lineNumber, column));
+        }
+
+        it("ключи из конструктора Новый Структура", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('С = Новый Структура("Ключ1, Ключ2");\nС.').getRefCompletion(suggestions);
+          assert.equal(suggestions.some(suggest => suggest.label === "Ключ1"), true);
+          assert.equal(suggestions.some(suggest => suggest.label === "Ключ2"), true);
+        });
+
+        it("Вставить добавляет ключ к типу из комментария", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('А = ПолучитьСтруктуру(); // Структура\nА.Вставить("Ключ1", "");\nА.').getRefCompletion(suggestions);
+          assert.equal(suggestions.some(suggest => suggest.label === "Ключ1"), true);
+          assert.equal(suggestions.some(suggest => suggest.label === "Вставить"), true);
+        });
+
+        it("Удалить снимает ключ", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('С = Новый Структура("Ключ1, Ключ2");\nС.Удалить("Ключ1");\nС.').getRefCompletion(suggestions);
+          assert.equal(suggestions.some(suggest => suggest.label === "Ключ2"), true);
+          assert.equal(suggestions.some(suggest => suggest.label === "Ключ1"), false);
+        });
+
+        it("Очистить снимает все ключи", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('С = Новый Структура("Ключ1, Ключ2");\nС.Очистить();\nС.').getRefCompletion(suggestions);
+          assert.equal(suggestions.some(suggest => suggest.label === "Ключ1"), false);
+          assert.equal(suggestions.some(suggest => suggest.label === "Ключ2"), false);
+        });
+
+        it("операции применяются по порядку: удалили и вставили снова", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('С = Новый Структура;\nС.Вставить("Ключ1", 1);\nС.Удалить("Ключ1");\nС.Вставить("Ключ1", 2);\nС.').getRefCompletion(suggestions);
+          assert.equal(suggestions.some(suggest => suggest.label === "Ключ1"), true);
+        });
+
+        it("учитываются только операции выше курсора", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helperAt('С = Новый Структура;\nС.Вставить("Ключ1", 1);\nС.\nС.Вставить("Ключ2", 2);', 3, 3).getRefCompletion(suggestions);
+          assert.equal(suggestions.some(suggest => suggest.label === "Ключ1"), true);
+          assert.equal(suggestions.some(suggest => suggest.label === "Ключ2"), false);
+        });
+
+        it("колонки таблицы значений добавляются и снимаются", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('ТЗ = Новый ТаблицаЗначений;\nТЗ.Колонки.Добавить("К1");\nТЗ.Колонки.Добавить("К2");\nТЗ.Колонки.Удалить("К1");\nТЗ.').getRefCompletion(suggestions);
+          assert.equal(suggestions.some(suggest => suggest.label === "К2"), true);
+          assert.equal(suggestions.some(suggest => suggest.label === "К1"), false);
+        });
+
+        it("строка таблицы наследует её колонки", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('ТЗ = Новый ТаблицаЗначений;\nТЗ.Колонки.Добавить("К1");\nСтр = ТЗ.Добавить();\nСтр.').getRefCompletion(suggestions);
+          assert.equal(suggestions.some(suggest => suggest.label === "К1"), true);
+          assert.equal(suggestions.some(suggest => suggest.label === "Владелец"), true);
+        });
+
+        it("ключи соответствия не подсказываются: точкой к ним не обращаются", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('М = Новый Соответствие;\nМ.Вставить("Ключ1", 1);\nМ.').getRefCompletion(suggestions);
+          assert.equal(suggestions.some(suggest => suggest.label === "Вставить"), true);
+          assert.equal(suggestions.some(suggest => suggest.label === "Ключ1"), false);
+        });
+
+        it("ключ из строкового литерала не принимается за код", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('Текст = "С.Вставить(""Фейк"", 1)";\nС = Новый Структура;\nС.Вставить("Ключ1", 1);\nС.').getRefCompletion(suggestions);
+          assert.equal(suggestions.some(suggest => suggest.label === "Ключ1"), true);
+          assert.equal(suggestions.some(suggest => suggest.label === "Фейк"), false);
+        });
+
+      });
+
       it("проверка подсказки параметров для функции ВыгрузитьКолонку таблицы значений, полученной из другой таблицы", function () {
         bsl = helper('Таблица1 = Новый ТаблицаЗначений();\nТаблица2 = Таблица1.Скопировать();\nТаблица2.ВыгрузитьКолонку(');
         let suggestions = [];  
