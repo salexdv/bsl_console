@@ -865,6 +865,74 @@ setTimeout(() => {
 
       });
 
+      describe("типизирующие комментарии (specs/type-inference, Этап 2)", function () {
+
+        it("форма `// Имя - Тип` без присваивания", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('// Таб - ТаблицаЗначений\nТаб.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.not.is.empty;
+          assert.equal(suggestions.some(suggest => suggest.label === "ВыгрузитьКолонку"), true);
+        });
+
+        it("форма `// Имя - Тип` над присваиванием", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('// Таб - ТаблицаЗначений\nТаб = ПолучитьТаблицу();\nТаб.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.not.is.empty;
+          assert.equal(suggestions.some(suggest => suggest.label === "ВыгрузитьКолонку"), true);
+        });
+
+        it("тип в конце строки присваивания", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('Таб = ПолучитьТаблицу(); // ТаблицаЗначений\nТаб.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.not.is.empty;
+          assert.equal(suggestions.some(suggest => suggest.label === "ВыгрузитьКолонку"), true);
+        });
+
+        it("блок `// Структура:` добавляет объявленные свойства", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('// Структура:\n//    * Свойство1 - Строка\n//    * Свойство2 - Число\nПарам = ПолучитьПараметры();\nПарам.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.not.is.empty;
+          assert.equal(suggestions.some(suggest => suggest.label === "Свойство1"), true);
+          assert.equal(suggestions.some(suggest => suggest.label === "Свойство2"), true);
+          assert.equal(suggestions.some(suggest => suggest.label === "Вставить"), true);
+        });
+
+        it("тип объявленного свойства работает по цепочке", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('// Структура:\n//    * Таблица - ТаблицаЗначений\nПарам = ПолучитьПараметры();\nТЗ = Парам.Таблица;\nТЗ.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.not.is.empty;
+          assert.equal(suggestions.some(suggest => suggest.label === "ВыгрузитьКолонку"), true);
+        });
+
+        it("комментарий сильнее вывода из кода", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('Знач = Новый Массив; // ТаблицаЗначений\nЗнач.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.not.is.empty;
+          assert.equal(suggestions.some(suggest => suggest.label === "ВыгрузитьКолонку"), true);
+        });
+
+        it("неизвестный тип в комментарии игнорируется", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('// Таб - ЧегоТакогоНетВСправочнике\nТаб.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.is.empty;
+        });
+
+        it("блок свойств рвётся строкой кода", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('// Структура:\n//    * Свойство1 - Строка\nВыполнить();\nПарам = ПолучитьПараметры();\nПарам.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.is.empty;
+        });
+
+      });
+
       it("проверка подсказки параметров для функции ВыгрузитьКолонку таблицы значений, полученной из другой таблицы", function () {
         bsl = helper('Таблица1 = Новый ТаблицаЗначений();\nТаблица2 = Таблица1.Скопировать();\nТаблица2.ВыгрузитьКолонку(');
         let suggestions = [];  

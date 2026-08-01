@@ -1716,6 +1716,7 @@ class bslHelper {
 						if (inferredContext) {
 							wordContext = inferredContext;
 							this.getRefSuggestions(suggestions, wordContext);
+							this.getDeclaredPropertiesSuggestions(suggestions, inferredContext.properties);
 						}
 
 					}
@@ -2040,18 +2041,20 @@ class bslHelper {
 	 *
 	 * @returns {string} ref либо пустая строка
 	 */
-	inferExpressionRef(expression, position, seen) {
+	inferExpressionContext(expression, position, seen) {
 
 		if (!expression)
-			return '';
+			return null;
 
 		let newMatch = /^\s*(?:новый|new)\s+([a-zA-ZА-яЁё_][a-zA-Z0-9А-яЁё_]*)/i.exec(expression);
 
-		if (newMatch)
-			return this.getRefByTypeName(newMatch[1]);
+		if (newMatch) {
+			let ref = this.getRefByTypeName(newMatch[1]);
+			return ref ? { ref: ref, properties: [] } : null;
+		}
 
 		let parts = this.collapseCallArguments(expression).trim().split('.');
-		let ref = '';
+		let context = null;
 
 		for (let i = 0; i < parts.length; i++) {
 
@@ -2060,25 +2063,44 @@ class bslHelper {
 			let name = part.replace(/\(\s*\)$/, '').trim();
 
 			if (!/^[a-zA-ZА-яЁё_][a-zA-Z0-9А-яЁё_]*$/.test(name))
-				return '';
+				return null;
 
 			if (i == 0) {
+
 				// Начало цепочки — либо вызов глобальной функции, либо переменная,
 				// либо имя типа (`Метаданные`, системные перечисления).
-				ref = isCall
-					? this.getGlobalFunctionResultRef(name)
-					: (this.inferVariableRef(name, position, seen) || this.getRefByTypeName(name));
+				if (isCall) {
+					let ref = this.getGlobalFunctionResultRef(name);
+					context = ref ? { ref: ref, properties: [] } : null;
+				}
+				else {
+					context = this.inferVariableContext(name, position, seen);
+					if (!context) {
+						let ref = this.getRefByTypeName(name);
+						context = ref ? { ref: ref, properties: [] } : null;
+					}
+				}
+
 			}
 			else {
-				ref = this.getMemberResultRef(ref, name);
+
+				// Свойство, объявленное в типизирующем комментарии, справочнику неизвестно —
+				// его тип берём из самого объявления.
+				let declared = context.properties.find(property => property.name.toLowerCase() == name.toLowerCase());
+				let ref = declared && declared.type
+					? this.getRefByTypeName(declared.type)
+					: this.getMemberResultRef(context.ref, name);
+
+				context = ref ? { ref: ref, properties: [] } : null;
+
 			}
 
-			if (!ref)
-				return '';
+			if (!context)
+				return null;
 
 		}
 
-		return ref;
+		return context;
 
 	}
 
@@ -2092,10 +2114,10 @@ class bslHelper {
 	 *
 	 * @returns {string} ref либо пустая строка
 	 */
-	inferVariableRef(varName, position, seen) {
+	inferVariableContext(varName, position, seen) {
 
 		if (!varName)
-			return '';
+			return null;
 
 		seen = seen || [];
 
@@ -2103,12 +2125,19 @@ class bslHelper {
 
 		// Цепочки вида `А = Б; Б = А;` и слишком длинные цепочки обрываем.
 		if (bslHelper.INFER_DEPTH_LIMIT <= seen.length || 0 <= seen.indexOf(key))
-			return '';
+			return null;
 
 		if (!/^[a-zA-ZА-яЁё_][a-zA-Z0-9А-яЁё_]*$/.test(varName))
-			return '';
+			return null;
 
 		seen.push(key);
+
+		// Явное объявление в комментарии сильнее вывода из кода: разработчик написал его
+		// как раз потому, что вывести тип нельзя (specs/type-inference/spec.md §3.1).
+		let declared = this.inferContextFromComment(varName, position);
+
+		if (declared)
+			return declared;
 
 		let text = this.getMaskedTextBefore(position);
 		// Отсекаем `==`, `>=`, `<=`, `<>`, чтобы сравнение не принять за присваивание.
@@ -2120,29 +2149,205 @@ class bslHelper {
 			assignment = match;
 
 		if (!assignment)
-			return '';
+			return null;
 
-		return this.inferExpressionRef(assignment[1].trim(), position, seen);
+		return this.inferExpressionContext(assignment[1].trim(), position, seen);
+
+	}
+
+	/**
+	 * Тонкая обёртка над inferVariableContext, отдающая только ref.
+	 * Удобна для диагностики и точечных проверок.
+	 *
+	 * @param {string} varName имя переменной
+	 * @param {IPosition} position позиция курсора
+	 * @param {array} seen имена переменных в текущей цепочке разрешения
+	 *
+	 * @returns {string} ref либо пустая строка
+	 */
+	inferVariableRef(varName, position, seen) {
+
+		let context = this.inferVariableContext(varName, position, seen);
+
+		return context ? context.ref : '';
+
+	}
+
+	/**
+	 * Возвращает исходный текст до позиции — без маскирования, в отличие от
+	 * getMaskedTextBefore: типизирующие комментарии живут именно в комментариях.
+	 *
+	 * @param {IPosition} position позиция, до которой нужен текст
+	 *
+	 * @returns {string} текст документа до позиции
+	 */
+	getRawTextBefore(position) {
+
+		return this.model.getValue().substr(0, this.model.getOffsetAt(position));
+
+	}
+
+	/**
+	 * Разбирает типизирующие комментарии в стиле строгой типизации ЕДТ и возвращает
+	 * объявленный тип переменной. Поддержаны три формы (specs/type-inference/spec.md §4.3):
+	 *
+	 *   // Таб - ТаблицаЗначений          объявление типа для конкретной переменной
+	 *   Таб = ПолучитьТаблицу();
+	 *
+	 *   Таб = ПолучитьТаблицу(); // ТаблицаЗначений    тип в конце строки присваивания
+	 *
+	 *   // Структура:                     тип с перечислением свойств
+	 *   //  * Свойство1 - Строка
+	 *   Парам = ПолучитьПараметры();
+	 *
+	 * Побеждает последнее объявление выше позиции.
+	 *
+	 * @param {string} varName имя переменной
+	 * @param {IPosition} position позиция курсора
+	 *
+	 * @returns {object|null} {ref, properties} либо null
+	 */
+	inferContextFromComment(varName, position) {
+
+		const NAME = '[a-zA-ZА-яЁё_][a-zA-Z0-9А-яЁё_]*';
+		const DASH = '[-–—]';
+
+		let blockHeaderRe = new RegExp('^\\s*//\\s*(' + NAME + ')\\s*:\\s*$');
+		let blockItemRe = new RegExp('^\\s*//\\s*\\*\\s*(' + NAME + ')\\s*(?:' + DASH + '\\s*(' + NAME + '))?');
+		let declarationRe = new RegExp('^\\s*//\\s*(' + NAME + ')\\s*' + DASH + '\\s*(' + NAME + ')');
+		let assignmentRe = new RegExp('^\\s*(' + NAME + ')\\s*=(?!=)');
+		let trailingTypeRe = new RegExp('//\\s*(' + NAME + ')\\s*$');
+
+		let lines = this.getRawTextBefore(position).split('\n');
+		let name = varName.toLowerCase();
+		let result = null;
+
+		// Блок `// Тип:` со списком свойств копится до ближайшего присваивания.
+		let blockRef = '';
+		let blockProperties = [];
+
+		for (let i = 0; i < lines.length; i++) {
+
+			let line = lines[i];
+			let match = blockHeaderRe.exec(line);
+
+			if (match) {
+				blockRef = this.getRefByTypeName(match[1]);
+				blockProperties = [];
+				continue;
+			}
+
+			match = blockItemRe.exec(line);
+
+			if (match) {
+				if (blockRef)
+					blockProperties.push({ name: match[1], type: match[2] || '' });
+				continue;
+			}
+
+			match = declarationRe.exec(line);
+
+			if (match) {
+
+				if (match[1].toLowerCase() == name) {
+					let ref = this.getRefByTypeName(match[2]);
+					if (ref)
+						result = { ref: ref, properties: [] };
+				}
+
+				continue;
+
+			}
+
+			match = assignmentRe.exec(line);
+
+			if (match) {
+
+				if (match[1].toLowerCase() == name) {
+
+					let trailing = trailingTypeRe.exec(line);
+					let ref = trailing ? this.getRefByTypeName(trailing[1]) : '';
+
+					if (ref)
+						result = { ref: ref, properties: [] };
+					else if (blockRef)
+						result = { ref: blockRef, properties: blockProperties };
+
+				}
+
+				blockRef = '';
+				blockProperties = [];
+				continue;
+
+			}
+
+			// Пустая строка блок не рвёт, строка кода — рвёт.
+			if (line.trim() != '' && !/^\s*\/\//.test(line)) {
+				blockRef = '';
+				blockProperties = [];
+			}
+
+		}
+
+		return result;
+
+	}
+
+	/**
+	 * Добавляет в подсказку свойства, перечисленные в типизирующем комментарии.
+	 * В справочнике их нет — имена придуманы разработчиком, — поэтому отдаём их
+	 * напрямую, проставляя ref из указанного типа, чтобы работала подсказка по цепочке.
+	 *
+	 * @param {array} suggestions список подсказок
+	 * @param {array} properties свойства вида {name, type}
+	 */
+	getDeclaredPropertiesSuggestions(suggestions, properties) {
+
+		if (!properties || !properties.length)
+			return;
+
+		properties.forEach(property => {
+
+			let exists = suggestions.some(suggestion => String(suggestion.label).toLowerCase() == property.name.toLowerCase());
+
+			if (exists)
+				return;
+
+			let ref = property.type ? this.getRefByTypeName(property.type) : '';
+
+			suggestions.push({
+				label: property.name,
+				kind: monaco.languages.CompletionItemKind.Field,
+				insertText: property.name,
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				detail: property.type || '',
+				documentation: '',
+				command: ref ? { id: 'bsl.saveref', arguments: [{ "name": property.name, "data": { "ref": ref, "sig": null } }] } : null
+			});
+
+		});
 
 	}
 
 	/**
 	 * Формирует контекст переменной, выведенный из текста, — запасной источник типа,
 	 * когда 1С ничего про переменную не присылала и подсказка не выбиралась вручную.
+	 * Явное объявление в комментарии сильнее вывода из кода: разработчик написал его
+	 * как раз потому, что вывести тип нельзя (specs/type-inference/spec.md §3.1).
 	 *
 	 * @param {string} varName имя переменной
 	 * @param {IPosition} position позиция курсора
 	 *
-	 * @returns {object|null} контекст вида {ref, parent_ref, sig} либо null
+	 * @returns {object|null} контекст вида {ref, parent_ref, sig, properties} либо null
 	 */
 	getInferredContext(varName, position) {
 
 		// Слой вывода — вспомогательный: сбой разбора не должен ронять подсказку целиком.
 		try {
 
-			let ref = this.inferVariableRef(varName, position, []);
+			let context = this.inferVariableContext(varName, position, []);
 
-			return ref ? { ref: ref, parent_ref: null, sig: null } : null;
+			return context ? { ref: context.ref, parent_ref: null, sig: null, properties: context.properties } : null;
 
 		} catch (e) {
 
