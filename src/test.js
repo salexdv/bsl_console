@@ -832,6 +832,25 @@ setTimeout(() => {
           expect(suggestions).to.be.an('array').that.is.empty;
         });
 
+        it("тип переменной не подменяется типом из соседнего вызова (issue #305)", function () {
+          // Полевой отчёт: после `А.` предлагались свойства КОЛОНКИ (Заголовок, Имя, Ширина,
+          // ТипЗначения), потому что эвристика lookBehind переиспользовала тип из
+          // `А.Колонки.Добавить(...)`, сохранённый в contextData при выборе подсказки.
+          window.contextData = new Map([
+            [2, new Map([
+              ["колонки", { "ref": "types.КоллекцияКолонокТаблицыЗначений", "sig": null }],
+              ["добавить", { "ref": "types.КолонкаТаблицыЗначений", "sig": null }]
+            ])],
+            [5, new Map([["добавить", { "ref": "types.СтрокаТаблицыЗначений", "sig": null }]])]
+          ]);
+          let suggestions = [];
+          helper('А = Новый ТаблицаЗначений();\nА.Колонки.Добавить("Колонка1");\n\nСтр = А.Добавить();\n\nА.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.not.is.empty;
+          assert.equal(suggestions.some(suggest => suggest.label === "ВыгрузитьКолонку"), true);
+          assert.equal(suggestions.some(suggest => suggest.label === "ТипЗначения"), false);
+          window.contextData = new Map();
+        });
+
         it("тип от 1С сильнее выведенного из текста", function () {
           let suggestions = [];
           window.contextData = new Map([

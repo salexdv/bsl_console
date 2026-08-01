@@ -1700,6 +1700,28 @@ class bslHelper {
 					
 				}
 
+				// Вывод типа из объявления переменной идёт ДО эвристики lookBehind ниже.
+				// Та ищет выше по тексту ближайший `.метод(` и переиспользует его сохранённый
+				// тип, поэтому после `А.Колонки.Добавить(...)` подсказывает для `А.` колонку
+				// вместо самой таблицы (issue #305). Разбор присваивания точнее такой догадки,
+				// а прямое попадание в contextData выше — точнее их обоих.
+				if (!suggestions.length && !window.isQueryMode() && !window.isDCSMode()) {
+
+					let inferredWord = this.model.getWordUntilPosition(refPosition).word;
+
+					if (inferredWord) {
+
+						let inferredContext = this.getInferredContext(inferredWord, refPosition);
+
+						if (inferredContext) {
+							wordContext = inferredContext;
+							this.getRefSuggestions(suggestions, wordContext);
+						}
+
+					}
+
+				}
+
 				if (!suggestions.length && allowLookBehind) {
 
 					// So we have to use 2 rexep to detect last function`s (field`s) reference
@@ -1734,26 +1756,6 @@ class bslHelper {
 						}
 
 					}
-				}
-
-				// Тип, пришедший от 1С или закреплённый выбором подсказки, всегда сильнее
-				// выведенного, поэтому разбираем текст сами только когда contextData пуст
-				// (см. specs/type-inference/spec.md §3.1).
-				if (!suggestions.length && !window.isQueryMode() && !window.isDCSMode()) {
-
-					let inferredWord = this.model.getWordUntilPosition(refPosition).word;
-
-					if (inferredWord) {
-
-						let inferredContext = this.getInferredContext(inferredWord, refPosition);
-
-						if (inferredContext) {
-							wordContext = inferredContext;
-							this.getRefSuggestions(suggestions, wordContext);
-						}
-
-					}
-
 				}
 			}
 
