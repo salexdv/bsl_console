@@ -754,6 +754,98 @@ setTimeout(() => {
         window.contextData = new Map();
       });
 
+      describe("вывод типов переменных из текста (specs/type-inference, Этап 1)", function () {
+
+        it("тип из конструктора Новый", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('Таблица = Новый ТаблицаЗначений;\nТаблица.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.not.is.empty;
+          assert.equal(suggestions.some(suggest => suggest.label === "ВыгрузитьКолонку"), true);
+        });
+
+        it("тип из конструктора Новый на английском", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('Таблица = New ValueTable;\nТаблица.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.not.is.empty;
+          assert.equal(suggestions.some(suggest => suggest.label === "ВыгрузитьКолонку"), true);
+        });
+
+        it("проброс типа при присваивании переменной", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('Таблица = Новый ТаблицаЗначений;\nТЗ = Таблица;\nТЗ.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.not.is.empty;
+          assert.equal(suggestions.some(suggest => suggest.label === "ВыгрузитьКолонку"), true);
+        });
+
+        it("тип результата метода: строка таблицы значений", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('Таблица = Новый ТаблицаЗначений;\nСтр = Таблица.Добавить();\nСтр.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.not.is.empty;
+          assert.equal(suggestions.some(suggest => suggest.label === "Владелец"), true);
+        });
+
+        it("тип результата свойства: коллекция колонок", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('Таблица = Новый ТаблицаЗначений;\nКолонки = Таблица.Колонки;\nКолонки.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.not.is.empty;
+          assert.equal(suggestions.some(suggest => suggest.label === "Добавить"), true);
+        });
+
+        it("берётся последнее присваивание выше позиции", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('Значение = Новый Массив;\nЗначение = Новый ТаблицаЗначений;\nЗначение.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.not.is.empty;
+          assert.equal(suggestions.some(suggest => suggest.label === "ВыгрузитьКолонку"), true);
+        });
+
+        it("присваивание внутри строки или комментария не типизирует", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('Текст = "Таблица = Новый ТаблицаЗначений";\n// Таблица = Новый ТаблицаЗначений\nТаблица.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.is.empty;
+        });
+
+        it("сравнение не принимается за присваивание", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('Если Таблица == Неопределено Тогда\nКонецЕсли;\nТаблица.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.is.empty;
+        });
+
+        it("циклическое присваивание не вешает разбор", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('А = Б;\nБ = А;\nА.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.is.empty;
+        });
+
+        it("неизвестный тип не даёт подсказок и не бросает", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('Объект = Новый ЧегоТакогоНетВСправочнике;\nОбъект.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.is.empty;
+        });
+
+        it("тип от 1С сильнее выведенного из текста", function () {
+          let suggestions = [];
+          window.contextData = new Map([
+            [2, new Map([["таблица", { "ref": "catalogs.Товары", "sig": null }]])]
+          ]);
+          helper('Таблица = Новый ТаблицаЗначений;\nТаблица.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.not.is.empty;
+          assert.equal(suggestions.some(suggest => suggest.label === "СтавкаНДС"), true);
+          assert.equal(suggestions.some(suggest => suggest.label === "ВыгрузитьКолонку"), false);
+          window.contextData = new Map();
+        });
+
+      });
+
       it("проверка подсказки параметров для функции ВыгрузитьКолонку таблицы значений, полученной из другой таблицы", function () {
         bsl = helper('Таблица1 = Новый ТаблицаЗначений();\nТаблица2 = Таблица1.Скопировать();\nТаблица2.ВыгрузитьКолонку(');
         let suggestions = [];  
