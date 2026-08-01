@@ -6922,6 +6922,347 @@ class bslHelper {
 	}
 
 	/**
+	 * Ищет закрывающую скобку объявления метода.
+	 * Учитывает вложенные скобки, строки и комментарии.
+	 *
+	 * @param {string} text текст модуля
+	 * @param {int} openingIndex позиция открывающей скобки
+	 *
+	 * @returns {int} позиция закрывающей скобки или -1
+	 */
+	static findMethodClosingParenthesis(text, openingIndex) {
+
+		let depth = 0;
+		let quote = '';
+		let lineComment = false;
+
+		for (let idx = openingIndex; idx < text.length; idx++) {
+
+			const char = text[idx];
+			const nextChar = idx + 1 < text.length ? text[idx + 1] : '';
+
+			if (lineComment) {
+				if (char == '\n')
+					lineComment = false;
+				continue;
+			}
+
+			if (quote) {
+				if (char == quote) {
+					if (nextChar == quote)
+						idx++;
+					else
+						quote = '';
+				}
+				continue;
+			}
+
+			if (char == '/' && nextChar == '/') {
+				lineComment = true;
+				idx++;
+				continue;
+			}
+
+			if (char == '"' || char == "'") {
+				quote = char;
+				continue;
+			}
+
+			if (char == '(')
+				depth++;
+			else if (char == ')') {
+				depth--;
+				if (depth == 0)
+					return idx;
+			}
+
+		}
+
+		return -1;
+
+	}
+
+	/**
+	 * Разделяет строку параметров по запятым верхнего уровня.
+	 *
+	 * @param {string} parametersText текст параметров
+	 *
+	 * @returns {array} части объявления параметров
+	 */
+	static splitMethodParameters(parametersText) {
+
+		let parameters = [];
+		let current = '';
+		let quote = '';
+		let lineComment = false;
+		let roundDepth = 0;
+		let squareDepth = 0;
+		let braceDepth = 0;
+
+		for (let idx = 0; idx < parametersText.length; idx++) {
+
+			const char = parametersText[idx];
+			const nextChar = idx + 1 < parametersText.length ? parametersText[idx + 1] : '';
+
+			if (lineComment) {
+				if (char == '\n') {
+					lineComment = false;
+					current += char;
+				}
+				continue;
+			}
+
+			if (quote) {
+				current += char;
+				if (char == quote) {
+					if (nextChar == quote) {
+						current += nextChar;
+						idx++;
+					}
+					else
+						quote = '';
+				}
+				continue;
+			}
+
+			if (char == '/' && nextChar == '/') {
+				lineComment = true;
+				idx++;
+				continue;
+			}
+
+			if (char == '"' || char == "'") {
+				quote = char;
+				current += char;
+				continue;
+			}
+
+			if (char == '(')
+				roundDepth++;
+			else if (char == ')' && 0 < roundDepth)
+				roundDepth--;
+			else if (char == '[')
+				squareDepth++;
+			else if (char == ']' && 0 < squareDepth)
+				squareDepth--;
+			else if (char == '{')
+				braceDepth++;
+			else if (char == '}' && 0 < braceDepth)
+				braceDepth--;
+
+			if (char == ',' && roundDepth == 0 && squareDepth == 0 && braceDepth == 0) {
+				parameters.push(current);
+				current = '';
+			}
+			else
+				current += char;
+
+		}
+
+		parameters.push(current);
+		return parameters;
+
+	}
+
+	/**
+	 * Ищет символ верхнего уровня вне строк и скобок.
+	 *
+	 * @param {string} text исходный текст
+	 * @param {string} target искомый символ
+	 *
+	 * @returns {int} позиция символа или -1
+	 */
+	static findTopLevelCharacter(text, target) {
+
+		let quote = '';
+		let roundDepth = 0;
+		let squareDepth = 0;
+		let braceDepth = 0;
+
+		for (let idx = 0; idx < text.length; idx++) {
+
+			const char = text[idx];
+			const nextChar = idx + 1 < text.length ? text[idx + 1] : '';
+
+			if (quote) {
+				if (char == quote) {
+					if (nextChar == quote)
+						idx++;
+					else
+						quote = '';
+				}
+				continue;
+			}
+
+			if (char == '"' || char == "'") {
+				quote = char;
+				continue;
+			}
+
+			if (char == '(')
+				roundDepth++;
+			else if (char == ')' && 0 < roundDepth)
+				roundDepth--;
+			else if (char == '[')
+				squareDepth++;
+			else if (char == ']' && 0 < squareDepth)
+				squareDepth--;
+			else if (char == '{')
+				braceDepth++;
+			else if (char == '}' && 0 < braceDepth)
+				braceDepth--;
+			else if (char == target && roundDepth == 0 && squareDepth == 0 && braceDepth == 0)
+				return idx;
+
+		}
+
+		return -1;
+
+	}
+
+	/**
+	 * Разбирает параметры объявления процедуры или функции.
+	 *
+	 * @param {string} parametersText текст параметров
+	 *
+	 * @returns {array} параметры метода
+	 */
+	static parseMethodParameters(parametersText) {
+
+		let result = [];
+		const parameters = this.splitMethodParameters(parametersText);
+		const namePattern = /^([a-zA-Z\u0410-\u044F\u0401\u0451_][a-zA-Z0-9\u0410-\u044F\u0401\u0451_]*)/i;
+
+		for (let idx = 0; idx < parameters.length; idx++) {
+
+			let declaration = parameters[idx].trim();
+			if (!declaration)
+				continue;
+
+			let byValue = /^(?:знач|val)\s+/i.test(declaration);
+			if (byValue)
+				declaration = declaration.replace(/^(?:знач|val)\s+/i, '');
+
+			const equalsIndex = this.findTopLevelCharacter(declaration, '=');
+			const namePart = (0 <= equalsIndex ? declaration.substring(0, equalsIndex) : declaration).trim();
+			const nameMatch = namePattern.exec(namePart);
+
+			if (!nameMatch)
+				continue;
+
+			result.push({
+				name: nameMatch[1],
+				byValue: byValue,
+				hasDefaultValue: 0 <= equalsIndex,
+				defaultValue: 0 <= equalsIndex ? declaration.substring(equalsIndex + 1).trim() : null
+			});
+
+		}
+
+		return result;
+
+	}
+
+	/**
+	 * Разбирает объявления процедур и функций модуля.
+	 *
+	 * @param {ITextModel} model модель Monaco
+	 *
+	 * @returns {array} методы с диапазонами объявлений
+	 */
+	static parseModuleMethods(model) {
+
+		let result = [];
+		const text = model.getValue();
+		const methodPattern = /^[\t ]*(процедура|procedure|функция|function)[\t ]+([a-zA-Z\u0410-\u044F\u0401\u0451_][a-zA-Z0-9\u0410-\u044F\u0401\u0451_]*)[\t ]*\(/gmi;
+		let match = null;
+
+		while ((match = methodPattern.exec(text)) !== null) {
+
+			const openingIndex = methodPattern.lastIndex - 1;
+			const closingIndex = this.findMethodClosingParenthesis(text, openingIndex);
+
+			if (closingIndex < 0)
+				continue;
+
+			const tail = text.substring(closingIndex + 1);
+			const exportMatch = /^[\t \r\n]*(экспорт|export)(?=[\t \r\n]|$)/i.exec(tail);
+			const isExport = Boolean(exportMatch);
+			const declarationEndIndex = closingIndex + 1 + (exportMatch ? exportMatch[0].length : 0);
+			const keywordIndex = match.index + match[0].indexOf(match[1]);
+			const nameIndex = match.index + match[0].lastIndexOf(match[2]);
+			const parameters = this.parseMethodParameters(text.substring(openingIndex + 1, closingIndex));
+			const keyword = match[1].toLowerCase();
+			const type = keyword == 'функция' || keyword == 'function' ? 'function' : 'procedure';
+			const startPosition = model.getPositionAt(keywordIndex);
+			const endPosition = model.getPositionAt(declarationEndIndex);
+			const namePosition = model.getPositionAt(nameIndex);
+
+			result.push({
+				name: match[2],
+				line: namePosition.lineNumber,
+				type: type,
+				isExport: isExport,
+				hasParameters: 0 < parameters.length,
+				parameters: parameters,
+				range: new monaco.Range(startPosition.lineNumber, startPosition.column, endPosition.lineNumber, endPosition.column),
+				selectionRange: new monaco.Range(namePosition.lineNumber, namePosition.column, namePosition.lineNumber, namePosition.column + match[2].length)
+			});
+
+			methodPattern.lastIndex = declarationEndIndex;
+
+		}
+
+		return result;
+
+	}
+
+	/**
+	 * Возвращает публичное описание процедур и функций модуля.
+	 *
+	 * @param {ITextModel} model модель Monaco
+	 *
+	 * @returns {array} методы модуля
+	 */
+	static getModuleMethods(model) {
+
+		return this.parseModuleMethods(model).map(function (method) {
+			return {
+				name: method.name,
+				line: method.line,
+				type: method.type,
+				isExport: method.isExport,
+				hasParameters: method.hasParameters,
+				parameters: method.parameters
+			};
+		});
+
+	}
+
+	/**
+	 * Возвращает символы процедур и функций для окна Monaco Quick Outline.
+	 *
+	 * @param {ITextModel} model модель Monaco
+	 *
+	 * @returns {array} DocumentSymbol[]
+	 */
+	static provideDocumentSymbols(model) {
+
+		return this.parseModuleMethods(model).map(function (method) {
+			return {
+				name: method.name,
+				detail: '',
+				kind: method.type == 'function' ? monaco.languages.SymbolKind.Function : monaco.languages.SymbolKind.Method,
+				tags: [],
+				range: method.range,
+				selectionRange: method.selectionRange
+			};
+		});
+
+	}
+
+
+	/**
 	 * Parsing a module text
 	 * 	 
 	 * @param {string} moduleText text of module	 

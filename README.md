@@ -118,6 +118,7 @@ npm run build  -- --customOptions "automaticLayout: true, someOption: false"
 | `getCurrentLineContent`        | Возвращает содержимое текущей строки                                                          |
 | `getCurrentLine`               | Возвращает номер текущей строки                                                               |
 | `getCurrentColumn`             | Возвращает номер текущей колонки                                                              |
+| [`getModuleMethods`](docs/get_module_methods.md) | Возвращает JSON-описание процедур и функций модуля; список перехода открывается по `CTRL+ALT+P` |
 | `getQuery`                     | Определяет текст запроса в текущей позиции и возвращает его вместе с областью текста          |
 | `getFormatString`              | Определяет текст форматной строки в текущей позиции                                           |
 | `findText`                     | Возвращает номер строки, в которой находится заданный текст                                   |
@@ -260,6 +261,7 @@ npm run build  -- --customOptions "automaticLayout: true, someOption: false"
 | `removeAllBreakpoints`         | Удаляет все установленные точки останова                                                      |
 | `setCurrentDebugLine`          | Устанавливает цветовое выделение строки отладки по её номеру                                  |
 | `deleteCurrentDebugLine`       | Удаляет цветовое выделение существующей строки отладки                                        |
+| `showModuleMethods`            | Показывает список процедур и функций текущего модуля                                          |
 
 ## События, генерируемые редактором для 1С:Предприятия
 

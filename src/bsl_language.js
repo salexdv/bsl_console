@@ -724,6 +724,12 @@ export let languages = {
                 return bslHelper.getFoldingRanges(model);
             }
         },
+        documentSymbolProvider: {
+            provideDocumentSymbols: function (model, token) {
+                return bslHelper.provideDocumentSymbols(model);
+            }
+        },
+
         signatureProvider: {
             signatureHelpTriggerCharacters: ['(', ','],
             signatureHelpRetriggerCharacters: [')'],
