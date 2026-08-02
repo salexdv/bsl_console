@@ -53,6 +53,163 @@ function serve() {
   });
 }
 
+async function checkModernPointerDrag(browser, errors) {
+  const page = await browser.newPage();
+  try {
+    await page.bringToFront();
+    await page.goto('http://localhost:' + PORT + '/index.html', { waitUntil: 'load', timeout: 60000 });
+    await page.waitForFunction('!!window.editor && typeof window.monaco !== "undefined"', { timeout: 30000 });
+
+    const dimensions = await page.evaluate(async () => {
+    const editor = window.editor;
+    const longTail = new Array(300).join('ДлиннаяСтрока');
+    const lines = [];
+    for (let i = 0; i < 300; i++) lines.push('Строка' + i + ' = "' + longTail + '";');
+    editor.setValue(lines.join('\n'));
+    editor.updateOptions({ wordWrap: 'off' });
+    editor.layout();
+    editor.setPosition({ lineNumber: 1, column: editor.getModel().getLineMaxColumn(1) });
+    editor.revealPosition(editor.getPosition());
+    editor.render(true);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    editor.setScrollPosition({ scrollTop: 0, scrollLeft: 0 });
+    return {
+      pointerEvent: typeof window.PointerEvent,
+      scrollWidth: editor.getScrollWidth()
+    };
+    });
+
+    async function drag(selector, deltaX, deltaY) {
+      const slider = await page.$(selector);
+      if (!slider) return false;
+      const rect = await slider.boundingBox();
+      if (!rect) return false;
+      const startX = rect.x + Math.max(1, Math.min(rect.width / 2, rect.width - 1));
+      const startY = rect.y + Math.max(1, Math.min(rect.height / 2, rect.height - 1));
+      await page.mouse.move(startX, startY);
+      await page.mouse.down({ button: 'left' });
+      await page.mouse.move(startX + deltaX, startY + deltaY, { steps: 4 });
+      await page.mouse.up({ button: 'left' });
+      return true;
+    }
+
+    const verticalFound = await drag('.monaco-scrollable-element > .scrollbar.vertical > .slider', 0, 80);
+    const scrollTop = await page.evaluate(() => window.editor.getScrollTop());
+    await page.evaluate(() => window.editor.setScrollPosition({ scrollTop: 0, scrollLeft: 0 }));
+    const horizontalFound = await drag('.monaco-scrollable-element > .scrollbar.horizontal > .slider', 80, 0);
+    const scrollLeft = await page.evaluate(() => window.editor.getScrollLeft());
+
+    if (dimensions.pointerEvent !== 'function') errors.push('modern pointer smoke: PointerEvent недоступен в Chrome');
+    if (!verticalFound || !(scrollTop > 0)) errors.push('modern pointer smoke: вертикальный slider не перетаскивается');
+    if (!horizontalFound || !(scrollLeft > 0)) errors.push('modern pointer smoke: горизонтальный slider не перетаскивается');
+    console.log('[headless] modern scrollbar drag:',
+      'vertical=' + scrollTop, '| horizontal=' + scrollLeft,
+      '| scrollWidth=' + dimensions.scrollWidth, '| PointerEvent=' + dimensions.pointerEvent);
+  } catch (e) {
+    errors.push('modern pointer smoke threw: ' + ((e && e.stack) || (e && e.message) || e));
+  } finally {
+    await page.close();
+  }
+}
+
+async function checkLegacyPointerDrag(browser, errors) {
+  const page = await browser.newPage();
+  const pageErrors = [];
+  page.on('console', (msg) => { if (msg.type() === 'error') pageErrors.push('console.error: ' + msg.text()); });
+  page.on('pageerror', (err) => pageErrors.push('pageerror: ' + ((err && err.stack) || (err && err.message) || err)));
+
+  // Эмулируем WebKit поля 1С: PointerEvent отсутствует, а жест приходит как
+  // mousedown/mousemove/mouseup. События отправляем программно, чтобы Chromium не
+  // добавлял собственную нативную pointer-последовательность.
+  await page.evaluateOnNewDocument(() => { delete window.PointerEvent; });
+
+  try {
+    await page.bringToFront();
+    await page.goto('http://localhost:' + PORT + '/index.html', { waitUntil: 'load', timeout: 60000 });
+    await page.waitForFunction('!!window.editor && typeof window.monaco !== "undefined"', { timeout: 30000 });
+
+    const result = await page.evaluate(async () => {
+      const editor = window.editor;
+      const longTail = new Array(300).join('ДлиннаяСтрока');
+      const lines = [];
+      for (let i = 0; i < 300; i++) lines.push('Строка' + i + ' = "' + longTail + '";');
+      editor.setValue(lines.join('\n'));
+      editor.updateOptions({ wordWrap: 'off' });
+      editor.layout();
+      editor.setPosition({ lineNumber: 1, column: editor.getModel().getLineMaxColumn(1) });
+      editor.revealPosition(editor.getPosition());
+      editor.render(true);
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      editor.setScrollPosition({ scrollTop: 0, scrollLeft: 0 });
+
+      function drag(selector, deltaX, deltaY) {
+        const slider = document.querySelector(selector);
+        if (!slider) return { found: false };
+        const rect = slider.getBoundingClientRect();
+        const startX = rect.left + Math.max(1, Math.min(rect.width / 2, rect.width - 1));
+        const startY = rect.top + Math.max(1, Math.min(rect.height / 2, rect.height - 1));
+        const eventOptions = {
+          bubbles: true,
+          cancelable: true,
+          view: window,
+          button: 0,
+          buttons: 1,
+          clientX: startX,
+          clientY: startY
+        };
+        slider.dispatchEvent(new MouseEvent('mousedown', eventOptions));
+        slider.dispatchEvent(new MouseEvent('mousemove', Object.assign({}, eventOptions, {
+          clientX: startX + deltaX,
+          clientY: startY + deltaY
+        })));
+        slider.dispatchEvent(new MouseEvent('mouseup', Object.assign({}, eventOptions, {
+          button: 0,
+          buttons: 0,
+          clientX: startX + deltaX,
+          clientY: startY + deltaY
+        })));
+        return { found: true, width: rect.width, height: rect.height };
+      }
+
+      const vertical = drag('.monaco-scrollable-element > .scrollbar.vertical > .slider', 0, 80);
+      const scrollTop = editor.getScrollTop();
+      editor.setScrollPosition({ scrollTop: 0, scrollLeft: 0 });
+      const horizontal = drag('.monaco-scrollable-element > .scrollbar.horizontal > .slider', 80, 0);
+      const scrollLeft = editor.getScrollLeft();
+
+      return {
+        pointerEvent: typeof window.PointerEvent,
+        verticalFound: vertical.found,
+        horizontalFound: horizontal.found,
+        horizontalSliderWidth: horizontal.width,
+        scrollWidth: editor.getScrollWidth(),
+        contentWidth: editor.getLayoutInfo().contentWidth,
+        lineMaxColumn: editor.getModel().getLineMaxColumn(1),
+        wordWrap: editor.getOption(window.monaco.editor.EditorOption.wordWrap),
+        scrollTop: scrollTop,
+        scrollLeft: scrollLeft
+      };
+    });
+
+    if (result.pointerEvent !== 'undefined') errors.push('legacy pointer smoke: window.PointerEvent не отключён');
+    if (!result.verticalFound) errors.push('legacy pointer smoke: не найден вертикальный slider Monaco');
+    if (!result.horizontalFound) errors.push('legacy pointer smoke: не найден горизонтальный slider Monaco');
+    if (!(result.scrollTop > 0)) errors.push('legacy pointer smoke: вертикальный slider не изменил scrollTop');
+    if (!(result.scrollLeft > 0)) errors.push('legacy pointer smoke: горизонтальный slider не изменил scrollLeft');
+    pageErrors.forEach((e) => errors.push('legacy pointer smoke: ' + e));
+    console.log('[headless] legacy WebKit scrollbar drag:',
+      'vertical=' + result.scrollTop, '| horizontal=' + result.scrollLeft,
+      '| scrollWidth=' + result.scrollWidth, '| contentWidth=' + result.contentWidth,
+      '| lineMaxColumn=' + result.lineMaxColumn, '| wordWrap=' + result.wordWrap,
+      '| horizontalSlider=' + result.horizontalSliderWidth,
+      '| PointerEvent=' + result.pointerEvent);
+  } catch (e) {
+    errors.push('legacy pointer smoke threw: ' + ((e && e.stack) || (e && e.message) || e));
+  } finally {
+    await page.close();
+  }
+}
+
 (async () => {
   const exe = findBrowser();
   if (!exe) { console.error('Не найден Chrome/Edge. Задайте переменную окружения CHROME_PATH.'); process.exit(2); }
@@ -183,6 +340,9 @@ function serve() {
         errors.push('createDiffWidget check threw: ' + ((e && e.stack) || (e && e.message) || e));
       }
     }
+
+    await checkModernPointerDrag(browser, errors);
+    await checkLegacyPointerDrag(browser, errors);
 
     // Если появился mochaResults (этап 3) — учтём failures.
     const mocha = await page.evaluate(() => window.mochaResults || null);

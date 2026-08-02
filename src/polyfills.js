@@ -315,6 +315,99 @@ if (_self.Element && _self.Element.prototype && typeof _self.Element.prototype.r
   };
 }
 
+// Pointer Events появились только в Safari 13, а WebKit поля 1С уровня Safari 11
+// генерирует лишь mouse-события. Начиная с Monaco 0.52 весь drag-интерактив
+// (скроллбары, миникарта, sash) подписан напрямую на pointerdown/move/up, поэтому
+// без узкой трансляции ползунки видны, но не перетаскиваются (issue #386).
+//
+// Не объявляем window.PointerEvent: десктопный MouseHandler Monaco должен продолжать
+// работать с нативными mouse-событиями. setPointerCapture также не эмулируем —
+// GlobalPointerMoveMonitor ловит исключение и переносит pointermove/up-листенеры на window.
+(function () {
+  if (typeof _self.PointerEvent !== 'undefined') return;
+  if (typeof document === 'undefined' || typeof MouseEvent === 'undefined') return;
+
+  // GlobalPointerMoveMonitor сравнивает buttons каждого pointermove с состоянием на
+  // pointerdown. В WebKit без MouseEvent.buttons ведём совместимую битовую маску сами.
+  var buttonsState = 0;
+  var BUTTON_BIT = { 0: 1, 1: 4, 2: 2 };
+  if (!('buttons' in MouseEvent.prototype)) {
+    try {
+      Object.defineProperty(MouseEvent.prototype, 'buttons', {
+        configurable: true,
+        get: function () { return buttonsState; }
+      });
+    } catch (e) { /* ignore */ }
+  }
+  _self.addEventListener('blur', function () { buttonsState = 0; }, false);
+
+  function synthPointer(type, src) {
+    var event;
+    try {
+      event = new MouseEvent(type, {
+        bubbles: true,
+        cancelable: true,
+        view: src.view || _self,
+        detail: src.detail,
+        screenX: src.screenX,
+        screenY: src.screenY,
+        clientX: src.clientX,
+        clientY: src.clientY,
+        ctrlKey: src.ctrlKey,
+        altKey: src.altKey,
+        shiftKey: src.shiftKey,
+        metaKey: src.metaKey,
+        button: src.button,
+        buttons: src.buttons,
+        relatedTarget: null
+      });
+    } catch (err) {
+      // Запасной путь для движков без конструктора MouseEvent.
+      event = document.createEvent('MouseEvents');
+      event.initMouseEvent(type, true, true, src.view || _self, src.detail,
+        src.screenX, src.screenY, src.clientX, src.clientY,
+        src.ctrlKey, src.altKey, src.shiftKey, src.metaKey, src.button, null);
+    }
+
+    // Скроллбары и миникарта получают сырое событие и читают эти поля напрямую.
+    function defineEventProperty(name, value) {
+      try { Object.defineProperty(event, name, { value: value, configurable: true }); }
+      catch (e) { /* ignore */ }
+    }
+    defineEventProperty('pointerId', 1);
+    defineEventProperty('pointerType', 'mouse');
+    defineEventProperty('isPrimary', true);
+    defineEventProperty('offsetX', src.offsetX);
+    defineEventProperty('offsetY', src.offsetY);
+    defineEventProperty('pageX', src.pageX);
+    defineEventProperty('pageY', src.pageY);
+    return event;
+  }
+
+  function translate(mouseType, pointerType, mirrorCancel) {
+    document.addEventListener(mouseType, function (src) {
+      if (mouseType === 'mousedown') buttonsState |= (BUTTON_BIT[src.button] || 0);
+      else if (mouseType === 'mouseup') buttonsState &= ~(BUTTON_BIT[src.button] || 0);
+
+      var target = src.target && src.target.dispatchEvent ? src.target : document;
+      var event = synthPointer(pointerType, src);
+      target.dispatchEvent(event);
+
+      // По спецификации отменённый pointerdown подавляет совместимый mousedown.
+      // Зеркалим это, иначе Monaco обработает один жест дважды и уведёт фокус.
+      if (mirrorCancel && event.defaultPrevented) {
+        src.preventDefault();
+        if (src.stopImmediatePropagation) src.stopImmediatePropagation();
+        else src.stopPropagation();
+      }
+    }, true);
+  }
+
+  translate('mousedown', 'pointerdown', true);
+  translate('mousemove', 'pointermove', false);
+  translate('mouseup', 'pointerup', false);
+})();
+
 // Вывод версии ES от zeegin/ecmaScriptInfo
 var ecmaScriptInfo = (function () {
     // () => { is not allowed
