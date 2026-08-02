@@ -1668,8 +1668,12 @@ class bslHelper {
 		if (match) {
 
 			let position = new monaco.Position(match.range.startLineNumber, match.range.startColumn);
+			// Ветка lookBehind ниже переприсваивает position, поэтому позицию точки запоминаем.
+			let refPosition = position;
 
-			if (position.lineNumber = currentPosition.lineNumber) {
+			// Здесь было присваивание вместо сравнения: условие всегда истинно, да ещё и
+			// подменяло номер строки у position, из-за чего слово читалось с чужой строки.
+			if (position.lineNumber == currentPosition.lineNumber) {
 
 				let lineContextData = window.contextData.get(position.lineNumber)
 
@@ -1695,6 +1699,29 @@ class bslHelper {
 					}
 
 					
+				}
+
+				// Вывод типа из объявления переменной идёт ДО эвристики lookBehind ниже.
+				// Та ищет выше по тексту ближайший `.метод(` и переиспользует его сохранённый
+				// тип, поэтому после `А.Колонки.Добавить(...)` подсказывает для `А.` колонку
+				// вместо самой таблицы (issue #305). Разбор присваивания точнее такой догадки,
+				// а прямое попадание в contextData выше — точнее их обоих.
+				if (!suggestions.length && !window.isQueryMode() && !window.isDCSMode()) {
+
+					let inferredWord = this.model.getWordUntilPosition(refPosition).word;
+
+					if (inferredWord) {
+
+						let inferredContext = this.getInferredContext(inferredWord, refPosition);
+
+						if (inferredContext) {
+							wordContext = inferredContext;
+							this.getRefSuggestions(suggestions, wordContext);
+							this.getDeclaredPropertiesSuggestions(suggestions, inferredContext.properties);
+						}
+
+					}
+
 				}
 
 				if (!suggestions.length && allowLookBehind) {
@@ -1747,9 +1774,738 @@ class bslHelper {
 	 * @param {array} suggestions the list of suggestions
 	 */
 	getRefCompletion(suggestions) {
-		
+
 		this.getRefCompletionFromPosition(suggestions, this.position, true);
-		
+
+	}
+
+	/**
+	 * Заменяет содержимое комментариев и строковых литералов пробелами, сохраняя длину текста.
+	 * Нужно, чтобы присваивание внутри строки или комментария не принималось за источник типа:
+	 * `Текст = "Таблица = Новый ТаблицаЗначений"` не должен типизировать Таблица.
+	 *
+	 * @param {string} text исходный текст
+	 *
+	 * @returns {string} текст той же длины без содержимого комментариев и литералов
+	 */
+	maskCommentsAndStrings(text, keepStrings) {
+
+		let result = text.split('');
+		let inString = false;
+		let inComment = false;
+
+		for (let i = 0; i < text.length; i++) {
+
+			let char = text[i];
+
+			if (inComment) {
+				if (char == '\n')
+					inComment = false;
+				else
+					result[i] = ' ';
+			}
+			else if (inString) {
+				// Удвоенная кавычка внутри строки закроет и тут же откроет её заново —
+				// для наших целей (спрятать содержимое) этого достаточно.
+				if (char == '"' || char == '\n')
+					inString = false;
+				else if (!keepStrings)
+					result[i] = ' ';
+			}
+			else if (char == '/' && text[i + 1] == '/') {
+				inComment = true;
+				result[i] = ' ';
+			}
+			else if (char == '"') {
+				inString = true;
+			}
+
+		}
+
+		return result.join('');
+
+	}
+
+	/**
+	 * Возвращает текст документа до позиции, очищенный от комментариев и строк.
+	 * Маскирование кешируется по версии модели: разбор идёт на каждой подсказке,
+	 * а текст между нажатиями клавиш не меняется.
+	 *
+	 * @param {IPosition} position позиция, до которой нужен текст
+	 *
+	 * @returns {string} замаскированный текст до позиции
+	 */
+	getMaskedTextBefore(position, keepStrings) {
+
+		let versionId = this.model.getVersionId ? this.model.getVersionId() : 0;
+		let cache = this.model._maskedTextCache;
+		let slot = keepStrings ? 'withStrings' : 'masked';
+
+		if (!cache || cache.versionId != versionId) {
+			cache = { versionId: versionId };
+			this.model._maskedTextCache = cache;
+		}
+
+		if (!cache[slot])
+			cache[slot] = this.maskCommentsAndStrings(this.model.getValue(), keepStrings);
+
+		return cache[slot].substr(0, this.model.getOffsetAt(position));
+
+	}
+
+	/**
+	 * Возвращает ref встроенного типа по его имени на русском или английском:
+	 * `ТаблицаЗначений` и `ValueTable` → `classes.ТаблицаЗначений`.
+	 * Индекс строится один раз: classes перекрывают types при совпадении имён.
+	 *
+	 * @param {string} typeName имя типа
+	 *
+	 * @returns {string} ref вида `classes.X` / `types.X` либо пустая строка
+	 */
+	getRefByTypeName(typeName) {
+
+		if (!typeName)
+			return '';
+
+		if (!window.bslTypeNameIndex) {
+
+			let index = new Map();
+
+			['types', 'classes'].forEach(function (section) {
+
+				let data = window.bslGlobals ? window.bslGlobals[section] : null;
+
+				if (data) {
+
+					for (const [key, value] of Object.entries(data)) {
+						let ref = section + '.' + key;
+						index.set(key.toLowerCase(), ref);
+						if (value.name)
+							index.set(value.name.toLowerCase(), ref);
+						if (value.name_en)
+							index.set(value.name_en.toLowerCase(), ref);
+					}
+
+				}
+
+			});
+
+			window.bslTypeNameIndex = index;
+
+		}
+
+		return window.bslTypeNameIndex.get(typeName.toLowerCase()) || '';
+
+	}
+
+	/**
+	 * Достаёт ref из текстового описания результата вида `Тип: ТаблицаЗначений. ...`.
+	 * В справочнике поле `ref` заполнено лишь у части методов и функций, тогда как
+	 * текстовое `returns` есть почти везде — это заметно расширяет покрытие.
+	 * Составные результаты (`Тип: Число, Строка`) пропускаем: гадать, какой из них имелся
+	 * в виду, хуже, чем не подсказать ничего.
+	 *
+	 * @param {string} returns описание результата из справочника
+	 *
+	 * @returns {string} ref либо пустая строка
+	 */
+	getRefFromReturnsDescription(returns) {
+
+		if (!returns)
+			return '';
+
+		let match = /^\s*(?:Тип|Type)\s*:\s*([a-zA-ZА-яЁё_][a-zA-Z0-9А-яЁё_]*)\s*\./.exec(returns);
+
+		if (!match)
+			return '';
+
+		return this.getRefByTypeName(match[1]);
+
+	}
+
+	/**
+	 * Возвращает ref результата метода или свойства у типа-владельца.
+	 *
+	 * @param {string} ownerRef ref владельца, например `classes.ТаблицаЗначений`
+	 * @param {string} memberName имя метода или свойства
+	 *
+	 * @returns {string} ref результата либо пустая строка
+	 */
+	getMemberResultRef(ownerRef, memberName) {
+
+		if (!ownerRef || !memberName)
+			return '';
+
+		let refArray = ownerRef.split('.');
+
+		if (refArray.length != 2 || !this.objectHasProperties(window.bslGlobals, refArray[0], refArray[1]))
+			return '';
+
+		let owner = window.bslGlobals[refArray[0]][refArray[1]];
+		let name = memberName.toLowerCase();
+
+		for (let section of ['methods', 'properties']) {
+
+			if (!owner[section])
+				continue;
+
+			for (const [key, member] of Object.entries(owner[section])) {
+
+				let matched = key.toLowerCase() == name
+					|| (member.name && member.name.toLowerCase() == name)
+					|| (member.name_en && member.name_en.toLowerCase() == name);
+
+				if (matched)
+					return member.ref || this.getRefFromReturnsDescription(member.returns);
+
+			}
+
+		}
+
+		return '';
+
+	}
+
+	/**
+	 * Возвращает ref результата глобальной функции встроенного языка.
+	 *
+	 * @param {string} funcName имя функции
+	 *
+	 * @returns {string} ref результата либо пустая строка
+	 */
+	getGlobalFunctionResultRef(funcName) {
+
+		if (!funcName || !window.bslGlobals || !window.bslGlobals.globalfunctions)
+			return '';
+
+		let name = funcName.toLowerCase();
+
+		for (const [key, func] of Object.entries(window.bslGlobals.globalfunctions)) {
+
+			let matched = key.toLowerCase() == name
+				|| (func.name && func.name.toLowerCase() == name)
+				|| (func.name_en && func.name_en.toLowerCase() == name);
+
+			if (matched)
+				return func.ref || this.getRefFromReturnsDescription(func.returns);
+
+		}
+
+		return '';
+
+	}
+
+	/**
+	 * Схлопывает аргументы вызовов: `Ф(А(1), "б").Метод(2)` → `Ф().Метод()`.
+	 * После этого цепочку можно разбирать простым делением по точке, не путаясь
+	 * в точках и скобках внутри аргументов.
+	 *
+	 * @param {string} expression исходное выражение
+	 *
+	 * @returns {string} выражение со схлопнутыми аргументами
+	 */
+	collapseCallArguments(expression) {
+
+		let result = '';
+		let depth = 0;
+
+		for (let i = 0; i < expression.length; i++) {
+
+			let char = expression[i];
+
+			if (char == '(') {
+				if (depth == 0)
+					result += '(';
+				depth++;
+			}
+			else if (char == ')') {
+				depth--;
+				if (depth < 0)
+					return result;
+				if (depth == 0)
+					result += ')';
+			}
+			else if (depth == 0) {
+				result += char;
+			}
+
+		}
+
+		return result;
+
+	}
+
+	/**
+	 * Выводит ref типа результата выражения в правой части присваивания.
+	 * Поддержаны формы из specs/type-inference/spec.md §3.1: `Новый Х`, другая переменная,
+	 * цепочка вызовов методов и свойств, глобальная функция.
+	 *
+	 * @param {string} expression выражение
+	 * @param {IPosition} position позиция, до которой разрешается искать объявления
+	 * @param {array} seen имена переменных в текущей цепочке разрешения (защита от цикла)
+	 *
+	 * @returns {string} ref либо пустая строка
+	 */
+	inferExpressionContext(expression, position, seen) {
+
+		if (!expression)
+			return null;
+
+		let newMatch = /^\s*(?:новый|new)\s+([a-zA-ZА-яЁё_][a-zA-Z0-9А-яЁё_]*)/i.exec(expression);
+
+		if (newMatch) {
+			let ref = this.getRefByTypeName(newMatch[1]);
+			return ref ? { ref: ref, properties: [] } : null;
+		}
+
+		let parts = this.collapseCallArguments(expression).trim().split('.');
+		let context = null;
+
+		for (let i = 0; i < parts.length; i++) {
+
+			let part = parts[i].trim();
+			let isCall = /\(\s*\)$/.test(part);
+			let name = part.replace(/\(\s*\)$/, '').trim();
+
+			if (!/^[a-zA-ZА-яЁё_][a-zA-Z0-9А-яЁё_]*$/.test(name))
+				return null;
+
+			if (i == 0) {
+
+				// Начало цепочки — либо вызов глобальной функции, либо переменная,
+				// либо имя типа (`Метаданные`, системные перечисления).
+				if (isCall) {
+					let ref = this.getGlobalFunctionResultRef(name);
+					context = ref ? { ref: ref, properties: [] } : null;
+				}
+				else {
+					context = this.inferVariableContext(name, position, seen);
+					if (!context) {
+						let ref = this.getRefByTypeName(name);
+						context = ref ? { ref: ref, properties: [] } : null;
+					}
+				}
+
+			}
+			else {
+
+				// Свойство, объявленное в типизирующем комментарии, справочнику неизвестно —
+				// его тип берём из самого объявления.
+				let declared = context.properties.find(property => property.name.toLowerCase() == name.toLowerCase());
+				let ref = declared && declared.type
+					? this.getRefByTypeName(declared.type)
+					: this.getMemberResultRef(context.ref, name);
+
+				// `Стр = ТЗ.Добавить()` — у строки те же колонки, что у самой таблицы.
+				let inherited = ref && this.isRowOfCollection(context.ref, ref) ? context.properties : [];
+
+				context = ref ? { ref: ref, properties: inherited } : null;
+
+			}
+
+			if (!context)
+				return null;
+
+		}
+
+		return context;
+
+	}
+
+	/**
+	 * Выводит ref типа переменной по последнему присваиванию выше позиции.
+	 * Присваивания ниже позиции игнорируются: тип берётся из того, что уже написано.
+	 *
+	 * @param {string} varName имя переменной
+	 * @param {IPosition} position позиция курсора
+	 * @param {array} seen имена переменных в текущей цепочке разрешения (защита от цикла)
+	 *
+	 * @returns {string} ref либо пустая строка
+	 */
+	inferVariableContext(varName, position, seen) {
+
+		if (!varName)
+			return null;
+
+		seen = seen || [];
+
+		let key = varName.toLowerCase();
+
+		// Цепочки вида `А = Б; Б = А;` и слишком длинные цепочки обрываем.
+		if (bslHelper.INFER_DEPTH_LIMIT <= seen.length || 0 <= seen.indexOf(key))
+			return null;
+
+		if (!/^[a-zA-ZА-яЁё_][a-zA-Z0-9А-яЁё_]*$/.test(varName))
+			return null;
+
+		seen.push(key);
+
+		// Явное объявление в комментарии сильнее вывода из кода: разработчик написал его
+		// как раз потому, что вывести тип нельзя (specs/type-inference/spec.md §3.1).
+		let context = this.inferContextFromComment(varName, position);
+
+		if (!context) {
+
+			let text = this.getMaskedTextBefore(position);
+			// Отсекаем `==`, `>=`, `<=`, `<>`, чтобы сравнение не принять за присваивание.
+			let regexp = new RegExp('(?:^|[^a-zA-Z0-9А-яЁё_.])' + varName + '\\s*=(?!=)\\s*([^;\\n]*)', 'gmi');
+			let match = null;
+			let assignment = null;
+
+			while ((match = regexp.exec(text)) !== null)
+				assignment = match;
+
+			if (assignment)
+				context = this.inferExpressionContext(assignment[1].trim(), position, seen);
+
+		}
+
+		if (!context)
+			return null;
+
+		// Комментарий задаёт начальный набор имён, код меняет его дальше — в обе стороны.
+		let members = this.collectMembers(varName, position, context.ref, context.properties);
+
+		return { ref: context.ref, properties: members };
+
+	}
+
+	/**
+	 * Определяет, чем являются «имена» у типа: ключами (структура, соответствие) или
+	 * колонками (таблица, дерево значений). Для остальных типов состояние не собирается.
+	 *
+	 * @param {string} ref ref типа
+	 *
+	 * @returns {string} 'keys' | 'columns' | ''
+	 */
+	getMembersKindByRef(ref) {
+
+		if (bslHelper.KEYS_REFS.indexOf(ref) >= 0)
+			return 'keys';
+
+		if (bslHelper.COLUMNS_REFS.indexOf(ref) >= 0)
+			return 'columns';
+
+		return '';
+
+	}
+
+	/**
+	 * Собирает имена, которых нет в справочнике: ключи структуры и колонки таблицы значений.
+	 * Набор — результат применения операций ВЫШЕ позиции курсора по порядку: Вставить и
+	 * Колонки.Добавить добавляют, Удалить убирает, Очистить снимает всё
+	 * (specs/type-inference/spec.md §3.4).
+	 *
+	 * Операции ищутся по всему тексту сразу и применяются в порядке следования, поэтому
+	 * несколько операций в одной строке отрабатывают правильно.
+	 *
+	 * Имена, объявленные типизирующим комментарием, образуют НАЧАЛЬНЫЙ набор: операции кода
+	 * применяются поверх них и в том числе снимают объявленное — иначе `Удалить("Ключ2")`
+	 * не убирал бы ключ, пришедший из блока `// Структура:`.
+	 *
+	 * @param {string} varName имя переменной
+	 * @param {IPosition} position позиция курсора
+	 * @param {string} ref ref типа переменной
+	 * @param {array} initial начальный набор свойств вида {name, type}
+	 *
+	 * @returns {array} свойства вида {name, type}
+	 */
+	collectMembers(varName, position, ref, initial) {
+
+		let kind = this.getMembersKindByRef(ref);
+
+		if (!kind)
+			return initial || [];
+
+		// Имена ключей и колонок живут в строковых литералах, поэтому строки не маскируем.
+		let text = this.getMaskedTextBefore(position, true);
+		let head = '(?:^|[^a-zA-Z0-9А-яЁё_.])' + varName + '\\s*';
+		let rules = [];
+
+		if (kind == 'keys') {
+			rules.push({ kind: 'reset', re: head + '=\\s*(?:Новый|New)\\s+(?:Структура|Structure|ФиксированнаяСтруктура|FixedStructure)\\s*\\(\\s*(?:"([^"]*)")?' });
+			rules.push({ kind: 'add', re: head + '\\.\\s*(?:Вставить|Insert)\\s*\\(\\s*"([^"]*)"' });
+			rules.push({ kind: 'remove', re: head + '\\.\\s*(?:Удалить|Delete)\\s*\\(\\s*"([^"]*)"' });
+			rules.push({ kind: 'clear', re: head + '\\.\\s*(?:Очистить|Clear)\\s*\\(' });
+		}
+		else {
+
+			let columns = head + '\\.\\s*(?:Колонки|Columns)\\s*\\.\\s*';
+
+			rules.push({ kind: 'clear', re: head + '=\\s*(?:Новый|New)\\s+(?:ТаблицаЗначений|ValueTable|ДеревоЗначений|ValueTree)' });
+			rules.push({ kind: 'add', re: columns + '(?:Добавить|Add)\\s*\\(\\s*"([^"]*)"' });
+			// У Вставить имя идёт ВТОРЫМ: Вставить(Индекс, Имя, Тип, Заголовок, Ширина).
+			rules.push({ kind: 'add', re: columns + '(?:Вставить|Insert)\\s*\\(\\s*[^,]*,\\s*"([^"]*)"' });
+			rules.push({ kind: 'remove', re: columns + '(?:Удалить|Delete)\\s*\\(\\s*"([^"]*)"' });
+			rules.push({ kind: 'clear', re: columns + '(?:Очистить|Clear)\\s*\\(' });
+
+		}
+
+		let operations = [];
+
+		rules.forEach(rule => {
+
+			let regexp = new RegExp(rule.re, 'gmi');
+			let match = null;
+
+			while ((match = regexp.exec(text)) !== null)
+				operations.push({ index: match.index, kind: rule.kind, value: match[1] || '' });
+
+		});
+
+		operations.sort((left, right) => left.index - right.index);
+
+		// Объявленные комментарием имена несут ещё и тип — сохраняем его при переносе.
+		let members = (initial || []).slice();
+
+		operations.forEach(operation => {
+
+			if (operation.kind == 'clear') {
+				members = [];
+				return;
+			}
+
+			if (operation.kind == 'reset') {
+				// `Новый Структура("Ключ1, Ключ2")` — ключи перечислены в первом аргументе.
+				members = operation.value
+					? operation.value.split(',').map(name => name.trim()).filter(name => name).map(name => ({ name: name, type: '' }))
+					: [];
+				return;
+			}
+
+			if (!operation.value)
+				return;
+
+			if (operation.kind == 'add') {
+				if (!members.some(member => member.name.toLowerCase() == operation.value.toLowerCase()))
+					members.push({ name: operation.value, type: '' });
+			}
+			else {
+				members = members.filter(member => member.name.toLowerCase() != operation.value.toLowerCase());
+			}
+
+		});
+
+		return members;
+
+	}
+
+	/**
+	 * Проверяет, что результат метода — строка коллекции, которой достаются колонки
+	 * самой коллекции: `Стр = ТЗ.Добавить()` даёт строку с колонками таблицы.
+	 *
+	 * @param {string} ownerRef ref коллекции
+	 * @param {string} resultRef ref результата
+	 *
+	 * @returns {boolean} наследует ли результат имена владельца
+	 */
+	isRowOfCollection(ownerRef, resultRef) {
+
+		return bslHelper.COLUMNS_REFS.indexOf(ownerRef) >= 0 && bslHelper.ROW_REFS.indexOf(resultRef) >= 0;
+
+	}
+
+	/**
+	 * Тонкая обёртка над inferVariableContext, отдающая только ref.
+	 * Удобна для диагностики и точечных проверок.
+	 *
+	 * @param {string} varName имя переменной
+	 * @param {IPosition} position позиция курсора
+	 * @param {array} seen имена переменных в текущей цепочке разрешения
+	 *
+	 * @returns {string} ref либо пустая строка
+	 */
+	inferVariableRef(varName, position, seen) {
+
+		let context = this.inferVariableContext(varName, position, seen);
+
+		return context ? context.ref : '';
+
+	}
+
+	/**
+	 * Возвращает исходный текст до позиции — без маскирования, в отличие от
+	 * getMaskedTextBefore: типизирующие комментарии живут именно в комментариях.
+	 *
+	 * @param {IPosition} position позиция, до которой нужен текст
+	 *
+	 * @returns {string} текст документа до позиции
+	 */
+	getRawTextBefore(position) {
+
+		return this.model.getValue().substr(0, this.model.getOffsetAt(position));
+
+	}
+
+	/**
+	 * Разбирает типизирующие комментарии в стиле строгой типизации ЕДТ и возвращает
+	 * объявленный тип переменной. Поддержаны три формы (specs/type-inference/spec.md §4.3):
+	 *
+	 *   // Таб - ТаблицаЗначений          объявление типа для конкретной переменной
+	 *   Таб = ПолучитьТаблицу();
+	 *
+	 *   Таб = ПолучитьТаблицу(); // ТаблицаЗначений    тип в конце строки присваивания
+	 *
+	 *   // Структура:                     тип с перечислением свойств
+	 *   //  * Свойство1 - Строка
+	 *   Парам = ПолучитьПараметры();
+	 *
+	 * Побеждает последнее объявление выше позиции.
+	 *
+	 * @param {string} varName имя переменной
+	 * @param {IPosition} position позиция курсора
+	 *
+	 * @returns {object|null} {ref, properties} либо null
+	 */
+	inferContextFromComment(varName, position) {
+
+		const NAME = '[a-zA-ZА-яЁё_][a-zA-Z0-9А-яЁё_]*';
+		const DASH = '[-–—]';
+
+		let blockHeaderRe = new RegExp('^\\s*//\\s*(' + NAME + ')\\s*:\\s*$');
+		let blockItemRe = new RegExp('^\\s*//\\s*\\*\\s*(' + NAME + ')\\s*(?:' + DASH + '\\s*(' + NAME + '))?');
+		let declarationRe = new RegExp('^\\s*//\\s*(' + NAME + ')\\s*' + DASH + '\\s*(' + NAME + ')');
+		let assignmentRe = new RegExp('^\\s*(' + NAME + ')\\s*=(?!=)');
+		let trailingTypeRe = new RegExp('//\\s*(' + NAME + ')\\s*$');
+
+		let lines = this.getRawTextBefore(position).split('\n');
+		let name = varName.toLowerCase();
+		let result = null;
+
+		// Блок `// Тип:` со списком свойств копится до ближайшего присваивания.
+		let blockRef = '';
+		let blockProperties = [];
+
+		for (let i = 0; i < lines.length; i++) {
+
+			let line = lines[i];
+			let match = blockHeaderRe.exec(line);
+
+			if (match) {
+				blockRef = this.getRefByTypeName(match[1]);
+				blockProperties = [];
+				continue;
+			}
+
+			match = blockItemRe.exec(line);
+
+			if (match) {
+				if (blockRef)
+					blockProperties.push({ name: match[1], type: match[2] || '' });
+				continue;
+			}
+
+			match = declarationRe.exec(line);
+
+			if (match) {
+
+				if (match[1].toLowerCase() == name) {
+					let ref = this.getRefByTypeName(match[2]);
+					if (ref)
+						result = { ref: ref, properties: [] };
+				}
+
+				continue;
+
+			}
+
+			match = assignmentRe.exec(line);
+
+			if (match) {
+
+				if (match[1].toLowerCase() == name) {
+
+					let trailing = trailingTypeRe.exec(line);
+					let ref = trailing ? this.getRefByTypeName(trailing[1]) : '';
+
+					if (ref)
+						result = { ref: ref, properties: [] };
+					else if (blockRef)
+						result = { ref: blockRef, properties: blockProperties };
+
+				}
+
+				blockRef = '';
+				blockProperties = [];
+				continue;
+
+			}
+
+			// Пустая строка блок не рвёт, строка кода — рвёт.
+			if (line.trim() != '' && !/^\s*\/\//.test(line)) {
+				blockRef = '';
+				blockProperties = [];
+			}
+
+		}
+
+		return result;
+
+	}
+
+	/**
+	 * Добавляет в подсказку свойства, перечисленные в типизирующем комментарии.
+	 * В справочнике их нет — имена придуманы разработчиком, — поэтому отдаём их
+	 * напрямую, проставляя ref из указанного типа, чтобы работала подсказка по цепочке.
+	 *
+	 * @param {array} suggestions список подсказок
+	 * @param {array} properties свойства вида {name, type}
+	 */
+	getDeclaredPropertiesSuggestions(suggestions, properties) {
+
+		if (!properties || !properties.length)
+			return;
+
+		properties.forEach(property => {
+
+			let exists = suggestions.some(suggestion => String(suggestion.label).toLowerCase() == property.name.toLowerCase());
+
+			if (exists)
+				return;
+
+			let ref = property.type ? this.getRefByTypeName(property.type) : '';
+
+			suggestions.push({
+				label: property.name,
+				kind: monaco.languages.CompletionItemKind.Field,
+				insertText: property.name,
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				detail: property.type || '',
+				documentation: '',
+				command: ref ? { id: 'bsl.saveref', arguments: [{ "name": property.name, "data": { "ref": ref, "sig": null } }] } : null
+			});
+
+		});
+
+	}
+
+	/**
+	 * Формирует контекст переменной, выведенный из текста, — запасной источник типа,
+	 * когда 1С ничего про переменную не присылала и подсказка не выбиралась вручную.
+	 * Явное объявление в комментарии сильнее вывода из кода: разработчик написал его
+	 * как раз потому, что вывести тип нельзя (specs/type-inference/spec.md §3.1).
+	 *
+	 * @param {string} varName имя переменной
+	 * @param {IPosition} position позиция курсора
+	 *
+	 * @returns {object|null} контекст вида {ref, parent_ref, sig, properties} либо null
+	 */
+	getInferredContext(varName, position) {
+
+		// Слой вывода — вспомогательный: сбой разбора не должен ронять подсказку целиком.
+		try {
+
+			let context = this.inferVariableContext(varName, position, []);
+
+			return context ? { ref: context.ref, parent_ref: null, sig: null, properties: context.properties } : null;
+
+		} catch (e) {
+
+			console.debug('type inference failed', e);
+			return null;
+
+		}
+
 	}
 
 	/**
@@ -9749,5 +10505,17 @@ class bslHelper {
 	}
 
 }
+
+// Предел длины цепочки `А = Б; Б = В; ...` при выводе типа переменной.
+// Реальные цепочки короткие; ограничение защищает от зацикливания и от разбора,
+// растущего на больших модулях (см. specs/type-inference/plan.md, раздел «Риски»).
+bslHelper.INFER_DEPTH_LIMIT = 5;
+
+// Типы, у которых имена свойств задаются кодом, а не справочником (specs/type-inference/spec.md §3.4).
+// Соответствия здесь нет намеренно: к его ключам через точку не обращаются — только
+// `Получить("Ключ")` или `[...]`, поэтому в подсказке после точки им не место.
+bslHelper.KEYS_REFS = ['classes.Структура', 'classes.ФиксированнаяСтруктура'];
+bslHelper.COLUMNS_REFS = ['classes.ТаблицаЗначений', 'classes.ДеревоЗначений'];
+bslHelper.ROW_REFS = ['types.СтрокаТаблицыЗначений', 'types.СтрокаДереваЗначений'];
 
 export default bslHelper;

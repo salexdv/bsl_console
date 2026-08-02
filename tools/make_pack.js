@@ -7,9 +7,11 @@
 // Парсинг 14 МБ после распаковки тот же — выигрыш на чтении/маршалинге строки в поле и на
 // размере .epf. Идея владельца форка (техника из его ветки single-pack).
 //
-// Запуск после `webpack --mode production` (см. npm run build:pack). pako_inflate.min.js — ES5,
-// работает в старом WebKit поля (Safari 11+); терсер даёт ASCII-only console.js → распаковка
-// строкой (to:'string', для ASCII UTF-8-декод тождествен). Всё в бутстрапе — ES5 (var/function).
+// Запуск после `webpack --mode production` (см. npm run build:pack). Инфлейтер pako 3 —
+// ES2015, как и сам бандл (esbuild target es2015), в WebKit платформы 8.3.24+ работает.
+// Бандл собирается в UTF-8 (terser ascii_only:false), поэтому распаковывать ОБЯЗАТЕЛЬНО
+// с toText:true — в pako 3 старое to:'string' возвращает объект, и кириллица превращается
+// в мусор. Всё в бутстрапе — ES5 (var/function).
 
 const fs = require('fs');
 const path = require('path');
@@ -37,7 +39,7 @@ const pako = fs.readFileSync(pakoPath, 'utf8');  // инфлейтер (ES5 UMD 
 const gz = zlib.gzipSync(jsBuf, { level: 9 });
 const b64 = gz.toString('base64');
 
-// Бутстрап (ES5): base64 → бинарная строка → Uint8Array → pako.ungzip(to:'string') → <script>.
+// Бутстрап (ES5): base64 → бинарная строка → Uint8Array → pako.ungzip(toText:true) → <script>.
 // Промежуточные буферы обнуляем, чтобы снизить пиковую память в поле. Динамически вставленный
 // inline-<script> исполняется синхронно при appendChild — в том же global (window), что и бутстрап.
 const scriptContent =
