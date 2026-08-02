@@ -1,6 +1,7 @@
 import monaco from "./expose-monaco";
 import Finder from "./finder";
 import queryModelService from "./query_model_service";
+import queryNavigation from "./query_navigation";
 
 /**
  * Class for provideSignatureHelp
@@ -8148,6 +8149,67 @@ class bslHelper {
 
 		let match = fieldText.match(/(?:\s|^)(?:как|as)\s+([a-zA-Z0-9_\u0410-\u044F\u0401\u0451]+)\s*$/i);
 		return match ? match[1] : '';
+
+	}
+
+	/**
+	 * Возвращает структуру текущего запроса для Quick Outline.
+	 *
+	 * @param {ITextModel} model модель редактора
+	 * @param {CancellationToken} token токен отмены
+	 * @returns {Promise<DocumentSymbol[]>} символы документа
+	 */
+	static provideQueryDocumentSymbols(model, token) {
+
+		return queryModelService.getCurrent(model, token).then(result => {
+			if (!result || result.status != 'ready' || !result.document || token && token.isCancellationRequested)
+				return [];
+
+			return queryNavigation.provideDocumentSymbols(
+				result.document,
+				model.getValue(),
+				monaco.languages.SymbolKind
+			);
+		});
+
+	}
+
+	/**
+	 * Возвращает локальное определение сущности запроса.
+	 *
+	 * @param {ITextModel} model модель редактора
+	 * @param {Position} position позиция курсора
+	 * @param {CancellationToken} token токен отмены
+	 * @returns {Promise<LocationLink[]|Location[]|null>} ссылка на определение
+	 */
+	static provideQueryDefinition(model, position, token) {
+
+		return queryModelService.getCurrent(model, token).then(result => {
+			if (!result || token && token.isCancellationRequested)
+				return null;
+
+			if (result.status == 'ready' && result.document) {
+				let definition = queryNavigation.provideDefinition(
+					result.document,
+					model.getValue(),
+					position.lineNumber,
+					position.column
+				);
+
+				if (!definition)
+					return null;
+
+				definition.targetUri = model.uri;
+				return [definition];
+			}
+
+			if (result.status == 'unavailable') {
+				let helper = new bslHelper(model, position);
+				return helper.provideQueryDefinition();
+			}
+
+			return null;
+		});
 
 	}
 

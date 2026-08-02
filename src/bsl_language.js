@@ -869,6 +869,11 @@ export let languages = {
                 return bslHelper.getQueryFoldingRanges(model);
             }
         },
+        documentSymbolProvider: {
+            provideDocumentSymbols: function (model, token) {
+                return bslHelper.provideQueryDocumentSymbols(model, token);
+            }
+        },
         signatureProvider: {
             signatureHelpTriggerCharacters: ['(', ','],
             signatureHelpRetriggerCharacters: [')'],
@@ -909,9 +914,8 @@ export let languages = {
             provideDocumentColors: () => {}
         },
         definitionProvider: {
-            provideDefinition: (model, position) => {
-                let bsl = new bslHelper(model, position);
-                return bsl.provideQueryDefinition();
+            provideDefinition: (model, position, token) => {
+                return bslHelper.provideQueryDefinition(model, position, token);
             }
         },
         codeActionProvider: {
