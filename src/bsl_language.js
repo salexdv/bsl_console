@@ -1,5 +1,10 @@
 import bslHelper from './bsl_helper';
 
+function getFormatOptions(model) {
+    const context = window.editor && window.editor.bslFormattingContext;
+    return context && context.model === model ? context.options : {};
+}
+
 function deepCopyArray(sourceArray, destinationArray) {
 
     sourceArray.forEach(value => {
@@ -758,10 +763,10 @@ export let languages = {
         },
         formatProvider: {
             provideDocumentFormattingEdits: function (model, options, token) {
-                return [{
-                    text: bslHelper.formatCode(model),
-                    range: model.getFullModelRange()
-                }];
+                return bslHelper.formatCode(model, null, getFormatOptions(model));
+            },
+            provideDocumentRangeFormattingEdits: function (model, range, options, token) {
+                return bslHelper.formatCode(model, range, getFormatOptions(model));
             }
         },
         codeLenses: {

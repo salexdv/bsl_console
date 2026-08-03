@@ -1,5 +1,6 @@
 import bslHelper from './bsl_helper';
 import Treeview from './tree/tree';
+import registerFormatterBrowserTests from './test_formatter_browser';
 
 setTimeout(() => {
 
@@ -1806,6 +1807,11 @@ setTimeout(() => {
       });
 
     }
+
+    const testFormatter = false;
+
+    if (testFormatter)
+      registerFormatterBrowserTests(getModel);
 
     mocha.run();
 

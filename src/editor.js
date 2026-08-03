@@ -1647,9 +1647,78 @@ window.getDiffCount = function() {
 
 }
 
-window.formatDocument = function() {
+const bslFormatOptionNames = [
+  'formatCanonicalKeywords',
+  'formatCanonicalPlatformNames',
+  'formatSplitStatements',
+  'formatSpaceAfterComma',
+  'formatAlignAssignments',
+  'formatJoinThen',
+  'formatBlankLinesAroundBlocks'
+];
 
-  window.editor.trigger('', 'editor.action.formatDocument');
+function parseBslFormatOptions(optionsJSON) {
+
+  const result = {};
+  bslFormatOptionNames.forEach(name => result[name] = true);
+
+  if (optionsJSON === undefined)
+    return result;
+
+  if (typeof optionsJSON != 'string')
+    throw new Error('Параметры форматирования должны быть JSON-строкой объекта');
+
+  const source = JSON.parse(optionsJSON);
+
+  if (!source || Array.isArray(source) || typeof source != 'object')
+    throw new Error('Параметры форматирования должны быть JSON-объектом');
+
+  bslFormatOptionNames.forEach(name => {
+    if (!Object.prototype.hasOwnProperty.call(source, name))
+      return;
+    if (typeof source[name] != 'boolean')
+      throw new Error('Опция ' + name + ' должна иметь тип boolean');
+    result[name] = source[name];
+  });
+
+  return result;
+
+}
+
+window.formatDocument = function(optionsJSON) {
+
+  let options;
+  try {
+    options = parseBslFormatOptions(optionsJSON);
+  }
+  catch (error) {
+    return { errorDescription: error.message };
+  }
+
+  const selection = window.editor.getSelection();
+  const action = selection && !selection.isEmpty()
+    ? 'editor.action.formatSelection'
+    : 'editor.action.formatDocument';
+  const context = {
+    model: window.editor.getModel(),
+    options: options
+  };
+
+  window.editor.bslFormattingContext = context;
+
+  const clearContext = function() {
+    if (window.editor.bslFormattingContext === context)
+      delete window.editor.bslFormattingContext;
+  };
+
+  try {
+    // Эквивалент finally без Promise.prototype.finally для старого WebKit поля HTML-документа.
+    Promise.resolve(window.editor.getAction(action).run()).then(clearContext, clearContext);
+  }
+  catch (error) {
+    clearContext();
+    throw error;
+  }
 
 }
 
@@ -2111,6 +2180,8 @@ for (const [key, lang] of Object.entries(window.languages)) {
   monaco.languages.registerSignatureHelpProvider(language.id, lang.signatureProvider);
   monaco.languages.registerHoverProvider(language.id, lang.hoverProvider);
   monaco.languages.registerDocumentFormattingEditProvider(language.id, lang.formatProvider);
+  if (lang.formatProvider.provideDocumentRangeFormattingEdits)
+    monaco.languages.registerDocumentRangeFormattingEditProvider(language.id, lang.formatProvider);
   monaco.languages.registerColorProvider(language.id, lang.colorProvider);
   monaco.languages.registerDefinitionProvider(language.id, lang.definitionProvider);
   monaco.languages.registerCodeActionProvider(language.id, lang.codeActionProvider);  
