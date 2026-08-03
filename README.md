@@ -185,6 +185,8 @@ npm run build -- --env customOptions="automaticLayout: true, someOption: false"
 | `closeSearchWidget`            | Закрывает окно поиска                                                                         |
 | `nextMatch`                    | Переход к следующему совпадению в поиске                                                      |
 | `previousMatch`                | Переход к предыдущему совпадению в поиске                                                     |
+| `saveSearchHistory`            | Возвращает JSON-массив последних 10 строк поиска, от новой к старой                           |
+| `restoreSearchHistory`         | Восстанавливает историю из JSON-массива строк; возвращает `true` или описание ошибки          |
 | `setFontSize`                  | Установка размера шрифта                                                                      |
 | `setFontFamily`                | Установка семейства шрифтов                                                                   |
 | `setFontWeight`                | Установка насыщенности (толщины) шрифта                                                       |

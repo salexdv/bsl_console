@@ -24,10 +24,12 @@ import Treeview from './tree/tree.js'
 import Finder from "./finder";
 import SnippetsParser from "./parsers";
 import { patchWebKit1C } from './1c-webkit-patch';
+import SearchHistoryController from './search_history';
 
 const hiddenBlocksController = new HiddenBlocksController(monaco, function () {
   return window.engLang;
 });
+const searchHistoryController = new SearchHistoryController(monaco);
 
 // Иконки дерева переменных инлайнятся в бандл (data:-URI) через require.context, а не тянутся
 // отдельными файлами — это нужно для single-file сборки. В обычной сборке результат тот же:
@@ -246,6 +248,18 @@ window.getText = function(txt) {
 window.getModuleMethods = function() {
 
   return JSON.stringify(bslHelper.getModuleMethods(getActiveEditor().getModel()));
+
+}
+
+window.saveSearchHistory = function () {
+
+  return searchHistoryController.save();
+
+}
+
+window.restoreSearchHistory = function (state) {
+
+  return searchHistoryController.restore(state);
 
 }
 

@@ -307,6 +307,212 @@ async function checkLegacyPointerDrag(browser, errors) {
       console.log('[headless] bridge шаги ok: ' + bridge.steps.join(', ') + ' | lang=' + bridge.lang);
       bridge.errors.forEach((e) => errors.push('bridge: ' + e));
 
+      // Issue #303: история поиска доступна через window-мост, записывается по blur и
+      // использует один и тот же MRU-список в обычном/diff-редакторе.
+      try {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        await page.evaluate(() => {
+          if (window.editor.navi) window.compare();
+        });
+        await page.waitForFunction('!window.editor.navi', { timeout: 5000 });
+
+        const restored = await page.evaluate(() => window.restoreSearchHistory('[]'));
+        if (restored !== true) errors.push('restoreSearchHistory не вернул true');
+
+        await page.evaluate(() => window.openSearchWidget());
+        await page.waitForSelector('.find-widget.visible .bsl-find-history-button', { timeout: 5000 });
+        await page.waitForFunction(() => Array.from(document.querySelectorAll('.find-widget.visible .bsl-find-history-button'))
+          .some((item) => {
+            const rect = item.getBoundingClientRect();
+            return rect.right > 0 && rect.left < window.innerWidth
+              && rect.bottom > 0 && rect.top < window.innerHeight;
+          }), { timeout: 5000 });
+
+        const searchHistory = await page.evaluate(async () => {
+          const buttonCandidates = Array.from(document.querySelectorAll('.find-widget.visible .bsl-find-history-button'));
+          const button = buttonCandidates.find((item) => {
+              const rect = item.getBoundingClientRect();
+              return rect.right > 0 && rect.left < window.innerWidth
+                && rect.bottom > 0 && rect.top < window.innerHeight;
+            });
+          const editors = window.editor.navi
+            ? [window.editor.getOriginalEditor(), window.editor.getModifiedEditor()]
+            : [window.editor];
+          const controllers = editors.map((editor) => editor.getContribution('editor.contrib.findController'));
+          const controller = controllers.find((item) => item && item._widget && item._widget._domNode.contains(button));
+          const widget = controller && controller._widget;
+          const inputBox = widget && widget._findInput && widget._findInput.inputBox;
+          if (!button || !controller || !inputBox)
+            return {
+              error: 'не найдены button/controller/inputBox',
+              navi: !!window.editor.navi,
+              buttons: buttonCandidates.map((item) => {
+                const rect = item.getBoundingClientRect();
+                return [rect.left, rect.top, rect.right, rect.bottom];
+              })
+            };
+
+          const getButtonVisualState = () => {
+            const style = getComputedStyle(button);
+            const rect = button.getBoundingClientRect();
+            return {
+              width: rect.width,
+              height: rect.height,
+              display: style.display,
+              alignItems: style.alignItems,
+              justifyContent: style.justifyContent,
+              padding: style.padding,
+              borderWidth: style.borderWidth,
+              backgroundColor: style.backgroundColor,
+              boxShadow: style.boxShadow
+            };
+          };
+          const disabledBeforeEnter = button.disabled;
+          const disabledVisualState = getButtonVisualState();
+          widget._findInput.setValue('добавлено-по-enter');
+          inputBox.inputElement.focus();
+          inputBox.inputElement.dispatchEvent(new KeyboardEvent('keydown', {
+            key: 'Enter', keyCode: 13, bubbles: true
+          }));
+          const savedByEnter = JSON.parse(window.saveSearchHistory());
+          const enabledAfterEnter = !button.disabled;
+          const enabledVisualState = getButtonVisualState();
+          const iconVisualStable = disabledVisualState.width === enabledVisualState.width
+            && disabledVisualState.height === enabledVisualState.height
+            && disabledVisualState.display === 'flex'
+            && enabledVisualState.display === 'flex'
+            && disabledVisualState.alignItems === 'center'
+            && enabledVisualState.alignItems === 'center'
+            && disabledVisualState.justifyContent === 'center'
+            && enabledVisualState.justifyContent === 'center'
+            && disabledVisualState.padding === '0px'
+            && enabledVisualState.padding === '0px'
+            && disabledVisualState.borderWidth === '0px'
+            && enabledVisualState.borderWidth === '0px'
+            && disabledVisualState.backgroundColor === 'rgba(0, 0, 0, 0)'
+            && enabledVisualState.backgroundColor === 'rgba(0, 0, 0, 0)'
+            && disabledVisualState.boxShadow === 'none'
+            && enabledVisualState.boxShadow === 'none';
+          const historyIcon = button.classList.contains('codicon-history')
+            && !button.classList.contains('codicon-chevron-down');
+
+          window.restoreSearchHistory(JSON.stringify(['второй', 'первый']));
+          widget._findInput.setValue('добавлено-по-blur');
+          inputBox.inputElement.focus();
+          await new Promise((resolve) => setTimeout(resolve, 650));
+          const beforeBlur = JSON.parse(window.saveSearchHistory());
+          button.focus();
+
+          const saved = JSON.parse(window.saveSearchHistory());
+          const monacoHistory = inputBox.history.getHistory().slice();
+          const replaceHistoryIntact = widget._replaceInput.inputBox.addToHistory !== inputBox.addToHistory;
+          button.click();
+          const items = Array.from(widget._domNode.querySelectorAll('.bsl-find-history-item'));
+          const menu = widget._domNode.querySelector('.bsl-find-history-menu');
+          const menuOpened = items.length === 3 && !menu.hidden;
+          const widgetRect = widget._domNode.getBoundingClientRect();
+          const menuRect = menu.getBoundingClientRect();
+          const openedWithoutActiveItem = document.activeElement === button
+            && !items.some((item) => document.activeElement === item);
+          const menuAttached = Math.abs(menuRect.top - widgetRect.bottom) <= 2
+            && Math.abs(menuRect.left - widgetRect.left) <= 2
+            && Math.abs(menuRect.right - widgetRect.right) <= 2;
+          const itemsHitTestable = items.every((item) => {
+            const rect = item.getBoundingClientRect();
+            const hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+            return hit === item || item.contains(hit);
+          });
+          const hitDiagnostics = items.map((item) => {
+            const rect = item.getBoundingClientRect();
+            const hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+            return {
+              item: item.textContent,
+              rect: [rect.left, rect.top, rect.right, rect.bottom],
+              hit: hit ? hit.tagName + '.' + hit.className : null
+            };
+          });
+
+          button.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', keyCode: 40, bubbles: true }));
+          const keyboardStarted = document.activeElement === items[0];
+          items[0].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', keyCode: 40, bubbles: true }));
+          const keyboardMoved = document.activeElement === items[1];
+          items[1].dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', keyCode: 13, bubbles: true }));
+
+          return {
+            disabledBeforeEnter: disabledBeforeEnter,
+            disabledVisualState: disabledVisualState,
+            savedByEnter: savedByEnter,
+            enabledAfterEnter: enabledAfterEnter,
+            enabledVisualState: enabledVisualState,
+            iconVisualStable: iconVisualStable,
+            historyIcon: historyIcon,
+            saved: saved,
+            beforeBlur: beforeBlur,
+            monacoHistory: monacoHistory,
+            replaceHistoryIntact: replaceHistoryIntact,
+            menuOpened: menuOpened,
+            openedWithoutActiveItem: openedWithoutActiveItem,
+            menuAttached: menuAttached,
+            itemsHitTestable: itemsHitTestable,
+            hitDiagnostics: hitDiagnostics,
+            keyboardStarted: keyboardStarted,
+            keyboardMoved: keyboardMoved,
+            selected: controller.getState().searchString,
+            menuClosed: widget._domNode.querySelector('.bsl-find-history-menu').hidden
+          };
+        });
+
+        if (searchHistory.error) errors.push('search history: ' + searchHistory.error);
+        else {
+          if (!searchHistory.disabledBeforeEnter || !searchHistory.enabledAfterEnter
+            || searchHistory.savedByEnter.join('|') !== 'добавлено-по-enter')
+            errors.push('search history: Enter не добавил запрос или не активировал кнопку');
+          if (!searchHistory.historyIcon)
+            errors.push('search history: кнопка не использует codicon-history');
+          if (!searchHistory.iconVisualStable)
+            errors.push('search history: геометрия иконки меняется или у кнопки остаётся фон/рамка');
+          if (searchHistory.saved[0] !== 'добавлено-по-blur' || searchHistory.saved.length !== 3)
+            errors.push('search history: blur не обновил MRU');
+          if (searchHistory.beforeBlur.join('|') !== 'второй|первый')
+            errors.push('search history: промежуточное значение записалось до blur');
+          if (!searchHistory.replaceHistoryIntact)
+            errors.push('search history: переопределена история строки замены');
+          if (searchHistory.monacoHistory.join('|') !== 'первый|второй|добавлено-по-blur')
+            errors.push('search history: Monaco HistoryNavigator не синхронизирован');
+          if (!searchHistory.menuOpened || !searchHistory.openedWithoutActiveItem
+            || !searchHistory.menuAttached || !searchHistory.itemsHitTestable
+            || !searchHistory.keyboardStarted || !searchHistory.keyboardMoved)
+            errors.push('search history: меню не примыкает к виджету, обрезано или клавиатурная навигация не сработала');
+          if (searchHistory.selected !== 'второй' || !searchHistory.menuClosed)
+            errors.push('search history: выбор значения не закрыл меню/не запустил поиск');
+        }
+
+        console.log('[headless] search history UI:', JSON.stringify(searchHistory));
+
+        await page.evaluate(() => window.compare(window.getText() + '\n// Проверка общей истории', false, true));
+        await page.waitForFunction('window.editor.navi && typeof window.editor.diffCount === "number"', { timeout: 5000 });
+        await page.evaluate(() => window.editor.getModifiedEditor().trigger('', 'actions.find'));
+        await page.waitForFunction(() => {
+          const controller = window.editor.getModifiedEditor().getContribution('editor.contrib.findController');
+          const inputBox = controller && controller._widget && controller._widget._findInput
+            && controller._widget._findInput.inputBox;
+          return !!inputBox;
+        }, { timeout: 5000 });
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        searchHistory.diffHistory = await page.evaluate(() => {
+          const controller = window.editor.getModifiedEditor().getContribution('editor.contrib.findController');
+          return controller._widget._findInput.inputBox.history.getHistory().slice();
+        });
+        searchHistory.savedAfterDiffSwitch = await page.evaluate(() => JSON.parse(window.saveSearchHistory()));
+        const expectedDiffHistory = searchHistory.savedAfterDiffSwitch.slice().reverse();
+        if (searchHistory.diffHistory.join('|') !== expectedDiffHistory.join('|'))
+          errors.push('search history: общий MRU не применился в diff-редакторе');
+
+        console.log('[headless] search history:', JSON.stringify(searchHistory));
+      } catch (e) {
+        errors.push('search history threw: ' + ((e && e.stack) || e));
+      }
+
       // Встроенный diff-виджет создаётся отдельным путём через setOriginalText + клик по diff-navi.
       try {
         await page.waitForFunction('window.editor.navi && typeof window.editor.diffCount === "number"', { timeout: 5000 });
