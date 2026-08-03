@@ -727,7 +727,7 @@ setTimeout(() => {
       expect(suggestions.suggestions).to.be.an('array').that.is.empty;
 
       bsl = helper("ВЫРАЗИТЬ(Товары.Код ");
-      suggestions = bsl.getQueryCompletion();
+      suggestions = bsl.getQueryCompletion({ triggerCharacter: " " });
       expect(suggestions).to.be.an('object');
       expect(suggestions.suggestions).to.be.an('array').that.is.not.empty;
       assert.equal(suggestions.suggestions.some(suggest => suggest.label === "КАК "), true);
@@ -744,6 +744,33 @@ setTimeout(() => {
       expect(suggestions).to.be.an('object');
       expect(suggestions.suggestions).to.be.an('array').that.is.not.empty;
       assert.equal(suggestions.suggestions.some(suggest => suggest.label === "Товары"), true);      
+
+    });
+
+    it("проверка автоподсказки ВЫРАЗИТЬ и CAST по SPACE", function () {
+
+      bsl = helper("ВЫРАЗИТЬ(Валюты КАК ");
+      let suggestions = bsl.getQueryCompletion({ triggerCharacter: " " });
+      expect(suggestions).to.be.an('object');
+      expect(suggestions.suggestions).to.be.an('array').that.is.not.empty;
+      assert.equal(suggestions.suggestions.some(suggest => suggest.label === "Строка"), true);
+      assert.equal(suggestions.suggestions.some(suggest => suggest.label === "Справочник"), true);
+      assert.equal(suggestions.suggestions.some(suggest => suggest.label === "КАК "), false);
+      assert.equal(suggestions.suggestions.some(suggest => suggest.label === "Валюты"), false);
+
+      bsl = helper("CAST(smth AS ");
+      suggestions = bsl.getQueryCompletion({ triggerCharacter: " " });
+      expect(suggestions).to.be.an('object');
+      expect(suggestions.suggestions).to.be.an('array').that.is.not.empty;
+      assert.equal(suggestions.suggestions.some(suggest => suggest.label === "Строка"), true);
+      assert.equal(suggestions.suggestions.some(suggest => suggest.label === "Справочник"), true);
+      assert.equal(suggestions.suggestions.some(suggest => suggest.label === "КАК "), false);
+
+      bsl = helper("ВЫБРАТЬ Товары.Код КАК ");
+      suggestions = bsl.getQueryCompletion({ triggerCharacter: " " });
+      expect(suggestions).to.be.an('object');
+      expect(suggestions.suggestions).to.be.an('array').that.is.not.empty;
+      assert.equal(suggestions.suggestions.some(suggest => suggest.label === "Код"), true);
 
     });
 
