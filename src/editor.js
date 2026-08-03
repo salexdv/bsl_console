@@ -11,8 +11,10 @@ import './tree/tree.css'
 import Treeview from './tree/tree.js'
 import Finder from "./finder";
 import SnippetsParser from "./parsers";
+import SearchHistoryController from './search_history';
 
 const monaco = require('./monaco');
+const searchHistoryController = new SearchHistoryController(monaco);
 // Иконки дерева переменных инлайнятся в бандл (data:-URI) через require.context, а не тянутся
 // отдельными файлами — это нужно для single-file сборки. В обычной сборке результат тот же:
 // asset modules инлайнят эти PNG (< 8 КБ), а копия в dist/tree/icons остаётся невостребованной.
@@ -227,6 +229,18 @@ window.getText = function(txt) {
 window.getModuleMethods = function() {
 
   return JSON.stringify(bslHelper.getModuleMethods(getActiveEditor().getModel()));
+
+}
+
+window.saveSearchHistory = function () {
+
+  return searchHistoryController.save();
+
+}
+
+window.restoreSearchHistory = function (state) {
+
+  return searchHistoryController.restore(state);
 
 }
 
