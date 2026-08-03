@@ -1270,6 +1270,159 @@ setTimeout(() => {
 
       });
 
+      describe("подсказка ключей в первом параметре Свойство (issue #228)", function () {
+
+        let previousCustomObjects;
+
+        beforeEach(function () {
+          previousCustomObjects = window.bslMetadata.customObjects.items;
+          window.bslMetadata.customObjects.items = {
+            "Параметры": {
+              "ref": "classes.Структура",
+              "properties": {
+                "Номенклатура": {
+                  "name": "Номенклатура",
+                  "description": "Ссылка на справочник номенклатуры",
+                  "ref": "catalogs.Товары"
+                },
+                "Остаток": {
+                  "name": "Остаток"
+                },
+                "МассивТоваров": {
+                  "name": "МассивТоваров",
+                  "ref": "classes.Массив"
+                }
+              }
+            },
+            "ФиксированныеПараметры": {
+              "ref": "classes.ФиксированнаяСтруктура",
+              "properties": {
+                "Ключ": { "name": "Ключ" }
+              }
+            },
+            "НеструктурныйОбъект": {
+              "ref": "classes.Массив",
+              "properties": {
+                "ЛожноеСвойство": { "name": "ЛожноеСвойство" }
+              }
+            }
+          };
+          window.contextData = new Map();
+        });
+
+        afterEach(function () {
+          window.bslMetadata.customObjects.items = previousCustomObjects;
+          window.contextData = new Map();
+        });
+
+        function getPropertyCompletion(text) {
+          let bsl = helper(text);
+          let completion = bsl.getCompletion({ triggerCharacter: '"' });
+          return { bsl: bsl, suggestions: completion.suggestions };
+        }
+
+        it("предлагает свойства пользовательского объекта", function () {
+          let result = getPropertyCompletion('Параметры.Свойство("');
+          let labels = result.suggestions.map(suggestion => suggestion.label);
+
+          expect(labels).to.include.members(["Номенклатура", "Остаток", "МассивТоваров"]);
+          assert.equal(labels.includes("Вставить"), false);
+        });
+
+        it("поддерживает фиксированную структуру и английское имя Property", function () {
+          let suggestions = getPropertyCompletion('ФиксированныеПараметры.Property("').suggestions;
+          assert.equal(suggestions.some(suggestion => suggestion.label === "Ключ"), true);
+        });
+
+        it("фильтрует префикс и заменяет только текст внутри кавычек", function () {
+          let result = getPropertyCompletion('Параметры.Свойство("Но');
+          let suggestion = result.suggestions.find(item => item.label === "Номенклатура");
+
+          expect(result.suggestions).to.have.length(1);
+          expect(suggestion).to.not.equal(undefined);
+          assert.equal(suggestion.insertText, "Номенклатура");
+          assert.equal(result.bsl.model.getValueInRange(suggestion.range), "Но");
+        });
+
+        it("применяет операции кода поверх свойств customObjects", function () {
+          let suggestions = getPropertyCompletion(
+            'Параметры.Удалить("Остаток");\n'
+            + 'Параметры.Вставить("НовыйКлюч", 1);\n'
+            + 'Параметры.Свойство("'
+          ).suggestions;
+
+          assert.equal(suggestions.some(item => item.label === "Номенклатура"), true);
+          assert.equal(suggestions.some(item => item.label === "НовыйКлюч"), true);
+          assert.equal(suggestions.some(item => item.label === "Остаток"), false);
+        });
+
+        it("использует ключи локальной структуры из конструктора и операций", function () {
+          let suggestions = getPropertyCompletion(
+            'С = Новый Структура("Ключ1, Ключ2");\n'
+            + 'С.Удалить("Ключ1");\n'
+            + 'С.Вставить("Ключ3", 3);\n'
+            + 'С.Свойство("'
+          ).suggestions;
+
+          assert.equal(suggestions.some(item => item.label === "Ключ1"), false);
+          assert.equal(suggestions.some(item => item.label === "Ключ2"), true);
+          assert.equal(suggestions.some(item => item.label === "Ключ3"), true);
+        });
+
+        it("использует типизирующий комментарий и учитывает Очистить", function () {
+          let suggestions = getPropertyCompletion(
+            '// Структура:\n'
+            + '// * Объявленный - Строка\n'
+            + 'С = ПолучитьПараметры();\n'
+            + 'С.Очистить();\n'
+            + 'С.Вставить("ПослеОчистки", 1);\n'
+            + 'С.Свойство("'
+          ).suggestions;
+
+          assert.equal(suggestions.some(item => item.label === "Объявленный"), false);
+          assert.equal(suggestions.some(item => item.label === "ПослеОчистки"), true);
+        });
+
+        it("не срабатывает вне первого незакрытого строкового параметра", function () {
+          let texts = [
+            'Параметры.Свойство("Номенклатура")',
+            'Параметры.Свойство("Номенклатура", "',
+            'Параметры.Вставить("',
+            'Неизвестный.Свойство("',
+            'НеструктурныйОбъект.Свойство("'
+          ];
+
+          texts.forEach(text => {
+            let suggestions = getPropertyCompletion(text).suggestions;
+            assert.equal(suggestions.some(item => item.label === "Номенклатура" || item.label === "ЛожноеСвойство"), false, text);
+          });
+        });
+
+        it("не срабатывает в режиме запроса и СКД", function () {
+          let originalIsQueryMode = window.isQueryMode;
+          let originalIsDCSMode = window.isDCSMode;
+
+          try {
+            let bsl = helper('Параметры.Свойство("');
+            let suggestions = [];
+
+            window.isQueryMode = function () { return true; };
+            assert.equal(bsl.getStructurePropertyNameCompletion(suggestions), false);
+            expect(suggestions).to.be.empty;
+
+            window.isQueryMode = function () { return false; };
+            window.isDCSMode = function () { return true; };
+            assert.equal(bsl.getStructurePropertyNameCompletion(suggestions), false);
+            expect(suggestions).to.be.empty;
+          }
+          finally {
+            window.isQueryMode = originalIsQueryMode;
+            window.isDCSMode = originalIsDCSMode;
+          }
+        });
+
+      });
+
       it("проверка подсказки параметров для функции ВыгрузитьКолонку таблицы значений, полученной из другой таблицы", function () {
         bsl = helper('Таблица1 = Новый ТаблицаЗначений();\nТаблица2 = Таблица1.Скопировать();\nТаблица2.ВыгрузитьКолонку(');
         let suggestions = [];  
