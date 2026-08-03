@@ -147,7 +147,7 @@ npm run build -- --env customOptions="automaticLayout: true, someOption: false"
 | [`getPositionOffset`](docs/get_position_offset.md) | Возвращает координаты текущей позиции курсора                             |
 | `jumpToBracket`                | Переход к парной скобке `CTRL+[]`                                                             |
 | `selectToBracket`              | Выделяет скобки и текст между ними `SHIFT+ALT+B`                                              |
-| `formatDocument`               | Форматирование выделенного фрагмента кода или всего кода `ALT+SHIFT+F`                        |
+| [`formatDocument`](docs/format_document.md) | Форматирование выделенного фрагмента кода или всего кода `ALT+SHIFT+F`              |
 | `insertSnippet`                | Вставляет переданный сниппет в текущую позицию редактора                                      |
 | `revealDefinition`             | Переход к определению переменной, функции или поля запроса `F12`                              |
 | `peekDefinition`               | Быстрый просмотр определения переменной, функции или поля запроса `CTRL+F12`                  |

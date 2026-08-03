@@ -1,4 +1,5 @@
 import bslHelper from './bsl_helper';
+import registerFormatterBrowserTests from './test_formatter_browser';
 
 setTimeout(() => {
 
@@ -1747,6 +1748,11 @@ setTimeout(() => {
 
     }
 
+    const testFormatter = false;
+
+    if (testFormatter)
+      registerFormatterBrowserTests(getModel);
+    
     // Адаптер результатов (Этап 3c): по завершении прогона кладём runner.stats в
     // window.mochaResults (headless-раннер их читает) и «кликаем» скрытую #AutotestResult
     // (механика T3-автотеста в поле 1С по образцу VAEditor — для будущего гейта в .epf).

@@ -2,6 +2,18 @@ import monaco from "./expose-monaco";
 import Finder from "./finder";
 import queryModelService from "./query_model_service";
 import queryNavigation from "./query_navigation";
+import BslFormatter from "./bsl_formatter";
+
+let formatterPlatformNamesSource = null;
+let formatterPlatformNames = null;
+
+function getFormatterPlatformNames() {
+	if (formatterPlatformNamesSource !== window.bslGlobals) {
+		formatterPlatformNamesSource = window.bslGlobals;
+		formatterPlatformNames = BslFormatter.buildPlatformNameMaps(window.bslGlobals);
+	}
+	return formatterPlatformNames;
+}
 
 /**
  * Class for provideSignatureHelp
@@ -9804,142 +9816,58 @@ class bslHelper {
 	}
 
 	/**
-	 * Returns array of words from string
-	 *  
-	 * @param {string} str string 
-	 * 
-	 * @returns {array} words 
+	 * Форматирует BSL-код.
+	 *
+	 * @param {ITextModel} model текущая модель редактора
+	 * @param {Range} range необязательный диапазон форматирования
+	 * @param {Object} options одноразовые опции форматирования
+	 *
+	 * @returns {TextEdit[]} правки для Monaco
 	 */
-	static getWordsFromFormatString(str) {
+	static formatCode(model, range, options) {
 
-		const comment = str.indexOf('//');
+		options = options || {};
 
-		if (0 <= comment)
-			str = str.substr(0, comment);
+		let formatRange = range || model.getFullModelRange();
+		let endLineNumber = formatRange.endLineNumber;
 
-		str = str.replace(/"([\s\S]+)?"/u, '');
-		str = str.replace(/"([\s\S]+)?$/u, '');
-		str = str.replace(/\|([\s\S]+)?"/u, '');
-		str = str.replace(/\|([\s\S]+)?$/u, '');
+		if (range && formatRange.endColumn == 1 && formatRange.startLineNumber < endLineNumber)
+			endLineNumber--;
 
-		const semi = str.indexOf(';');
-
-		if (0 <= semi)
-			str = str.substr(0, semi);
-
-		return str.trim().split(' ');
-
-	}
-
-	/**
-	 * Code formatter
-	 * 
-	 * @param {ITextModel} model current model of editor
-	 * 
-	 * @returns {string} formated text
-	 */
-	 static formatCode(model) {
-
-		let result = '';
-
-		const startWords = [
-			'если', '#если', 'для', 'пока', 'функция', 'процедура', 'попытка',
-			'if', '#if', 'for', 'while', 'function', 'procedure', 'try'
-		];
-
-		const stopWords = [
-			'конецесли', '#конецесли', 'конеццикла', 'конецфункции', 'конецпроцедуры', 'конецпопытки',
-			'endif', '#endif', 'enddo', 'endfunction', 'endprocedure', 'endtry'
-		];
-
-		const complexWords = [
-			'исключение', 'иначе', 'иначеесли', '#иначе', '#иначеесли',
-			'except', 'else', 'elseif', '#else', '#elseif'
-		];
-
-		let format_range = model.getFullModelRange();
-		const selection = window.editor.getSelection();
-		const selected_text = model.getValueInRange(selection).trim();
-		let offset = 0;
-
-		let strings = '';
-
-		if (selected_text) {
-
-			format_range = new monaco.Range(
-				selection.startLineNumber,
+		if (range) {
+			formatRange = new monaco.Range(
+				formatRange.startLineNumber,
 				1,
-				selection.endLineNumber,
-				model.getLineMaxColumn(selection.endLineNumber)
+				endLineNumber,
+				model.getLineMaxColumn(endLineNumber)
 			);
-			strings = model.getValueInRange(format_range).split('\n');
-
-			let line_number = selection.startLineNumber - 1;
-
-			while (0 < line_number && offset == 0) {
-
-				let str = model.getLineContent(line_number)
-				let words = bslHelper.getWordsFromFormatString(str);
-				let word_i = 0;
-
-				while (word_i < words.length && offset == 0) {
-					let word = words[word_i].toLowerCase();
-					if (startWords.includes(word)) {
-						str = model.normalizeIndentation(str);
-						offset = str.match(/^(\t*)/)[0].split('\t').length;
-					}
-					word_i++;
-				}
-
-				line_number--;
-
-			}
-
-
-		}
-		else {
-			strings = model.getValue().split('\n');
 		}
 
-		strings.forEach(function (str, index) {
+		const prefixRange = new monaco.Range(1, 1, formatRange.startLineNumber, 1);
+		const prefix = model.getValueInRange(prefixRange);
+		const text = model.getValueInRange(formatRange);
+		const formatCanonicalKeywords = Boolean(options.formatCanonicalKeywords);
+		const formatCanonicalPlatformNames = Boolean(options.formatCanonicalPlatformNames);
+		const keywords = window.languages && window.languages.bsl
+			? window.languages.bsl.languageDef.rules.keywords
+			: [];
 
-			let original = str;
-			const words = bslHelper.getWordsFromFormatString(str);
-			let word_i = 0;
-			let delta = offset;
-
-			while (word_i < words.length) {
-
-				let word = words[word_i].toLowerCase();
-
-				if (startWords.includes(word))
-					offset++;
-
-				if (stopWords.includes(word))
-					offset = Math.max(0, offset - 1);
-
-				if (complexWords.includes(word))
-					offset = Math.max(0, offset - 1);
-
-				word_i++;
-			}
-
-			delta = offset - delta;
-			let strOffset = 0 < delta ? offset - 1 : offset;
-			result = result + '\t'.repeat(strOffset) + original.trim();
-
-			if (index < strings.length - 1)
-				result += '\n';
-
-			if (words.length && complexWords.includes(words[0].toLowerCase()))
-				offset++;
-
+		return BslFormatter.format(text, formatRange, {
+			eol: model.getEOL(),
+			initialState: BslFormatter.getState(prefix),
+			initialIndent: BslFormatter.getIndentLevel(prefix),
+			keywords: keywords,
+			platformNames: formatCanonicalKeywords || formatCanonicalPlatformNames
+				? getFormatterPlatformNames()
+				: null,
+			formatCanonicalKeywords: formatCanonicalKeywords,
+			formatCanonicalPlatformNames: formatCanonicalPlatformNames,
+			formatSplitStatements: Boolean(options.formatSplitStatements),
+			formatSpaceAfterComma: Boolean(options.formatSpaceAfterComma),
+			formatAlignAssignments: Boolean(options.formatAlignAssignments),
+			formatJoinThen: Boolean(options.formatJoinThen),
+			formatBlankLinesAroundBlocks: Boolean(options.formatBlankLinesAroundBlocks)
 		});
-
-		return [{
-			text: result,
-			range: format_range
-		}];
 	}
 
 	/**

@@ -1,6 +1,6 @@
 // Headless-раннер mocha-тестов (T1/T2 из specs/monaco-0.55/analysis.md §4.3) — Этап 3c.
 //
-// Гоняет 123+ существующих браузерных кейса (src/test.js + src/test_query.js) поверх реального
+// Гоняет браузерные кейсы (src/test.js + src/test_formatter_browser.js + src/test_query.js) поверх реального
 // editor.js на Monaco 0.55.1, в системном Chrome/Edge (puppeteer-core). Требует ПРЕДварительной
 // тест-сборки: `npm run build:test` (webpack --env test) → dist/test.html + dist/test_query.html
 // (каждая инжектит свой чанк [editor.js + кейсы]; mocha/chai подтягиваются скрипт-тегами из

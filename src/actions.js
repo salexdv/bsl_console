@@ -215,7 +215,7 @@ let getActions = function(version1C) {
                 cmd: monaco.KeyMod.chord(monaco.KeyMod.Alt | monaco.KeyMod.Shift | monaco.KeyCode.KeyF),
                 order: 1.7,
                 callback: function (ed) {
-                    window.editor.trigger('', 'editor.action.formatDocument');
+                    window.formatDocument();
                     return null;
                 }
             };

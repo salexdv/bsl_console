@@ -52,7 +52,8 @@
 | `build:single` | один self-contained HTML, JS инлайном (~9 МБ) |
 | `build:pack` | то же, но JS сжат gzip+base64 с распаковкой pako в поле (~2,6 МБ) |
 | `debug` / `dev` | dev-server |
-| `test:mocha` | 144 кейса в headless Chrome (нужен `build:test`) |
+| `test:formatter` | 22 чистых теста BSL-форматтера в Node, без сборки и браузера |
+| `test:mocha` | интеграционные тесты редактора в headless Chrome (нужен `build:test`) |
 | `test:headless` | смоук моста и чистоты консоли на `dist/` |
 | `escheck` | ES-floor сборки (es2018) |
 
@@ -108,7 +109,8 @@ Proxy движок поддерживает нативно (полифилл н�
 
 ## Тесты
 
-- `npm run build:test` + `npm run test:mocha` — 144 кейса (`test.html`, `test_query.html`) в headless Chrome.
+- `npm run test:formatter` — быстрые тесты чистого BSL-форматтера без Monaco и браузера.
+- `npm run build:test` + `npm run test:mocha` — интеграционные тесты (`test.html`, `test_query.html`) в headless Chrome.
 - `npm run test:headless` — смоук моста и чистоты консоли на собранном `dist/`.
 - `src/test_query_model.html` — визуальный инспектор объектной модели запроса.
 
