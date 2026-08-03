@@ -1022,6 +1022,145 @@ class bslHelper {
 	}
 
 	/**
+	 * Разбирает позицию внутри незакрытого первого строкового параметра метода
+	 * `Свойство` / `Property`. Получатель намеренно ограничен простым именем —
+	 * составные цепочки в контракт issue #228 не входят.
+	 *
+	 * @returns {object|null} {receiverName, prefix, range} либо null
+	 */
+	getStructurePropertyNameCallContext() {
+
+		if (window.isQueryMode() || window.isDCSMode() || !this.isItStringLiteral())
+			return null;
+
+		let text = this.getRawTextBefore(this.position);
+		let match = /(?:^|[^a-zA-Z0-9А-яЁё_.])([a-zA-ZА-яЁё_][a-zA-Z0-9А-яЁё_]*)\s*\.\s*(?:Свойство|Property)\s*\(\s*"([^"\r\n]*)$/i.exec(text);
+
+		if (!match)
+			return null;
+
+		let prefix = match[2];
+		let endOffset = this.model.getOffsetAt(this.position);
+		let startPosition = this.model.getPositionAt(endOffset - prefix.length);
+
+		return {
+			receiverName: match[1],
+			prefix: prefix,
+			range: new monaco.Range(startPosition.lineNumber, startPosition.column, this.position.lineNumber, this.position.column)
+		};
+
+	}
+
+	/**
+	 * Возвращает структурный пользовательский объект по имени. Свойства из
+	 * `updateMetadata` становятся начальным набором, а операции кода выше курсора
+	 * применяются поверх через общий анализатор `collectMembers`.
+	 *
+	 * @param {string} objectName имя пользовательского объекта
+	 * @param {IPosition} position позиция курсора
+	 *
+	 * @returns {object|null} {ref, properties} либо null
+	 */
+	getCustomStructureContext(objectName, position) {
+
+		let customObjects = window.bslMetadata
+			&& window.bslMetadata.customObjects
+			&& window.bslMetadata.customObjects.items;
+
+		if (!customObjects)
+			return null;
+
+		for (const [name, definition] of Object.entries(customObjects)) {
+
+			if (name.toLowerCase() != objectName.toLowerCase()
+				|| !definition
+				|| bslHelper.KEYS_REFS.indexOf(definition.ref) < 0)
+				continue;
+
+			let properties = [];
+
+			if (definition.properties) {
+				for (const [propertyName, propertyDefinition] of Object.entries(definition.properties)) {
+
+					let property = propertyDefinition && typeof propertyDefinition == 'object'
+						? propertyDefinition
+						: {};
+
+					properties.push({
+						name: propertyName,
+						type: '',
+						ref: property.ref || '',
+						detail: property.detail || property.name || '',
+						description: property.description || ''
+					});
+
+				}
+			}
+
+			return {
+				ref: definition.ref,
+				properties: this.collectMembers(objectName, position, definition.ref, properties)
+			};
+
+		}
+
+		return null;
+
+	}
+
+	/**
+	 * Добавляет подсказки известных ключей структуры внутри первого параметра
+	 * `Свойство("...")`. Данные берутся из пользовательских метаданных либо из
+	 * локального вывода типа и состояния коллекции (PR #387).
+	 *
+	 * @param {array} suggestions список подсказок
+	 *
+	 * @returns {boolean} распознано ли подходящее место вызова
+	 */
+	getStructurePropertyNameCompletion(suggestions) {
+
+		let callContext = this.getStructurePropertyNameCallContext();
+
+		if (!callContext)
+			return false;
+
+		let context = this.getCustomStructureContext(callContext.receiverName, this.position);
+
+		if (!context)
+			context = this.getInferredContext(callContext.receiverName, this.position);
+
+		if (!context || bslHelper.KEYS_REFS.indexOf(context.ref) < 0)
+			return false;
+
+		let prefix = callContext.prefix.toLowerCase();
+		let names = [];
+
+		(context.properties || []).forEach(property => {
+
+			let name = property && property.name ? String(property.name) : '';
+			let normalizedName = name.toLowerCase();
+
+			if (!name || !normalizedName.startsWith(prefix) || names.indexOf(normalizedName) >= 0)
+				return;
+
+			names.push(normalizedName);
+
+			suggestions.push({
+				label: name,
+				kind: monaco.languages.CompletionItemKind.Field,
+				insertText: name,
+				range: callContext.range,
+				detail: property.detail || property.type || property.ref || '',
+				documentation: property.description || ''
+			});
+
+		});
+
+		return true;
+
+	}
+
+	/**
 	 * Fills array of completion for language keywords, classes, global functions,
 	 * global variables and system enumarations
 	 * 
@@ -4932,7 +5071,9 @@ class bslHelper {
 				suggestions = this.getCodeCompletion(context, token);
 			}
 			else {
-				if (this.requireType())
+				this.getStructurePropertyNameCompletion(suggestions);
+
+				if (!suggestions.length && this.requireType())
 					this.getTypesCompletion(suggestions, window.bslGlobals.types, monaco.languages.CompletionItemKind.Enum);
 			}
 
