@@ -52,7 +52,27 @@ class bslHelper {
 		
 		this.nameField = window.engLang ? 'name_en' : 'name';
 		this.queryNameField = window.engLang ? 'query_name_en' : 'query_name';
-		this.token = this.getLastToken();
+		this._token = undefined;
+
+	}
+
+	/**
+	 * Returns the token at the current position and caches the result.
+	 * Custom suggestions do not access the token, so they do not trigger
+	 * tokenization of all text before the cursor.
+	 */
+	get token() {
+
+		if (this._token === undefined)
+			this._token = this.getLastToken();
+
+		return this._token;
+
+	}
+
+	set token(value) {
+
+		this._token = value;
 
 	}
 
@@ -9907,11 +9927,11 @@ class bslHelper {
 
 		let fire_event = window.getOption('generateBeforeHoverEvent');
 
-		let word = this.model.getWordAtPosition(this.position);
-		if (word)
-			this.token = this.getLastToken(word);
-
 		if (fire_event) {
+			let word = this.model.getWordAtPosition(this.position);
+			if (word)
+				this.token = this.getLastToken(word);
+
 			let params = {
 				word: word,
 				token: this.token,
