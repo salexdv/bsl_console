@@ -6836,10 +6836,15 @@ class bslHelper {
 
 		if (trigger_char == ' ') {
 
-			this.getQueryAliasCompletion(suggestions);
+			if (this.isItCastFunction()) {
+				this.getCastValuesCompletion(suggestions, bslQuery.values);
+			}
+			else {
+				this.getQueryAliasCompletion(suggestions);
 
-			if (!suggestions.length);
-			this.getCastDelimiter(suggestions);
+				if (!suggestions.length)
+					this.getCastDelimiter(suggestions);
+			}
 		}
 		else {
 
