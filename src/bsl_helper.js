@@ -53,7 +53,27 @@ class bslHelper {
 		
 		this.nameField = window.engLang ? 'name_en' : 'name';
 		this.queryNameField = window.engLang ? 'query_name_en' : 'query_name';
-		this.token = this.getLastToken();
+		this._token = undefined;
+
+	}
+
+	/**
+	 * Возвращает токен в текущей позиции и кеширует результат.
+	 * Пользовательские подсказки не обращаются к токену, поэтому не запускают
+	 * повторную токенизацию всего текста до курсора.
+	 */
+	get token() {
+
+		if (this._token === undefined)
+			this._token = this.getLastToken();
+
+		return this._token;
+
+	}
+
+	set token(value) {
+
+		this._token = value;
 
 	}
 
@@ -9878,11 +9898,11 @@ class bslHelper {
 
 		let fire_event = window.getOption('generateBeforeHoverEvent');
 
-		let word = this.model.getWordAtPosition(this.position);
-		if (word)
-			this.token = this.getLastToken(word);
-
 		if (fire_event) {
+			let word = this.model.getWordAtPosition(this.position);
+			if (word)
+				this.token = this.getLastToken(word);
+
 			let params = {
 				word: word,
 				token: this.token,
