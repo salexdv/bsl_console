@@ -105,9 +105,81 @@ class bslHelper {
 	 */	
 	getLastToken(wordData = null) {
 
-		let token = '';
-
 		let column = wordData == null ? this.column : wordData.endColumn + 1;
+		let modelToken = this.getLastModelToken(column);
+
+		if (modelToken !== null)
+			return modelToken;
+
+		return this.getLastTokenFallback(column);
+
+	}
+
+	/**
+	 * Возвращает токен, используя состояние токенизатора модели.
+	 * Токенизируется только текущая строка, а не весь текст до курсора.
+	 *
+	 * @param {int} column колонка, до которой нужно токенизировать строку
+	 *
+	 * @returns {string|null} имя токена или null, если внутренний API недоступен
+	 */
+	getLastModelToken(column) {
+
+		let tokenization = this.model._tokenization;
+		let tokenizationSupport = tokenization && tokenization._tokenizationSupport;
+		let stateStore = tokenization && tokenization._tokenizationStateStore;
+
+		if (!tokenizationSupport || typeof tokenizationSupport.tokenize !== 'function' || !stateStore)
+			return null;
+
+		try {
+
+			let state;
+
+			if (this.lineNumber == 1) {
+				state = tokenizationSupport.getInitialState();
+			}
+			else {
+
+				if (typeof this.model.forceTokenization !== 'function' || typeof stateStore.getBeginState !== 'function')
+					return null;
+
+				// Состояние текущей строки определяется результатом предыдущей строки.
+				// Monaco кеширует его, поэтому после первого вызова операция становится локальной.
+				this.model.forceTokenization(this.lineNumber - 1);
+				state = stateStore.getBeginState(this.lineNumber - 1);
+
+			}
+
+			if (!state || typeof state.clone !== 'function')
+				return null;
+
+			let value = this.model.getLineContent(this.lineNumber).substring(0, column - 1);
+			let result = tokenizationSupport.tokenize(value, state.clone(), 0);
+			let tokens = result && result.tokens;
+
+			if (!tokens)
+				return null;
+
+			return tokens.length ? tokens[tokens.length - 1].type : '';
+
+		}
+		catch (error) {
+			return null;
+		}
+
+	}
+
+	/**
+	 * Совместимый способ получения токена при недоступном API модели.
+	 *
+	 * @param {int} column колонка, до которой нужно токенизировать текст
+	 *
+	 * @returns {string} имя токена
+	 */
+	getLastTokenFallback(column) {
+
+		let token = '';
 		let value = this.model.getValueInRange(new monaco.Range(1, 1, this.lineNumber, column));
 		let lang_id = this.getLangId();
 		let tokens = monaco.editor.tokenize(value, lang_id);

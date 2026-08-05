@@ -38,6 +38,46 @@ setTimeout(() => {
       return new bslHelper(model, position);
     }
 
+    function observeModelTokenizer(model) {
+
+      const support = model._tokenization._tokenizationSupport;
+      const originalTokenize = support.tokenize;
+      const originalTokenize2 = support.tokenize2;
+      const classicValues = [];
+      const encodedValues = [];
+
+      support.tokenize = function (value) {
+        classicValues.push(value);
+        return originalTokenize.apply(this, arguments);
+      };
+
+      support.tokenize2 = function (value) {
+        encodedValues.push(value);
+        return originalTokenize2.apply(this, arguments);
+      };
+
+      return {
+        classicValues: classicValues,
+        encodedValues: encodedValues,
+        reset: function () {
+          classicValues.length = 0;
+          encodedValues.length = 0;
+        },
+        restore: function () {
+          support.tokenize = originalTokenize;
+          support.tokenize2 = originalTokenize2;
+        }
+      };
+
+    }
+
+    function getLegacyLastToken(helper, wordData = null) {
+
+      const column = wordData == null ? helper.column : wordData.endColumn + 1;
+      return helper.getLastTokenFallback(column);
+
+    }
+
     it("пользовательские подсказки не токенизируют текст до курсора (issue #335)", function () {
 
       const originalTokenize = monaco.editor.tokenize;
@@ -86,28 +126,32 @@ setTimeout(() => {
       const originalCtrlPressed = window.ctrlPressed;
       const stringModel = getModel('Сообщить("Незакрытая строка');
       const commentModel = getModel('// Комментарий');
-      let tokenizeCalls = 0;
+      const tokenizerObserver = observeModelTokenizer(stringModel);
+      let fallbackCalls = 0;
 
       try {
         window.ctrlPressed = false;
         monaco.editor.tokenize = function () {
-          tokenizeCalls++;
+          fallbackCalls++;
           return originalTokenize.apply(this, arguments);
         };
 
         const stringHelper = new bslHelper(stringModel, getPosition(stringModel));
         const commentHelper = new bslHelper(commentModel, getPosition(commentModel));
 
-        assert.equal(tokenizeCalls, 0);
+        assert.equal(tokenizerObserver.classicValues.length, 0);
         assert.equal(stringHelper.isItStringLiteral(), true);
         assert.equal(commentHelper.completionIsAvailable(), false);
-        assert.equal(tokenizeCalls, 2);
+        assert.equal(tokenizerObserver.classicValues.length, 2);
+        assert.equal(fallbackCalls, 0);
 
         stringHelper.isItStringLiteral();
         commentHelper.completionIsAvailable();
-        assert.equal(tokenizeCalls, 2);
+        assert.equal(tokenizerObserver.classicValues.length, 2);
+        assert.equal(fallbackCalls, 0);
       }
       finally {
+        tokenizerObserver.restore();
         monaco.editor.tokenize = originalTokenize;
         window.ctrlPressed = originalCtrlPressed;
         stringModel.dispose();
@@ -158,12 +202,13 @@ setTimeout(() => {
       const originalCtrlPressed = window.ctrlPressed;
       const originalShiftPressed = window.shiftPressed;
       const model = getModel('Переменная');
-      let tokenizeCalls = 0;
+      const tokenizerObserver = observeModelTokenizer(model);
+      let fallbackCalls = 0;
       let capturedEvent = null;
 
       try {
         monaco.editor.tokenize = function () {
-          tokenizeCalls++;
+          fallbackCalls++;
           return originalTokenize.apply(this, arguments);
         };
         window.sendEvent = function (event, params) {
@@ -177,7 +222,8 @@ setTimeout(() => {
         const bsl = new bslHelper(model, new monaco.Position(1, 5));
         bsl.onProvideHover();
 
-        assert.equal(tokenizeCalls, 1);
+        assert.equal(tokenizerObserver.classicValues.length, 1);
+        assert.equal(fallbackCalls, 0);
         assert.equal(capturedEvent.event, 'EVENT_BEFORE_HOVER');
         assert.deepEqual(Object.keys(capturedEvent.params).sort(), [
           'altKey', 'column', 'ctrlKey', 'definition', 'line', 'shiftKey', 'token', 'word'
@@ -196,9 +242,11 @@ setTimeout(() => {
         assert.equal(capturedEvent.params.definition, null);
 
         assert.equal(bsl.token, 'identifierbsl');
-        assert.equal(tokenizeCalls, 1);
+        assert.equal(tokenizerObserver.classicValues.length, 1);
+        assert.equal(fallbackCalls, 0);
       }
       finally {
+        tokenizerObserver.restore();
         monaco.editor.tokenize = originalTokenize;
         window.sendEvent = originalSendEvent;
         window.setOption('generateBeforeHoverEvent', originalGenerateEvent);
@@ -217,11 +265,13 @@ setTimeout(() => {
       const originalGenerateEvent = window.getOption('generateBeforeHoverEvent');
       const customModel = getModel('ПользовательскоеПоле');
       const queryModel = monaco.editor.createModel('ВЫБРАТЬ', 'bsl_query');
-      let tokenizeCalls = 0;
+      const bslTokenizerObserver = observeModelTokenizer(customModel);
+      const queryTokenizerObserver = observeModelTokenizer(queryModel);
+      let fallbackCalls = 0;
 
       try {
         monaco.editor.tokenize = function () {
-          tokenizeCalls++;
+          fallbackCalls++;
           return originalTokenize.apply(this, arguments);
         };
         window.setOption('generateBeforeHoverEvent', false);
@@ -233,27 +283,147 @@ setTimeout(() => {
         const queryHelper = new bslHelper(queryModel, getPosition(queryModel));
 
         customHelper.onProvideHover();
-        assert.equal(tokenizeCalls, 0);
+        assert.equal(bslTokenizerObserver.classicValues.length, 0);
         assert.equal(customHelper.getHover().contents[0].value, 'Пользовательская подсказка');
         assert.equal(customHelper.token, 'identifierbsl');
-        assert.equal(tokenizeCalls, 1);
+        assert.equal(bslTokenizerObserver.classicValues.length, 1);
 
         window.customHovers = {};
         queryHelper.getLangId = function () {
           return 'bsl_query';
         };
         queryHelper.onProvideHover();
-        assert.equal(tokenizeCalls, 1);
+        assert.equal(queryTokenizerObserver.classicValues.length, 0);
         queryHelper.getQueryHover();
         assert.equal(queryHelper.token, 'query.keywordbsl');
-        assert.equal(tokenizeCalls, 2);
+        assert.equal(queryTokenizerObserver.classicValues.length, 1);
+        assert.equal(fallbackCalls, 0);
       }
       finally {
+        bslTokenizerObserver.restore();
+        queryTokenizerObserver.restore();
         monaco.editor.tokenize = originalTokenize;
         window.customHovers = originalCustomHovers;
         window.setOption('generateBeforeHoverEvent', originalGenerateEvent);
         customModel.dispose();
         queryModel.dispose();
+      }
+
+    });
+
+    it("getLastToken сохраняет точные имена токенов", function () {
+
+      const samples = [
+        { name: 'идентификатор', value: 'Переменная', language: 'bsl' },
+        { name: 'комментарий', value: '// Комментарий', language: 'bsl' },
+        { name: 'незакрытая строка', value: 'Сообщить("Строка', language: 'bsl' },
+        { name: 'многострочная строка', value: 'Переменная = "Первая\n|Вторая', language: 'bsl' },
+        { name: 'запрос внутри строки', value: 'Запрос.Текст = "ВЫБРАТЬ\n| Т.Поле\n|ИЗ Т', language: 'bsl' },
+        { name: 'код после строки', value: 'Переменная = "Первая\n|Вторая";\nСледующая = 1;', language: 'bsl' },
+        { name: 'режим запроса', value: 'ВЫБРАТЬ Т.Поле ИЗ Т', language: 'bsl_query' }
+      ];
+
+      samples.forEach(function (sample) {
+
+        const model = monaco.editor.createModel(sample.value, sample.language);
+
+        try {
+          const tokenHelper = new bslHelper(model, getPosition(model));
+          tokenHelper.getLangId = function () {
+            return sample.language;
+          };
+
+          const legacyToken = getLegacyLastToken(tokenHelper);
+          assert.equal(tokenHelper.getLastToken(), legacyToken, sample.name);
+        }
+        finally {
+          model.dispose();
+        }
+
+      });
+
+      const hoverModel = getModel('Объект.Метод();');
+
+      try {
+        const hoverPosition = new monaco.Position(1, 3);
+        const hoverHelper = new bslHelper(hoverModel, hoverPosition);
+        const wordData = hoverModel.getWordAtPosition(hoverPosition);
+        assert.equal(hoverHelper.getLastToken(wordData), getLegacyLastToken(hoverHelper, wordData));
+      }
+      finally {
+        hoverModel.dispose();
+      }
+
+    });
+
+    it("getLastToken использует совместимый fallback", function () {
+
+      const originalTokenize = monaco.editor.tokenize;
+      const model = getModel('Переменная');
+      const modelTokenization = model._tokenization;
+      let fallbackCalls = 0;
+
+      try {
+        monaco.editor.tokenize = function () {
+          fallbackCalls++;
+          return originalTokenize.apply(this, arguments);
+        };
+        model._tokenization = null;
+
+        const tokenHelper = new bslHelper(model, getPosition(model));
+        assert.equal(tokenHelper.getLastToken(), 'identifierbsl');
+        assert.equal(fallbackCalls, 1);
+      }
+      finally {
+        model._tokenization = modelTokenization;
+        monaco.editor.tokenize = originalTokenize;
+        model.dispose();
+      }
+
+    });
+
+    it("getLastToken после прогрева токенизирует только текущую строку", function () {
+
+      const originalTokenize = monaco.editor.tokenize;
+      const lineCount = 8000;
+      const lines = [];
+      let fallbackCalls = 0;
+
+      for (let index = 1; index <= lineCount; index++)
+        lines.push('Переменная' + index + ' = ' + index + ';');
+
+      const model = getModel(lines.join('\n'));
+      const tokenizerObserver = observeModelTokenizer(model);
+
+      try {
+        monaco.editor.tokenize = function () {
+          fallbackCalls++;
+          return originalTokenize.apply(this, arguments);
+        };
+
+        const firstHelper = new bslHelper(model, getPosition(model));
+        assert.equal(firstHelper.getLastToken(), 'delimiterbsl');
+        assert.equal(tokenizerObserver.classicValues.length, 1);
+        assert.equal(fallbackCalls, 0);
+
+        tokenizerObserver.reset();
+        const position = getPosition(model);
+        model.applyEdits([{
+          range: new monaco.Range(position.lineNumber, position.column, position.lineNumber, position.column),
+          text: ' '
+        }]);
+
+        const nextHelper = new bslHelper(model, getPosition(model));
+        assert.equal(nextHelper.isItStringLiteral(), false);
+        assert.equal(nextHelper.token, '');
+        assert.deepEqual(tokenizerObserver.classicValues, [model.getLineContent(lineCount)]);
+        assert.equal(tokenizerObserver.encodedValues.length, 0);
+        assert.equal(fallbackCalls, 0);
+      }
+      finally {
+        tokenizerObserver.restore();
+        monaco.editor.tokenize = originalTokenize;
+        model.dispose();
       }
 
     });
