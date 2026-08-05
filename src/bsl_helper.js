@@ -106,9 +106,137 @@ class bslHelper {
 	 */	
 	getLastToken(wordData = null) {
 
-		let token = '';
-
 		let column = wordData == null ? this.column : wordData.endColumn + 1;
+		let modelToken = this.getLastModelToken(column);
+
+		if (modelToken !== null)
+			return modelToken;
+
+		return this.getLastTokenFallback(column);
+
+	}
+
+	/**
+	 * Возвращает токен, используя состояние токенизатора модели.
+	 * Токенизируется только текущая строка, а не весь текст до курсора.
+	 *
+	 * @param {int} column колонка, до которой нужно токенизировать строку
+	 *
+	 * @returns {string|null} имя токена или null, если внутренний API недоступен
+	 */
+	getLastModelToken(column) {
+
+		try {
+
+			const model = this.model;
+			const lineNumber = this.lineNumber;
+
+			if (!model)
+				return null;
+
+			let support = null;
+			let startState = null;
+
+			// Monaco 0.20
+			if (model._tokenization && model._tokenization._tokenizationSupport && model._tokenization._tokenizationStateStore) {
+
+				const oldTokenization = model._tokenization;
+				const oldStateStore = oldTokenization._tokenizationStateStore;
+
+				support = oldTokenization._tokenizationSupport;
+
+				if (lineNumber === 1) {
+					startState = support.getInitialState();
+				}
+				else {
+
+					if (typeof model.forceTokenization !== 'function')
+						return null;
+
+					model.forceTokenization(lineNumber - 1);
+
+					if (typeof oldStateStore.getBeginState !== 'function')
+						return null;
+
+					startState = oldStateStore.getBeginState(lineNumber - 1);
+
+				}
+
+			}
+			// Современный Monaco
+			else if (model.tokenization) {
+
+				const tokenizationPart = model.tokenization;
+
+				const backend =
+					tokenizationPart.tokens
+						&& typeof tokenizationPart.tokens.get === 'function'
+						? tokenizationPart.tokens.get()
+						: null;
+
+				const tokenizer = backend && backend._tokenizer;
+
+				if (!tokenizer)
+					return null;
+
+				support = tokenizer.tokenizationSupport;
+
+				if (!support || typeof tokenizer.getStartState !== 'function')
+					return null;
+
+				if (lineNumber > 1) {
+
+					if (typeof tokenizationPart.forceTokenization !== 'function')
+						return null;
+
+					tokenizationPart.forceTokenization(lineNumber - 1);
+
+				}
+
+				startState = tokenizer.getStartState(lineNumber);
+
+			}
+			else {
+
+				return null;
+
+			}
+
+			if (!support || typeof support.tokenize !== 'function' || !startState)
+				return null;
+
+			const state = typeof startState.clone === 'function' ? startState.clone() : startState;
+
+			const line = model.getLineContent(lineNumber);
+
+			const safeColumn = Math.max(1, Math.min(column, line.length + 1));
+
+			const value = line.substring(0, safeColumn - 1);
+			const result = support.tokenize(value, 0, state);
+			const tokens = result && result.tokens;
+
+			if (!Array.isArray(tokens))
+				return null;
+
+			return tokens.length? tokens[tokens.length - 1].type : '';
+
+		}
+		catch (error) {
+			return null;
+		}
+
+	}
+
+	/**
+	 * Совместимый способ получения токена при недоступном API модели.
+	 *
+	 * @param {int} column колонка, до которой нужно токенизировать текст
+	 *
+	 * @returns {string} имя токена
+	 */
+	getLastTokenFallback(column) {
+
+		let token = '';
 		let value = this.model.getValueInRange(new monaco.Range(1, 1, this.lineNumber, column));
 		let lang_id = this.getLangId();
 		let tokens = monaco.editor.tokenize(value, lang_id);

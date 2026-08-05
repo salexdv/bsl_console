@@ -99,11 +99,11 @@ setTimeout(() => {
         assert.equal(tokenizeCalls, 0);
         assert.equal(stringHelper.isItStringLiteral(), true);
         assert.equal(commentHelper.completionIsAvailable(), false);
-        assert.equal(tokenizeCalls, 2);
+        assert.equal(tokenizeCalls, 0);
 
         stringHelper.isItStringLiteral();
         commentHelper.completionIsAvailable();
-        assert.equal(tokenizeCalls, 2);
+        assert.equal(tokenizeCalls, 0);
       }
       finally {
         monaco.editor.tokenize = originalTokenize;
@@ -175,7 +175,7 @@ setTimeout(() => {
 
         bsl.onProvideHover();
 
-        assert.equal(tokenizeCalls, 1);
+        assert.equal(tokenizeCalls, 0);
         assert.equal(capturedEvent.event, 'EVENT_BEFORE_HOVER');
         assert.deepEqual(Object.keys(capturedEvent.params).sort(), [
           'altKey', 'column', 'ctrlKey', 'definition', 'line', 'shiftKey', 'token', 'word'
@@ -194,7 +194,7 @@ setTimeout(() => {
         assert.equal(capturedEvent.params.definition, null);
 
         assert.equal(bsl.token, 'identifierbsl');
-        assert.equal(tokenizeCalls, 1);
+        assert.equal(tokenizeCalls, 0);
       }
       finally {
         monaco.editor.tokenize = originalTokenize;
@@ -233,17 +233,17 @@ setTimeout(() => {
         assert.equal(tokenizeCalls, 0);
         assert.equal(customHelper.getHover().contents[0].value, 'Пользовательская подсказка');
         assert.equal(customHelper.token, 'identifierbsl');
-        assert.equal(tokenizeCalls, 1);
+        assert.equal(tokenizeCalls, 0);
 
         window.customHovers = {};
         queryHelper.getLangId = function () {
           return 'bsl_query';
         };
         queryHelper.onProvideHover();
-        assert.equal(tokenizeCalls, 1);
+        assert.equal(tokenizeCalls, 0);
         queryHelper.getQueryHover();
         assert.equal(queryHelper.token, 'query.keywordbsl');
-        assert.equal(tokenizeCalls, 2);
+        assert.equal(tokenizeCalls, 0);
       }
       finally {
         monaco.editor.tokenize = originalTokenize;
