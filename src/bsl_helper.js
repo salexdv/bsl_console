@@ -1723,7 +1723,9 @@ class bslHelper {
 
 				if (value.hasOwnProperty('ref')) {
 
-					let refArray = value.ref.split('.');
+					let refs = value.ref.split(';');
+					let firstRef = refs[0];
+					let refArray = firstRef.split('.');
 
 					if (bslHelper.objectHasPropertiesFromArray(window.bslGlobals, refArray)) {
 
@@ -1734,7 +1736,7 @@ class bslHelper {
 								{
 									"name": refItem[this.nameField],
 									"data": {
-										"ref": value.ref,
+										"ref": firstRef,
 										"sig": null
 									}
 								}

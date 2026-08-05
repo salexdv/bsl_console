@@ -1551,7 +1551,8 @@ setTimeout(() => {
         function getPropertyCompletion(text) {
           let bsl = helper(text);
           let completion = bsl.getCompletion({ triggerCharacter: '"' });
-          return { bsl: bsl, suggestions: completion.suggestions };
+          let suggestions = Array.isArray(completion) ? completion : completion.suggestions;
+          return { bsl: bsl, suggestions: suggestions };
         }
 
         it("предлагает свойства пользовательского объекта", function () {
