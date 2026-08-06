@@ -484,6 +484,18 @@ window.isDCSMode = function() {
 
 }
 
+window.setContextMode = function(mode) {
+
+  window.setOption('contextMode', mode);
+
+}
+
+window.getContextMode = function(mode) {
+
+  return window.getOption('contextMode');
+
+}
+
 window.setLanguageMode = function(mode) {
 
   let isCompareMode = (window.editor.navi != undefined);

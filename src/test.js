@@ -2119,6 +2119,41 @@ setTimeout(() => {
 
     }
 
+    it("проверка доступности объектов в подсказках при смене контекста", function () {
+
+      window.setContextMode('Server');
+      bsl = helper('Товар = Справоч');
+      let completion = bsl.getCompletion({ triggerCharacter: undefined });
+      expect(completion).to.be.an('object');
+      expect(completion.suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(completion.suggestions.some(suggest => suggest.label === "Справочники"), true);
+
+      bsl = helper('Запрос = Новый ');
+      completion = bsl.getCompletion({ triggerCharacter: ' ' });
+      expect(completion).to.be.an('object');
+      expect(completion.suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(completion.suggestions.some(suggest => suggest.label === "Запрос"), true);
+      assert.equal(completion.suggestions.some(suggest => suggest.label === "ТаблицаЗначений"), true);
+      assert.equal(completion.suggestions.some(suggest => suggest.label === "Массив"), true);
+
+      window.setContextMode('Client');
+      bsl = helper('Товар = Справоч');
+      completion = bsl.getCompletion({ triggerCharacter: undefined });
+      expect(completion).to.be.an('object');
+      expect(completion.suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(completion.suggestions.some(suggest => suggest.label === "Справочники"), false);
+
+      bsl = helper('Запрос = Новый ');
+      completion = bsl.getCompletion({ triggerCharacter: ' ' });
+      console.log(completion);
+      expect(completion).to.be.an('object');
+      expect(completion.suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(completion.suggestions.some(suggest => suggest.label === "Запрос"), false);
+      assert.equal(completion.suggestions.some(suggest => suggest.label === "ТаблицаЗначений"), false);
+      assert.equal(completion.suggestions.some(suggest => suggest.label === "Массив"), true);
+
+    });
+
     const testFormatter = false;
 
     if (testFormatter)
