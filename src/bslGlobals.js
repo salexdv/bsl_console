@@ -1,6 +1,141 @@
+// Словарь контекстов доступности. Индекс элемента равен номеру бита в значении
+// поля "availability" (битовая маска). Порядок соответствует порядку токенов
+// в строковых значениях, возвращаемых справочной системой.
+// Все возможные значения поля "availability" (битовая маска).
+// Каждое значение приведено двумя строками: русское перечисление (как возвращает справочная
+// система) и английское. Ищите нужную комбинацию по тексту или по маске.
+// веб-клиент - 2
+// WebClient - 2
+// мобильный клиент - 4
+// MobileClient - 4
+// сервер - 8
+// Server - 8
+// толстый клиент - 16
+// ThickClient - 16
+// Тонкий клиент,толстый клиент - 17
+// ThinClient,ThickClient - 17
+// Тонкий клиент,веб-клиент,толстый клиент - 19
+// ThinClient,WebClient,ThickClient - 19
+// Тонкий клиент,мобильный клиент,толстый клиент - 21
+// ThinClient,MobileClient,ThickClient - 21
+// Тонкий клиент,веб-клиент,мобильный клиент,толстый клиент - 23
+// ThinClient,WebClient,MobileClient,ThickClient - 23
+// сервер,толстый клиент - 24
+// Server,ThickClient - 24
+// Тонкий клиент,сервер,толстый клиент - 25
+// ThinClient,Server,ThickClient - 25
+// веб-клиент,сервер,толстый клиент - 26
+// WebClient,Server,ThickClient - 26
+// Тонкий клиент,веб-клиент,сервер,толстый клиент - 27
+// ThinClient,WebClient,Server,ThickClient - 27
+// Тонкий клиент,веб-клиент,мобильный клиент,сервер,толстый клиент - 31
+// ThinClient,WebClient,MobileClient,Server,ThickClient - 31
+// Тонкий клиент,сервер,внешнее соединение - 41
+// ThinClient,Server,ExternalConnection - 41
+// Тонкий клиент,веб-клиент,сервер,внешнее соединение - 43
+// ThinClient,WebClient,Server,ExternalConnection - 43
+// толстый клиент,внешнее соединение - 48
+// ThickClient,ExternalConnection - 48
+// Тонкий клиент,веб-клиент,мобильный клиент,толстый клиент,внешнее соединение - 55
+// ThinClient,WebClient,MobileClient,ThickClient,ExternalConnection - 55
+// сервер,толстый клиент,внешнее соединение - 56
+// Server,ThickClient,ExternalConnection - 56
+// Тонкий клиент,сервер,толстый клиент,внешнее соединение - 57
+// ThinClient,Server,ThickClient,ExternalConnection - 57
+// веб-клиент,сервер,толстый клиент,внешнее соединение - 58
+// WebClient,Server,ThickClient,ExternalConnection - 58
+// Тонкий клиент,веб-клиент,сервер,толстый клиент,внешнее соединение - 59
+// ThinClient,WebClient,Server,ThickClient,ExternalConnection - 59
+// Тонкий клиент,мобильный клиент,сервер,толстый клиент,внешнее соединение - 61
+// ThinClient,MobileClient,Server,ThickClient,ExternalConnection - 61
+// Тонкий клиент,веб-клиент,мобильный клиент,сервер,толстый клиент,внешнее соединение - 63
+// ThinClient,WebClient,MobileClient,Server,ThickClient,ExternalConnection - 63
+// мобильный клиент,мобильное приложение (клиент) - 68
+// MobileClient,MobileApplicationClient - 68
+// Тонкий клиент,веб-клиент,толстый клиент,мобильное приложение (клиент) - 83
+// ThinClient,WebClient,ThickClient,MobileApplicationClient - 83
+// Тонкий клиент,мобильный клиент,толстый клиент,мобильное приложение (клиент) - 85
+// ThinClient,MobileClient,ThickClient,MobileApplicationClient - 85
+// Тонкий клиент,веб-клиент,мобильный клиент,толстый клиент,мобильное приложение (клиент) - 87
+// ThinClient,WebClient,MobileClient,ThickClient,MobileApplicationClient - 87
+// Тонкий клиент,веб-клиент,мобильный клиент,сервер,толстый клиент,мобильное приложение (клиент) - 95
+// ThinClient,WebClient,MobileClient,Server,ThickClient,MobileApplicationClient - 95
+// Тонкий клиент,мобильный клиент,толстый клиент,внешнее соединение,мобильное приложение (клиент) - 117
+// ThinClient,MobileClient,ThickClient,ExternalConnection,MobileApplicationClient - 117
+// Тонкий клиент,веб-клиент,мобильный клиент,толстый клиент,внешнее соединение,мобильное приложение (клиент) - 119
+// ThinClient,WebClient,MobileClient,ThickClient,ExternalConnection,MobileApplicationClient - 119
+// Тонкий клиент,веб-клиент,мобильный клиент,сервер,толстый клиент,внешнее соединение,мобильное приложение (клиент) - 127
+// ThinClient,WebClient,MobileClient,Server,ThickClient,ExternalConnection,MobileApplicationClient - 127
+// сервер,толстый клиент,внешнее соединение,мобильное приложение (сервер) - 184
+// Server,ThickClient,ExternalConnection,MobileApplicationServer - 184
+// мобильный автономный сервер - 256
+// MobileStandaloneServer - 256
+// мобильный клиент,мобильный автономный сервер - 260
+// MobileClient,MobileStandaloneServer - 260
+// сервер,мобильное приложение (сервер),мобильный автономный сервер - 392
+// Server,MobileApplicationServer,MobileStandaloneServer - 392
+// Тонкий клиент,веб-клиент,толстый клиент,мобильное приложение (сервер),мобильный автономный сервер - 403
+// ThinClient,WebClient,ThickClient,MobileApplicationServer,MobileStandaloneServer - 403
+// сервер,толстый клиент,мобильное приложение (сервер),мобильный автономный сервер - 408
+// Server,ThickClient,MobileApplicationServer,MobileStandaloneServer - 408
+// сервер,внешнее соединение,мобильное приложение (сервер),мобильный автономный сервер - 424
+// Server,ExternalConnection,MobileApplicationServer,MobileStandaloneServer - 424
+// сервер,толстый клиент,внешнее соединение,мобильное приложение (сервер),мобильный автономный сервер - 440
+// Server,ThickClient,ExternalConnection,MobileApplicationServer,MobileStandaloneServer - 440
+// Тонкий клиент,веб-клиент,сервер,толстый клиент,внешнее соединение,мобильное приложение (сервер),мобильный автономный сервер - 443
+// ThinClient,WebClient,Server,ThickClient,ExternalConnection,MobileApplicationServer,MobileStandaloneServer - 443
+// Тонкий клиент,мобильный клиент,сервер,толстый клиент,внешнее соединение,мобильное приложение (сервер),мобильный автономный сервер - 445
+// ThinClient,MobileClient,Server,ThickClient,ExternalConnection,MobileApplicationServer,MobileStandaloneServer - 445
+// Тонкий клиент,веб-клиент,мобильный клиент,сервер,толстый клиент,внешнее соединение,мобильное приложение (сервер),мобильный автономный сервер - 447
+// ThinClient,WebClient,MobileClient,Server,ThickClient,ExternalConnection,MobileApplicationServer,MobileStandaloneServer - 447
+// мобильный клиент,мобильное приложение (клиент),мобильное приложение (сервер),мобильный автономный сервер - 452
+// MobileClient,MobileApplicationClient,MobileApplicationServer,MobileStandaloneServer - 452
+// мобильный клиент,сервер,мобильное приложение (клиент),мобильное приложение (сервер),мобильный автономный сервер - 460
+// MobileClient,Server,MobileApplicationClient,MobileApplicationServer,MobileStandaloneServer - 460
+// Тонкий клиент,веб-клиент,мобильный клиент,толстый клиент,мобильное приложение (клиент),мобильное приложение (сервер),мобильный автономный сервер - 471
+// ThinClient,WebClient,MobileClient,ThickClient,MobileApplicationClient,MobileApplicationServer,MobileStandaloneServer - 471
+// Тонкий клиент,веб-клиент,мобильный клиент,сервер,толстый клиент,мобильное приложение (клиент),мобильное приложение (сервер),мобильный автономный сервер - 479
+// ThinClient,WebClient,MobileClient,Server,ThickClient,MobileApplicationClient,MobileApplicationServer,MobileStandaloneServer - 479
+// мобильный клиент,сервер,внешнее соединение,мобильное приложение (клиент),мобильное приложение (сервер),мобильный автономный сервер - 492
+// MobileClient,Server,ExternalConnection,MobileApplicationClient,MobileApplicationServer,MobileStandaloneServer - 492
+// мобильный клиент,сервер,толстый клиент,внешнее соединение,мобильное приложение (клиент),мобильное приложение (сервер),мобильный автономный сервер - 508
+// MobileClient,Server,ThickClient,ExternalConnection,MobileApplicationClient,MobileApplicationServer,MobileStandaloneServer - 508
+// Тонкий клиент,мобильный клиент,сервер,толстый клиент,внешнее соединение,мобильное приложение (клиент),мобильное приложение (сервер),мобильный автономный сервер - 509
+// ThinClient,MobileClient,Server,ThickClient,ExternalConnection,MobileApplicationClient,MobileApplicationServer,MobileStandaloneServer - 509
+// веб-клиент,мобильный клиент,сервер,толстый клиент,внешнее соединение,мобильное приложение (клиент),мобильное приложение (сервер),мобильный автономный сервер - 510
+// WebClient,MobileClient,Server,ThickClient,ExternalConnection,MobileApplicationClient,MobileApplicationServer,MobileStandaloneServer - 510
+// Тонкий клиент,веб-клиент,мобильный клиент,сервер,толстый клиент,внешнее соединение,мобильное приложение (клиент),мобильное приложение (сервер),мобильный автономный сервер - 511
+// ThinClient,WebClient,MobileClient,Server,ThickClient,ExternalConnection,MobileApplicationClient,MobileApplicationServer,MobileStandaloneServer - 511
+// сервер,толстый клиент,внешнее соединение,интеграция - 568
+// Server,ThickClient,ExternalConnection,Integration - 568
+// Тонкий клиент,сервер,толстый клиент,внешнее соединение,интеграция - 569
+// ThinClient,Server,ThickClient,ExternalConnection,Integration - 569
+// Тонкий клиент,веб-клиент,мобильный клиент,сервер,толстый клиент,внешнее соединение,интеграция - 575
+// ThinClient,WebClient,MobileClient,Server,ThickClient,ExternalConnection,Integration - 575
+// Тонкий клиент,веб-клиент,мобильный клиент,толстый клиент,внешнее соединение,мобильное приложение (клиент),интеграция - 631
+// ThinClient,WebClient,MobileClient,ThickClient,ExternalConnection,MobileApplicationClient,Integration - 631
+// сервер,толстый клиент,внешнее соединение,мобильное приложение (сервер),мобильный автономный сервер,интеграция - 952
+// Server,ThickClient,ExternalConnection,MobileApplicationServer,MobileStandaloneServer,Integration - 952
+// Тонкий клиент,веб-клиент,мобильный клиент,сервер,толстый клиент,внешнее соединение,мобильное приложение (клиент),мобильное приложение (сервер),мобильный автономный сервер,интеграция - 1023
+// ThinClient,WebClient,MobileClient,Server,ThickClient,ExternalConnection,MobileApplicationClient,MobileApplicationServer,MobileStandaloneServer,Integration - 1023
+
+let bslAvailabilityContexts = [
+    "ThinClient",
+    "WebClient",
+    "MobileClient",
+    "Server",
+    "ThickClient",
+    "ExternalConnection",
+    "MobileApplicationClient",
+    "MobileApplicationServer",
+    "MobileStandaloneServer",
+    "Integration"
+];
+
 let bslGlobals = {
     "globalfunctions": {
         "ACos": {
+            "availability": 511,
             "name": "ACos",
             "name_en": "ACos",
             "description": "Вычисляет арккосинус от аргумента Число.",
@@ -15,6 +150,7 @@ let bslGlobals = {
             }
         },
         "ASin": {
+            "availability": 511,
             "name": "ASin",
             "name_en": "ASin",
             "description": "Вычисляет арксинус от аргумента Число.",
@@ -29,6 +165,7 @@ let bslGlobals = {
             }
         },
         "ATan": {
+            "availability": 511,
             "name": "ATan",
             "name_en": "ATan",
             "description": "Вычисляет арктангенс от аргумента Число.",
@@ -43,6 +180,7 @@ let bslGlobals = {
             }
         },
         "Base64Значение": {
+            "availability": 511,
             "name": "Base64Значение",
             "name_en": "Base64Value",
             "description": "Получает из строки закодированной по алгоритму base64 двоичные данные.",
@@ -58,6 +196,7 @@ let bslGlobals = {
             }
         },
         "Base64Строка": {
+            "availability": 511,
             "name": "Base64Строка",
             "name_en": "Base64String",
             "description": "Получает строку, закодированную по алгоритму base64.",
@@ -72,6 +211,7 @@ let bslGlobals = {
             }
         },
         "Cos": {
+            "availability": 511,
             "name": "Cos",
             "name_en": "Cos",
             "description": "Вычисляет косинус от аргумента Угол, заданного в радианах.",
@@ -86,6 +226,7 @@ let bslGlobals = {
             }
         },
         "Exp": {
+            "availability": 511,
             "name": "Exp",
             "name_en": "Exp",
             "description": "Вычисляет результат возведения основания натурального логарифма (числа e) в степень Число.",
@@ -100,6 +241,7 @@ let bslGlobals = {
             }
         },
         "Log": {
+            "availability": 511,
             "name": "Log",
             "name_en": "Log",
             "description": "Вычисляет натуральный логарифм параметра Число.",
@@ -114,6 +256,7 @@ let bslGlobals = {
             }
         },
         "Log10": {
+            "availability": 511,
             "name": "Log10",
             "name_en": "Log10",
             "description": "Вычисляет десятичный логарифм параметра Число.",
@@ -128,6 +271,7 @@ let bslGlobals = {
             }
         },
         "Pow": {
+            "availability": 511,
             "name": "Pow",
             "name_en": "Pow",
             "description": "Возводит число X в степень Y.",
@@ -143,6 +287,7 @@ let bslGlobals = {
             }
         },
         "Sin": {
+            "availability": 511,
             "name": "Sin",
             "name_en": "Sin",
             "description": "Вычисляет синус от аргумента Угол, заданного в радианах.",
@@ -157,6 +302,7 @@ let bslGlobals = {
             }
         },
         "Sqrt": {
+            "availability": 511,
             "name": "Sqrt",
             "name_en": "Sqrt",
             "description": "Вычисляет квадратный корень параметра Число.",
@@ -171,6 +317,7 @@ let bslGlobals = {
             }
         },
         "Tan": {
+            "availability": 511,
             "name": "Tan",
             "name_en": "Tan",
             "description": "Вычисляет тангенс от аргумента Угол, заданного в радианах.",
@@ -185,6 +332,7 @@ let bslGlobals = {
             }
         },
         "XMLЗначение": {
+            "availability": 509,
             "name": "XMLЗначение",
             "name_en": "XMLValue",
             "description": "Выполняет преобразование из строки, полученной из текста элемента или значения атрибута XML, в значение в соответствии с указанным типом. Выполняет действие обратное действию метода",
@@ -200,6 +348,7 @@ let bslGlobals = {
             }
         },
         "XMLСтрока": {
+            "availability": 509,
             "name": "XMLСтрока",
             "name_en": "XMLString",
             "description": "Получает XML представление значения для помещения в текст элемента или значение атрибута XML.  - Строка - как есть;  - Булево: Истина - как \"true\", Ложь - как \"false\";  - Дата - XML представление соответствует представлению типа dateTime схемы XML (см. http://www.w3.org/TR/xmlschema-2/#dateTime);  - Число - XML представление соответствует представлению типа decimal схемы XML (см. http://www.w3.org/TR/xmlschema-2/#decimal);  - Значение системного перечисления (для перечислений, поддерживающих XML сериализацию) - как имя значения перечисления;  - УникальныйИдентификатор - как строковое представление уникального идентификатора;  - Ссылки - как XML представление уникального идентификатора ссылки;  - ХранилищеЗначения и ДвоичныеДанные - как строка в формате base64.",
@@ -214,6 +363,7 @@ let bslGlobals = {
             }
         },
         "XMLТип": {
+            "availability": 509,
             "name": "XMLТип",
             "name_en": "XMLType",
             "description": "Получает тип данных XML, соответствующий переданному в качестве параметра типу.",
@@ -228,6 +378,7 @@ let bslGlobals = {
             }
         },
         "XMLТипЗнч": {
+            "availability": 509,
             "name": "XMLТипЗнч",
             "name_en": "XMLTypeOf",
             "description": "Получает тип данных XML, соответствующий типу переданного в качестве параметра значения.",
@@ -242,18 +393,21 @@ let bslGlobals = {
             }
         },
         "АктивноеОкно": {
+            "availability": 87,
             "name": "АктивноеОкно",
             "name_en": "ActiveWindow",
             "description": "Получает текущее активное окно.",
             "returns": "Тип: ОкноКлиентскогоПриложения, Неопределено. "
         },
         "БезопасныйРежим": {
+            "availability": 56,
             "name": "БезопасныйРежим",
             "name_en": "SafeMode",
             "description": "Получает текущее значение безопасного режима.",
             "returns": "Тип: Булево, Строка. Строка, если установлен безопасный режим с указанием имени профиля безопасности. Истина, если установлен безопасный режим. Ложь, если безопасный режим не установлен."
         },
         "БезопасныйРежимРазделенияДанных": {
+            "availability": 56,
             "name": "БезопасныйРежимРазделенияДанных",
             "name_en": "DataSeparationSafeMode",
             "description": "Показывает, установлен ли безопасный режим разделения данных по данному разделителю. Учитывает установку режима безопасного сеанса, определяемого установкой атрибута safe=”true” элемента zone файла default.vrd.",
@@ -282,6 +436,7 @@ let bslGlobals = {
             }
         },
         "ВвестиДату": {
+            "availability": 87,
             "name": "ВвестиДату",
             "name_en": "InputDate",
             "description": "Вызывает диалог для ввода даты.",
@@ -298,6 +453,7 @@ let bslGlobals = {
             }
         },
         "ВвестиЗначение": {
+            "availability": 85,
             "name": "ВвестиЗначение",
             "name_en": "InputValue",
             "description": "Вызывает диалог для ввода значения заданного типа. Если тип переменной не определен и Тип представляет собой составной тип данных, то в поле ввода появляется кнопка выбора типа.",
@@ -314,6 +470,7 @@ let bslGlobals = {
             }
         },
         "ВвестиСтроку": {
+            "availability": 87,
             "name": "ВвестиСтроку",
             "name_en": "InputString",
             "description": "Вызывает диалог для ввода строки.",
@@ -331,6 +488,7 @@ let bslGlobals = {
             }
         },
         "ВвестиЧисло": {
+            "availability": 85,
             "name": "ВвестиЧисло",
             "name_en": "InputNumber",
             "description": "Вызывает диалог для ввода числа.",
@@ -348,6 +506,7 @@ let bslGlobals = {
             }
         },
         "ВозможностьЧтенияXML": {
+            "availability": 509,
             "name": "ВозможностьЧтенияXML",
             "name_en": "CanReadXML",
             "description": "Производит проверку возможности чтения из XML значения указанного типа.",
@@ -362,6 +521,7 @@ let bslGlobals = {
             }
         },
         "Вопрос": {
+            "availability": 85,
             "name": "Вопрос",
             "name_en": "DoQueryBox",
             "description": "Выводит на экран окно вопроса.",
@@ -381,6 +541,7 @@ let bslGlobals = {
             }
         },
         "ВосстановитьЗначение": {
+            "availability": 16,
             "name": "ВосстановитьЗначение",
             "name_en": "RestoreValue",
             "description": "Получает значение, сохраненное ранее с помощью метода",
@@ -395,6 +556,7 @@ let bslGlobals = {
             }
         },
         "ВРег": {
+            "availability": 511,
             "name": "ВРег",
             "name_en": "Upper",
             "description": "Преобразует все символы строки в верхний регистр.",
@@ -409,6 +571,7 @@ let bslGlobals = {
             }
         },
         "ВыгрузитьЖурналРегистрации": {
+            "availability": 56,
             "name": "ВыгрузитьЖурналРегистрации",
             "name_en": "UnloadEventLog",
             "description": "Выгружает журнал регистрации. Существует возможность установить отбор, задаваемый структурой специального формата, указывающий, какие записи журнала регистрации выгружать, а также указать колонки, которые необходимо выгружать. Если указано имя входного файла, то происходит выгрузка из указанного файла.",
@@ -426,6 +589,7 @@ let bslGlobals = {
             }
         },
         "ВыполнитьОбработкуЗаданий": {
+            "availability": 19,
             "name": "ВыполнитьОбработкуЗаданий",
             "name_en": "ProcessJobs",
             "description": "Вызывает обработку текущих заданий. Имеет смысл только для файлового варианта.",
@@ -439,6 +603,7 @@ let bslGlobals = {
             }
         },
         "ВыполнитьОбработкуОповещения": {
+            "availability": 87,
             "name": "ВыполнитьОбработкуОповещения",
             "name_en": "ExecuteNotifyProcessing",
             "description": "Запускает выполнение процедуры (или функции), описанной в параметре ВыполняемоеОповещение.",
@@ -454,6 +619,7 @@ let bslGlobals = {
             }
         },
         "ВыполнитьПроверкуПравДоступа": {
+            "availability": 440,
             "name": "ВыполнитьПроверкуПравДоступа",
             "name_en": "VerifyAccessRights",
             "description": "Выполняет проверку прав текущего пользователя.",
@@ -469,6 +635,7 @@ let bslGlobals = {
             }
         },
         "Вычислить": {
+            "availability": 440,
             "name": "Вычислить",
             "name_en": "Eval",
             "description": "Вычисляет переданное выражение. С помощью метода можно вычислять математические и логические выражения, а также операции конкатенации. Подробнее про выражения см. раздел \"Выражения языка\".",
@@ -497,6 +664,7 @@ let bslGlobals = {
             }
         },
         "ДанныеФормыВЗначение": {
+            "availability": 408,
             "name": "ДанныеФормыВЗначение",
             "name_en": "FormDataToValue",
             "description": "Преобразует данные формы в объект прикладного типа.",
@@ -551,6 +719,7 @@ let bslGlobals = {
             }
         },
         "ДеньГода": {
+            "availability": 511,
             "name": "ДеньГода",
             "name_en": "DayOfYear",
             "description": "Определяет номер дня в году для указанной даты.",
@@ -579,6 +748,7 @@ let bslGlobals = {
             }
         },
         "ДобавитьМесяц": {
+            "availability": 511,
             "name": "ДобавитьМесяц",
             "name_en": "AddMonth",
             "description": "Добавляет (или вычитает) к указанной дате заданное число месяцев.",
@@ -594,6 +764,7 @@ let bslGlobals = {
             }
         },
         "ЗаблокироватьДанныеДляРедактирования": {
+            "availability": 440,
             "name": "ЗаблокироватьДанныеДляРедактирования",
             "name_en": "LockDataForEdit",
             "description": "Заблокировать данные для редактирования в форме клиентского приложения.",
@@ -609,11 +780,13 @@ let bslGlobals = {
             }
         },
         "ЗаблокироватьРаботуПользователя": {
+            "availability": 85,
             "name": "ЗаблокироватьРаботуПользователя",
             "name_en": "LockApplication",
             "description": "Блокирует работу пользователя, минимизирует окно 1С:Предприятия и выводит диалог аутентификации. Продолжение работы возможно только после ввода пароля."
         },
         "ЗавершитьРаботуСистемы": {
+            "availability": 87,
             "name": "ЗавершитьРаботуСистемы",
             "name_en": "Exit",
             "description": "Позволяет принудительно вызвать завершение работы 1С:Предприятия. В зависимости от переданного параметра будут вызываться обработчики закрытия и завершения работы системы или завершает работу безусловно.",
@@ -629,6 +802,7 @@ let bslGlobals = {
             }
         },
         "ЗагрузитьВнешнююКомпоненту": {
+            "availability": 16,
             "name": "ЗагрузитьВнешнююКомпоненту",
             "name_en": "LoadAddIn",
             "description": "Загружает внешний компонент и подключает ее объекты к 1С:Предприятию. Объекты этого компонента должны быть построены по технологии внешних компонентов COM.",
@@ -642,11 +816,13 @@ let bslGlobals = {
             }
         },
         "ЗакрытьСправку": {
+            "availability": 55,
             "name": "ЗакрытьСправку",
             "name_en": "CloseHelp",
             "description": "Закрывает окно со справочной информацией. Когда выбран режим показа справки в нескольких окнах, метод закроет все окна справки."
         },
         "ЗаписатьJSON": {
+            "availability": 509,
             "name": "ЗаписатьJSON",
             "name_en": "WriteJSON",
             "description": "Выполняет сериализацию Значение в формат JSON. Результат помещает в объект ЗаписьJSON.",
@@ -665,6 +841,7 @@ let bslGlobals = {
             }
         },
         "ЗаписатьXML": {
+            "availability": 509,
             "name": "ЗаписатьXML",
             "name_en": "WriteXML",
             "description": "Выполняет сериализацию значения в формат XML.",
@@ -699,6 +876,7 @@ let bslGlobals = {
             }
         },
         "ЗаписатьДатуJSON": {
+            "availability": 509,
             "name": "ЗаписатьДатуJSON",
             "name_en": "WriteJSONDate",
             "description": "Преобразовывает дату в строку для последующей записи в формат JSON.",
@@ -715,6 +893,7 @@ let bslGlobals = {
             }
         },
         "ЗаписьЖурналаРегистрации": {
+            "availability": 56,
             "name": "ЗаписьЖурналаРегистрации",
             "name_en": "WriteLogEvent",
             "description": "Записывает событие в журнал регистрации.",
@@ -733,6 +912,7 @@ let bslGlobals = {
             }
         },
         "ЗаполнитьЗначенияСвойств": {
+            "availability": 511,
             "name": "ЗаполнитьЗначенияСвойств",
             "name_en": "FillPropertyValues",
             "description": "Копирует значения свойств Источника в свойства Приемника. Сопоставление производится по именам свойств.",
@@ -749,12 +929,14 @@ let bslGlobals = {
             }
         },
         "ЗапрещеноОткрытиеФорм": {
+            "availability": 19,
             "name": "ЗапрещеноОткрытиеФорм",
             "name_en": "CannotOpenForm",
             "description": "Возвращает текущий режим открытия форм.",
             "returns": "Тип: Булево. На толстом и тонком клиентах возвращает Истина при вызове в обработчике ПередНачаломРаботыСистемы, если установлен ключ DisableStartupDialogs.  После окончания работы обработчика - Ложь. На веб-клиенте всегда возвращает Ложь."
         },
         "ЗапроситьРазрешениеПользователя": {
+            "availability": 87,
             "name": "ЗапроситьРазрешениеПользователя",
             "name_en": "RequestUserPermission",
             "description": "Получает у пользователя разрешение на несколько операций с файлами, которые потом будут выполнены без дополнительных вопросов.",
@@ -769,6 +951,7 @@ let bslGlobals = {
             }
         },
         "ЗапуститьПриложение": {
+            "availability": 479,
             "name": "ЗапуститьПриложение",
             "name_en": "RunApp",
             "description": "Выполняет запуск внешнего приложения либо открытие файла с использованием ассоциированного с ним приложения.",
@@ -785,6 +968,7 @@ let bslGlobals = {
             }
         },
         "ЗапуститьСистему": {
+            "availability": 17,
             "name": "ЗапуститьСистему",
             "name_en": "RunSystem",
             "description": "Запускает новый сеанс 1С:Предприятия. Новый сеанс будет запущен с текущими установками.",
@@ -800,11 +984,13 @@ let bslGlobals = {
             }
         },
         "ЗафиксироватьТранзакцию": {
+            "availability": 440,
             "name": "ЗафиксироватьТранзакцию",
             "name_en": "CommitTransaction",
             "description": "Завершает успешную транзакцию. Все изменения, внесенные в информационную базу в процессе транзакции, будут записаны."
         },
         "ЗначениеВДанныеФормы": {
+            "availability": 408,
             "name": "ЗначениеВДанныеФормы",
             "name_en": "ValueToFormData",
             "description": "Преобразует объект прикладного типа в универсальный объект данных.",
@@ -819,6 +1005,7 @@ let bslGlobals = {
             }
         },
         "ЗначениеВСтрокуВнутр": {
+            "availability": 56,
             "name": "ЗначениеВСтрокуВнутр",
             "name_en": "ValueToStringInternal",
             "description": "Получает системное строковое представление переданного значения.",
@@ -833,6 +1020,7 @@ let bslGlobals = {
             }
         },
         "ЗначениеВФайл": {
+            "availability": 440,
             "name": "ЗначениеВФайл",
             "name_en": "ValueToFile",
             "description": "Сохраняет любое сериализуемое значение в файл.",
@@ -848,6 +1036,7 @@ let bslGlobals = {
             }
         },
         "ЗначениеЗаполнено": {
+            "availability": 511,
             "name": "ЗначениеЗаполнено",
             "name_en": "ValueIsFilled",
             "description": "Функция проверяет, отличается ли переданное значение от значения по умолчанию того же типа.",
@@ -862,6 +1051,7 @@ let bslGlobals = {
             }
         },
         "ЗначениеИзСтрокиВнутр": {
+            "availability": 56,
             "name": "ЗначениеИзСтрокиВнутр",
             "name_en": "ValueFromStringInternal",
             "description": "Преобразует значение из строкового системного представления во внутреннее.",
@@ -876,6 +1066,7 @@ let bslGlobals = {
             }
         },
         "ЗначениеИзФайла": {
+            "availability": 440,
             "name": "ЗначениеИзФайла",
             "name_en": "ValueFromFile",
             "description": "Получает из файла значение, ранее сохраненное в нем при помощи функции",
@@ -890,6 +1081,7 @@ let bslGlobals = {
             }
         },
         "ИзXMLТипа": {
+            "availability": 509,
             "name": "ИзXMLТипа",
             "name_en": "FromXMLType",
             "description": "Получает тип, соответствующий типу данных XML.",
@@ -911,6 +1103,7 @@ let bslGlobals = {
             }
         },
         "ИмпортМоделиXDTO": {
+            "availability": 509,
             "name": "ИмпортМоделиXDTO",
             "name_en": "ImportXDTOModel",
             "description": "Осуществляет импорт переданного набора схем XML в модель типов XDTO. Возвращаемое значение –",
@@ -925,6 +1118,7 @@ let bslGlobals = {
             }
         },
         "ИмяКомпьютера": {
+            "availability": 57,
             "name": "ИмяКомпьютера",
             "name_en": "ComputerName",
             "description": "Получает сетевое имя компьютера.",
@@ -937,11 +1131,13 @@ let bslGlobals = {
             "returns": "Тип: Строка. Имя пользователя."
         },
         "ИнициализироватьПредопределенныеДанные": {
+            "availability": 440,
             "name": "ИнициализироватьПредопределенныеДанные",
             "name_en": "InitializePredefinedData",
             "description": "Инициализирует предопределенные данные в текущей области информационной базы.   - В сеансе установлены и используются все разделители, в состав которых включен объект метаданных.  - Автоматическое обновление предопределенных данных для этого объекта метаданных включено.  - Предопределенные данные для этого объекта в этой области данных еще не создавались."
         },
         "ИнформацияОбОшибке": {
+            "availability": 511,
             "name": "ИнформацияОбОшибке",
             "name_en": "ErrorInfo",
             "description": "Получает структурированную информацию об исключении.",
@@ -949,6 +1145,7 @@ let bslGlobals = {
             "ref": "types.ИнформацияОбОшибке"
         },
         "КаталогБиблиотекиМобильногоУстройства": {
+            "availability": 452,
             "name": "КаталогБиблиотекиМобильногоУстройства",
             "name_en": "MobileDeviceLibraryDir",
             "description": "Получает путь к библиотекам мобильного устройства.",
@@ -963,24 +1160,28 @@ let bslGlobals = {
             }
         },
         "КаталогВременныхФайлов": {
+            "availability": 511,
             "name": "КаталогВременныхФайлов",
             "name_en": "TempFilesDir",
             "description": "Получает имя каталога, который используется программой для размещения временных файлов.",
             "returns": "Тип: Строка. Имя каталога временных файлов пользователя, от имени которого запущено приложение."
         },
         "КаталогДокументов": {
+            "availability": 87,
             "name": "КаталогДокументов",
             "name_en": "DocumentsDir",
             "description": "Предоставляет доступ к стандартному каталогу документов.",
             "returns": "Тип: Строка. Путь к каталогу. Для режимов запуска \"Тонкий клиент\" и \"Толстый клиент\":  - в MS Windows: <Personal>;  - в Linux: выбирается из надстройки gnome. Если gnome не указан, то метод вернет домашний каталог <Home>. Для режимов запуска \"Веб клиент\" (реализуются только в расширении для работы с файлами):  - при использовании веб-браузера Microsoft Internet Explorer: <Personal>;  - при использовании веб-браузера Mozilla Firefox (с помощью XPCOM интерфейса nsIDirectoryServiceProvider):   - в MS Windows: <Personal>;  - в Linux: <Home>;  - в macOS: <Docs> ;  - в OSX: <UsrDocs>. Для мобильной платформы:  - iOS: Подкаталог \\Documents относительно домашней директории приложения. Стандартный каталог, который доступен для обмена файлов в iTunes с помощью функции NSHomeDirectory().  - Android:<Абсолютный путь>, может различаться на разных устройствах. Например:  - /mnt/sdcard/Android/data/com.e1c.mobile/files/  - /storage/emulated/0/Android/data/com.e1c.mobile/files/  - Windows:  - для смартфона: путь внутри домашней директории приложения (C:\\Users\\<User>\\AppData\\Local\\Packages\\<Application>\\RoamingState). Каталог не доступен при подключении к ПК. Доступ с ПК можно обеспечить только с помощью утилиты ISETool из комплекта Windows Phone SDK.  - для планшета: путь внутри домашней директории приложения C:\\Data\\Users\\<User>\\DefApps\\APPDATA\\Local\\Packages\\ <Application>\\RoamingState)"
         },
         "КаталогПрограммы": {
+            "availability": 57,
             "name": "КаталогПрограммы",
             "name_en": "BinDir",
             "description": "Получает имя каталога, в котором расположены исполняемые файлы программы.",
             "returns": "Тип: Строка. Имя каталога исполняемых файлов программы."
         },
         "КодироватьСтроку": {
+            "availability": 440,
             "name": "КодироватьСтроку",
             "name_en": "EncodeString",
             "description": "Кодирует строку в соответствии с выбранным способом кодирования.",
@@ -997,12 +1198,14 @@ let bslGlobals = {
             }
         },
         "КодЛокализацииИнформационнойБазы": {
+            "availability": 440,
             "name": "КодЛокализацииИнформационнойБазы",
             "name_en": "InfoBaseLocaleCode",
             "description": "Получает код локализации (язык, страна), установленный для данной информационной базы.",
             "returns": "Тип: Строка. "
         },
         "КодСимвола": {
+            "availability": 511,
             "name": "КодСимвола",
             "name_en": "CharCode",
             "description": "Получает код символа, расположенного в переданной строке в позиции с указанным номером.",
@@ -1018,6 +1221,7 @@ let bslGlobals = {
             }
         },
         "КомандаСистемы": {
+            "availability": 17,
             "name": "КомандаСистемы",
             "name_en": "System",
             "description": "Вызывает на исполнение команду операционной системы, как если бы она была введена в командной строке.",
@@ -1032,6 +1236,7 @@ let bslGlobals = {
             }
         },
         "КонецГода": {
+            "availability": 511,
             "name": "КонецГода",
             "name_en": "EndOfYear",
             "description": "Определяет дату и время конца года для указанной даты.",
@@ -1046,6 +1251,7 @@ let bslGlobals = {
             }
         },
         "КонецДня": {
+            "availability": 511,
             "name": "КонецДня",
             "name_en": "EndOfDay",
             "description": "Определяет дату и время конца дня для указанной даты.",
@@ -1060,6 +1266,7 @@ let bslGlobals = {
             }
         },
         "КонецКвартала": {
+            "availability": 511,
             "name": "КонецКвартала",
             "name_en": "EndOfQuarter",
             "description": "Определяет дату и время конца квартала для указанной даты.",
@@ -1074,6 +1281,7 @@ let bslGlobals = {
             }
         },
         "КонецМесяца": {
+            "availability": 511,
             "name": "КонецМесяца",
             "name_en": "EndOfMonth",
             "description": "Определяет дату и время конца месяца для указанной даты.",
@@ -1088,6 +1296,7 @@ let bslGlobals = {
             }
         },
         "КонецМинуты": {
+            "availability": 511,
             "name": "КонецМинуты",
             "name_en": "EndOfMinute",
             "description": "Определяет дату и время конца минуты для указанной даты.",
@@ -1102,6 +1311,7 @@ let bslGlobals = {
             }
         },
         "КонецНедели": {
+            "availability": 511,
             "name": "КонецНедели",
             "name_en": "EndOfWeek",
             "description": "Определяет дату и время конца недели для указанной даты.",
@@ -1116,6 +1326,7 @@ let bslGlobals = {
             }
         },
         "КонецЧаса": {
+            "availability": 511,
             "name": "КонецЧаса",
             "name_en": "EndOfHour",
             "description": "Определяет дату и время конца часа для указанной даты.",
@@ -1130,18 +1341,21 @@ let bslGlobals = {
             }
         },
         "КонфигурацияБазыДанныхИзмененаДинамически": {
+            "availability": 56,
             "name": "КонфигурацияБазыДанныхИзмененаДинамически",
             "name_en": "DataBaseConfigurationChangedDynamically",
             "description": "Определяет, была ли изменена конфигурация базы данных динамически после старта. Под динамическим изменением понимается такое изменение конфигурации базы данных, при которой не потребовалось проведение реструктуризации, и в момент обновления с информационной базой работали пользователи.",
             "returns": "Тип: Булево. Истина - в процессе работы пользователя с информационной базой произошло обновление конфигурации базы данных, Ложь - в противном случае."
         },
         "КонфигурацияИзменена": {
+            "availability": 56,
             "name": "КонфигурацияИзменена",
             "name_en": "ConfigurationChanged",
             "description": "Определяет факт отличия основной конфигурации от конфигурации базы данных.",
             "returns": "Тип: Булево. Истина - основная конфигурация отличается от конфигурации базы данных, Ложь - в противном случае."
         },
         "КопироватьДанныеФормы": {
+            "availability": 511,
             "name": "КопироватьДанныеФормы",
             "name_en": "CopyFormData",
             "description": "Копирует данные формы, обладающие совместимой структурой.",
@@ -1157,6 +1371,7 @@ let bslGlobals = {
             }
         },
         "КопироватьФайл": {
+            "availability": 511,
             "name": "КопироватьФайл",
             "name_en": "FileCopy",
             "description": "Копирует файл-источник в файл-приемник. Допускается перезапись файла-приемника.",
@@ -1200,6 +1415,7 @@ let bslGlobals = {
             }
         },
         "Макс": {
+            "availability": 511,
             "name": "Макс",
             "name_en": "Max",
             "description": "Определяет максимальное значение из полученных параметров.",
@@ -1214,6 +1430,7 @@ let bslGlobals = {
             }
         },
         "МестноеВремя": {
+            "availability": 511,
             "name": "МестноеВремя",
             "name_en": "ToLocalTime",
             "description": "Преобразует универсальное время в местное время заданного часового пояса.",
@@ -1243,6 +1460,7 @@ let bslGlobals = {
             }
         },
         "Мин": {
+            "availability": 511,
             "name": "Мин",
             "name_en": "Min",
             "description": "Определяет минимальное значение из полученных параметров.",
@@ -1271,12 +1489,14 @@ let bslGlobals = {
             }
         },
         "МонопольныйРежим": {
+            "availability": 440,
             "name": "МонопольныйРежим",
             "name_en": "ExclusiveMode",
             "description": "Определяет, используется ли в данный момент монопольный режим работы с информационной базой.",
             "returns": "Тип: Булево. Истина - монопольная блокировка была установлена на текущую область данных сеанса или текущая область данных является подобластью монопольно заблокированной этим же сеансом области; Ложь - в противном случае. Для режима запуска \"Мобильное приложение (сервер)\" результат всегда Истина."
         },
         "Найти": {
+            "availability": 56,
             "name": "Найти",
             "name_en": "Find",
             "description": "Функция является устаревшей! Рекомендуется использовать функцию",
@@ -1292,6 +1512,7 @@ let bslGlobals = {
             }
         },
         "НайтиНедопустимыеСимволыXML": {
+            "availability": 63,
             "name": "НайтиНедопустимыеСимволыXML",
             "name_en": "FindDisallowedXMLCharacters",
             "description": "Проверяет символы указанной строки на соответствие рекомендации XML 1.0 и 1.1. Проверка строки начинается с символа в позиции, указанной в параметре ПозицияНачала.",
@@ -1308,6 +1529,7 @@ let bslGlobals = {
             }
         },
         "НайтиОкноПоНавигационнойСсылке": {
+            "availability": 87,
             "name": "НайтиОкноПоНавигационнойСсылке",
             "name_en": "FindWindowByURL",
             "description": "Получает окно клиентского приложения.",
@@ -1322,6 +1544,7 @@ let bslGlobals = {
             }
         },
         "НайтиПомеченныеНаУдаление": {
+            "availability": 440,
             "name": "НайтиПомеченныеНаУдаление",
             "name_en": "FindMarkedForDeletion",
             "description": "Осуществляет поиск всех помеченных на удаление объектов, которые доступны пользователю в рамках текущего сеанса и которые попадают в область поиска, заданную параметрами ОбластьПоиска, ВключитьОбъекты и ИсключитьОбъекты.",
@@ -1339,6 +1562,7 @@ let bslGlobals = {
             }
         },
         "НайтиПоСсылкам": {
+            "availability": 440,
             "name": "НайтиПоСсылкам",
             "name_en": "FindByRef",
             "description": "Осуществляет поиск ссылок на объекты, переданные в параметре СписокСсылок.",
@@ -1357,6 +1581,7 @@ let bslGlobals = {
             }
         },
         "НайтиФайлы": {
+            "availability": 57,
             "name": "НайтиФайлы",
             "name_en": "FindFiles",
             "description": "Осуществляет поиск файлов и каталогов по заданной маске, расположенных в заданном каталоге.",
@@ -1374,6 +1599,7 @@ let bslGlobals = {
             }
         },
         "НачалоГода": {
+            "availability": 511,
             "name": "НачалоГода",
             "name_en": "BegOfYear",
             "description": "Определяет дату и время начала года для указанной даты.",
@@ -1388,6 +1614,7 @@ let bslGlobals = {
             }
         },
         "НачалоДня": {
+            "availability": 511,
             "name": "НачалоДня",
             "name_en": "BegOfDay",
             "description": "Определяет дату и время начала дня для указанной даты.",
@@ -1402,6 +1629,7 @@ let bslGlobals = {
             }
         },
         "НачалоКвартала": {
+            "availability": 511,
             "name": "НачалоКвартала",
             "name_en": "BegOfQuarter",
             "description": "Определяет дату и время начала квартала для указанной даты.",
@@ -1416,6 +1644,7 @@ let bslGlobals = {
             }
         },
         "НачалоМесяца": {
+            "availability": 511,
             "name": "НачалоМесяца",
             "name_en": "BegOfMonth",
             "description": "Определяет дату и время начала месяца для указанной даты.",
@@ -1430,6 +1659,7 @@ let bslGlobals = {
             }
         },
         "НачалоМинуты": {
+            "availability": 511,
             "name": "НачалоМинуты",
             "name_en": "BegOfMinute",
             "description": "Определяет дату и время начала минуты для указанной даты.",
@@ -1444,6 +1674,7 @@ let bslGlobals = {
             }
         },
         "НачалоНедели": {
+            "availability": 511,
             "name": "НачалоНедели",
             "name_en": "BegOfWeek",
             "description": "Определяет дату и время начала недели для указанной даты.",
@@ -1458,12 +1689,14 @@ let bslGlobals = {
             }
         },
         "НачалоСтолетияСеанса": {
+            "availability": 443,
             "name": "НачалоСтолетияСеанса",
             "name_en": "SessionBeginningOfCentury",
             "description": "Возвращает год начала столетия, действующий в текущем сеансе.",
             "returns": "Тип: Число. "
         },
         "НачалоЧаса": {
+            "availability": 511,
             "name": "НачалоЧаса",
             "name_en": "BegOfHour",
             "description": "Определяет дату и время начала часа для указанной даты.",
@@ -1478,6 +1711,7 @@ let bslGlobals = {
             }
         },
         "НачатьЗапросРазрешенияПользователя": {
+            "availability": 87,
             "name": "НачатьЗапросРазрешенияПользователя",
             "name_en": "BeginRequestingUserPermission",
             "description": "Инициирует получение у пользователя разрешения на несколько операций с файлами, которые потом будут выполнены без дополнительных вопросов.",
@@ -1492,6 +1726,7 @@ let bslGlobals = {
             }
         },
         "НачатьЗапускПриложения": {
+            "availability": 87,
             "name": "НачатьЗапускПриложения",
             "name_en": "BeginRunningApplication",
             "description": "Начинает запуск внешнего приложения либо открытие файла с использованием ассоциированного с ним приложения.",
@@ -1508,6 +1743,7 @@ let bslGlobals = {
             }
         },
         "НачатьКопированиеФайла": {
+            "availability": 87,
             "name": "НачатьКопированиеФайла",
             "name_en": "BeginCopyingFile",
             "description": "Начинает копирование файла-источника в файл-приемник. Допускается перезапись файла-приемника.",
@@ -1523,6 +1759,7 @@ let bslGlobals = {
             }
         },
         "НачатьПеремещениеФайла": {
+            "availability": 87,
             "name": "НачатьПеремещениеФайла",
             "name_en": "BeginMovingFile",
             "description": "Начинает перемещение (переименование) указанного файла.",
@@ -1538,6 +1775,7 @@ let bslGlobals = {
             }
         },
         "НачатьПодключениеВнешнейКомпоненты": {
+            "availability": 87,
             "name": "НачатьПодключениеВнешнейКомпоненты",
             "name_en": "BeginAttachingAddIn",
             "description": "Начинает подключение к \"1С:Предприятию\" объекта внешнего компонента.",
@@ -1561,6 +1799,7 @@ let bslGlobals = {
             }
         },
         "НачатьПодключениеРасширенияРаботыСКриптографией": {
+            "availability": 87,
             "name": "НачатьПодключениеРасширенияРаботыСКриптографией",
             "name_en": "BeginAttachingCryptoExtension",
             "description": "При первом обращении начинает подключение расширения для работы с криптографией.",
@@ -1574,6 +1813,7 @@ let bslGlobals = {
             }
         },
         "НачатьПодключениеРасширенияРаботыСФайлами": {
+            "availability": 87,
             "name": "НачатьПодключениеРасширенияРаботыСФайлами",
             "name_en": "BeginAttachingFileSystemExtension",
             "description": "Начинает подключение расширения для работы с файлами.",
@@ -1588,6 +1828,7 @@ let bslGlobals = {
             }
         },
         "НачатьПоискФайлов": {
+            "availability": 87,
             "name": "НачатьПоискФайлов",
             "name_en": "BeginFindingFiles",
             "description": "Начинает поиск по заданной маске файлов и каталогов, расположенных в заданном каталоге.",
@@ -1604,6 +1845,7 @@ let bslGlobals = {
             }
         },
         "НачатьПолучениеКаталогаБиблиотекиМобильногоУстройства": {
+            "availability": 452,
             "name": "НачатьПолучениеКаталогаБиблиотекиМобильногоУстройства",
             "name_en": "BeginGettingMobileDeviceLibraryDir",
             "description": "Начинает получение пути к библиотекам мобильного устройства.",
@@ -1618,6 +1860,7 @@ let bslGlobals = {
             }
         },
         "НачатьПолучениеКаталогаВременныхФайлов": {
+            "availability": 87,
             "name": "НачатьПолучениеКаталогаВременныхФайлов",
             "name_en": "BeginGettingTempFilesDir",
             "description": "Начинает получение имени каталога, который используется программой для размещения временных файлов.",
@@ -1631,6 +1874,7 @@ let bslGlobals = {
             }
         },
         "НачатьПолучениеКаталогаДокументов": {
+            "availability": 87,
             "name": "НачатьПолучениеКаталогаДокументов",
             "name_en": "BeginGettingDocumentsDir",
             "description": "Начинает получение стандартного каталога документов.",
@@ -1644,6 +1888,7 @@ let bslGlobals = {
             }
         },
         "НачатьПолучениеРабочегоКаталогаДанныхПользователя": {
+            "availability": 87,
             "name": "НачатьПолучениеРабочегоКаталогаДанныхПользователя",
             "name_en": "BeginGettingUserDataWorkDir",
             "description": "Начинает получение имени каталога текущего пользователя данной информационной базы внутри стандартного каталога данных приложения.",
@@ -1657,6 +1902,7 @@ let bslGlobals = {
             }
         },
         "НачатьПолучениеФайлаССервера": {
+            "availability": 87,
             "name": "НачатьПолучениеФайлаССервера",
             "name_en": "BeginGetFileFromServer",
             "description": "Начинает получение файла.",
@@ -1680,6 +1926,7 @@ let bslGlobals = {
             }
         },
         "НачатьПолучениеФайлов": {
+            "availability": 87,
             "name": "НачатьПолучениеФайлов",
             "name_en": "BeginGettingFiles",
             "description": "Начинает получение набора файлов и сохраняет их в локальную файловую систему пользователя.",
@@ -1696,6 +1943,7 @@ let bslGlobals = {
             }
         },
         "НачатьПолучениеФайловССервера": {
+            "availability": 87,
             "name": "НачатьПолучениеФайловССервера",
             "name_en": "BeginGetFilesFromServer",
             "description": "Начинает получение файлов.",
@@ -1720,6 +1968,7 @@ let bslGlobals = {
             }
         },
         "НачатьПомещениеФайла": {
+            "availability": 87,
             "name": "НачатьПомещениеФайла",
             "name_en": "BeginPutFile",
             "description": "Начинает помещение файла из локальной файловой системы во временное хранилище.",
@@ -1738,6 +1987,7 @@ let bslGlobals = {
             }
         },
         "НачатьПомещениеФайлаНаСервер": {
+            "availability": 87,
             "name": "НачатьПомещениеФайлаНаСервер",
             "name_en": "BeginPutFileToServer",
             "description": "Начинает помещение файла во временное хранилище.",
@@ -1778,6 +2028,7 @@ let bslGlobals = {
             }
         },
         "НачатьПомещениеФайлов": {
+            "availability": 87,
             "name": "НачатьПомещениеФайлов",
             "name_en": "BeginPuttingFiles",
             "description": "Начинает помещение набора файлов из локальной файловой системы во временное хранилище.",
@@ -1796,6 +2047,7 @@ let bslGlobals = {
             }
         },
         "НачатьПомещениеФайловНаСервер": {
+            "availability": 471,
             "name": "НачатьПомещениеФайловНаСервер",
             "name_en": "BeginPutFilesToServer",
             "description": "Начинает помещение файлов во временное хранилище.",
@@ -1843,6 +2095,7 @@ let bslGlobals = {
             }
         },
         "НачатьСозданиеДвоичныхДанныхИзФайла": {
+            "availability": 87,
             "name": "НачатьСозданиеДвоичныхДанныхИзФайла",
             "name_en": "BeginCreateBinaryDataFromFile",
             "description": "Начинает создание двоичных данных из файла.",
@@ -1857,6 +2110,7 @@ let bslGlobals = {
             }
         },
         "НачатьСозданиеКаталога": {
+            "availability": 87,
             "name": "НачатьСозданиеКаталога",
             "name_en": "BeginCreatingDirectory",
             "description": "Начинает создание нового каталога файлов.",
@@ -1871,6 +2125,7 @@ let bslGlobals = {
             }
         },
         "НачатьТранзакцию": {
+            "availability": 440,
             "name": "НачатьТранзакцию",
             "name_en": "BeginTransaction",
             "description": "Открывает транзакцию. Транзакция предназначена для записи в информационную базу согласованных изменений. Все изменения, внесенные в информационную базу после начала транзакции, будут затем либо целиком записаны, либо целиком отменены.",
@@ -1884,6 +2139,7 @@ let bslGlobals = {
             }
         },
         "НачатьУдалениеФайлов": {
+            "availability": 87,
             "name": "НачатьУдалениеФайлов",
             "name_en": "BeginDeletingFiles",
             "description": "Начинает удаление указанных файлов.",
@@ -1899,6 +2155,7 @@ let bslGlobals = {
             }
         },
         "НачатьУстановкуВнешнейКомпоненты": {
+            "availability": 87,
             "name": "НачатьУстановкуВнешнейКомпоненты",
             "name_en": "BeginInstallAddIn",
             "description": "Доставляет объект внешнего компонента с сервера на клиент, после чего он становится доступен для метода",
@@ -1913,6 +2170,7 @@ let bslGlobals = {
             }
         },
         "НачатьУстановкуРасширенияРаботыСКриптографией": {
+            "availability": 87,
             "name": "НачатьУстановкуРасширенияРаботыСКриптографией",
             "name_en": "BeginInstallCryptoExtension",
             "description": "Устанавливает расширение для работы с криптографией в браузер.",
@@ -1926,6 +2184,7 @@ let bslGlobals = {
             }
         },
         "НачатьУстановкуРасширенияРаботыСФайлами": {
+            "availability": 87,
             "name": "НачатьУстановкуРасширенияРаботыСФайлами",
             "name_en": "BeginInstallFileSystemExtension",
             "description": "Устанавливает расширение работы с файлами.",
@@ -1939,6 +2198,7 @@ let bslGlobals = {
             }
         },
         "НеделяГода": {
+            "availability": 511,
             "name": "НеделяГода",
             "name_en": "WeekOfYear",
             "description": "Определяет номер недели в году для указанной даты.",
@@ -1953,12 +2213,14 @@ let bslGlobals = {
             }
         },
         "НеобходимостьЗавершенияСоединения": {
+            "availability": 56,
             "name": "НеобходимостьЗавершенияСоединения",
             "name_en": "ConnectionStopRequest",
             "description": "Позволяет определить, что клиент подсоединен к выключенному рабочему процессу. В этом случае клиентское приложение нужно перезапустить, чтобы оно подсоединилось к включенному рабочему процессу.",
             "returns": "Тип: НеобходимостьЗавершенияСоединения. Содержит информацию о необходимости завершения соединения."
         },
         "Новый": {
+            "availability": 569,
             "name": "Новый",
             "name_en": "New",
             "description": "Позволяет создать значение указанного типа. Допустим только для тех типов, для которых разрешено создание с помощью данного оператора.",
@@ -1974,18 +2236,21 @@ let bslGlobals = {
             }
         },
         "НомерСеансаИнформационнойБазы": {
+            "availability": 56,
             "name": "НомерСеансаИнформационнойБазы",
             "name_en": "InfoBaseSessionNumber",
             "description": "Получает номер текущего сеанса информационной базы.",
             "returns": "Тип: Число. "
         },
         "НомерСоединенияИнформационнойБазы": {
+            "availability": 56,
             "name": "НомерСоединенияИнформационнойБазы",
             "name_en": "InfoBaseConnectionNumber",
             "description": "Получает номер текущего соединения с информационной базой.",
             "returns": "Тип: Число. "
         },
         "НРег": {
+            "availability": 511,
             "name": "НРег",
             "name_en": "Lower",
             "description": "Преобразует все символы строки в нижний регистр.",
@@ -2000,6 +2265,7 @@ let bslGlobals = {
             }
         },
         "НСтр": {
+            "availability": 511,
             "name": "НСтр",
             "name_en": "NStr",
             "description": "Получает строку на языке текущего пользователя или указанном языке из набора строк на разных языках конфигурации.",
@@ -2015,11 +2281,13 @@ let bslGlobals = {
             }
         },
         "ОбновитьИнтерфейс": {
+            "availability": 87,
             "name": "ОбновитьИнтерфейс",
             "name_en": "RefreshInterface",
             "description": "Обновляет командный интерфейс, рабочий стол и открытые формы с учетом текущих значений функциональных опций и их параметров. Вызов метода необходим, чтобы измененные параметры функциональных опций вступили в действие."
         },
         "ОбновитьНумерациюОбъектов": {
+            "availability": 440,
             "name": "ОбновитьНумерациюОбъектов",
             "name_en": "RefreshObjectsNumbering",
             "description": "Выполняет обновление номеров в соответствии с номерами, записанными в базе данных. После вызова данного метода все выданные, но незаписанные номера, становятся невалидными т.к. не гарантируется их уникальность. Данный метод разрешено вызывать только администратору системы.",
@@ -2033,16 +2301,19 @@ let bslGlobals = {
             }
         },
         "ОбновитьПовторноИспользуемыеЗначения": {
+            "availability": 511,
             "name": "ОбновитьПовторноИспользуемыеЗначения",
             "name_en": "RefreshReusableValues",
             "description": "Очищает все сохраненные значения функций с повторным использованием возвращаемых значений. После выполнения метода функции с повторным использованием возвращаемых значений выполняется так же, как при первом вызове."
         },
         "ОбработкаПрерыванияПользователя": {
+            "availability": 23,
             "name": "ОбработкаПрерыванияПользователя",
             "name_en": "UserInterruptProcessing",
             "description": "Предназначен для прерывания работы встроенного языка при нажатии пользователем клавиши Ctrl+Break.  - нажатие кнопки в форме;  - выбор пункта меню или кнопки командной панели в форме;  - выбор пункта меню или кнопки панели инструментов интерфейса;  - действия инициируемые обработчиками событий \"Выбор\" элементов управления."
         },
         "ОбъединитьФайлы": {
+            "availability": 509,
             "name": "ОбъединитьФайлы",
             "name_en": "MergeFiles",
             "description": "Объединяет несколько файлов в один.",
@@ -2064,6 +2335,7 @@ let bslGlobals = {
             }
         },
         "Окр": {
+            "availability": 511,
             "name": "Окр",
             "name_en": "Round",
             "description": "Округляет исходное число до нужной разрядности в соответствии с заданным режимом округления.",
@@ -2080,12 +2352,14 @@ let bslGlobals = {
             }
         },
         "ОписаниеОшибки": {
+            "availability": 41,
             "name": "ОписаниеОшибки",
             "name_en": "ErrorDescription",
             "description": "Получает описание ошибки (исключительной ситуации), включая информацию о строке модуля и вложенных исключениях.",
             "returns": "Тип: Строка. Возвращает описание ошибки, такое же, какое было бы выдано в окне сообщений в случае отсутствия обработчика исключительной ситуации, за исключением описания модуля и строки, в которой ошибка возникла."
         },
         "Оповестить": {
+            "availability": 87,
             "name": "Оповестить",
             "name_en": "Notify",
             "description": "Посылает оповещение всем созданным формам и всем подключенным через метод",
@@ -2101,6 +2375,7 @@ let bslGlobals = {
             }
         },
         "ОповеститьОбИзменении": {
+            "availability": 87,
             "name": "ОповеститьОбИзменении",
             "name_en": "NotifyChanged",
             "signature": {
@@ -2119,17 +2394,20 @@ let bslGlobals = {
             }
         },
         "ОсновнойСерверДоступен": {
+            "availability": 260,
             "name": "ОсновнойСерверДоступен",
             "name_en": "MainServerAvailable",
             "description": "Показывает доступность основного сервера с клиента или автономного сервера.",
             "returns": "Тип: Булево, Неопределено. "
         },
         "ОтключитьОбработчикЗапросаНастроекКлиентаЛицензирования": {
+            "availability": 19,
             "name": "ОтключитьОбработчикЗапросаНастроекКлиентаЛицензирования",
             "name_en": "DetachLicensingClientParametersRequestHandler",
             "description": "Отключает обработчик запроса настройки клиента лицензирования, подключенный ранее при помощи"
         },
         "ОтключитьОбработчикОжидания": {
+            "availability": 87,
             "name": "ОтключитьОбработчикОжидания",
             "name_en": "DetachIdleHandler",
             "description": "Отключает подключенный ранее при помощи процедуры",
@@ -2143,6 +2421,7 @@ let bslGlobals = {
             }
         },
         "ОтключитьОбработчикОповещения": {
+            "availability": 87,
             "name": "ОтключитьОбработчикОповещения",
             "name_en": "DetachNotificationHandler",
             "description": "Отключает подключенный ранее при помощи метода",
@@ -2169,6 +2448,7 @@ let bslGlobals = {
             }
         },
         "ОткрытьИндексСправки": {
+            "availability": 83,
             "name": "ОткрытьИндексСправки",
             "name_en": "OpenHelpIndex",
             "description": "Открывает окно со списком ключевых слов и выражений (индексом) справки по приложению.",
@@ -2183,12 +2463,14 @@ let bslGlobals = {
             }
         },
         "ОткрытьСодержаниеСправки": {
+            "availability": 23,
             "name": "ОткрытьСодержаниеСправки",
             "name_en": "OpenHelpContent",
             "description": "Открывает окно с содержанием справки по приложению.",
             "returns": "Тип: Булево. Ложь - показ справки невозможен. Например, используется Internet Explorer версии ранее 5,5."
         },
         "ОткрытьСправку": {
+            "availability": 23,
             "name": "ОткрытьСправку",
             "name_en": "OpenHelp",
             "description": "Открывает окно со справочной информацией по объекту метаданных.",
@@ -2203,6 +2485,7 @@ let bslGlobals = {
             }
         },
         "ОткрытьФорму": {
+            "availability": 87,
             "name": "ОткрытьФорму",
             "name_en": "OpenForm",
             "description": "Открывает и возвращает форму или управляемую форму. В тонком и веб-клиенте только управляемую форму. Перед открытием осуществляется поиск уже открытой такой же формы. Поиск осуществляется по типу формы, значениям ключевых параметров формы, владельцу формы, пользовательскому ключу уникальности.  - ФормаОбъекта,  - ФормаЗаписи,  - ФормаНабораЗаписей,  - ФормаКонстант. Можно открывать уже полученную форму. В этом случае в параметрах передается уже полученная форма и окно, в котором открыть форму. Можно открыть форму по имени. В этом случае в параметры передаются имя формы, параметры формы, владелец, ключ уникальности и окно, в котором должна быть открыта форма.",
@@ -2231,6 +2514,7 @@ let bslGlobals = {
             }
         },
         "ОткрытьФормуМодально": {
+            "availability": 85,
             "name": "ОткрытьФормуМодально",
             "name_en": "OpenFormModal",
             "description": "Открывает форму или форму клиентского приложения.",
@@ -2254,11 +2538,13 @@ let bslGlobals = {
             }
         },
         "ОтменитьТранзакцию": {
+            "availability": 440,
             "name": "ОтменитьТранзакцию",
             "name_en": "RollbackTransaction",
             "description": "Отменяет открытую ранее транзакцию. Все изменения, внесенные в информационную базу в процессе транзакции, будут отменены."
         },
         "ОчиститьЖурналРегистрации": {
+            "availability": 56,
             "name": "ОчиститьЖурналРегистрации",
             "name_en": "ClearEventLog",
             "description": "Удаляет часть журнала регистрации в соответствии с отбором.",
@@ -2272,6 +2558,7 @@ let bslGlobals = {
             }
         },
         "ОчиститьНастройкиПользователя": {
+            "availability": 16,
             "name": "ОчиститьНастройкиПользователя",
             "name_en": "ClearUserSettings",
             "description": "Очищает настройки пользователя, принадлежащие информационной базе и конкретному пользователю в ней.",
@@ -2291,11 +2578,13 @@ let bslGlobals = {
             }
         },
         "ОчиститьСообщения": {
+            "availability": 87,
             "name": "ОчиститьСообщения",
             "name_en": "ClearMessages",
             "description": "Очищает окно сообщений."
         },
         "ПараметрыДоступа": {
+            "availability": 440,
             "name": "ПараметрыДоступа",
             "name_en": "AccessParameters",
             "description": "Позволяет получить права текущего пользователя на заданный объект метаданных для проверки наличия ограничения прав доступа с учетом указанных полей.",
@@ -2326,6 +2615,7 @@ let bslGlobals = {
             }
         },
         "ПереместитьФайл": {
+            "availability": 511,
             "name": "ПереместитьФайл",
             "name_en": "MoveFile",
             "description": "Выполняет перемещение (переименование) указанного файла.",
@@ -2340,6 +2630,7 @@ let bslGlobals = {
             }
         },
         "ПобитовоеИ": {
+            "availability": 1023,
             "name": "ПобитовоеИ",
             "name_en": "BitwiseAnd",
             "description": "Возвращает результат логической побитовой операции И для заданной пары чисел.",
@@ -2355,6 +2646,7 @@ let bslGlobals = {
             }
         },
         "ПобитовоеИли": {
+            "availability": 1023,
             "name": "ПобитовоеИли",
             "name_en": "BitwiseOr",
             "description": "Возвращает результат логической побитовой операции ИЛИ для заданной пары чисел.",
@@ -2370,6 +2662,7 @@ let bslGlobals = {
             }
         },
         "ПобитовоеИНе": {
+            "availability": 1023,
             "name": "ПобитовоеИНе",
             "name_en": "BitwiseAndNot",
             "description": "Возвращает результат логической побитовой операции И НЕ для заданной пары чисел. Эквивалентно вызову",
@@ -2385,6 +2678,7 @@ let bslGlobals = {
             }
         },
         "ПобитовоеИсключительноеИли": {
+            "availability": 1023,
             "name": "ПобитовоеИсключительноеИли",
             "name_en": "BitwiseXor",
             "description": "Возвращает результат логической побитовой операции ИСКЛЮЧИТЕЛЬНОЕ ИЛИ (XOR) для заданной пары чисел.",
@@ -2400,6 +2694,7 @@ let bslGlobals = {
             }
         },
         "ПобитовоеНе": {
+            "availability": 1023,
             "name": "ПобитовоеНе",
             "name_en": "BitwiseNot",
             "description": "Возвращает результат логического побитового отрицания для заданного числа.",
@@ -2414,6 +2709,7 @@ let bslGlobals = {
             }
         },
         "ПобитовыйСдвигВлево": {
+            "availability": 1023,
             "name": "ПобитовыйСдвигВлево",
             "name_en": "BitwiseShiftLeft",
             "description": "Выполняет побитовый сдвиг двоичного представления числа на заданное количество битов влево.",
@@ -2429,6 +2725,7 @@ let bslGlobals = {
             }
         },
         "ПобитовыйСдвигВправо": {
+            "availability": 1023,
             "name": "ПобитовыйСдвигВправо",
             "name_en": "BitwiseShiftRight",
             "description": "Выполняет побитовый сдвиг двоичного представления числа на заданное количество битов вправо.",
@@ -2444,18 +2741,21 @@ let bslGlobals = {
             }
         },
         "ПоддерживаетсяДинамическаяУстановкаВнешнихКомпонент": {
+            "availability": 87,
             "name": "ПоддерживаетсяДинамическаяУстановкаВнешнихКомпонент",
             "name_en": "DynamicAddInInstallationSupported",
             "description": "Определяет, поддерживается ли динамическая установка внешних компонент.",
             "returns": "Тип: Булево. Истина - если в собранном приложении мобильного клиента есть возможность использовать динамические установленные внешние компоненты с сервера. Для тонкого клиента, веб-клиента и толстого клиента всегда возвращает Истина."
         },
         "ПоддерживаетсяОтображениеКарты": {
+            "availability": 1023,
             "name": "ПоддерживаетсяОтображениеКарты",
             "name_en": "MapRepresentationSupported",
             "description": "Проверяет возможность работы с картой.",
             "returns": "Тип: Булево. - Истина - в ОС Android, iOS, Windows Phone, Windows 10,  - Ложь - Windows 8 (для планшетов)."
         },
         "ПодключитьВнешнююКомпоненту": {
+            "availability": 511,
             "name": "ПодключитьВнешнююКомпоненту",
             "name_en": "AttachAddIn",
             "description": "Подключает внешний компонент к 1С:Предприятию.",
@@ -2478,6 +2778,7 @@ let bslGlobals = {
             }
         },
         "ПодключитьОбработчикЗапросаНастроекКлиентаЛицензирования": {
+            "availability": 19,
             "name": "ПодключитьОбработчикЗапросаНастроекКлиентаЛицензирования",
             "name_en": "AttachLicensingClientParametersRequestHandler",
             "description": "Подключает вызов указанной процедуры глобального модуля, доступного на клиенте, или модуля приложения (обычного или управляемого), которая будет вызываться, если ответ центра лицензирования указывает на необходимость установить параметры клиента лицензирования.",
@@ -2491,6 +2792,7 @@ let bslGlobals = {
             }
         },
         "ПодключитьОбработчикОжидания": {
+            "availability": 87,
             "name": "ПодключитьОбработчикОжидания",
             "name_en": "AttachIdleHandler",
             "description": "Подключает вызов указанной процедуры модуля приложения (модуля обычного приложения) или глобального общего модуля через определенный интервал времени. Вызов будет осуществляться только в \"состоянии покоя\", то есть в тот момент, когда программа не выполняет никаких действий.",
@@ -2506,6 +2808,7 @@ let bslGlobals = {
             }
         },
         "ПодключитьОбработчикОповещения": {
+            "availability": 87,
             "name": "ПодключитьОбработчикОповещения",
             "name_en": "AttachNotificationHandler",
             "description": "Подключает вызов указанной экспортируемой процедуры модуля приложения (модуля обычного приложения) или глобального общего модуля для обработки оповещения при вызове метода",
@@ -2519,12 +2822,14 @@ let bslGlobals = {
             }
         },
         "ПодключитьРасширениеРаботыСКриптографией": {
+            "availability": 87,
             "name": "ПодключитьРасширениеРаботыСКриптографией",
             "name_en": "AttachCryptoExtension",
             "description": "При первом обращении выполняет подключение расширения для работы с криптографией.",
             "returns": "Тип: Булево. В случае успешного подключения возвращает Истина, иначе - Ложь. Для тонкого и толстого клиентов, а также для клиента мобильного приложения результат всегда Истина."
         },
         "ПодключитьРасширениеРаботыСФайлами": {
+            "availability": 87,
             "name": "ПодключитьРасширениеРаботыСФайлами",
             "name_en": "AttachFileSystemExtension",
             "description": "При первом обращении выполняет подключение расширения для работы с файлами.",
@@ -2545,6 +2850,7 @@ let bslGlobals = {
             }
         },
         "ПоказатьВводДаты": {
+            "availability": 87,
             "name": "ПоказатьВводДаты",
             "name_en": "ShowInputDate",
             "description": "Открывает окно для ввода даты, но при этом не ожидает завершения ввода.",
@@ -2562,6 +2868,7 @@ let bslGlobals = {
             }
         },
         "ПоказатьВводЗначения": {
+            "availability": 87,
             "name": "ПоказатьВводЗначения",
             "name_en": "ShowInputValue",
             "description": "Показывает окно для ввода значения заданного типа.",
@@ -2578,6 +2885,7 @@ let bslGlobals = {
             }
         },
         "ПоказатьВводСтроки": {
+            "availability": 87,
             "name": "ПоказатьВводСтроки",
             "name_en": "ShowInputString",
             "description": "Вызывает диалог для ввода строки, при этом не ожидает завершения ввода.",
@@ -2595,6 +2903,7 @@ let bslGlobals = {
             }
         },
         "ПоказатьВводЧисла": {
+            "availability": 87,
             "name": "ПоказатьВводЧисла",
             "name_en": "ShowInputNumber",
             "description": "Вызывает диалог для ввода строки, при этом не ожидает завершения ввода.",
@@ -2612,6 +2921,7 @@ let bslGlobals = {
             }
         },
         "ПоказатьВопрос": {
+            "availability": 87,
             "name": "ПоказатьВопрос",
             "name_en": "ShowQueryBox",
             "description": "Выводит на экран окно вопроса, при этом не ожидается завершения ответа пользователя.",
@@ -2632,6 +2942,7 @@ let bslGlobals = {
             }
         },
         "ПоказатьЗначение": {
+            "availability": 87,
             "name": "ПоказатьЗначение",
             "name_en": "ShowValue",
             "description": "Показывает в диалоге переданное значение, при этом не ожидается его закрытие. Вид диалога зависит от типа переданного значения.",
@@ -2646,6 +2957,7 @@ let bslGlobals = {
             }
         },
         "ПоказатьИнформациюОбОшибке": {
+            "availability": 87,
             "name": "ПоказатьИнформациюОбОшибке",
             "name_en": "ShowErrorInfo",
             "description": "Предназначен для показа информации об ошибке пользователю в стандартном диалоге платформы \"1С:Предприятие\".",
@@ -2659,6 +2971,7 @@ let bslGlobals = {
             }
         },
         "ПоказатьНаКарте": {
+            "availability": 68,
             "name": "ПоказатьНаКарте",
             "name_en": "ShowOnMap",
             "description": "Отображает на карте переданные координаты.",
@@ -2672,6 +2985,7 @@ let bslGlobals = {
             }
         },
         "ПоказатьОповещениеПользователя": {
+            "availability": 87,
             "name": "ПоказатьОповещениеПользователя",
             "name_en": "ShowUserNotification",
             "description": "Показывает окно оповещения, в котором может располагаться текст с пояснением, картинка.",
@@ -2690,6 +3004,7 @@ let bslGlobals = {
             }
         },
         "ПоказатьПредупреждение": {
+            "availability": 87,
             "name": "ПоказатьПредупреждение",
             "name_en": "ShowMessageBox",
             "description": "Выводит на экран окно предупреждения, но не ожидает его закрытия.",
@@ -2706,12 +3021,14 @@ let bslGlobals = {
             }
         },
         "ПолноеИмяПользователя": {
+            "availability": 16,
             "name": "ПолноеИмяПользователя",
             "name_en": "UserFullName",
             "description": "Получает полное имя пользователя, указанного при запуске программы.",
             "returns": "Тип: Строка. Полное имя пользователя."
         },
         "ПолучитьBase64БуферДвоичныхДанныхИзБуфераДвоичныхДанных": {
+            "availability": 511,
             "name": "ПолучитьBase64БуферДвоичныхДанныхИзБуфераДвоичныхДанных",
             "name_en": "GetBase64BinaryDataBufferFromBinaryDataBuffer",
             "description": "Преобразует буфер двоичных данных в формат Base64.",
@@ -2726,6 +3043,7 @@ let bslGlobals = {
             }
         },
         "ПолучитьBase64ДвоичныеДанныеИзДвоичныхДанных": {
+            "availability": 511,
             "name": "ПолучитьBase64ДвоичныеДанныеИзДвоичныхДанных",
             "name_en": "GetBase64BinaryDataFromBinaryData",
             "description": "Преобразует двоичные данные в формат Base64.",
@@ -2741,6 +3059,7 @@ let bslGlobals = {
             }
         },
         "ПолучитьBase64СтрокуИзБуфераДвоичныхДанных": {
+            "availability": 511,
             "name": "ПолучитьBase64СтрокуИзБуфераДвоичныхДанных",
             "name_en": "GetBase64StringFromBinaryDataBuffer",
             "description": "Преобразует буфер двоичных данных в строку формата Base64.",
@@ -2755,6 +3074,7 @@ let bslGlobals = {
             }
         },
         "ПолучитьBase64СтрокуИзДвоичныхДанных": {
+            "availability": 511,
             "name": "ПолучитьBase64СтрокуИзДвоичныхДанных",
             "name_en": "GetBase64StringFromBinaryData",
             "description": "Преобразует двоичные данные в строку формата Base64.",
@@ -2769,6 +3089,7 @@ let bslGlobals = {
             }
         },
         "ПолучитьCOMОбъект": {
+            "availability": 56,
             "name": "ПолучитьCOMОбъект",
             "name_en": "GetCOMObject",
             "description": "Основное применение функции ПолучитьCOMОбъект - это получение COM-объекта, соответствующего файлу. Для этого следует в качестве первого параметра функции задать имя файла, который будет определять COM-объект. Например, фрагмент кода:",
@@ -2784,6 +3105,7 @@ let bslGlobals = {
             }
         },
         "ПолучитьHexБуферДвоичныхДанныхИзБуфераДвоичныхДанных": {
+            "availability": 511,
             "name": "ПолучитьHexБуферДвоичныхДанныхИзБуфераДвоичныхДанных",
             "name_en": "GetHexBinaryDataBufferFromBinaryDataBuffer",
             "description": "Преобразует буфер двоичных данных в формат Base 16 (Hex).",
@@ -2798,6 +3120,7 @@ let bslGlobals = {
             }
         },
         "ПолучитьHexДвоичныеДанныеИзДвоичныхДанных": {
+            "availability": 511,
             "name": "ПолучитьHexДвоичныеДанныеИзДвоичныхДанных",
             "name_en": "GetHexBinaryDataFromBinaryData",
             "description": "Преобразует двоичные данные в формат Base 16 (Hex).",
@@ -2813,6 +3136,7 @@ let bslGlobals = {
             }
         },
         "ПолучитьHexСтрокуИзБуфераДвоичныхДанных": {
+            "availability": 511,
             "name": "ПолучитьHexСтрокуИзБуфераДвоичныхДанных",
             "name_en": "GetHexStringFromBinaryDataBuffer",
             "description": "Преобразует буфер двоичных данных в строку формата Base 16 (Hex).",
@@ -2827,6 +3151,7 @@ let bslGlobals = {
             }
         },
         "ПолучитьHexСтрокуИзДвоичныхДанных": {
+            "availability": 511,
             "name": "ПолучитьHexСтрокуИзДвоичныхДанных",
             "name_en": "GetHexStringFromBinaryData",
             "description": "Преобразует двоичные данные в строку формата Base 16 (Hex).",
@@ -2841,6 +3166,7 @@ let bslGlobals = {
             }
         },
         "ПолучитьXMLТип": {
+            "availability": 509,
             "name": "ПолучитьXMLТип",
             "name_en": "GetXMLType",
             "description": "Получает тип данных XML, который может быть прочитан в настоящий момент из объекта типа   - значение разделяется на префикс пространства имен и локальное имя;  - по префиксу пространства имен в объекте ЧтениеXML определяется URI пространства имен, соответствующее данному префиксу (если соответствующего URI пространства имен не обнаружено - считается, что тип не определен);  - по полученному локальному имени и URI пространства имен создается значение типа данных XML. 5) Если атрибут \"type\" не существует, производится анализ имени элемента. Если локальное имя элемента совпадает с одним из имен типов пространства имен \"http://www.w3.org/2001/XMLSchema\" и пространство имен элемента не определено (пустая строка), то считается, что тип принадлежит пространству имен \"http://www.w3.org/2001/XMLSchema\".",
@@ -2855,6 +3181,7 @@ let bslGlobals = {
             }
         },
         "ПолучитьАдресПоМестоположению": {
+            "availability": 68,
             "name": "ПолучитьАдресПоМестоположению",
             "name_en": "GetAddressByLocation",
             "description": "Получает адрес по географическим координатам.",
@@ -2869,12 +3196,14 @@ let bslGlobals = {
             }
         },
         "ПолучитьБлокировкуСеансов": {
+            "availability": 56,
             "name": "ПолучитьБлокировкуСеансов",
             "name_en": "GetSessionsLock",
             "description": "Получает объект, описывающий блокировку сеансов.",
             "returns": "Тип: БлокировкаСеансов. "
         },
         "ПолучитьБуферДвоичныхДанныхИзBase64БуфераДвоичныхДанных": {
+            "availability": 511,
             "name": "ПолучитьБуферДвоичныхДанныхИзBase64БуфераДвоичныхДанных",
             "name_en": "GetBinaryDataBufferFromBase64BinaryDataBuffer",
             "description": "Преобразует буфер двоичных данных из формата Base64 в",
@@ -2889,6 +3218,7 @@ let bslGlobals = {
             }
         },
         "ПолучитьБуферДвоичныхДанныхИзBase64Строки": {
+            "availability": 511,
             "name": "ПолучитьБуферДвоичныхДанныхИзBase64Строки",
             "name_en": "GetBinaryDataBufferFromBase64String",
             "description": "Преобразует строку формата Base64 в буфер двоичных данных.",
@@ -2903,6 +3233,7 @@ let bslGlobals = {
             }
         },
         "ПолучитьБуферДвоичныхДанныхИзHexБуфераДвоичныхДанных": {
+            "availability": 511,
             "name": "ПолучитьБуферДвоичныхДанныхИзHexБуфераДвоичныхДанных",
             "name_en": "GetBinaryDataBufferFromHexBinaryDataBuffer",
             "description": "Преобразует буфер двоичных данных из формата Base 16 (Hex) в",
@@ -2917,6 +3248,7 @@ let bslGlobals = {
             }
         },
         "ПолучитьБуферДвоичныхДанныхИзHexСтроки": {
+            "availability": 511,
             "name": "ПолучитьБуферДвоичныхДанныхИзHexСтроки",
             "name_en": "GetBinaryDataBufferFromHexString",
             "description": "Преобразует строку в формате Base 16 (Hex) в буфер двоичных данных.",
@@ -2931,6 +3263,7 @@ let bslGlobals = {
             }
         },
         "ПолучитьБуферДвоичныхДанныхИзДвоичныхДанных": {
+            "availability": 511,
             "name": "ПолучитьБуферДвоичныхДанныхИзДвоичныхДанных",
             "name_en": "GetBinaryDataBufferFromBinaryData",
             "description": "Преобразует двоичные данные в буфер двоичных данных.",
@@ -2945,6 +3278,7 @@ let bslGlobals = {
             }
         },
         "ПолучитьБуферДвоичныхДанныхИзСтроки": {
+            "availability": 511,
             "name": "ПолучитьБуферДвоичныхДанныхИзСтроки",
             "name_en": "GetBinaryDataBufferFromString",
             "description": "Преобразует строку в буфер двоичных данных.",
@@ -2961,24 +3295,28 @@ let bslGlobals = {
             }
         },
         "ПолучитьВремяЗавершенияСпящегоСеанса": {
+            "availability": 56,
             "name": "ПолучитьВремяЗавершенияСпящегоСеанса",
             "name_en": "GetHibernateSessionTerminateTime",
             "description": "Интервал времени в секундах, по истечении которого спящий сеанс завершается.",
             "returns": "Тип: Число. "
         },
         "ПолучитьВремяЗасыпанияПассивногоСеанса": {
+            "availability": 56,
             "name": "ПолучитьВремяЗасыпанияПассивногоСеанса",
             "name_en": "GetPassiveSessionHibernateTime",
             "description": "Получить интервал времени в секундах, по завершении которого неактивный сеанс переводится в спящий режим.",
             "returns": "Тип: Число. "
         },
         "ПолучитьВремяОжиданияБлокировкиДанных": {
+            "availability": 440,
             "name": "ПолучитьВремяОжиданияБлокировкиДанных",
             "name_en": "GetLockWaitTime",
             "description": "Получает заданное в информационной базе время ожидания блокировки данных (в секундах).",
             "returns": "Тип: Число. "
         },
         "ПолучитьДанныеВыбора": {
+            "availability": 511,
             "name": "ПолучитьДанныеВыбора",
             "name_en": "GetChoiceData",
             "description": "Формирует список значений данных выбора при вводе по строке, автоподборе текста и быстром выборе.",
@@ -2995,6 +3333,7 @@ let bslGlobals = {
             }
         },
         "ПолучитьДвоичныеДанныеИзBase64ДвоичныхДанных": {
+            "availability": 511,
             "name": "ПолучитьДвоичныеДанныеИзBase64ДвоичныхДанных",
             "name_en": "GetBinaryDataFromBase64BinaryData",
             "description": "Преобразует двоичные данные из формата Base64 в",
@@ -3010,6 +3349,7 @@ let bslGlobals = {
             }
         },
         "ПолучитьДвоичныеДанныеИзBase64Строки": {
+            "availability": 511,
             "name": "ПолучитьДвоичныеДанныеИзBase64Строки",
             "name_en": "GetBinaryDataFromBase64String",
             "description": "Преобразует строку формата Base64 в двоичные данные.",
@@ -3025,6 +3365,7 @@ let bslGlobals = {
             }
         },
         "ПолучитьДвоичныеДанныеИзHexДвоичныхДанных": {
+            "availability": 511,
             "name": "ПолучитьДвоичныеДанныеИзHexДвоичныхДанных",
             "name_en": "GetBinaryDataFromHexBinaryData",
             "description": "Преобразует двоичные данные из формата Base 16 (Hex) в",
@@ -3040,6 +3381,7 @@ let bslGlobals = {
             }
         },
         "ПолучитьДвоичныеДанныеИзHexСтроки": {
+            "availability": 511,
             "name": "ПолучитьДвоичныеДанныеИзHexСтроки",
             "name_en": "GetBinaryDataFromHexString",
             "description": "Преобразует строку в формате Base 16 (Hex) в двоичные данные.",
@@ -3055,6 +3397,7 @@ let bslGlobals = {
             }
         },
         "ПолучитьДвоичныеДанныеИзБуфераДвоичныхДанных": {
+            "availability": 511,
             "name": "ПолучитьДвоичныеДанныеИзБуфераДвоичныхДанных",
             "name_en": "GetBinaryDataFromBinaryDataBuffer",
             "description": "Преобразует буфер двоичных данных в значение типа",
@@ -3070,6 +3413,7 @@ let bslGlobals = {
             }
         },
         "ПолучитьДвоичныеДанныеИзСтроки": {
+            "availability": 511,
             "name": "ПолучитьДвоичныеДанныеИзСтроки",
             "name_en": "GetBinaryDataFromString",
             "description": "Преобразует строку в значение типа",
@@ -3087,12 +3431,14 @@ let bslGlobals = {
             }
         },
         "ПолучитьДополнительныйПараметрКлиентаЛицензирования": {
+            "availability": 56,
             "name": "ПолучитьДополнительныйПараметрКлиентаЛицензирования",
             "name_en": "GetLicensingClientAdditionalParameter",
             "description": "Получает дополнительный параметр, используемый для обслуживания информационной базы.",
             "returns": "Тип: Строка. Значение дополнительного параметра."
         },
         "ПолучитьДопустимыеКодыЛокализации": {
+            "availability": 56,
             "name": "ПолучитьДопустимыеКодыЛокализации",
             "name_en": "GetAvailableLocaleCodes",
             "description": "Получает массив допустимых кодов локализации.",
@@ -3100,6 +3446,7 @@ let bslGlobals = {
             "ref": "classes.Массив"
         },
         "ПолучитьДопустимыеЧасовыеПояса": {
+            "availability": 440,
             "name": "ПолучитьДопустимыеЧасовыеПояса",
             "name_en": "GetAvailableTimeZones",
             "description": "Получает массив строк допустимых идентификаторов часовых поясов.",
@@ -3107,12 +3454,14 @@ let bslGlobals = {
             "ref": "classes.Массив"
         },
         "ПолучитьЗапретЗасыпанияКомпьютера": {
+            "availability": 452,
             "name": "ПолучитьЗапретЗасыпанияКомпьютера",
             "name_en": "GetComputerSleepModeProhibition",
             "description": "Возращает текущее значение, установленное с помощью метода",
             "returns": "Тип: Булево. "
         },
         "ПолучитьЗначенияОтбораЖурналаРегистрации": {
+            "availability": 56,
             "name": "ПолучитьЗначенияОтбораЖурналаРегистрации",
             "name_en": "GetEventLogFilterValues",
             "description": "Позволяет получить наборы допустимых значений параметров отбора журнала регистрации: приложение, пользователь, компьютер, событие, метаданные, рабочий сервер, основной IP-порт, вспомогательный IP-порт, данные сеанса.",
@@ -3129,12 +3478,14 @@ let bslGlobals = {
             }
         },
         "ПолучитьИдентификаторКонфигурации": {
+            "availability": 8,
             "name": "ПолучитьИдентификаторКонфигурации",
             "name_en": "GetConfigurationID",
             "description": "Возвращает идентификатор конфигурации, с которой работает информационная база. Идентификатор составляется путем анализа и учета метаданных конфигурации.",
             "returns": "Тип: Строка. Строка, содержащая зашифрованный и закодированный в Base64 идентификатор конфигурации."
         },
         "ПолучитьИзВременногоХранилища": {
+            "availability": 511,
             "name": "ПолучитьИзВременногоХранилища",
             "name_en": "GetFromTempStorage",
             "description": "Получает значение из временного хранилища.",
@@ -3149,6 +3500,7 @@ let bslGlobals = {
             }
         },
         "ПолучитьИмяВременногоФайла": {
+            "availability": 509,
             "name": "ПолучитьИмяВременногоФайла",
             "name_en": "GetTempFileName",
             "description": "Для записи данных во временный файл необходимо сначала сформировать имя такого файла. При этом во избежание случайных потерь имеющихся файлов требуется получить уникальное имя. Данный метод предназначен для получения такого имени. При выполнении метода файл не создается.   - файлы, созданные во время работы сеанса, будут удалены в течение 20 минут после завершения сеанса.  - (недоступно в режиме совместимости 8.3.16 и ниже) файлы, созданные во время серверного вызова, будут удалены через 20 минут после завершения этого вызова.",
@@ -3163,12 +3515,14 @@ let bslGlobals = {
             }
         },
         "ПолучитьИмяКлиентаЛицензирования": {
+            "availability": 56,
             "name": "ПолучитьИмяКлиентаЛицензирования",
             "name_en": "GetLicensingClientName",
             "description": "Возвращает имя клиента лицензирования из информационной базы.",
             "returns": "Тип: Строка. Имя клиента лицензирования."
         },
         "ПолучитьИнформациюЭкрановКлиента": {
+            "availability": 511,
             "name": "ПолучитьИнформациюЭкрановКлиента",
             "name_en": "GetClientDisplaysInformation",
             "description": "Получает информацию об экранах подключенных устройств.",
@@ -3176,6 +3530,7 @@ let bslGlobals = {
             "ref": "classes.ФиксированныйМассив"
         },
         "ПолучитьИспользованиеЖурналаРегистрации": {
+            "availability": 56,
             "name": "ПолучитьИспользованиеЖурналаРегистрации",
             "name_en": "GetEventLogUsing",
             "description": "Проверяет, осуществляется ли в журнале регистрация события заданного уровня важности.",
@@ -3183,6 +3538,7 @@ let bslGlobals = {
             "ref": "classes.Массив"
         },
         "ПолучитьИспользованиеСобытияЖурналаРегистрации": {
+            "availability": 56,
             "name": "ПолучитьИспользованиеСобытияЖурналаРегистрации",
             "name_en": "GetEventLogEventUse",
             "description": "Получает текущее состояние управления регистрацией указанного события в журнале регистрации.",
@@ -3197,12 +3553,14 @@ let bslGlobals = {
             }
         },
         "ПолучитьИспользуемыйСервер": {
+            "availability": 68,
             "name": "ПолучитьИспользуемыйСервер",
             "name_en": "GetUsedServer",
             "description": "Возвращает текущее значение, установленное методом",
             "returns": "Тип: ИспользуемыйСервер. "
         },
         "ПолучитьМакетОформления": {
+            "availability": 16,
             "name": "ПолучитьМакетОформления",
             "name_en": "GetAppearanceTemplate",
             "description": "Получает макет оформления.",
@@ -3217,24 +3575,28 @@ let bslGlobals = {
             }
         },
         "ПолучитьМаскуВсеФайлы": {
+            "availability": 511,
             "name": "ПолучитьМаскуВсеФайлы",
             "name_en": "GetAllFilesMask",
             "description": "Получает файловую маску, принятую для выбора всех файлов в операционной системе, в контексте которой выполняется вызов.",
             "returns": "Тип: Строка. Маска возвращается в виде строки. Например: \"*.*\"."
         },
         "ПолучитьМаскуВсеФайлыКлиента": {
+            "availability": 511,
             "name": "ПолучитьМаскуВсеФайлыКлиента",
             "name_en": "GetClientAllFilesMask",
             "description": "Получает файловую маску, принятую для выбора всех файлов в операционной системе, в которой выполняется клиентское приложение.",
             "returns": "Тип: Строка. Маска возвращается в виде строки. Например: \"*.*\"."
         },
         "ПолучитьМаскуВсеФайлыСервера": {
+            "availability": 408,
             "name": "ПолучитьМаскуВсеФайлыСервера",
             "name_en": "GetServerAllFilesMask",
             "description": "Получает файловую маску, принятую для выбора всех файлов в операционной системе, в которой работает сервер 1С:Предприятия, обрабатывающий вызов.",
             "returns": "Тип: Строка. Маска возвращается в виде строки. Например: \"*.*\"."
         },
         "ПолучитьМестоположениеПоАдресу": {
+            "availability": 68,
             "name": "ПолучитьМестоположениеПоАдресу",
             "name_en": "GetLocationByAddress",
             "description": "Получает географические координаты по адресу.",
@@ -3249,12 +3611,14 @@ let bslGlobals = {
             }
         },
         "ПолучитьМинимальнуюДлинуПаролейПользователей": {
+            "availability": 56,
             "name": "ПолучитьМинимальнуюДлинуПаролейПользователей",
             "name_en": "GetUserPasswordMinLength",
             "description": "Получает ограничение на минимальную длину паролей, которое установлено для пользователей информационной базы.",
             "returns": "Тип: Число. "
         },
         "ПолучитьНавигационнуюСсылку": {
+            "availability": 119,
             "name": "ПолучитьНавигационнуюСсылку",
             "name_en": "GetURL",
             "description": "Получает навигационную ссылку в формате 1С:Предприятия на объект информационной базы, на его реквизит, на обсуждение или сообщение системы взаимодействия.",
@@ -3271,30 +3635,35 @@ let bslGlobals = {
             }
         },
         "ПолучитьНавигационнуюСсылкуИнформационнойБазы": {
+            "availability": 511,
             "name": "ПолучитьНавигационнуюСсылкуИнформационнойБазы",
             "name_en": "GetInfoBaseURL",
             "description": "Получает навигационную ссылку информационной базы.  - Файловая:   - Если путь к файловой версии является UNC путем, то формат строка имеет следующий вид e1c://file/UNC путь;  - Если путь к файловой версии содержит том, то формат строка имеет следующий вид - e1c://filev/символ тома/остальной путь;   - Клиент-сервер:   - e1c://server/имя сервера/имя ИБ.   - Веб-сервер:   - http://путь;  - https://путь. Эта ссылка может использоваться для создания абсолютной ссылки из относительной. Внимание! На сервере данный метод поддерживается только в контексте клиентского вызова. В фоновых и регламентных заданиях возвращает пустое значение.",
             "returns": "Тип: Строка. "
         },
         "ПолучитьНачалоСтолетияИнформационнойБазы": {
+            "availability": 56,
             "name": "ПолучитьНачалоСтолетияИнформационнойБазы",
             "name_en": "GetInfoBaseBeginningOfCentury",
             "description": "Возвращает год начала столетия, установленный для информационной базы или",
             "returns": "Тип: Число, Неопределено. "
         },
         "ПолучитьОбновлениеКонфигурацииБазыДанных": {
+            "availability": 56,
             "name": "ПолучитьОбновлениеКонфигурацииБазыДанных",
             "name_en": "GetDataBaseConfigurationUpdate",
             "description": "Получает информацию о состоянии фонового обновления конфигурации базы данных.",
             "returns": "Тип: ОбновлениеКонфигурацииБазыДанных. "
         },
         "ПолучитьОбновлениеПредопределенныхДанныхИнформационнойБазы": {
+            "availability": 408,
             "name": "ПолучитьОбновлениеПредопределенныхДанныхИнформационнойБазы",
             "name_en": "GetInfoBasePredefinedData",
             "description": "Возвращает текущее установленное в информационной базе значение режима обновления предопределенных данных.",
             "returns": "Тип: ОбновлениеПредопределенныхДанных. "
         },
         "ПолучитьОбщийМакет": {
+            "availability": 440,
             "name": "ПолучитьОбщийМакет",
             "name_en": "GetCommonTemplate",
             "description": "Получает один из общих макетов конфигурации.",
@@ -3309,6 +3678,7 @@ let bslGlobals = {
             }
         },
         "ПолучитьОбщуюФорму": {
+            "availability": 16,
             "name": "ПолучитьОбщуюФорму",
             "name_en": "GetCommonForm",
             "description": "Получает общую форму.",
@@ -3325,24 +3695,28 @@ let bslGlobals = {
             }
         },
         "ПолучитьОкна": {
+            "availability": 87,
             "name": "ПолучитьОкна",
             "name_en": "GetWindows",
             "description": "Получает окна приложения. Порядок элементов в коллекции не определен.",
             "returns": "Тип: ОкнаКлиентскогоПриложения. "
         },
         "ПолучитьОперативнуюОтметкуВремени": {
+            "availability": 440,
             "name": "ПолучитьОперативнуюОтметкуВремени",
             "name_en": "GetRealTimeTimestamp",
             "description": "Получает оперативную отметку времени.",
             "returns": "Тип: Дата. Возвращаемое значение соответствует текущей дате, но будет не меньше, чем последняя оперативная отметка времени, полученная каким-либо пользователем в этом сеансе работы. Если значение соответствующее текущему времени, которое уже выдавалось, то возвращается значение на 1 секунду большее. Таким образом, система обеспечивает выдачу для всех пользователей в ходе сеанса оперативной отметки времени в неубывающей последовательности. В варианте \"клиент-сервер\" - в качестве исходного текущего времени используется время компьютера, на котором работает сервер 1С:Предприятия. В файловом варианте - в качестве исходного текущего времени используется текущее время компьютера пользователя."
         },
         "ПолучитьОтключениеБезопасногоРежима": {
+            "availability": 952,
             "name": "ПолучитьОтключениеБезопасногоРежима",
             "name_en": "GetSafeModeDisabled",
             "description": "Определяет выключение безопасного режима для текущего метода командой на время выполнения обработчиков событий объектов метаданных или вызовом метода",
             "returns": "Тип: Булево. Истина - выключение безопасного режима для текущего метода; Ложь - в противном случае."
         },
         "ПолучитьПараметрыФункциональныхОпцийИнтерфейса": {
+            "availability": 87,
             "name": "ПолучитьПараметрыФункциональныхОпцийИнтерфейса",
             "name_en": "GetInterfaceFunctionalOptionParameters",
             "description": "Получает параметры функциональных опций командного интерфейса.",
@@ -3350,6 +3724,7 @@ let bslGlobals = {
             "ref": "classes.Структура"
         },
         "ПолучитьПолноеИмяПредопределенногоЗначения": {
+            "availability": 511,
             "name": "ПолучитьПолноеИмяПредопределенногоЗначения",
             "name_en": "GetPredefinedValueFullName",
             "description": "Выполняет действие, обратное методу",
@@ -3364,6 +3739,7 @@ let bslGlobals = {
             }
         },
         "ПолучитьПредставленияНавигационныхСсылок": {
+            "availability": 511,
             "name": "ПолучитьПредставленияНавигационныхСсылок",
             "name_en": "GetURLsPresentations",
             "description": "Получает массив представлений ссылок",
@@ -3379,36 +3755,42 @@ let bslGlobals = {
             }
         },
         "ПолучитьПреимущественноеИспользованиеОсновногоСервера": {
+            "availability": 260,
             "name": "ПолучитьПреимущественноеИспользованиеОсновногоСервера",
             "name_en": "GetPreferableMainServerUse",
             "description": "Возвращает узначение, установленное с помощью метода",
             "returns": "Тип: Булево, Неопределено. "
         },
         "ПолучитьПроверкуСложностиПаролейПользователей": {
+            "availability": 56,
             "name": "ПолучитьПроверкуСложностиПаролейПользователей",
             "name_en": "GetUserPasswordStrengthCheck",
             "description": "Проверяет, установлены ли ограничения на сложность паролей пользователей информационной базы.",
             "returns": "Тип: Булево. Истина - ограничения установлены; Ложь - в противном случае."
         },
         "ПолучитьРазделительПути": {
+            "availability": 511,
             "name": "ПолучитьРазделительПути",
             "name_en": "GetPathSeparator",
             "description": "Получает значение разделителя пути, используемого в операционной системе, в контексте которой выполняется вызов.",
             "returns": "Тип: Строка. "
         },
         "ПолучитьРазделительПутиКлиента": {
+            "availability": 511,
             "name": "ПолучитьРазделительПутиКлиента",
             "name_en": "GetClientPathSeparator",
             "description": "Получает значение разделителя пути, используемого в операционной системе, в которой работает клиентское приложение.",
             "returns": "Тип: Строка. "
         },
         "ПолучитьРазделительПутиСервера": {
+            "availability": 408,
             "name": "ПолучитьРазделительПутиСервера",
             "name_en": "GetServerPathSeparator",
             "description": "Получает значение разделителя пути, используемого в операционной системе, в которой работает рабочий процесс сервера.",
             "returns": "Тип: Строка. Разделитель пути возвращается в виде строки. Например: \"\\\"."
         },
         "ПолучитьРазмерДанныхБазыДанных": {
+            "availability": 440,
             "name": "ПолучитьРазмерДанныхБазыДанных",
             "name_en": "GetDatabaseDataSize",
             "description": "Метод возвращает размер данных в таблицах в информационной базе для переданных объектов (в байтах). Будут получены все данные, которые доступны пользователю для чтения.",
@@ -3425,12 +3807,14 @@ let bslGlobals = {
             }
         },
         "ПолучитьРежимВнешнихРесурсов": {
+            "availability": 59,
             "name": "ПолучитьРежимВнешнихРесурсов",
             "name_en": "GetExternalResourcesMode",
             "description": "Получает режим работы с внешними ресурсами.",
             "returns": "Тип: Строка. - \"D\" - режим по умолчанию.  - \"А\" - альтернативный режим."
         },
         "ПолучитьСеансыИнформационнойБазы": {
+            "availability": 56,
             "name": "ПолучитьСеансыИнформационнойБазы",
             "name_en": "GetInfoBaseSessions",
             "description": "Получает список сеансов текущей информационой базы.",
@@ -3438,6 +3822,7 @@ let bslGlobals = {
             "ref": "classes.Массив"
         },
         "ПолучитьСклоненияСтроки": {
+            "availability": 56,
             "name": "ПолучитьСклоненияСтроки",
             "name_en": "GetStringDeclensions",
             "description": "Склоняет указанную строку.",
@@ -3455,6 +3840,7 @@ let bslGlobals = {
             }
         },
         "ПолучитьСклоненияСтрокиПоЧислу": {
+            "availability": 568,
             "name": "ПолучитьСклоненияСтрокиПоЧислу",
             "name_en": "GetStringDeclensionsByNumber",
             "description": "Склоняет переданное сочетание числа и строки в указанном падеже.",
@@ -3474,12 +3860,14 @@ let bslGlobals = {
             }
         },
         "ПолучитьСкоростьКлиентскогоСоединения": {
+            "availability": 59,
             "name": "ПолучитьСкоростьКлиентскогоСоединения",
             "name_en": "GetClientConnectionSpeed",
             "description": "Возвращает скорость клиентского соединения.",
             "returns": "Тип: СкоростьКлиентскогоСоединения. "
         },
         "ПолучитьСоединенияИнформационнойБазы": {
+            "availability": 56,
             "name": "ПолучитьСоединенияИнформационнойБазы",
             "name_en": "GetInfoBaseConnections",
             "description": "Получает массив описаний соединений с текущей информационной базой.",
@@ -3487,6 +3875,7 @@ let bslGlobals = {
             "ref": "classes.Массив"
         },
         "ПолучитьСообщенияПользователю": {
+            "availability": 56,
             "name": "ПолучитьСообщенияПользователю",
             "name_en": "GetUserMessages",
             "description": "Получает массив объектов",
@@ -3502,6 +3891,7 @@ let bslGlobals = {
             }
         },
         "ПолучитьСоответствиеОбъектаИРеквизитаФормы": {
+            "availability": 56,
             "name": "ПолучитьСоответствиеОбъектаИРеквизитаФормы",
             "name_en": "GetObjectAndFormAttributeConformity",
             "description": "Возвращает имя атрибута формы, связанного с объектом, передаваемым в качестве аргумента функции.",
@@ -3516,6 +3906,7 @@ let bslGlobals = {
             }
         },
         "ПолучитьСоответствиеОбъектаИФормы": {
+            "availability": 56,
             "name": "ПолучитьСоответствиеОбъектаИФормы",
             "name_en": "GetObjectAndFormConformity",
             "description": "Получает информацию об идентификаторе формы и имени атрибута формы, связанного с передаваемым в качестве аргумента функции объектом.",
@@ -3531,6 +3922,7 @@ let bslGlobals = {
             }
         },
         "ПолучитьСоставСтандартногоИнтерфейсаOData": {
+            "availability": 568,
             "name": "ПолучитьСоставСтандартногоИнтерфейсаOData",
             "name_en": "GetStandardODataInterfaceContent",
             "description": "Возвращает массив объектов метаданных, включенных в стандартный OData API.  - Справочник.ИмяСправочника  - Документ.ИмяДокумента  - ПланОбмена.ИмяПланаОбмена  - ПланСчетов.ИмяПланаСчетов  - ПланВидовРасчета.ИмяПланаВидовРасчета  - ПланВидовХарактеристик.ИмяПланаВидовХарактеристик  - РегистрБухгалтерии.ИмяРегистраБухгалтерии  - РегистрСведений.ИмяРегистраСведений  - РегистрРасчета.ИмяРегистраРасчета  - РегистрНакопления.ИмяРегистраНакопления  - ЖурналДокументов.ИмяЖурналаДокументов  - Перечисление.ИмяПеречисления  - Задача.ИмяЗадачи  - БизнесПроцесс.ИмяБизнесПроцесса  - Константа.ИмяКонстанты",
@@ -3538,6 +3930,7 @@ let bslGlobals = {
             "ref": "classes.Массив"
         },
         "ПолучитьСтрокуИзБуфераДвоичныхДанных": {
+            "availability": 511,
             "name": "ПолучитьСтрокуИзБуфераДвоичныхДанных",
             "name_en": "GetStringFromBinaryDataBuffer",
             "description": "Преобразует буфер двоичных данных в строку с учетом кодировки текста.",
@@ -3553,6 +3946,7 @@ let bslGlobals = {
             }
         },
         "ПолучитьСтрокуИзДвоичныхДанных": {
+            "availability": 511,
             "name": "ПолучитьСтрокуИзДвоичныхДанных",
             "name_en": "GetStringFromBinaryData",
             "description": "Преобразует двоичные данные в строку с заданной кодировкой текста.",
@@ -3568,6 +3962,7 @@ let bslGlobals = {
             }
         },
         "ПолучитьСтруктуруХраненияБазыДанных": {
+            "availability": 56,
             "name": "ПолучитьСтруктуруХраненияБазыДанных",
             "name_en": "GetDBStorageStructureInfo",
             "description": "Получает информацию о структуре таблиц базы данных для переданных в качестве параметра массива имен объектов метаданных или массива объектов метаданных для административных действий с ней.",
@@ -3584,12 +3979,14 @@ let bslGlobals = {
             }
         },
         "ПолучитьТекущийСеансИнформационнойБазы": {
+            "availability": 56,
             "name": "ПолучитьТекущийСеансИнформационнойБазы",
             "name_en": "GetCurrentInfoBaseSession",
             "description": "Возвращает текущий сеанс информационной базы.",
             "returns": "Тип: СеансИнформационнойБазы. "
         },
         "ПолучитьФайл": {
+            "availability": 87,
             "name": "ПолучитьФайл",
             "name_en": "GetFile",
             "description": "Получает файл и сохраняет его в локальную файловую систему пользователя.",
@@ -3606,6 +4003,7 @@ let bslGlobals = {
             }
         },
         "ПолучитьФайлы": {
+            "availability": 87,
             "name": "ПолучитьФайлы",
             "name_en": "GetFiles",
             "description": "Получает набор файлов и сохраняет их в локальную файловую систему пользователя.",
@@ -3623,6 +4021,7 @@ let bslGlobals = {
             }
         },
         "ПолучитьФорму": {
+            "availability": 87,
             "name": "ПолучитьФорму",
             "name_en": "GetForm",
             "description": "Получает форму или форму клиентского приложения. Перед получением осуществляется поиск уже открытой такой же формы.",
@@ -3642,6 +4041,7 @@ let bslGlobals = {
             }
         },
         "ПолучитьФункциональнуюОпцию": {
+            "availability": 440,
             "name": "ПолучитьФункциональнуюОпцию",
             "name_en": "GetFunctionalOption",
             "description": "Получает значения функциональной опции.",
@@ -3657,6 +4057,7 @@ let bslGlobals = {
             }
         },
         "ПолучитьФункциональнуюОпциюИнтерфейса": {
+            "availability": 87,
             "name": "ПолучитьФункциональнуюОпциюИнтерфейса",
             "name_en": "GetInterfaceFunctionalOption",
             "description": "Получает значение функциональной опции применительно к командному интерфейсу.",
@@ -3671,12 +4072,14 @@ let bslGlobals = {
             }
         },
         "ПолучитьЧасовойПоясИнформационнойБазы": {
+            "availability": 440,
             "name": "ПолучитьЧасовойПоясИнформационнойБазы",
             "name_en": "GetInfoBaseTimeZone",
             "description": "Получает строку идентификатора часового пояса информационной базы.",
             "returns": "Тип: Строка, Неопределено. Список допустимых часовых поясов может быть получен методом ПолучитьДопустимыеЧасовыеПояса.  Кроме того, возможно задание часовых поясов смещением от универсального времени (часовые пояса GMT) в формате: GMT{+/-}h[h][:mm] где hh=0:23, mm=0:59. Неопределено, если он не был установлен."
         },
         "ПользователиWindows": {
+            "availability": 17,
             "name": "ПользователиWindows",
             "name_en": "WindowsUsers",
             "description": "Предоставляет доступ к информации о доменах и пользователях операционной системы.",
@@ -3684,6 +4087,7 @@ let bslGlobals = {
             "ref": "classes.ТаблицаЗначений"
         },
         "ПользователиОС": {
+            "availability": 17,
             "name": "ПользователиОС",
             "name_en": "OSUsers",
             "description": "Предоставляет доступ к информации о доменах и пользователях операционной системы.",
@@ -3691,6 +4095,7 @@ let bslGlobals = {
             "ref": "classes.ТаблицаЗначений"
         },
         "ПоместитьВоВременноеХранилище": {
+            "availability": 511,
             "name": "ПоместитьВоВременноеХранилище",
             "name_en": "PutToTempStorage",
             "description": "Сохраняет сериализуемое значение во временное хранилище.",
@@ -3706,6 +4111,7 @@ let bslGlobals = {
             }
         },
         "ПоместитьФайл": {
+            "availability": 87,
             "name": "ПоместитьФайл",
             "name_en": "PutFile",
             "description": "Помещает файл из локальной файловой системы во временное хранилище.",
@@ -3724,6 +4130,7 @@ let bslGlobals = {
             }
         },
         "ПоместитьФайлы": {
+            "availability": 87,
             "name": "ПоместитьФайлы",
             "name_en": "PutFiles",
             "description": "Помещает набор файлов из локальной файловой системы во временное хранилище.",
@@ -3757,6 +4164,7 @@ let bslGlobals = {
             }
         },
         "ПравоДоступа": {
+            "availability": 440,
             "name": "ПравоДоступа",
             "name_en": "AccessRight",
             "description": "Показывает установку права доступа к объекту метаданных для текущего пользователя на момент выполнения текущей строчки кода.",
@@ -3774,6 +4182,7 @@ let bslGlobals = {
             }
         },
         "ПредопределенноеЗначение": {
+            "availability": 511,
             "name": "ПредопределенноеЗначение",
             "name_en": "PredefinedValue",
             "description": "Возвращает ссылку на предопределенный элемент из предопределенных данных, прикладных перечислений и точек маршрута бизнес-процессов, а также значения системных перечислений.",
@@ -3787,6 +4196,7 @@ let bslGlobals = {
             }
         },
         "ПредставлениеКодаЛокализации": {
+            "availability": 440,
             "name": "ПредставлениеКодаЛокализации",
             "name_en": "LocaleCodePresentation",
             "description": "Локализованное наименование языка с заданным идентификатором.",
@@ -3801,6 +4211,7 @@ let bslGlobals = {
             }
         },
         "ПредставлениеПериода": {
+            "availability": 59,
             "name": "ПредставлениеПериода",
             "name_en": "PeriodPresentation",
             "description": "Формирует внешнее представление периода, заданного датами начала и окончания периода.",
@@ -3817,6 +4228,7 @@ let bslGlobals = {
             }
         },
         "ПредставлениеПрава": {
+            "availability": 56,
             "name": "ПредставлениеПрава",
             "name_en": "RightPresentation",
             "description": "Получает представление права по имени права.",
@@ -3831,6 +4243,7 @@ let bslGlobals = {
             }
         },
         "ПредставлениеПриложения": {
+            "availability": 56,
             "name": "ПредставлениеПриложения",
             "name_en": "ApplicationPresentation",
             "description": "Позволяет получить локализованное название приложения.",
@@ -3845,6 +4258,7 @@ let bslGlobals = {
             }
         },
         "ПредставлениеСобытияЖурналаРегистрации": {
+            "availability": 56,
             "name": "ПредставлениеСобытияЖурналаРегистрации",
             "name_en": "EventLogEventPresentation",
             "description": "Позволяет получить локализованное название события.",
@@ -3859,6 +4273,7 @@ let bslGlobals = {
             }
         },
         "ПредставлениеЧасовогоПояса": {
+            "availability": 440,
             "name": "ПредставлениеЧасовогоПояса",
             "name_en": "TimeZonePresentation",
             "description": "Возвращает локализованное наименование часового пояса с заданным идентификатором.",
@@ -3888,6 +4303,7 @@ let bslGlobals = {
             }
         },
         "ПрекратитьРаботуСистемы": {
+            "availability": 87,
             "name": "ПрекратитьРаботуСистемы",
             "name_en": "Terminate",
             "description": "Завершает работу системы независимо от наличия модальных диалогов, открытых редактируемых форм документов и справочников и т.д. При этом не вызываются процедуры-обработчики событий завершения работы системы.",
@@ -3902,12 +4318,14 @@ let bslGlobals = {
             }
         },
         "ПривилегированныйРежим": {
+            "availability": 440,
             "name": "ПривилегированныйРежим",
             "name_en": "PrivilegedMode",
             "description": "Определяет включение привилегированного режима исполнения кода.",
             "returns": "Тип: Булево. Истина - включен привилегированный режим исполнения кода; Ложь - в противном случае."
         },
         "ПроверитьБит": {
+            "availability": 1023,
             "name": "ПроверитьБит",
             "name_en": "CheckBit",
             "description": "Проверяет состояние заданного бита для заданного числа.",
@@ -3923,6 +4341,7 @@ let bslGlobals = {
             }
         },
         "ПроверитьПоБитовойМаске": {
+            "availability": 1023,
             "name": "ПроверитьПоБитовойМаске",
             "name_en": "CheckByBitMask",
             "description": "Проверяет, что биты, установленные в значение \"1\" в маске, также установлены в \"1\" в заданном числе.",
@@ -3938,6 +4357,7 @@ let bslGlobals = {
             }
         },
         "ПроверитьЦиклическиеСсылкиВстроенногоЯзыка": {
+            "availability": 57,
             "name": "ПроверитьЦиклическиеСсылкиВстроенногоЯзыка",
             "name_en": "CheckScriptCircularRefs",
             "description": "Метод может быть использован для проверки наличия циклических ссылок при выполнении кода конфигураций на встроенном языке.",
@@ -3954,6 +4374,7 @@ let bslGlobals = {
             }
         },
         "ПродолжитьВызов": {
+            "availability": 575,
             "name": "ПродолжитьВызов",
             "name_en": "ProceedWithCall",
             "description": "Вызывает переопределенный метод или обработчик события из расширяемой конфигурации.",
@@ -3968,6 +4389,7 @@ let bslGlobals = {
             }
         },
         "ПрочитатьJSON": {
+            "availability": 509,
             "name": "ПрочитатьJSON",
             "name_en": "ReadJSON",
             "description": "Считывает значение из JSON-текста или файла. JSON-текст должен быть корректным.",
@@ -3990,6 +4412,7 @@ let bslGlobals = {
             }
         },
         "ПрочитатьXML": {
+            "availability": 509,
             "name": "ПрочитатьXML",
             "name_en": "ReadXML",
             "description": "Считывает значение в формате XML. Прочитаны могут быть значения тех типов, которые могут быть записаны методом",
@@ -4005,6 +4428,7 @@ let bslGlobals = {
             }
         },
         "ПрочитатьДатуJSON": {
+            "availability": 509,
             "name": "ПрочитатьДатуJSON",
             "name_en": "ReadJSONDate",
             "description": "Выполняет преобразование строки, прочитанной в JSON-формате, в значение типа",
@@ -4020,6 +4444,7 @@ let bslGlobals = {
             }
         },
         "ПустаяСтрока": {
+            "availability": 511,
             "name": "ПустаяСтрока",
             "name_en": "IsBlankString",
             "description": "Проверяет строку на наличие значащих символов.",
@@ -4034,12 +4459,14 @@ let bslGlobals = {
             }
         },
         "РабочийКаталогДанныхПользователя": {
+            "availability": 19,
             "name": "РабочийКаталогДанныхПользователя",
             "name_en": "UserDataWorkDir",
             "description": "Предоставляет доступ к каталогу текущего пользователя данной информационной базы внутри стандартного каталога данных приложения.",
             "returns": "Тип: Строка. Путь к каталогу."
         },
         "РазблокироватьДанныеДляРедактирования": {
+            "availability": 440,
             "name": "РазблокироватьДанныеДляРедактирования",
             "name_en": "UnlockDataForEdit",
             "description": "Снимает блокировку объекта.",
@@ -4054,6 +4481,7 @@ let bslGlobals = {
             }
         },
         "РазделитьДвоичныеДанные": {
+            "availability": 511,
             "name": "РазделитьДвоичныеДанные",
             "name_en": "SplitBinaryData",
             "description": "Разделяет двоичные данные на части заданного размера. Размер задается в байтах.",
@@ -4070,6 +4498,7 @@ let bslGlobals = {
             }
         },
         "РазделитьФайл": {
+            "availability": 509,
             "name": "РазделитьФайл",
             "name_en": "SplitFile",
             "description": "Разделяет указанный файл на несколько частей (файлов) заданного размера. Имя каждой части образуется из имени исходного файла с прибавлением ему расширения в виде порядкового номера, включая лидирующие нули.",
@@ -4087,6 +4516,7 @@ let bslGlobals = {
             }
         },
         "РазорватьСоединениеСВнешнимИсточникомДанных": {
+            "availability": 59,
             "name": "РазорватьСоединениеСВнешнимИсточникомДанных",
             "name_en": "DisconnectExternalDataSource",
             "description": "Выполняет разрыв соединения с внешним источником данных.",
@@ -4100,6 +4530,7 @@ let bslGlobals = {
             }
         },
         "РаскодироватьСтроку": {
+            "availability": 440,
             "name": "РаскодироватьСтроку",
             "name_en": "DecodeString",
             "description": "Раскодирует строку, закодированную в соответствии с указанным способом кодирования.",
@@ -4115,6 +4546,7 @@ let bslGlobals = {
             }
         },
         "РольДоступна": {
+            "availability": 440,
             "name": "РольДоступна",
             "name_en": "IsInRole",
             "description": "Определяет доступность указанной роли текущему пользователю.",
@@ -4143,11 +4575,13 @@ let bslGlobals = {
             }
         },
         "Сигнал": {
+            "availability": 85,
             "name": "Сигнал",
             "name_en": "Beep",
             "description": "Воспроизводит звуковой сигнал. Устройство, воспроизводящее звук, а также характер звукового сигнала зависят от программно-аппаратного состава компьютера и звуковых установок ОС."
         },
         "Символ": {
+            "availability": 511,
             "name": "Символ",
             "name_en": "Char",
             "description": "Преобразует код символа в строку, содержащую символ.",
@@ -4162,6 +4596,7 @@ let bslGlobals = {
             }
         },
         "СкопироватьЖурналРегистрации": {
+            "availability": 56,
             "name": "СкопироватьЖурналРегистрации",
             "name_en": "CopyEventLog",
             "description": "Копирует часть журнала регистрации из одного файла в другой в соответствии с отбором. Если файл уже существует, то он будет заменен. Если имя файла не указано, то используется журнал регистрации текущей информационной базы.",
@@ -4177,6 +4612,7 @@ let bslGlobals = {
             }
         },
         "СмещениеЛетнегоВремени": {
+            "availability": 440,
             "name": "СмещениеЛетнегоВремени",
             "name_en": "DaylightTimeOffset",
             "description": "Получает смещение в секундах летнего времени заданного часового пояса относительно стандартного времени этого часового пояса для заданного универсального времени. Если УниверсальноеВремя =",
@@ -4191,6 +4627,7 @@ let bslGlobals = {
             }
         },
         "СмещениеСтандартногоВремени": {
+            "availability": 440,
             "name": "СмещениеСтандартногоВремени",
             "name_en": "StandardTimeOffset",
             "description": "Получает смещение в секундах стандартного времени заданного часового пояса относительно универсального времени без учета летнего времени для заданного универсального времени. Если УниверсальноеВремя =",
@@ -4205,6 +4642,7 @@ let bslGlobals = {
             }
         },
         "СоединитьБуферыДвоичныхДанных": {
+            "availability": 511,
             "name": "СоединитьБуферыДвоичныхДанных",
             "name_en": "ConcatBinaryDataBuffers",
             "description": "Соединяет набор буферов в один буфер. С помощью необязательного параметра Разделитель можно задать буфер, который будет использован в качестве разделителя между частями.",
@@ -4221,6 +4659,7 @@ let bslGlobals = {
             }
         },
         "СоединитьДвоичныеДанные": {
+            "availability": 511,
             "name": "СоединитьДвоичныеДанные",
             "name_en": "ConcatBinaryData",
             "description": "Объединяет несколько объектов типа",
@@ -4236,6 +4675,7 @@ let bslGlobals = {
             }
         },
         "СоздатьКаталог": {
+            "availability": 57,
             "name": "СоздатьКаталог",
             "name_en": "CreateDirectory",
             "description": "Создает новый каталог файлов.",
@@ -4249,6 +4689,7 @@ let bslGlobals = {
             }
         },
         "СоздатьФабрикуXDTO": {
+            "availability": 509,
             "name": "СоздатьФабрикуXDTO",
             "name_en": "CreateXDTOFactory",
             "returns": "Тип: ФабрикаXDTO. ",
@@ -4271,6 +4712,7 @@ let bslGlobals = {
             }
         },
         "СокрЛ": {
+            "availability": 511,
             "name": "СокрЛ",
             "name_en": "TrimL",
             "description": "Отсекает незначащие символы, стоящие слева от первого значащего символа в строке.",
@@ -4285,6 +4727,7 @@ let bslGlobals = {
             }
         },
         "СокрЛП": {
+            "availability": 511,
             "name": "СокрЛП",
             "name_en": "TrimAll",
             "description": "Отсекает незначащие символы, стоящие слева от первого значащего символа в строке, и пробелы, стоящие справа от последнего значащего символа в строке.",
@@ -4299,6 +4742,7 @@ let bslGlobals = {
             }
         },
         "СокрП": {
+            "availability": 511,
             "name": "СокрП",
             "name_en": "TrimR",
             "description": "Отсекает незначащие символы, стоящие справа от последнего значащего символа в строке.",
@@ -4313,6 +4757,7 @@ let bslGlobals = {
             }
         },
         "Сообщить": {
+            "availability": 511,
             "name": "Сообщить",
             "name_en": "Message",
             "description": "Выводит текст сообщения в окно сообщений. Если в момент вызова окно сообщений отсутствует, то будет открыто новое окно сообщений. Сообщение, в зависимости от его смысловой нагрузки, можно пометить одной из пиктограмм, входящих в предопределенный набор.",
@@ -4327,6 +4772,7 @@ let bslGlobals = {
             }
         },
         "Состояние": {
+            "availability": 56,
             "name": "Состояние",
             "name_en": "Status",
             "description": "Выводит текст в панель состояния.",
@@ -4343,6 +4789,7 @@ let bslGlobals = {
             }
         },
         "СохранитьЗначение": {
+            "availability": 16,
             "name": "СохранитьЗначение",
             "name_en": "SaveValue",
             "description": "Сохраняет значение для использования не только в текущем, но и в последующих сеансах работы с программой. Значение хранится индивидуально для каждой пары информационная база - пользователь. Например, можно сохранять значения по умолчанию, используемые данным пользователем.",
@@ -4357,11 +4804,13 @@ let bslGlobals = {
             }
         },
         "СохранитьНастройкиПользователя": {
+            "availability": 16,
             "name": "СохранитьНастройкиПользователя",
             "name_en": "SaveUserSettings",
             "description": "Выполняет сохранение пользовательских настроек в процессе работы, не дожидаясь завершения приложения."
         },
         "Сред": {
+            "availability": 511,
             "name": "Сред",
             "name_en": "Mid",
             "description": "Выбирает строку символов, начиная с символа НачальныйНомер, общим количеством ЧислоСимволов.",
@@ -4378,6 +4827,7 @@ let bslGlobals = {
             }
         },
         "СтрДлина": {
+            "availability": 511,
             "name": "СтрДлина",
             "name_en": "StrLen",
             "description": "Получает количество символов в строке.",
@@ -4392,6 +4842,7 @@ let bslGlobals = {
             }
         },
         "СтрЗаканчиваетсяНа": {
+            "availability": 511,
             "name": "СтрЗаканчиваетсяНа",
             "name_en": "StrEndsWith",
             "description": "Определяет, заканчивается ли строка указанной подстрокой. Определение выполняется с учетом регистра, аналогично функции",
@@ -4407,6 +4858,7 @@ let bslGlobals = {
             }
         },
         "СтрЗаменить": {
+            "availability": 511,
             "name": "СтрЗаменить",
             "name_en": "StrReplace",
             "description": "Находит в исходной строке все вхождения подстроки поиска и заменяет ее на подстроку замены.",
@@ -4423,6 +4875,7 @@ let bslGlobals = {
             }
         },
         "СтрНайти": {
+            "availability": 1023,
             "name": "СтрНайти",
             "name_en": "StrFind",
             "description": "Находит первое вхождение искомой строки как подстроки в исходной строке.",
@@ -4441,6 +4894,7 @@ let bslGlobals = {
             }
         },
         "СтрНайтиИВыделитьОформлением": {
+            "availability": 1023,
             "name": "СтрНайтиИВыделитьОформлением",
             "name_en": "StrFindAndHighlightByAppearance",
             "description": "Выполняет поиск в строке.  - последовательность, состоящая только из букв, считается отдельным словом,  - последовательность, состоящая только из цифр, считается отдельным словом. В слове, состоящем из цифр, лидирующие нули считаются и значащими, и незначащими. При наличии иерархии элемент считается найденным:  - если в нем есть все искомые слова,  - или в нем есть хотя бы одно искомое слово, а остальные слова содержатся в его родителях.",
@@ -4456,6 +4910,7 @@ let bslGlobals = {
             }
         },
         "СтрНачинаетсяС": {
+            "availability": 511,
             "name": "СтрНачинаетсяС",
             "name_en": "StrStartsWith",
             "description": "Определяет, что строка начинается с указанной подстроки. Определение выполняется с учетом регистра, аналогично функции",
@@ -4485,12 +4940,14 @@ let bslGlobals = {
             }
         },
         "СтрокаСоединенияИнформационнойБазы": {
+            "availability": 511,
             "name": "СтрокаСоединенияИнформационнойБазы",
             "name_en": "InfoBaseConnectionString",
             "description": "Возвращает",
             "returns": "Тип: Строка. "
         },
         "СтрокаСЧислом": {
+            "availability": 479,
             "name": "СтрокаСЧислом",
             "name_en": "StringWithNumber",
             "description": "Формирует представление числа для определенного кода локализации и параметров числа.",
@@ -4508,6 +4965,7 @@ let bslGlobals = {
             }
         },
         "СтрПолучитьСтроку": {
+            "availability": 511,
             "name": "СтрПолучитьСтроку",
             "name_en": "StrGetLine",
             "description": "Получает строку многострочной строки по номеру.",
@@ -4523,6 +4981,7 @@ let bslGlobals = {
             }
         },
         "СтрРазделить": {
+            "availability": 511,
             "name": "СтрРазделить",
             "name_en": "StrSplit",
             "description": "Разделяет строку на части по указанным символам-разделителям.",
@@ -4540,6 +4999,7 @@ let bslGlobals = {
             }
         },
         "СтрСоединить": {
+            "availability": 511,
             "name": "СтрСоединить",
             "name_en": "StrConcat",
             "description": "Соединяет массив переданных строк в одну строку с указанным разделителем.",
@@ -4555,6 +5015,7 @@ let bslGlobals = {
             }
         },
         "СтрСравнить": {
+            "availability": 511,
             "name": "СтрСравнить",
             "name_en": "StrCompare",
             "description": "Выполняет сравнение строк без учета регистра, аналогичное сравнению строк с помощью объекта",
@@ -4570,6 +5031,7 @@ let bslGlobals = {
             }
         },
         "СтрЧислоВхождений": {
+            "availability": 511,
             "name": "СтрЧислоВхождений",
             "name_en": "StrOccurrenceCount",
             "description": "Вычисляет число вхождений подстроки поиска в исходной строке.",
@@ -4585,6 +5047,7 @@ let bslGlobals = {
             }
         },
         "СтрЧислоСтрок": {
+            "availability": 511,
             "name": "СтрЧислоСтрок",
             "name_en": "StrLineCount",
             "description": "Позволяет посчитать число строк в многострочной строке. Строки в многострочной строке разделены символами перевода строк (",
@@ -4599,6 +5062,7 @@ let bslGlobals = {
             }
         },
         "СтрШаблон": {
+            "availability": 511,
             "name": "СтрШаблон",
             "name_en": "StrTemplate",
             "description": "Подставляет параметры в строку по номеру.  - Если в строке встречается символ % два раза подряд (%%), такая пара трактуется как одинарный процент, независимо от того, стоит ли сразу за ними цифра или не стоит.  - Если параметров недостаточно для заполнения в шаблоне параметра %N, генерируется исключительная ситуация \"Недостаточно фактических параметров\".  - Если параметров слишком много, чтобы подставить их все в шаблон, генерируется исключительная ситуация \"Очень много параметров\".",
@@ -4614,54 +5078,63 @@ let bslGlobals = {
             }
         },
         "ТекущаяДата": {
+            "availability": 16,
             "name": "ТекущаяДата",
             "name_en": "CurrentDate",
             "description": "Определяет текущую (системную) дату на компьютере.",
             "returns": "Тип: Дата. Текущая (системная) дата."
         },
         "ТекущаяДатаСеанса": {
+            "availability": 440,
             "name": "ТекущаяДатаСеанса",
             "name_en": "CurrentSessionDate",
             "description": "Получает текущую дату сервера, приведенную к часовому поясу сеанса.",
             "returns": "Тип: Дата. "
         },
         "ТекущаяУниверсальнаяДата": {
+            "availability": 440,
             "name": "ТекущаяУниверсальнаяДата",
             "name_en": "CurrentUniversalDate",
             "description": "Получает текущую универсальную дату компьютера.",
             "returns": "Тип: Дата. "
         },
         "ТекущаяУниверсальнаяДатаВМиллисекундах": {
+            "availability": 1023,
             "name": "ТекущаяУниверсальнаяДатаВМиллисекундах",
             "name_en": "CurrentUniversalDateInMilliseconds",
             "description": "Получает текущую универсальную дату в миллисекундах (в UTC, начиная с 01.01.0001 00:00:00).",
             "returns": "Тип: Число. "
         },
         "ТекущийКодЛокализации": {
+            "availability": 952,
             "name": "ТекущийКодЛокализации",
             "name_en": "CurrentLocaleCode",
             "description": "Получает код локализации (язык, страна) текущего сеанса, который может быть ключом командной строки /VL или, при запуске из Конфигуратора, установкой параметров запуска.",
             "returns": "Тип: Строка. "
         },
         "ТекущийРежимЗапуска": {
+            "availability": 511,
             "name": "ТекущийРежимЗапуска",
             "name_en": "CurrentRunMode",
             "description": "Получает режим запуска клиентского приложения текущего сеанса работы.",
             "returns": "Тип: РежимЗапускаКлиентскогоПриложения, Неопределено. Неопределено, если режим запуска не является ни обычным, ни управляемым - например, внешнее соединение."
         },
         "ТекущийЯзык": {
+            "availability": 511,
             "name": "ТекущийЯзык",
             "name_en": "CurrentLanguage",
             "description": "Получает язык интерфейса, выбранный для текущего пользователя или основной язык, если нет текущего пользователя или для него не указан язык.",
             "returns": "Тип: ОбъектМетаданных: Язык, Строка. В режиме выполнения \"Сервер\", \"Толстый клиент\" и \"Внешнее соединение\" возвращается ОбъектМетаданных: Язык.  В режиме выполнения \"Тонкий клиент, \"Веб-клиент\", \"Мобильный клиент\", \"Мобильное приложение (клиент)\", и \"Мобильное приложение (сервер)\" возвращается значение свойства КодЯзыка."
         },
         "ТекущийЯзыкСистемы": {
+            "availability": 511,
             "name": "ТекущийЯзыкСистемы",
             "name_en": "CurrentSystemLanguage",
             "description": "Возвращает используемый системой язык.",
             "returns": "Тип: Строка. "
         },
         "Тип": {
+            "availability": 56,
             "name": "Тип",
             "name_en": "Type",
             "description": "Получает тип по его строковому имени.",
@@ -4676,6 +5149,7 @@ let bslGlobals = {
             }
         },
         "ТипЗнч": {
+            "availability": 511,
             "name": "ТипЗнч",
             "name_en": "TypeOf",
             "description": "Получает тип значения.",
@@ -4690,12 +5164,14 @@ let bslGlobals = {
             }
         },
         "ТранзакцияАктивна": {
+            "availability": 440,
             "name": "ТранзакцияАктивна",
             "name_en": "TransactionActive",
             "description": "Получить текущее состояние транзакции.",
             "returns": "Тип: Булево. Истина - в системе имеется активная транзакция, Ложь - в текущий момент в системе не имеется активных транзакций."
         },
         "ТРег": {
+            "availability": 511,
             "name": "ТРег",
             "name_en": "Title",
             "description": "Преобразует строку следующим образом: у каждого слова строки первый символ преобразуется к верхнему регистру. Все остальные символы преобразуются к нижнему регистру.",
@@ -4710,11 +5186,13 @@ let bslGlobals = {
             }
         },
         "УдалитьДанныеИнформационнойБазы": {
+            "availability": 440,
             "name": "УдалитьДанныеИнформационнойБазы",
             "name_en": "EraseInfoBaseData",
             "description": "Выполняет удаление данных информационной базы:  - Из таблиц, определяемых структурой метаданных;  - Из хранилищ настроек;  - Из истории;  - Из истории изменения данных;  - Из списка пользователей;  - Административных параметров информационной базы;  - Расширений конфигурации;  - Данные регистрации информационной базы на сервере системы взаимодействия."
         },
         "УдалитьИзВременногоХранилища": {
+            "availability": 511,
             "name": "УдалитьИзВременногоХранилища",
             "name_en": "DeleteFromTempStorage",
             "description": "Удаляет ранее помещенное значение из временного хранилища.",
@@ -4728,6 +5206,7 @@ let bslGlobals = {
             }
         },
         "УдалитьОбъекты": {
+            "availability": 440,
             "name": "УдалитьОбъекты",
             "name_en": "DeleteObjects",
             "description": "Удаляет объекты, ссылки на которые переданы в параметре СписокСсылок.",
@@ -4746,6 +5225,7 @@ let bslGlobals = {
             }
         },
         "УдалитьФайлы": {
+            "availability": 511,
             "name": "УдалитьФайлы",
             "name_en": "DeleteFiles",
             "description": "Удаляет указанные файлы.",
@@ -4760,6 +5240,7 @@ let bslGlobals = {
             }
         },
         "УниверсальноеВремя": {
+            "availability": 511,
             "name": "УниверсальноеВремя",
             "name_en": "ToUniversalTime",
             "description": "Преобразует местное время в заданном часовом поясе в универсальное время.",
@@ -4774,6 +5255,7 @@ let bslGlobals = {
             }
         },
         "УстановитьБезопасныйРежим": {
+            "availability": 56,
             "name": "УстановитьБезопасныйРежим",
             "name_en": "SetSafeMode",
             "description": "В файловом варианте информационной базы или на сервере в клиент-серверном варианте информационной базы включает или выключает безопасный режим исполнения кода. В безопасном режиме:  - игнорируется привилегированный режим;  - запрещены внешние по отношению к платформе 1С:Предприятие действия:  - операции с COM-объектами;  - загрузка и подключение внешних компонентов;  - запуск внешних приложений и команд операционной системы;  - доступ к файловой системе;  - доступ к Интернету. В клиент-серверном варианте при выполнении на клиенте данный метод не выполняет никаких действий. Первое выполнение метода с любомым значением параметра, кроме Ложь, в файловом варианте информационной базы или на сервере в клиент-серверном варианте информационной базы включает безопасный режим. Для явного выключения безопасного режима необходимо внутри процедуры или функции, в которой он был включен, вызвать метод с параметром Ложь столько же раз, сколько раз в этой же процедуре или функции был вызван метод с параметром Истина или Строка. Если этого сделано не было, то при возврате из процедуры/функции, в которой был включен безопасный режим, он будет выключен автоматически (неявно). Если в процедуре или функции вызовов метода с параметром Ложь сделано больше, чем вызовов с параметром Истина или Строка, то будет вызвано исключение.",
@@ -4787,6 +5269,7 @@ let bslGlobals = {
             }
         },
         "УстановитьБезопасныйРежимРазделенияДанных": {
+            "availability": 56,
             "name": "УстановитьБезопасныйРежимРазделенияДанных",
             "name_en": "SetDataSeparationSafeMode",
             "description": "Устанавливает или отменяет безопасный режим разделения данных по заданному общему реквизиту.",
@@ -4801,6 +5284,7 @@ let bslGlobals = {
             }
         },
         "УстановитьБит": {
+            "availability": 1023,
             "name": "УстановитьБит",
             "name_en": "SetBit",
             "description": "Устанавливает заданный бит заданного числа в указанное значение.",
@@ -4817,6 +5301,7 @@ let bslGlobals = {
             }
         },
         "УстановитьБлокировкуСеансов": {
+            "availability": 56,
             "name": "УстановитьБлокировкуСеансов",
             "name_en": "SetSessionsLock",
             "description": "Устанавливает режим блокировки сеансов.",
@@ -4830,6 +5315,7 @@ let bslGlobals = {
             }
         },
         "УстановитьВнешнююКомпоненту": {
+            "availability": 87,
             "name": "УстановитьВнешнююКомпоненту",
             "name_en": "InstallAddIn",
             "description": "Доставляет объект внешнего компонента с сервера на клиент, после чего он становится доступен для метода",
@@ -4843,6 +5329,7 @@ let bslGlobals = {
             }
         },
         "УстановитьВремяЗавершенияСпящегоСеанса": {
+            "availability": 56,
             "name": "УстановитьВремяЗавершенияСпящегоСеанса",
             "name_en": "SetHibernateSessionTerminateTime",
             "description": "Установить интервал времени в секундах, по истечении которого спящий сеанс будет завершен.",
@@ -4856,6 +5343,7 @@ let bslGlobals = {
             }
         },
         "УстановитьВремяЗасыпанияПассивногоСеанса": {
+            "availability": 56,
             "name": "УстановитьВремяЗасыпанияПассивногоСеанса",
             "name_en": "SetPassiveSessionHibernateTime",
             "description": "Устанавливает интервал времени в секундах, по истечении которого неактивный сеанс переводится в спящий режим.",
@@ -4869,6 +5357,7 @@ let bslGlobals = {
             }
         },
         "УстановитьВремяОжиданияБлокировкиДанных": {
+            "availability": 440,
             "name": "УстановитьВремяОжиданияБлокировкиДанных",
             "name_en": "SetLockWaitTime",
             "description": "Устанавливает время ожидания блокировки данных (в секундах).",
@@ -4882,6 +5371,7 @@ let bslGlobals = {
             }
         },
         "УстановитьЗапретЗасыпанияКомпьютера": {
+            "availability": 452,
             "name": "УстановитьЗапретЗасыпанияКомпьютера",
             "name_en": "SetComputerSleepModeProhibition",
             "description": "Устанавливает режим, при котором мобильное устройство не переходит в спящий режим.",
@@ -4895,6 +5385,7 @@ let bslGlobals = {
             }
         },
         "УстановитьИспользованиеЖурналаРегистрации": {
+            "availability": 56,
             "name": "УстановитьИспользованиеЖурналаРегистрации",
             "name_en": "SetEventLogUsing",
             "description": "Метод устанавливает, какие события (по уровню важности) должны регистрироваться в журнале.",
@@ -4908,6 +5399,7 @@ let bslGlobals = {
             }
         },
         "УстановитьИспользованиеСобытияЖурналаРегистрации": {
+            "availability": 56,
             "name": "УстановитьИспользованиеСобытияЖурналаРегистрации",
             "name_en": "SetEventLogEventUse",
             "description": "Управляет регистрацией событий в журнале регистрации.",
@@ -4922,6 +5414,7 @@ let bslGlobals = {
             }
         },
         "УстановитьИспользуемыйСервер": {
+            "availability": 4,
             "name": "УстановитьИспользуемыйСервер",
             "name_en": "SetUsedServer",
             "description": "Указывает, какой из серверов должен использоваться мобильным клиентом без явного указания сервера. Установка действует до выхода из области видимости локальных переменных.",
@@ -4935,6 +5428,7 @@ let bslGlobals = {
             }
         },
         "УстановитьМинимальнуюДлинуПаролейПользователей": {
+            "availability": 56,
             "name": "УстановитьМинимальнуюДлинуПаролейПользователей",
             "name_en": "SetUserPasswordMinLength",
             "description": "Устанавливает минимальную длину, которую должны иметь пароли пользователей информационной базы.  - при изменении пароля существующего пользователя или при создании нового пользователя, если включена АутентификацияСтандартная или новый пароль не пустой;  - при включении АутентификацияСтандартная у существующего пользователя, если пароль пустой. Метод доступен только из сеанса, в котором все разделители не используются.",
@@ -4948,6 +5442,7 @@ let bslGlobals = {
             }
         },
         "УстановитьМонопольныйРежим": {
+            "availability": 440,
             "name": "УстановитьМонопольныйРежим",
             "name_en": "SetExclusiveMode",
             "description": "Устанавливает и отключает использование монопольного режима.",
@@ -4961,6 +5456,7 @@ let bslGlobals = {
             }
         },
         "УстановитьНастройкиКлиентаЛицензирования": {
+            "availability": 56,
             "name": "УстановитьНастройкиКлиентаЛицензирования",
             "name_en": "SetLicensingClientParameters",
             "description": "Предназначен для сохранения в информационной базе имени пользователя и пароля клиента лицензирования. Эти данные используются при проверке лицензионности конфигурации.",
@@ -4976,6 +5472,7 @@ let bslGlobals = {
             }
         },
         "УстановитьНачалоСтолетияИнформационнойБазы": {
+            "availability": 56,
             "name": "УстановитьНачалоСтолетияИнформационнойБазы",
             "name_en": "SetInfoBaseBeginningOfCentury",
             "description": "Устанавливает новое значение начала столетия для информационной базы и сохраняет его в базе данных. Если параметр имеет значение",
@@ -4989,6 +5486,7 @@ let bslGlobals = {
             }
         },
         "УстановитьОбновлениеПредопределенныхДанныхИнформационнойБазы": {
+            "availability": 408,
             "name": "УстановитьОбновлениеПредопределенныхДанныхИнформационнойБазы",
             "name_en": "SetInfoBasePredefinedDataUpdate",
             "description": "Устанавливает новое значение режима обновления предопределенных данных для информационной базы. Для выполнения требуются права администратора информационной базы.  - Если для объекта метаданных в данных установлен режим обновления, отличный от Авто, то используется это значение.  - Иначе, если для объекта метаданных в конфигурации установлен режим обновления, отличный от Авто, то используется это значение.  - Иначе, если для информационной базы установлен режим обновления, отличный от Авто, то используется это значение.  - Иначе, если это периферийный узел РИБ, то предопределенные данные не будут обновлены. Если проверка выполняется для центрального узла РИБ, или для базы не являющейся РИБ, обновление предопределенных данных будет выполнено. Метод доступен только из сеанса, в котором не используется ни один разделитель.",
@@ -5002,6 +5500,7 @@ let bslGlobals = {
             }
         },
         "УстановитьОтключениеБезопасногоРежима": {
+            "availability": 952,
             "name": "УстановитьОтключениеБезопасногоРежима",
             "name_en": "SetSafeModeDisabled",
             "description": "Выключает текущий режим безопасности.",
@@ -5015,6 +5514,7 @@ let bslGlobals = {
             }
         },
         "УстановитьПараметрыФункциональныхОпцийИнтерфейса": {
+            "availability": 87,
             "name": "УстановитьПараметрыФункциональныхОпцийИнтерфейса",
             "name_en": "SetInterfaceFunctionalOptionParameters",
             "description": "Устанавливает параметры функциональных опций, действие которых будет распространяться на командный интерфейс и рабочий стол. Вызывает автоматическое обновление интерфейса (включая рабочий стол).",
@@ -5029,6 +5529,7 @@ let bslGlobals = {
             }
         },
         "УстановитьПреимущественноеИспользованиеОсновногоСервера": {
+            "availability": 260,
             "name": "УстановитьПреимущественноеИспользованиеОсновногоСервера",
             "name_en": "SetPreferableMainServerUse",
             "description": "После вызова данного метода мобильный клиент с автономным режимом использует основной сервер, вне зависимости от приоритета установленного в конфигурации.",
@@ -5042,6 +5543,7 @@ let bslGlobals = {
             }
         },
         "УстановитьПривилегированныйРежим": {
+            "availability": 440,
             "name": "УстановитьПривилегированныйРежим",
             "name_en": "SetPrivilegedMode",
             "description": "В файловом варианте информационной базы или на сервере в клиент-серверном варианте информационной базы управляет (включает или выключает) привилегированным режимом исполнения кода, аналогичным режиму работы кода привилегированных модулей. В привилегированном режиме никакие проверки прав не выполняются и разрешены любые операции. В клиент-серверном варианте при выполнении на клиенте данный метод не выполняет никаких действий.",
@@ -5055,6 +5557,7 @@ let bslGlobals = {
             }
         },
         "УстановитьПроверкуСложностиПаролейПользователей": {
+            "availability": 56,
             "name": "УстановитьПроверкуСложностиПаролейПользователей",
             "name_en": "SetUserPasswordStrengthCheck",
             "description": "Устанавливает или отключает следующие ограничения на сложность паролей пользователей информационной базы:  - Длина не менее 7 символов;  - Содержит не менее 3-х типов символов из перечисленных ниже:   - заглавные буквы;  - строчные буквы;  - цифры;  - спец. символы.   - Не совпадает с именем пользователя;  - Не является последовательностью символов. Действует только:  - при изменении пароля существующего пользователя или при создании нового пользователя, если включена АутентификацияСтандартная или новый пароль не пустой;  - при включении АутентификацияСтандартная у существующего пользователя, если пароль пустой. Метод доступен только из сеанса, в котором все разделители не используются.",
@@ -5068,16 +5571,19 @@ let bslGlobals = {
             }
         },
         "УстановитьРасширениеРаботыСКриптографией": {
+            "availability": 87,
             "name": "УстановитьРасширениеРаботыСКриптографией",
             "name_en": "InstallCryptoExtension",
             "description": "Устанавливает расширение для работы с криптографией в браузер."
         },
         "УстановитьРасширениеРаботыСФайлами": {
+            "availability": 87,
             "name": "УстановитьРасширениеРаботыСФайлами",
             "name_en": "InstallFileSystemExtension",
             "description": "Устанавливает расширение работы с файлами."
         },
         "УстановитьСоединениеСВнешнимИсточникомДанных": {
+            "availability": 59,
             "name": "УстановитьСоединениеСВнешнимИсточникомДанных",
             "name_en": "ConnectExternalDataSource",
             "description": "Устанавливает соединение с внешним источником данных.",
@@ -5091,6 +5597,7 @@ let bslGlobals = {
             }
         },
         "УстановитьСоответствиеОбъектаИРеквизитаФормы": {
+            "availability": 56,
             "name": "УстановитьСоответствиеОбъектаИРеквизитаФормы",
             "name_en": "SetObjectAndFormAttributeConformity",
             "description": "Метод автоматически устанавливает соответствие между реквизитами формы клиентского приложения и объектами вида",
@@ -5105,6 +5612,7 @@ let bslGlobals = {
             }
         },
         "УстановитьСоответствиеОбъектаИФормы": {
+            "availability": 56,
             "name": "УстановитьСоответствиеОбъектаИФормы",
             "name_en": "SetObjectAndFormConformity",
             "description": "Устанавливает соответствие формы клиентского приложения и объектов вида",
@@ -5119,6 +5627,7 @@ let bslGlobals = {
             }
         },
         "УстановитьСоставСтандартногоИнтерфейсаOData": {
+            "availability": 568,
             "name": "УстановитьСоставСтандартногоИнтерфейсаOData",
             "name_en": "SetStandardODataInterfaceContent",
             "description": "Устанавливает состав объектов метаданных, доступных через стандартный сервис OData API.  - Справочник.ИмяСправочника  - Документ.ИмяДокумента  - ПланОбмена.ИмяПланаОбмена  - ПланСчетов.ИмяПланаСчетов  - ПланВидовРасчета.ИмяПланаВидовРасчета  - ПланВидовХарактеристик.ИмяПланаВидовХарактеристик  - РегистрБухгалтерии.ИмяРегистраБухгалтерии  - РегистрСведений.ИмяРегистраСведений  - РегистрРасчета.ИмяРегистраРасчета  - РегистрНакопления.ИмяРегистраНакопления  - ЖурналДокументов.ИмяЖурналаДокументов  - Перечисление.ИмяПеречисления  - Задача.ИмяЗадачи  - БизнесПроцесс.ИмяБизнесПроцесса  - Константа.ИмяКонстанты",
@@ -5132,6 +5641,7 @@ let bslGlobals = {
             }
         },
         "УстановитьЧасовойПоясИнформационнойБазы": {
+            "availability": 440,
             "name": "УстановитьЧасовойПоясИнформационнойБазы",
             "name_en": "SetInfoBaseTimeZone",
             "description": "Устанавливает новый часовой пояс информационной базы и сохраняет его в базе данных. Если параметр не задан, то установка часового пояса информационной базы отменяется. В этом случае часовой пояс информационной базы совпадает с часовым поясом сервера.",
@@ -5145,6 +5655,7 @@ let bslGlobals = {
             }
         },
         "УстановитьЧасовойПоясСеанса": {
+            "availability": 440,
             "name": "УстановитьЧасовойПоясСеанса",
             "name_en": "SetSessionTimeZone",
             "description": "Устанавливает часовой пояс текущего сеанса. Если параметр не задан, то часовым поясом сеанса становится часовой пояс информационной базы, если он определен, или часовой пояс компьютера сервера, если часовой пояс информационной базы не определен.",
@@ -5158,6 +5669,7 @@ let bslGlobals = {
             }
         },
         "Формат": {
+            "availability": 479,
             "name": "Формат",
             "name_en": "Format",
             "description": "Формирует удобное для чтения представление значений. Полезно использование в отчетах и при прочем визуальном отображении значений.",
@@ -5173,6 +5685,7 @@ let bslGlobals = {
             }
         },
         "Цел": {
+            "availability": 509,
             "name": "Цел",
             "name_en": "Int",
             "description": "Вычисляет целую часть переданного числа, полностью отсекая дробную часть.",
@@ -5201,12 +5714,14 @@ let bslGlobals = {
             }
         },
         "ЧасовойПояс": {
+            "availability": 492,
             "name": "ЧасовойПояс",
             "name_en": "TimeZone",
             "description": "Получает идентификатор часового пояса компьютера.",
             "returns": "Тип: Строка. Список допустимых часовых поясов может быть получен методом ПолучитьДопустимыеЧасовыеПояса.  Кроме того, возможно задание часовых поясов смещением от универсального времени (часовые пояса GMT) в формате: GMT{+/-}h[h][:mm] где hh=0:23, mm=0:59."
         },
         "ЧасовойПоясСеанса": {
+            "availability": 440,
             "name": "ЧасовойПоясСеанса",
             "name_en": "SessionTimeZone",
             "description": "Получает идентификатор часового пояса текущего сеанса.",
@@ -5227,6 +5742,7 @@ let bslGlobals = {
             }
         },
         "ЧислоИзДвоичнойСтроки": {
+            "availability": 511,
             "name": "ЧислоИзДвоичнойСтроки",
             "name_en": "NumberFromBinaryString",
             "description": "Преобразует двоичную строку в значение типа",
@@ -5241,6 +5757,7 @@ let bslGlobals = {
             }
         },
         "ЧислоИзШестнадцатеричнойСтроки": {
+            "availability": 511,
             "name": "ЧислоИзШестнадцатеричнойСтроки",
             "name_en": "NumberFromHexString",
             "description": "Преобразует шестнадцатеричную строку в значение типа",
@@ -5255,6 +5772,7 @@ let bslGlobals = {
             }
         },
         "ЧислоПрописью": {
+            "availability": 511,
             "name": "ЧислоПрописью",
             "name_en": "NumberInWords",
             "description": "Формирует представление числа прописью в соответствии с заданными форматной строкой и параметрами предмета исчисления.",
@@ -5271,6 +5789,7 @@ let bslGlobals = {
             }
         },
         "ЭтоАдресВременногоХранилища": {
+            "availability": 511,
             "name": "ЭтоАдресВременногоХранилища",
             "name_en": "IsTempStorageURL",
             "description": "Проверяет, является ли переданный адрес адресом файла во временном хранилище.",
@@ -5287,57 +5806,68 @@ let bslGlobals = {
     },
     "globalvariables": {
         "WSСсылки": {
+            "availability": 440,
             "name": "WSСсылки",
             "name_en": "WSReferences",
             "description": "Содержит менеджер ссылок на внешние Web-сервисы."
         },
         "АгентКлиентскогоПриложения": {
+            "availability": 19,
             "name": "АгентКлиентскогоПриложения",
             "name_en": "ClientApplicationAgent",
             "description": "Используется для доступа к функциям работы с агентом клиентского приложения."
         },
         "БезопасноеХранилище": {
+            "availability": 68,
             "name": "БезопасноеХранилище",
             "name_en": "SecureStorage",
             "description": "Используется для доступа к безопасному хранилищу."
         },
         "БиблиотекаКартинок": {
+            "availability": 479,
             "name": "БиблиотекаКартинок",
             "name_en": "PictureLib",
             "description": "Используется для доступа к библиотеке картинок."
         },
         "БиблиотекаМакетовОформленияКомпоновкиДанных": {
+            "availability": 440,
             "name": "БиблиотекаМакетовОформленияКомпоновкиДанных",
             "name_en": "DataCompositionAppearanceTemplateLib",
             "description": "Библиотека макетов оформления компоновки данных. Доступны следующие предопределенные макеты оформления: Основной(Main), Яркий(Gaudy), Море(Sea), Арктика(Arctic), Зеленый(Green), Античный(Antique)."
         },
         "БиблиотекаСтилей": {
+            "availability": 24,
             "name": "БиблиотекаСтилей",
             "name_en": "StyleLib",
             "description": "Используется для доступа к определенным в конфигурации стилям."
         },
         "БизнесПроцессы": {
+            "availability": 56,
             "name": "БизнесПроцессы",
             "name_en": "BusinessProcesses",
             "description": "Используется для доступа к определенным в конфигурации бизнес-процессам."
         },
         "БлокировкаАутентификации": {
+            "availability": 1023,
             "name": "БлокировкаАутентификации",
             "name_en": "AuthenticationLock",
             "description": "Предоставляет доступ к управлению блокировками аутентификации."
         },
         "ВнешниеИсточникиДанных": {
+            "availability": 56,
             "name": "ВнешниеИсточникиДанных",
             "name_en": "ExternalDataSources",
             "description": "Содержит объект для управления внешними источниками данных."
         },
         "ВнешниеОбработки": {
+            "availability": 56,
             "name": "ВнешниеОбработки",
             "name_en": "ExternalDataProcessors",
             "description": "Используется для доступа к внешним обработкам.",
             "ref": "types.ВнешниеОбработкиМенеджер"
         },
         "ВнешниеОтчеты": {
+            "availability": 56,
             "name": "ВнешниеОтчеты",
             "name_en": "ExternalReports",
             "description": "Используется для доступа к внешним отчетам.",
@@ -5349,16 +5879,19 @@ let bslGlobals = {
             "description": "Предоставляет доступ к средствам работы со встроенными покупками."
         },
         "ГлавныйИнтерфейс": {
+            "availability": 16,
             "name": "ГлавныйИнтерфейс",
             "name_en": "MainInterface",
             "description": "Используется для доступа к определенным в конфигурации пользовательским интерфейсам."
         },
         "ГлавныйСтиль": {
+            "availability": 408,
             "name": "ГлавныйСтиль",
             "name_en": "MainStyle",
             "description": "Управляет стилем всего приложения, аналогично тому, как это происходит при установке стиля приложения в режиме Конфигуратор.  Может быть установлено в одно из значений коллекции стилей глобального контекста или в значение стиля по умолчанию (стиль \"Авто\").  В обычном режиме доступно для записи до открытия главного окна приложения, для чтения доступно всегда. В управляемом режиме доступно для записи в обработчике УстановкаПараметровСеанса, для чтения доступно всегда."
         },
         "ГлобальныйПоиск": {
+            "availability": 631,
             "name": "ГлобальныйПоиск",
             "name_en": "GlobalSearch",
             "description": "Используется для управления и использования глобального поиска."
@@ -5369,36 +5902,43 @@ let bslGlobals = {
             "description": "Используется для доступа к определенным в конфигурации документам."
         },
         "ДополнительнаяПроверкаПользователя": {
+            "availability": 68,
             "name": "ДополнительнаяПроверкаПользователя",
             "name_en": "AdditionalUserVerification",
             "description": "Используется для доступа к функционалу дополнительной проверки пользователя."
         },
         "ДоставляемыеУведомления": {
+            "availability": 68,
             "name": "ДоставляемыеУведомления",
             "name_en": "DeliverableNotifications",
             "description": "Используется для доступа к менеджеру доставляемых уведомлений."
         },
         "ЖурналыДокументов": {
+            "availability": 440,
             "name": "ЖурналыДокументов",
             "name_en": "DocumentJournals",
             "description": "Используется для доступа к определенным в конфигурации журналам документов."
         },
         "Задачи": {
+            "availability": 56,
             "name": "Задачи",
             "name_en": "Tasks",
             "description": "Используется для доступа к определенным в конфигурации задачам."
         },
         "ИнформацияОбИнтернетСоединении": {
+            "availability": 452,
             "name": "ИнформацияОбИнтернетСоединении",
             "name_en": "InternetConnectionInformation",
             "description": "Предоставляет доступ к информации об интернет-соединении."
         },
         "ИспользованиеРабочейДаты": {
+            "availability": 16,
             "name": "ИспользованиеРабочейДаты",
             "name_en": "WorkingDateUse",
             "description": "Определяет режим использования рабочей даты."
         },
         "ИсторияДанных": {
+            "availability": 56,
             "name": "ИсторияДанных",
             "name_en": "DataHistory",
             "description": "Используется для доступа к функциям работы с историей данных."
@@ -5409,31 +5949,37 @@ let bslGlobals = {
             "description": "Используется для управления историей работы пользователя. Для использования свойства требуется, чтобы для пользователя было доступно право \"СохранениеДанныхПользователя\"."
         },
         "КлиентскоеПриложение": {
+            "availability": 479,
             "name": "КлиентскоеПриложение",
             "name_en": "ClientApplication",
             "description": "Предоставляет доступ к клиентским настройкам приложения."
         },
         "Константы": {
+            "availability": 440,
             "name": "Константы",
             "name_en": "Constants",
             "description": "Используется для доступа к определенным в конфигурации константам."
         },
         "КопииБазыДанных": {
+            "availability": 1023,
             "name": "КопииБазыДанных",
             "name_en": "DatabaseCopies",
             "description": "Используется для доступа к копиям базы данных."
         },
         "КритерииОтбора": {
+            "availability": 56,
             "name": "КритерииОтбора",
             "name_en": "FilterCriteria",
             "description": "Используется для доступа к определенным в конфигурации критериям отбора."
         },
         "Метаданные": {
+            "availability": 56,
             "name": "Метаданные",
             "name_en": "Metadata",
             "description": "Используется для доступа к структуре метаданных конфигурации."
         },
         "ОбработкаОшибок": {
+            "availability": 511,
             "name": "ОбработкаОшибок",
             "name_en": "ErrorProcessing",
             "description": "Используется для настройки обработки ошибок."
@@ -5444,21 +5990,25 @@ let bslGlobals = {
             "description": "Используется для доступа к определенным в конфигурации обработкам."
         },
         "ОкноВнешнегоСайта": {
+            "availability": 23,
             "name": "ОкноВнешнегоСайта",
             "name_en": "ExternalSiteWindow",
             "description": "Используется для доступа к функциям окна внешнего сайта, когда веб-клиент интегрирован в него."
         },
         "ОсновнойСервер": {
+            "availability": 256,
             "name": "ОсновнойСервер",
             "name_en": "MainServer",
             "description": "Используется для доступа мобильного клиента с автономного сервера к основному серверу."
         },
         "ОтображениеРекламы": {
+            "availability": 68,
             "name": "ОтображениеРекламы",
             "name_en": "AdRepresentation",
             "description": "Предоставляет доступ к средствам отображения рекламы в мобильном приложении."
         },
         "ОтправкаДоставляемыхУведомлений": {
+            "availability": 57,
             "name": "ОтправкаДоставляемыхУведомлений",
             "name_en": "DeliverableNotificationSend",
             "description": "Используется для доступа к менеджеру отправки уведомлений."
@@ -5469,16 +6019,19 @@ let bslGlobals = {
             "description": "Используется для доступа к определенным в конфигурации отчетам."
         },
         "ПанельЗадачОС": {
+            "availability": 17,
             "name": "ПанельЗадачОС",
             "name_en": "OSTaskbar",
             "description": "Используется для управления кнопкой программы на панели задач. Функционал работает в ОС Windows 7 и выше, а также в Ubuntu Unity. Не влияет на поведение в других операционных системах."
         },
         "ПараметрЗапуска": {
+            "availability": 87,
             "name": "ПараметрЗапуска",
             "name_en": "LaunchParameter",
             "description": "Используется для доступа к параметру запуска, передаваемому через ключ командной строки /C."
         },
         "ПараметрыСеанса": {
+            "availability": 440,
             "name": "ПараметрыСеанса",
             "name_en": "SessionParameters",
             "description": "Используется для доступа к параметрам сеанса."
@@ -5489,31 +6042,37 @@ let bslGlobals = {
             "description": "Используется для доступа к определенным в конфигурации перечислениям."
         },
         "ПланыВидовРасчета": {
+            "availability": 56,
             "name": "ПланыВидовРасчета",
             "name_en": "ChartsOfCalculationTypes",
             "description": "Используется для доступа к менеджеру всех планов видов расчета."
         },
         "ПланыВидовХарактеристик": {
+            "availability": 440,
             "name": "ПланыВидовХарактеристик",
             "name_en": "ChartsOfCharacteristicTypes",
             "description": "Используется для доступа к планам видов характеристик."
         },
         "ПланыОбмена": {
+            "availability": 440,
             "name": "ПланыОбмена",
             "name_en": "ExchangePlans",
             "description": "Используется для доступа к планам обмена."
         },
         "ПланыСчетов": {
+            "availability": 56,
             "name": "ПланыСчетов",
             "name_en": "ChartsOfAccounts",
             "description": "Используется для доступа к планам счетов."
         },
         "ПолнотекстовыйПоиск": {
+            "availability": 56,
             "name": "ПолнотекстовыйПоиск",
             "name_en": "FullTextSearch",
             "description": "Используется для управления и использования полнотекстового поиска."
         },
         "ПользователиИнформационнойБазы": {
+            "availability": 440,
             "name": "ПользователиИнформационнойБазы",
             "name_en": "InfoBaseUsers",
             "description": "Используется для управления списком пользователей информационной базы."
@@ -5524,6 +6083,7 @@ let bslGlobals = {
             "description": "Используется для доступа к определенным в конфигурации последовательностям."
         },
         "ПроверкаВстроенныхПокупок": {
+            "availability": 509,
             "name": "ПроверкаВстроенныхПокупок",
             "name_en": "InAppPurchasesValidation",
             "description": "Предоставляет доступ к средствам проверки квитанций встроенных покупок."
@@ -5534,92 +6094,110 @@ let bslGlobals = {
             "description": "Содержит рабочую дату, используемую в текущем сеансе работы с конфигурацией. Доступно для записи в случае, если свойство ИспользованиеРабочейДаты имеет значение Назначать."
         },
         "РасширенияКонфигурации": {
+            "availability": 56,
             "name": "РасширенияКонфигурации",
             "name_en": "ConfigurationExtensions",
             "description": "Предоставляет доступ к управлению расширениями конфигурации."
         },
         "РегистрыБухгалтерии": {
+            "availability": 56,
             "name": "РегистрыБухгалтерии",
             "name_en": "AccountingRegisters",
             "description": "Используется для доступа к регистрам бухгалтерии."
         },
         "РегистрыНакопления": {
+            "availability": 440,
             "name": "РегистрыНакопления",
             "name_en": "AccumulationRegisters",
             "description": "Используется для доступа к определенным в конфигурации регистрам накопления."
         },
         "РегистрыРасчета": {
+            "availability": 56,
             "name": "РегистрыРасчета",
             "name_en": "CalculationRegisters",
             "description": "Используется для доступа к менеджеру всех регистров расчета."
         },
         "РегистрыСведений": {
+            "availability": 440,
             "name": "РегистрыСведений",
             "name_en": "InformationRegisters",
             "description": "Используется для доступа к определенным в конфигурации регистрам сведений."
         },
         "РегламентныеЗадания": {
+            "availability": 56,
             "name": "РегламентныеЗадания",
             "name_en": "ScheduledJobs",
             "description": "Используется для доступа к регламентным заданиям."
         },
         "СервисыИнтеграции": {
+            "availability": 440,
             "name": "СервисыИнтеграции",
             "name_en": "IntegrationServices",
             "description": "Предоставляет доступ к сервисам интеграции, описанным в конфигурации."
         },
         "СериализаторXDTO": {
+            "availability": 509,
             "name": "СериализаторXDTO",
             "name_en": "XDTOSerializer",
             "description": "Сериализатор XDTO, соответствующий глобальной фабрике XDTO."
         },
         "СистемаАналитики": {
+            "availability": 43,
             "name": "СистемаАналитики",
             "name_en": "AnalyticsSystem",
             "description": "Предоставляет доступ к функциям системы аналитики."
         },
         "СистемаВзаимодействия": {
+            "availability": 31,
             "name": "СистемаВзаимодействия",
             "name_en": "CollaborationSystem",
             "description": "Предоставляет доступ к функциям системы взаимодействия.",
             "ref": "types.МенеджерСистемыВзаимодействия"
         },
         "Справочники": {
+            "availability": 440,
             "name": "Справочники",
             "name_en": "Catalogs",
             "description": "Используется для доступа к определенным в конфигурации справочникам."
         },
         "СредстваГеопозиционирования": {
+            "availability": 68,
             "name": "СредстваГеопозиционирования",
             "name_en": "LocationTools",
             "description": "Используется для доступа к средствам геопозиционирования мобильной платформы."
         },
         "СредстваКриптографии": {
+            "availability": 511,
             "name": "СредстваКриптографии",
             "name_en": "CryptoTools",
             "description": "Свойство предоставляет доступ к менеджеру средств криптографии."
         },
         "СредстваМультимедиа": {
+            "availability": 68,
             "name": "СредстваМультимедиа",
             "name_en": "MultimediaTools",
             "description": "Используется для доступа к определенным в конфигурации средствам мультимедиа мобильной платформы."
         },
         "СредстваОтображенияРекламы": {
+            "availability": 68,
             "name": "СредстваОтображенияРекламы",
             "name_en": "AdvertisingPresentationTools",
             "description": "Предоставляет доступ к средствам отображения рекламы на мобильной платформе."
         },
         "СредстваПочты": {
+            "availability": 68,
             "name": "СредстваПочты",
             "name_en": "MailTools",
             "description": "Предоставляет доступ к средствам почты мобильной платформы."
         },
         "СредстваТелефонии": {
+            "availability": 68,
             "name": "СредстваТелефонии",
             "name_en": "TelephonyTools",
             "description": "Предоставляет доступ к средствам телефонии мобильной платформы."
         },
         "СредстваУстройства": {
+            "availability": 1023,
             "name": "СредстваУстройства",
             "name_en": "DeviceTools",
             "description": "Предоставляет доступ к средствам устройства."
@@ -5630,17 +6208,20 @@ let bslGlobals = {
             "description": "Используется для управления механизмом статистики использования приложения"
         },
         "ФабрикаXDTO": {
+            "availability": 509,
             "name": "ФабрикаXDTO",
             "name_en": "XDTOFactory",
             "description": "Фабрика XDTO, содержащая все пакеты XDTO, имеющиеся в конфигурации, а также предопределенные пакеты (например, пакет типов XML схемы).",
             "ref": "classes.ФабрикаXDTO"
         },
         "ФайловыеПотоки": {
+            "availability": 1023,
             "name": "ФайловыеПотоки",
             "name_en": "FileStreams",
             "description": "Предоставляет доступ к менеджеру файловых потоков."
         },
         "ФоновыеЗадания": {
+            "availability": 440,
             "name": "ФоновыеЗадания",
             "name_en": "BackgroundJobs",
             "description": "Используется для доступа к фоновым заданиям."
@@ -5771,6 +6352,7 @@ let bslGlobals = {
     },
     "classes": {
         "ТабличныйДокумент": {
+            "availability": 511,
             "name": "ТабличныйДокумент",
             "name_en": "SpreadsheetDocument",
             "description": "Используется для доступа к свойствам и методам табличного документа в целом. При помощи этого объекта возможно управление общими характеристиками табличного документа, получение его областей, а также присоединение к табличному документу других табличных документов, группировка строк и колонок табличного документа. Для табличного документа системой устанавливается язык по умолчанию",
@@ -6456,6 +7038,7 @@ let bslGlobals = {
             }
         },
         "Запрос": {
+            "availability": 440,
             "name": "Запрос",
             "name_en": "Query",
             "description": "Предназначен для выполнения запросов к базе данных",
@@ -6541,6 +7124,7 @@ let bslGlobals = {
             }
         },
         "COMОбъект": {
+            "availability": 59,
             "name": "COMОбъект",
             "name_en": "COMObject",
             "description": "Создает COM-объект (например, Word, Excel и т.д.). Методы и свойства СОМ-объектов в дальнейшем становятся доступными через данный объект.",
@@ -6556,6 +7140,7 @@ let bslGlobals = {
             }
         },
         "HTTPЗапрос": {
+            "availability": 509,
             "name": "HTTPЗапрос",
             "name_en": "HTTPRequest",
             "description": "Предназначен для описания HTTP-запросов, отправляемых через объект",
@@ -6656,6 +7241,7 @@ let bslGlobals = {
             }
         },
         "HTTPСоединение": {
+            "availability": 509,
             "name": "HTTPСоединение",
             "name_en": "HTTPConnection",
             "description": "Предназначен для взаимодействия с внешними системами по протоколу HTTP, в т.ч. для передачи файлов.",
@@ -6830,6 +7416,7 @@ let bslGlobals = {
             }
         },
         "БуферДвоичныхДанных": {
+            "availability": 511,
             "name": "БуферДвоичныхДанных",
             "name_en": "BinaryDataBuffer",
             "description": "Коллекция байтов фиксированного размера с возможностью произвольного доступа и изменения по месту.",
@@ -7152,6 +7739,7 @@ let bslGlobals = {
             }
         },
         "ГенераторСлучайныхЧисел": {
+            "availability": 509,
             "name": "ГенераторСлучайныхЧисел",
             "name_en": "RandomNumberGenerator",
             "description": "Генератор случайных чисел.",
@@ -7187,6 +7775,7 @@ let bslGlobals = {
             }
         },
         "Граница": {
+            "availability": 443,
             "name": "Граница",
             "name_en": "Boundary",
             "description": "Предназначен для получения и хранения границы некоторого интервала значений.",
@@ -7216,6 +7805,7 @@ let bslGlobals = {
             }
         },
         "ДвоичныеДанные": {
+            "availability": 511,
             "name": "ДвоичныеДанные",
             "name_en": "BinaryData",
             "description": "Значение содержит двоичные данные, которые считываются из файла. Значение может быть сохранено в ХранилищеЗначения. Хранимые данные могут быть записаны в файл.",
@@ -7285,6 +7875,7 @@ let bslGlobals = {
             }
         },
         "ХранилищеЗначения": {
+            "availability": 56,
             "name": "ХранилищеЗначения",
             "name_en": "ValueStorage",
             "description": "Предназначен для хранения значения в специальном формате. Он может быть записан в поля базы данных, имеющие соответствующий тип. Это позволяет сохранять в базе данных значения, тип которых не может быть выбран в качестве типа поля, например, Картинка. Большинство объектов, которые имеют неизменяемое значение, а также универсальные коллекции, могут быть помещены в ХранилищеЗначения. К значению, хранящемуся в объекте, нельзя обращаться, его можно только извлечь из хранилища. Описания типов объектов, которые могут быть помещены в ХранилищеЗначения, включают текст 'Сериализуется'. Замечание! Не рекомендуется хранить в реквизитах типа ХранилищеЗначения ссылки на другие объекты базы данных.",
@@ -7308,6 +7899,7 @@ let bslGlobals = {
             }
         },
         "ДеревоЗначений": {
+            "availability": 440,
             "name": "ДеревоЗначений",
             "name_en": "ValueTree",
             "description": "Используется для доступа к свойствам и методам дерева значений в целом.",
@@ -7357,6 +7949,7 @@ let bslGlobals = {
             }
         },
         "ЗаписьJSON": {
+            "availability": 509,
             "name": "ЗаписьJSON",
             "name_en": "JSONWriter",
             "description": "Предназначен для организации последовательной записи объектов и текстов JSON.",
@@ -7492,6 +8085,7 @@ let bslGlobals = {
             }
         },
         "ЗаписьXML": {
+            "availability": 509,
             "name": "ЗаписьXML",
             "name_en": "XMLWriter",
             "description": "Предназначен для организации последовательной записи документов и фрагментов XML.",
@@ -7820,6 +8414,7 @@ let bslGlobals = {
             }
         },
         "ЗаписьZipФайла": {
+            "availability": 509,
             "name": "ЗаписьZipФайла",
             "name_en": "ZipFileWriter",
             "description": "Предназначен для записи в ZIP-архив.",
@@ -7927,6 +8522,7 @@ let bslGlobals = {
             }
         },
         "ЗаписьДанных": {
+            "availability": 511,
             "name": "ЗаписьДанных",
             "name_en": "DataWriter",
             "description": "Объект предназначен для удобной записи различных типов данных в приемник.  - Создать или получить приемник даных.  - Вызвать из приемника экземпляр объекта ЗаписьДанных.  - Выполнить требуемые действия с помощью объекта.  - Закрыть экземпляр объекта ЗаписьДанных. При необходимости использовать другие методы для работы с данными, требуется сначала закрыть экземпляр объекта ЗаписьДанных с помощью метода Закрыть, выполнить необходимые действия над данными, установить требуемую позицию для чтения из приемника и создать новый экземпляр ЗаписьДанных.",
@@ -8284,6 +8880,7 @@ let bslGlobals = {
             }
         },
         "ЗаписьТекста": {
+            "availability": 509,
             "name": "ЗаписьТекста",
             "name_en": "TextWriter",
             "description": "Предназначен для последовательной записи в текстовые файлы.",
@@ -8378,6 +8975,7 @@ let bslGlobals = {
             }
         },
         "ИнтернетПрокси": {
+            "availability": 509,
             "name": "ИнтернетПрокси",
             "name_en": "InternetProxy",
             "description": "Описывает параметры прокси-серверов для различных протоколов. Допустимые протоколы для использования в объекте",
@@ -8504,6 +9102,7 @@ let bslGlobals = {
             }
         },
         "КвалификаторыДаты": {
+            "availability": 511,
             "name": "КвалификаторыДаты",
             "name_en": "DateQualifiers",
             "description": "Используется для описания допустимых значений типа",
@@ -8525,6 +9124,7 @@ let bslGlobals = {
             }
         },
         "КвалификаторыДвоичныхДанных": {
+            "availability": 511,
             "name": "КвалификаторыДвоичныхДанных",
             "name_en": "BinaryDataQualifiers",
             "description": "Используется для описания допустимых значений двоичных данных.",
@@ -8554,6 +9154,7 @@ let bslGlobals = {
             }
         },
         "КвалификаторыСтроки": {
+            "availability": 511,
             "name": "КвалификаторыСтроки",
             "name_en": "StringQualifiers",
             "description": "Используется для описания допустимых значений строкового типа.",
@@ -8581,6 +9182,7 @@ let bslGlobals = {
             }
         },
         "КвалификаторыЧисла": {
+            "availability": 511,
             "name": "КвалификаторыЧисла",
             "name_en": "NumberQualifiers",
             "description": "Используется для описания допустимых значений числового типа.",
@@ -8614,6 +9216,7 @@ let bslGlobals = {
             }
         },
         "КонтекстПространствИменXML": {
+            "availability": 509,
             "name": "КонтекстПространствИменXML",
             "name_en": "XMLNamespaceContext",
             "description": "Контекст пространств имен.",
@@ -8690,6 +9293,7 @@ let bslGlobals = {
             }
         },
         "Массив": {
+            "availability": 511,
             "name": "Массив",
             "name_en": "Array",
             "description": "Предназначен для доступа к элементам массива, его методам и конструктору.",
@@ -8812,6 +9416,7 @@ let bslGlobals = {
             }
         },
         "ОписаниеТипов": {
+            "availability": 511,
             "name": "ОписаниеТипов",
             "name_en": "TypeDescription",
             "description": "Представляет собой объект для управления допустимыми типами значений. В основном предназначен для присвоения в качестве значений соответствующим свойствам других объектов. Набор допустимых типов и квалификаторы примитивных типов задаются при создании объекта.",
@@ -9723,6 +10328,7 @@ let bslGlobals = {
             }
         },
         "ТаблицаЗначений": {
+            "availability": 408,
             "name": "ТаблицаЗначений",
             "name_en": "ValueTable",
             "description": "Таблица значений предназначена для хранения значений в табличном виде. Все основные операции с таблицей производятся именно через этот объект. Он позволяет манипулировать строками таблицы значений и предоставляет доступ к коллекции колонок. Колонки могут быть различных типов (в том числе множественных).\n```bsl\n\n// Создание таблицы значений\nТаблицаЗначений = Новый ТаблицаЗначений;\n\n// добавим в таблицу значений три колонки\nТаблицаЗначений.Колонки.Добавить(\"Отдел\",,\"Отдел\");\nТаблицаЗначений.Колонки.Добавить(\"Сотрудник\",,\"Фамилия сотрудника\");\nТаблицаЗначений.Колонки.Добавить(\"Оклад\",,\"Оклад\");\n\n// добавим строку\nСтр=ТаблицаЗначений.Добавить();\nСтр.Отдел = \"Отдел 1\";\nСтр.Сотрудник = \"Иванов\";\nСтр.Оклад = 5600;\n\n// добавим новую колонку\nТаблицаЗначений.Колонки.Добавить(\"Стаж\",,\"Стаж работы\");\n\n// ввод новой строки и данных по строке\nТекСтр = ТаблицаЗначений.Добавить();\nТекСтр.Отдел = \"Отдел 2\";\nТекСтр.Сотрудник = \"Петров\";\nТекСтр.Оклад = 6700;\nТекСтр.Стаж = 22\n```",
@@ -11207,6 +11813,7 @@ let bslGlobals = {
             }
         },
         "ЧтениеXML": {
+            "availability": 509,
             "name": "ЧтениеXML",
             "name_en": "XMLReader",
             "description": "Предназначен для последовательного чтения XML-данных из файла или строки. Автоматически обрабатывает объявление XML-документа и распознает тип кодировки файла.",
@@ -11578,6 +12185,7 @@ let bslGlobals = {
             }
         },
         "ЧтениеZipФайла": {
+            "availability": 509,
             "name": "ЧтениеZipФайла",
             "name_en": "ZipFileReader",
             "description": "Предназначен для чтения ZIP файла.",
@@ -11676,6 +12284,7 @@ let bslGlobals = {
             }
         },
         "ЧтениеДанных": {
+            "availability": 511,
             "name": "ЧтениеДанных",
             "name_en": "DataReader",
             "description": "Объект предназначен для чтения различных типов данных из источника данных. В качестве источника могут выступать   - Создать объект ЧтениеДанных на основании источника данных.  - Выполнить требуемые действия с помощью объекта.  - Закрыть экземпляр объекта ЧтениеДанных. При необходимости использовать другие методы для работы с источником данных, требуется сначала закрыть экземпляр объекта ЧтениеДанных с помощью метода Закрыть, выполнить необходимые действия над источником, установить требуемую позицию для чтения из источника и создать новый экземпляр ЧтениеДанных.",
@@ -12297,6 +12906,7 @@ let bslGlobals = {
             }
         },
         "ЧтениеТекста": {
+            "availability": 509,
             "name": "ЧтениеТекста",
             "name_en": "TextReader",
             "description": "Предназначен для последовательного чтения текстовых файлов (большой длины).",
@@ -12390,6 +13000,7 @@ let bslGlobals = {
             }
         },
         "СтандартныйПериод": {
+            "availability": 511,
             "name": "СтандартныйПериод",
             "name_en": "StandardPeriod",
             "description": "Содержит стандартный период, используемый в компоновке данных",
@@ -12439,6 +13050,7 @@ let bslGlobals = {
             }
         },
         "Картинка": {
+            "availability": 511,
             "name": "Картинка",
             "name_en": "Picture",
             "description": "Представляет собой картинку из коллекции картинок, пустую картинку, либо картинку, загруженную из внешнего файла, или ссылку на стандартную картинку.",
@@ -12592,6 +13204,7 @@ let bslGlobals = {
             }
         },
         "ФабрикаXDTO": {
+            "availability": 509,
             "name": "ФабрикаXDTO",
             "name_en": "XDTOFactory",
             "description": "Фабрика типов XDTO",
@@ -12791,6 +13404,7 @@ let bslGlobals = {
             }
         },
         "НастройкиКомпоновкиДанных": {
+            "availability": 511,
             "name": "НастройкиКомпоновкиДанных",
             "name_en": "DataCompositionSettings",
             "description": "Настройка компоновки данных в целом. Может быть основной либо вложенной.",
@@ -13085,6 +13699,7 @@ let bslGlobals = {
             }
         },
         "СхемаКомпоновкиДанных": {
+            "availability": 440,
             "name": "СхемаКомпоновкиДанных",
             "name_en": "DataCompositionSchema",
             "description": "Схема компоновки данных.",
@@ -13182,6 +13797,7 @@ let bslGlobals = {
             }
         },
         "ПолеКомпоновкиДанных": {
+            "availability": 511,
             "name": "ПолеКомпоновкиДанных",
             "name_en": "DataCompositionField",
             "description": "Поле системы компоновки данных.",
@@ -13196,6 +13812,7 @@ let bslGlobals = {
             }
         },
         "ВыражениеКомпоновкиДанных": {
+            "availability": 440,
             "name": "ВыражениеКомпоновкиДанных",
             "name_en": "DataCompositionExpression",
             "description": "Содержит выражение компоновки данных.",
@@ -13210,6 +13827,7 @@ let bslGlobals = {
             }
         },
         "КомпоновщикМакетаКомпоновкиДанных": {
+            "availability": 440,
             "name": "КомпоновщикМакетаКомпоновкиДанных",
             "name_en": "DataCompositionLayoutComposer",
             "description": "Объект для создания макета компоновки данных.",
@@ -13244,6 +13862,7 @@ let bslGlobals = {
             }
         },
         "ПроцессорКомпоновкиДанных": {
+            "availability": 440,
             "name": "ПроцессорКомпоновкиДанных",
             "name_en": "DataCompositionProcessor",
             "description": "Объект, выполняющий компоновку данных.",
@@ -13299,6 +13918,7 @@ let bslGlobals = {
             }
         },
         "ПроцессорВыводаРезультатаКомпоновкиДанныхВКоллекциюЗначений": {
+            "availability": 440,
             "name": "ПроцессорВыводаРезультатаКомпоновкиДанныхВКоллекциюЗначений",
             "name_en": "DataCompositionProcessorOutputResultToValueCollection",
             "description": "Объект для вывода результата компоновки в таблицу или дерево значений.",
@@ -13382,6 +14002,7 @@ let bslGlobals = {
             }
         },
         "ПроцессорВыводаРезультатаКомпоновкиДанныхВТабличныйДокумент": {
+            "availability": 440,
             "name": "ПроцессорВыводаРезультатаКомпоновкиДанныхВТабличныйДокумент",
             "name_en": "DataCompositionProcessorOutputResultToSpreadsheetDocument",
             "description": "Объект для вывода результата компоновки в табличный документ.",
@@ -13471,6 +14092,7 @@ let bslGlobals = {
             }
         },
         "КонструкторНастроекКомпоновкиДанных": {
+            "availability": 56,
             "name": "КонструкторНастроекКомпоновкиДанных",
             "name_en": "DataCompositionSettingsWizard",
             "description": "Конструктор настроек компоновки данных предназначен для начинающих пользователей или для составления различных настроек в процессе работы с компоновкой данных.",
@@ -13535,6 +14157,7 @@ let bslGlobals = {
             }
         },
         "КонструкторМакетаОформленияКомпоновкиДанных": {
+            "availability": 56,
             "name": "КонструкторМакетаОформленияКомпоновкиДанных",
             "name_en": "DataCompositionAppearanceTemplateConstructor",
             "description": "Предназначен для редактирования макета оформления.",
@@ -13594,6 +14217,7 @@ let bslGlobals = {
             }
         },
         "ЭлементРезультатаКомпоновкиДанных": {
+            "availability": 56,
             "name": "ЭлементРезультатаКомпоновкиДанных",
             "name_en": "DataCompositionResultItem",
             "description": "Элемент результата компоновки данных.",
@@ -13643,6 +14267,7 @@ let bslGlobals = {
             }
         },
         "СхемаЗапроса": {
+            "availability": 56,
             "name": "СхемаЗапроса",
             "name_en": "QuerySchema",
             "description": "Объект для создания и редактирования запросов из встроенного языка. Для корректной работы с объектами, полученными из схемы запроса, родительские объекты таких объектов должны существовать. Например, нельзя получить ПоляСхемыЗапроса из ОператорВыбратьСхемыЗапроса, затем удалить этот оператор из ЗапросВыбораСхемыЗапроса, и потом пробовать добавить новые выражения в ПоляСхемыЗапроса. Также не допускается использование объектов, полученных из одной схемы запроса, в другой схеме запроса.",
@@ -13699,6 +14324,7 @@ let bslGlobals = {
     },
     "systemEnum": {
         "WindowsШрифты": {
+            "availability": 440,
             "name": "WindowsШрифты",
             "name_en": "WindowsFonts",
             "description": "Определяет набор шрифтов, предоставляемых операционной системой Windows. Значения этого набора имеют тип",
@@ -13731,6 +14357,7 @@ let bslGlobals = {
             }
         },
         "WebЦвета": {
+            "availability": 511,
             "name": "WebЦвета",
             "name_en": "WebColors",
             "description": "Определяет набор цветов используемых при создании веб-страниц. Значения этого набора имеют тип",
@@ -14468,6 +15095,7 @@ let bslGlobals = {
             }
         },
         "ЦветаСтиля": {
+            "availability": 440,
             "name": "ЦветаСтиля",
             "name_en": "StyleColors",
             "description": "Определяет набор цветов используемых в стиле. Значения этого набора имеют тип",
@@ -14615,6 +15243,7 @@ let bslGlobals = {
             }
         },
         "РамкиСтиля": {
+            "availability": 440,
             "name": "РамкиСтиля",
             "name_en": "StyleBorders",
             "description": "Определяет набор рамок, используемых в стиле. Значения этого набора имеют тип",
@@ -14627,6 +15256,7 @@ let bslGlobals = {
             }
         },
         "WindowsЦвета": {
+            "availability": 508,
             "name": "WindowsЦвета",
             "name_en": "WindowsColors",
             "description": "Определяет набор цветов, предоставляемых операционной системой Windows. Значения этого набора имеют тип",
@@ -14759,6 +15389,7 @@ let bslGlobals = {
             }
         },
         "БиблиотекаКартинок": {
+            "availability": 479,
             "name": "БиблиотекаКартинок",
             "name_en": "PictureLib",
             "description": "Определяет набор картинок, используемых в конфигурации. Значения этого набора имеют тип",
@@ -16186,6 +16817,7 @@ let bslGlobals = {
             }
         },
         "ШрифтыСтиля": {
+            "availability": 440,
             "name": "ШрифтыСтиля",
             "name_en": "StyleFonts",
             "description": "Определяет набор шрифтов, используемых в стиле. Значения этого набора имеют тип",
@@ -16218,6 +16850,7 @@ let bslGlobals = {
             }
         },
         "ПоложениеЗаголовкаЭлементаФормы": {
+            "availability": 511,
             "name": "ПоложениеЗаголовкаЭлементаФормы",
             "name_en": "FormItemTitleLocation",
             "description": "Содержит варианты положения подчиненного элемента относительно элемента формы. В зависимости от вида элемента и его размещения, не все варианты могут отрабатываться.",
@@ -16255,6 +16888,7 @@ let bslGlobals = {
             }
         },
         "РежимОтображенияВыделения": {
+            "availability": 511,
             "name": "РежимОтображенияВыделения",
             "name_en": "SelectionShowMode",
             "description": "Содержит варианты режима отображения выделения элемента.",
@@ -16287,6 +16921,7 @@ let bslGlobals = {
             }
         },
         "ГоризонтальноеПоложениеЭлемента": {
+            "availability": 511,
             "name": "ГоризонтальноеПоложениеЭлемента",
             "name_en": "ItemHorizontalLocation",
             "description": "Содержит варианты горизонтального положение элемента управления.",
@@ -16314,6 +16949,7 @@ let bslGlobals = {
             }
         },
         "ГруппировкаКолонок": {
+            "availability": 511,
             "name": "ГруппировкаКолонок",
             "name_en": "ColumnsGroup",
             "description": "Содержит варианты группировки колонок в группе вида",
@@ -16336,6 +16972,7 @@ let bslGlobals = {
             }
         },
         "ОтображениеОбычнойГруппы": {
+            "availability": 511,
             "name": "ОтображениеОбычнойГруппы",
             "name_en": "UsualGroupRepresentation",
             "description": "Содержит варианты отображения группы формы клиентского приложения вида",
@@ -16363,6 +17000,7 @@ let bslGlobals = {
             }
         },
         "ОтображениеКнопки": {
+            "availability": 511,
             "name": "ОтображениеКнопки",
             "name_en": "ButtonRepresentation",
             "description": "Содержит варианты отображения кнопки в форме клиентского приложения.",
@@ -16390,6 +17028,7 @@ let bslGlobals = {
             }
         },
         "ВидКнопкиФормы": {
+            "availability": 511,
             "name": "ВидКнопкиФормы",
             "name_en": "FormButtonType",
             "description": "Содержит варианты видов кнопки формы клиентского приложения.",
@@ -16417,6 +17056,7 @@ let bslGlobals = {
             }
         },
         "ВидПоляФормы": {
+            "availability": 511,
             "name": "ВидПоляФормы",
             "name_en": "FormFieldType",
             "description": "Содержит вид поля формы клиентского приложения.",
@@ -16519,6 +17159,7 @@ let bslGlobals = {
             }
         },
         "ВидГруппыФормы": {
+            "availability": 511,
             "name": "ВидГруппыФормы",
             "name_en": "FormGroupType",
             "description": "Содержит варианты видов групп формы клиентского приложения.",
@@ -16566,6 +17207,7 @@ let bslGlobals = {
             }
         },
         "ОтображениеТаблицы": {
+            "availability": 511,
             "name": "ОтображениеТаблицы",
             "name_en": "TableRepresentation",
             "description": "Содержит варианты отображения данных в таблице формы клиентского приложения.",
@@ -16588,6 +17230,7 @@ let bslGlobals = {
             }
         },
         "РежимВводаСтрокТаблицы": {
+            "availability": 511,
             "name": "РежимВводаСтрокТаблицы",
             "name_en": "TableRowInputMode",
             "description": "Содержит варианты режимов ввода строк в таблице формы клиентского приложения.",
@@ -16615,6 +17258,7 @@ let bslGlobals = {
             }
         },
         "РежимВыделенияТаблицы": {
+            "availability": 511,
             "name": "РежимВыделенияТаблицы",
             "name_en": "TableSelectionMode",
             "description": "Содержит варианты выделения строк таблицы формы клиентского приложения.",
@@ -16632,6 +17276,7 @@ let bslGlobals = {
             }
         },
         "РежимВыделенияСтрокиТаблицы": {
+            "availability": 511,
             "name": "РежимВыделенияСтрокиТаблицы",
             "name_en": "TableRowSelectionMode",
             "description": "Содержит варианты режима выделения строки таблицы формы клиентского приложения.",
@@ -16649,6 +17294,7 @@ let bslGlobals = {
             }
         },
         "ГруппыИЭлементы": {
+            "availability": 511,
             "name": "ГруппыИЭлементы",
             "name_en": "FoldersAndItems",
             "description": "Содержит варианты выбора объектов для иерархических данных с иерархией групп и элементов.",
@@ -16676,6 +17322,7 @@ let bslGlobals = {
             }
         },
         "ОриентацияЭлементаФормы": {
+            "availability": 511,
             "name": "ОриентацияЭлементаФормы",
             "name_en": "FormItemOrientation",
             "description": "Содержит варианты ориентации элемента формы.",
@@ -16693,6 +17340,7 @@ let bslGlobals = {
             }
         },
         "ОтображениеСтраницФормы": {
+            "availability": 511,
             "name": "ОтображениеСтраницФормы",
             "name_en": "FormPagesRepresentation",
             "description": "Содержит варианты отображения закладок страниц в панели в форме клиентского приложения.",
@@ -16730,6 +17378,7 @@ let bslGlobals = {
             }
         },
         "РежимОткрытияОкнаФормы": {
+            "availability": 511,
             "name": "РежимОткрытияОкнаФормы",
             "name_en": "FormWindowOpeningMode",
             "description": "Содержит варианты открытия формы клиентского приложения.",
@@ -16752,6 +17401,7 @@ let bslGlobals = {
             }
         },
         "СохранениеДанныхФормыВНастройках": {
+            "availability": 63,
             "name": "СохранениеДанныхФормыВНастройках",
             "name_en": "SaveFormDataInSettings",
             "description": "Содержит варианты сохранения данных формы в настройках.",
@@ -16769,6 +17419,7 @@ let bslGlobals = {
             }
         },
         "АвтоматическоеСохранениеДанныхФормыВНастройках": {
+            "availability": 63,
             "name": "АвтоматическоеСохранениеДанныхФормыВНастройках",
             "name_en": "AutoSaveFormDataInSettings",
             "description": "Содержит варианты автоматического сохранения данных формы в настройках.",
@@ -16786,6 +17437,7 @@ let bslGlobals = {
             }
         },
         "ГруппировкаПодчиненныхЭлементовФормы": {
+            "availability": 511,
             "name": "ГруппировкаПодчиненныхЭлементовФормы",
             "name_en": "ChildFormItemsGroup",
             "description": "Содержит варианты группировки подчиненных элементов в обычной группе и странице.",
@@ -16813,6 +17465,7 @@ let bslGlobals = {
             }
         },
         "ШиринаПодчиненныхЭлементовФормы": {
+            "availability": 508,
             "name": "ШиринаПодчиненныхЭлементовФормы",
             "name_en": "ChildFormItemsWidth",
             "description": "Содержит варианты относительной ширины дочерних элементов формы.",
@@ -16850,6 +17503,7 @@ let bslGlobals = {
             }
         },
         "ПоложениеКоманднойПанелиЭлементаФормы": {
+            "availability": 511,
             "name": "ПоложениеКоманднойПанелиЭлементаФормы",
             "name_en": "FormItemCommandBarLabelLocation",
             "description": "Содержит варианты положения автоматической командной панели элемента формы.",
@@ -16877,6 +17531,7 @@ let bslGlobals = {
             }
         },
         "ВидИзмененияДанных": {
+            "availability": 31,
             "name": "ВидИзмененияДанных",
             "name_en": "DataChangeType",
             "description": "Содержит варианты видов изменения данных.",
@@ -16899,6 +17554,7 @@ let bslGlobals = {
             }
         },
         "ПоложениеКоманднойПанелиФормы": {
+            "availability": 479,
             "name": "ПоложениеКоманднойПанелиФормы",
             "name_en": "FormCommandBarLabelLocation",
             "description": "Содержит варианты положений автоматической командной панели элемента.",
@@ -16926,6 +17582,7 @@ let bslGlobals = {
             }
         },
         "ОтображениеПредупрежденияПриРедактировании": {
+            "availability": 479,
             "name": "ОтображениеПредупрежденияПриРедактировании",
             "name_en": "WarningOnEditRepresentation",
             "description": "Содержит варианты отображения предупреждения перед началом редактирования поля формы клиентского приложения.",
@@ -16948,6 +17605,7 @@ let bslGlobals = {
             }
         },
         "ВидДекорацииФормы": {
+            "availability": 479,
             "name": "ВидДекорацииФормы",
             "name_en": "FormDecorationType",
             "description": "Содержит виды декорации формы клиентского приложения.",
@@ -16965,6 +17623,7 @@ let bslGlobals = {
             }
         },
         "ВертикальноеПоложениеЭлемента": {
+            "availability": 479,
             "name": "ВертикальноеПоложениеЭлемента",
             "name_en": "ItemVerticalAlign",
             "description": "Содержит варианты вертикального положения элемента.",
@@ -16992,6 +17651,7 @@ let bslGlobals = {
             }
         },
         "КатегорияГруппыКоманд": {
+            "availability": 440,
             "name": "КатегорияГруппыКоманд",
             "name_en": "CommandGroupCategory",
             "description": "Определяет размещение группы команд в основном или вспомогательном окне приложения.",
@@ -17019,6 +17679,7 @@ let bslGlobals = {
             }
         },
         "СтандартнаяГруппаКоманд": {
+            "availability": 440,
             "name": "СтандартнаяГруппаКоманд",
             "name_en": "StandardCommandsGroup",
             "description": "Описывает возможные стандартные типы группы команд.",
@@ -17081,6 +17742,7 @@ let bslGlobals = {
             }
         },
         "ВариантСостоянияОкна": {
+            "availability": 16,
             "name": "ВариантСостоянияОкна",
             "name_en": "WindowStateVariant",
             "description": "Содержит варианты состояния окна формы.",
@@ -17108,6 +17770,7 @@ let bslGlobals = {
             }
         },
         "РежимСглаживанияИндикатора": {
+            "availability": 31,
             "name": "РежимСглаживанияИндикатора",
             "name_en": "ProgressBarSmoothingMode",
             "description": "Содержит варианты стилей заполнения индикатора. Используется для определения свойства",
@@ -17130,6 +17793,7 @@ let bslGlobals = {
             }
         },
         "ВариантСпособаОтображенияОкна": {
+            "availability": 16,
             "name": "ВариантСпособаОтображенияОкна",
             "name_en": "WindowAppearanceModeVariant",
             "description": "Содержит варианты начального отображения окна формы.",
@@ -17152,6 +17816,7 @@ let bslGlobals = {
             }
         },
         "ВариантПоложенияОкна": {
+            "availability": 16,
             "name": "ВариантПоложенияОкна",
             "name_en": "WindowLocationVariant",
             "description": "Содержит варианты начального положения окна в обычном или свободном состояниях.",
@@ -17174,6 +17839,7 @@ let bslGlobals = {
             }
         },
         "ВариантПрикрепленияОкна": {
+            "availability": 16,
             "name": "ВариантПрикрепленияОкна",
             "name_en": "WindowDockVariant",
             "description": "Содержит варианты прикрепления окна. Используется для определения свойства",
@@ -17201,6 +17867,7 @@ let bslGlobals = {
             }
         },
         "ИзменениеРазмераОкна": {
+            "availability": 16,
             "name": "ИзменениеРазмераОкна",
             "name_en": "WindowSizeChange",
             "description": "Содержит варианты изменения размеров окна формы.",
@@ -17218,6 +17885,7 @@ let bslGlobals = {
             }
         },
         "ИзменениеСпособаОтображенияОкна": {
+            "availability": 16,
             "name": "ИзменениеСпособаОтображенияОкна",
             "name_en": "WindowAppearanceModeChange",
             "description": "Содержит варианты изменения способа отображения окна.",
@@ -17240,6 +17908,7 @@ let bslGlobals = {
             }
         },
         "АвтонумерацияВФорме": {
+            "availability": 56,
             "name": "АвтонумерацияВФорме",
             "name_en": "AutonumerationInForm",
             "description": "Режим автонумерации в форме определяет, получать или нет автоматически номер при открытии формы.",
@@ -17257,6 +17926,7 @@ let bslGlobals = {
             }
         },
         "ТипФормыОтчета": {
+            "availability": 63,
             "name": "ТипФормыОтчета",
             "name_en": "ReportFormType",
             "description": "Содержит варианты типов форм отчета.",
@@ -17279,6 +17949,7 @@ let bslGlobals = {
             }
         },
         "РежимРедактированияКолонки": {
+            "availability": 63,
             "name": "РежимРедактированияКолонки",
             "name_en": "ColumnEditMode",
             "description": "Определяет варианты редактирования содержимого колонки.",
@@ -17301,6 +17972,7 @@ let bslGlobals = {
             }
         },
         "Ориентация": {
+            "availability": 16,
             "name": "Ориентация",
             "name_en": "Orientation",
             "description": "Содержит варианты ориентации элементов управления. Используется при определении свойства Ориентация.",
@@ -17323,6 +17995,7 @@ let bslGlobals = {
             }
         },
         "ВертикальноеПоложение": {
+            "availability": 511,
             "name": "ВертикальноеПоложение",
             "name_en": "VerticalAlign",
             "description": "Содержит варианты выравнивания текста в элементе управления или области табличного документа по вертикали. Используется при определении свойства ВертикальноеПоложение.",
@@ -17345,6 +18018,7 @@ let bslGlobals = {
             }
         },
         "ГоризонтальноеПоложение": {
+            "availability": 511,
             "name": "ГоризонтальноеПоложение",
             "name_en": "HorizontalAlign",
             "description": "Содержит варианты выравнивания текста в элементе управления, области табличного документа по горизонтали или элементе графической схемы. Используется при определении свойства ГоризонтальноеПоложение.",
@@ -17377,6 +18051,7 @@ let bslGlobals = {
             }
         },
         "ПоложениеЗаголовка": {
+            "availability": 16,
             "name": "ПоложениеЗаголовка",
             "name_en": "TitleLocation",
             "description": "Содержит варианты расположения заголовка относительно отметок для элементов управления",
@@ -17394,6 +18069,7 @@ let bslGlobals = {
             }
         },
         "РежимСверткиЭлементаУправления": {
+            "availability": 16,
             "name": "РежимСверткиЭлементаУправления",
             "name_en": "ControlCollapseMode",
             "description": "Содержит варианты свертки элементов управления.",
@@ -17426,6 +18102,7 @@ let bslGlobals = {
             }
         },
         "ТипРамкиЭлементаУправления": {
+            "availability": 95,
             "name": "ТипРамкиЭлементаУправления",
             "name_en": "ControlBorderType",
             "description": "Содержит варианты типов рамок, используемых в элементах управления. Используется для определения свойства",
@@ -17478,6 +18155,7 @@ let bslGlobals = {
             }
         },
         "ДействиеПеретаскивания": {
+            "availability": 23,
             "name": "ДействиеПеретаскивания",
             "name_en": "DragAction",
             "description": "Указывает тип действия перетаскивания.",
@@ -17505,6 +18183,7 @@ let bslGlobals = {
             }
         },
         "ДопустимыеДействияПеретаскивания": {
+            "availability": 23,
             "name": "ДопустимыеДействияПеретаскивания",
             "name_en": "DragAllowedActions",
             "description": "Определяет варианты обработки перетаскивания.",
@@ -17664,6 +18343,7 @@ let bslGlobals = {
             }
         },
         "ИспользованиеРежимаМеню": {
+            "availability": 16,
             "name": "ИспользованиеРежимаМеню",
             "name_en": "UseMenuMode",
             "description": "Содержит варианты режима командной панели для элемента управления",
@@ -17686,6 +18366,7 @@ let bslGlobals = {
             }
         },
         "ПоложениеКартинкиНадписи": {
+            "availability": 16,
             "name": "ПоложениеКартинкиНадписи",
             "name_en": "LabelPictureLocation",
             "description": "Содержит варианты расположения картинки внутри элемента управления.",
@@ -18259,6 +18940,7 @@ let bslGlobals = {
             }
         },
         "СтатусОповещенияПользователя": {
+            "availability": 87,
             "name": "СтатусОповещенияПользователя",
             "name_en": "UserNotificationStatus",
             "description": "Определяет набор статусов сообщений, которые влияют на поведение оповещения.",
@@ -18276,6 +18958,7 @@ let bslGlobals = {
             }
         },
         "ТипРазмещенияИзмерений": {
+            "availability": 56,
             "name": "ТипРазмещенияИзмерений",
             "name_en": "DimensionPlacementType",
             "description": "Содержит варианты расположения измерений в сводной таблице и построителе отчета.",
@@ -18298,6 +18981,7 @@ let bslGlobals = {
             }
         },
         "ТипРазмещенияРеквизитовИзмерений": {
+            "availability": 56,
             "name": "ТипРазмещенияРеквизитовИзмерений",
             "name_en": "DimensionAttributePlacementType",
             "description": "Содержит варианты расположения реквизитов измерений в построителе отчета и сводной таблице.",
@@ -18320,6 +19004,7 @@ let bslGlobals = {
             }
         },
         "ВариантПроверкиОтображенияНовойСтроки": {
+            "availability": 16,
             "name": "ВариантПроверкиОтображенияНовойСтроки",
             "name_en": "NewRowShowCheckVariant",
             "description": "Варианты проверки новой строки на соответствие отбору, установленному в табличном поле.",
@@ -18337,6 +19022,7 @@ let bslGlobals = {
             }
         },
         "ГраницаЭлементаУправления": {
+            "availability": 16,
             "name": "ГраницаЭлементаУправления",
             "name_en": "ControlEdge",
             "description": "Содержит варианты границ элементов управления. Используется для управления привязками.",
@@ -18369,6 +19055,7 @@ let bslGlobals = {
             }
         },
         "РазмерКартинки": {
+            "availability": 440,
             "name": "РазмерКартинки",
             "name_en": "PictureSize",
             "description": "Содержит варианты приспособления оригинальных размеров картинки к размерам области, отведенной для ее отображения. Используется для определения свойства РазмерКартинки.",
@@ -18411,6 +19098,7 @@ let bslGlobals = {
             }
         },
         "ИспользованиеВывода": {
+            "availability": 440,
             "name": "ИспользованиеВывода",
             "name_en": "UseOutput",
             "description": "Содержит варианты использования права доступа Вывод.",
@@ -18433,6 +19121,7 @@ let bslGlobals = {
             }
         },
         "ОтображениеРазметкиПолосыРегулирования": {
+            "availability": 31,
             "name": "ОтображениеРазметкиПолосыРегулирования",
             "name_en": "TrackBarMarkingAppearance",
             "description": "Содержит варианты режимов отображения разметки полосы регулирования.",
@@ -18460,6 +19149,7 @@ let bslGlobals = {
             }
         },
         "РежимИспользованияПараметраКоманды": {
+            "availability": 440,
             "name": "РежимИспользованияПараметраКоманды",
             "name_en": "CommandParameterUseMode",
             "description": "Содержит варианты режимов использования параметра команды.",
@@ -18477,6 +19167,7 @@ let bslGlobals = {
             }
         },
         "РежимСпискаЗадач": {
+            "availability": 56,
             "name": "РежимСпискаЗадач",
             "name_en": "TaskListMode",
             "description": "Содержит варианты режимов списков задач.",
@@ -18494,6 +19185,7 @@ let bslGlobals = {
             }
         },
         "ПоложениеКартинкиЭлементаГрафическойСхемы": {
+            "availability": 25,
             "name": "ПоложениеКартинкиЭлементаГрафическойСхемы",
             "name_en": "GraphicalSchemaItemPictureLocation",
             "description": "Содержит варианты расположения картинки внутри элемента графической схемы.",
@@ -18526,6 +19218,7 @@ let bslGlobals = {
             }
         },
         "ПоложениеТекстаСоединительнойЛинии": {
+            "availability": 25,
             "name": "ПоложениеТекстаСоединительнойЛинии",
             "name_en": "ConnectorTextLocation",
             "description": "Содержит варианты позиций текста относительно соединительной линии графической схемы.",
@@ -18543,6 +19236,7 @@ let bslGlobals = {
             }
         },
         "РежимОтрисовкиСеткиГрафическойСхемы": {
+            "availability": 25,
             "name": "РежимОтрисовкиСеткиГрафическойСхемы",
             "name_en": "GraphicalSchemaGridDrawMode",
             "description": "Содержит варианты режимов отрисовки сетки графической схемы.",
@@ -18570,6 +19264,7 @@ let bslGlobals = {
             }
         },
         "РежимРазмещенияНаСтранице": {
+            "availability": 25,
             "name": "РежимРазмещенияНаСтранице",
             "name_en": "FitPageMode",
             "description": "Содержит варианты режима размещения на странице графической схемы при печати и просмотре.",
@@ -18592,6 +19287,7 @@ let bslGlobals = {
             }
         },
         "СтильСтрелки": {
+            "availability": 25,
             "name": "СтильСтрелки",
             "name_en": "ArrowStyle",
             "description": "Содержит варианты стилей стрелки на конце или в начале декоративной линии графической схемы.",
@@ -18614,6 +19310,7 @@ let bslGlobals = {
             }
         },
         "ТипСоединительнойЛинии": {
+            "availability": 26,
             "name": "ТипСоединительнойЛинии",
             "name_en": "ConnectorLineType",
             "description": "Содержит варианты линий, используемые в соединительных линиях и точках графической схемы.",
@@ -18651,6 +19348,7 @@ let bslGlobals = {
             }
         },
         "ФигурыГрафическойСхемы": {
+            "availability": 56,
             "name": "ФигурыГрафическойСхемы",
             "name_en": "GraphicalSchemaShapes",
             "description": "Содержит варианты начертаний фигур внутри области декорации графической схемы.",
@@ -18728,6 +19426,7 @@ let bslGlobals = {
             }
         },
         "ТипСтороныЭлементаГрафическойСхемы": {
+            "availability": 56,
             "name": "ТипСтороныЭлементаГрафическойСхемы",
             "name_en": "GraphicalSchemeElementSideType",
             "description": "Содержит варианты сторон, к которой может быть присоединена линия.",
@@ -18760,6 +19459,7 @@ let bslGlobals = {
             }
         },
         "ФорматКартинки": {
+            "availability": 511,
             "name": "ФорматКартинки",
             "name_en": "PictureFormat",
             "description": "Содержит варианты форматов хранения картинки.",
@@ -18817,6 +19517,7 @@ let bslGlobals = {
             }
         },
         "РежимИзмененияСвязанногоЗначения": {
+            "availability": 511,
             "name": "РежимИзмененияСвязанногоЗначения",
             "name_en": "LinkedValueChangeMode",
             "description": "Содержит варианты изменения связанного значения при изменении ведущего значения.",
@@ -18834,6 +19535,7 @@ let bslGlobals = {
             }
         },
         "РежимИспользованияДиалогаПечати": {
+            "availability": 511,
             "name": "РежимИспользованияДиалогаПечати",
             "name_en": "PrintDialogUseMode",
             "description": "Содержит варианты использования диалога печати методами Напечатать.",
@@ -18851,6 +19553,7 @@ let bslGlobals = {
             }
         },
         "ФиксацияВТаблице": {
+            "availability": 511,
             "name": "ФиксацияВТаблице",
             "name_en": "FixingInTable",
             "description": "Содержит варианты фиксации колонок и групп в таблице.",
@@ -19339,6 +20042,7 @@ let bslGlobals = {
             }
         },
         "ВариантВыравниванияЭлементовИЗаголовков": {
+            "availability": 511,
             "name": "ВариантВыравниванияЭлементовИЗаголовков",
             "name_en": "ItemsAndTitlesAlignVariant",
             "description": "Содержит варианты выравнивания элементов и их заголовков.",
@@ -19376,6 +20080,7 @@ let bslGlobals = {
             }
         },
         "ИнтервалМеждуЭлементамиФормы": {
+            "availability": 479,
             "name": "ИнтервалМеждуЭлементамиФормы",
             "name_en": "FormItemSpacing",
             "description": "Содержит варианты расстояния между элементами формы.",
@@ -19413,6 +20118,7 @@ let bslGlobals = {
             }
         },
         "СквозноеВыравнивание": {
+            "availability": 479,
             "name": "СквозноеВыравнивание",
             "name_en": "ThroughAlign",
             "description": "Содержит варианты внешнего выравнивания элементов.",
@@ -19435,6 +20141,7 @@ let bslGlobals = {
             }
         },
         "ОтображениеГруппыКнопок": {
+            "availability": 511,
             "name": "ОтображениеГруппыКнопок",
             "name_en": "ButtonGroupRepresentation",
             "description": "Содержит варианты отображения группы кнопок в командной панели.",
@@ -20389,6 +21096,7 @@ let bslGlobals = {
             }
         },
         "ПериодичностьАгрегатаРегистраНакопления": {
+            "availability": 56,
             "name": "ПериодичностьАгрегатаРегистраНакопления",
             "name_en": "AccumulationRegisterAggregatePeriodicity",
             "description": "Перечисление возможных периодичностей агрегата регистра накопления.",
@@ -20431,6 +21139,7 @@ let bslGlobals = {
             }
         },
         "ИспользованиеАгрегатаРегистраНакопления": {
+            "availability": 56,
             "name": "ИспользованиеАгрегатаРегистраНакопления",
             "name_en": "AccumulationRegisterAggregateUse",
             "description": "Определяет варианты использования агрегата регистра накопления при выполнении запроса.",
@@ -20448,6 +21157,7 @@ let bslGlobals = {
             }
         },
         "АвтоРегистрацияИзменений": {
+            "availability": 440,
             "name": "АвтоРегистрацияИзменений",
             "name_en": "AutoChangeRecord",
             "description": "Содержит варианты авторегистрации изменений данных.",
@@ -20465,6 +21175,7 @@ let bslGlobals = {
             }
         },
         "ДопустимыйНомерСообщения": {
+            "availability": 440,
             "name": "ДопустимыйНомерСообщения",
             "name_en": "AllowedMessageNo",
             "description": "Содержит варианты указаний, какой номер сообщения обмена данными следует считать допустимым при приеме сообщения.",
@@ -20487,6 +21198,7 @@ let bslGlobals = {
             }
         },
         "ОтправкаЭлементаДанных": {
+            "availability": 56,
             "name": "ОтправкаЭлементаДанных",
             "name_en": "DataItemSend",
             "description": "Содержит варианты значений выходных параметров обработчиков событий",
@@ -20509,6 +21221,7 @@ let bslGlobals = {
             }
         },
         "ПолучениеЭлементаДанных": {
+            "availability": 56,
             "name": "ПолучениеЭлементаДанных",
             "name_en": "DataItemReceive",
             "description": "Содержит варианты значений выходных параметров обработчиков событий",
@@ -20531,6 +21244,7 @@ let bslGlobals = {
             }
         },
         "ИспользованиеРасшифровкиТабличногоДокумента": {
+            "availability": 58,
             "name": "ИспользованиеРасшифровкиТабличногоДокумента",
             "name_en": "SpreadsheetDocumentDetailUse",
             "description": "Содержит варианты использования расшифровки области ячеек табличного документа.",
@@ -20553,6 +21267,7 @@ let bslGlobals = {
             }
         },
         "ТипЗаполненияОбластиТабличногоДокумента": {
+            "availability": 63,
             "name": "ТипЗаполненияОбластиТабличногоДокумента",
             "name_en": "SpreadsheetDocumentAreaFillType",
             "description": "Содержит варианты заполнения области табличного документа при выводе в результирующий документ.",
@@ -20575,6 +21290,7 @@ let bslGlobals = {
             }
         },
         "ТипЛинииРисункаТабличногоДокумента": {
+            "availability": 63,
             "name": "ТипЛинииРисункаТабличногоДокумента",
             "name_en": "SpreadsheetDocumentDrawingLineType",
             "description": "Содержит варианты линий, используемых для рисунка табличного документа.",
@@ -20612,6 +21328,7 @@ let bslGlobals = {
             }
         },
         "ТипЛинииЯчейкиТабличногоДокумента": {
+            "availability": 63,
             "name": "ТипЛинииЯчейкиТабличногоДокумента",
             "name_en": "SpreadsheetDocumentCellLineType",
             "description": "Содержит варианты линий, используемых для границ ячеек табличного документа.",
@@ -20654,6 +21371,7 @@ let bslGlobals = {
             }
         },
         "ТипНаправленияПереходаТабличногоДокумента": {
+            "availability": 63,
             "name": "ТипНаправленияПереходаТабличногоДокумента",
             "name_en": "SpreadsheetDocumentStepDirectionType",
             "description": "Содержит типы перехода по ячейкам после завершения редактирования ячейки.",
@@ -20676,6 +21394,7 @@ let bslGlobals = {
             }
         },
         "ТипОбластиЯчеекТабличногоДокумента": {
+            "availability": 59,
             "name": "ТипОбластиЯчеекТабличногоДокумента",
             "name_en": "SpreadsheetDocumentCellAreaType",
             "description": "Содержит варианты областей ячеек табличного документа.",
@@ -20703,6 +21422,7 @@ let bslGlobals = {
             }
         },
         "ТипОтображенияВыделенияТабличногоДокумента": {
+            "availability": 443,
             "name": "ТипОтображенияВыделенияТабличногоДокумента",
             "name_en": "SpreadsheetDocumentSelectionShowModeType",
             "description": "Содержит варианты отображения выделения табличного документа.",
@@ -20720,6 +21440,7 @@ let bslGlobals = {
             }
         },
         "ТипРазмещенияТекстаТабличногоДокумента": {
+            "availability": 63,
             "name": "ТипРазмещенияТекстаТабличногоДокумента",
             "name_en": "SpreadsheetDocumentTextPlacementType",
             "description": "Содержит варианты размещения текста в ячейке и рисунке табличного документа. Используется для определения свойства РазмещениеТекста.",
@@ -20747,6 +21468,7 @@ let bslGlobals = {
             }
         },
         "ТипРисункаТабличногоДокумента": {
+            "availability": 127,
             "name": "ТипРисункаТабличногоДокумента",
             "name_en": "SpreadsheetDocumentDrawingType",
             "description": "Содержит типы рисунков табличного документа. Используется для определения свойства",
@@ -20819,6 +21541,7 @@ let bslGlobals = {
             }
         },
         "ТипСмещенияТабличногоДокумента": {
+            "availability": 56,
             "name": "ТипСмещенияТабличногоДокумента",
             "name_en": "SpreadsheetDocumentShiftType",
             "description": "Содержит варианты смещения ячеек при вставке или удалении областей табличного документа.",
@@ -20841,6 +21564,7 @@ let bslGlobals = {
             }
         },
         "ТипУзораТабличногоДокумента": {
+            "availability": 63,
             "name": "ТипУзораТабличногоДокумента",
             "name_en": "SpreadsheetDocumentPatternType",
             "description": "Содержит варианты узоров, применяемых для фона ячеек табличного документа и рисунков табличного документа. Используется для определения свойства Узор.",
@@ -20943,6 +21667,7 @@ let bslGlobals = {
             }
         },
         "ТипФайлаТабличногоДокумента": {
+            "availability": 511,
             "name": "ТипФайлаТабличногоДокумента",
             "name_en": "SpreadsheetDocumentFileType",
             "description": "Содержит варианты форматов файлов для сохранения табличного документа. Используется для определения параметра ТипФайлаТаблицы метода",
@@ -21040,6 +21765,7 @@ let bslGlobals = {
             }
         },
         "ОриентацияСтраницы": {
+            "availability": 511,
             "name": "ОриентацияСтраницы",
             "name_en": "PageOrientation",
             "description": "Определяет варианты ориентации страницы при выводе табличного документа на печать. Используется для определения свойства ОриентацияСтраницы.",
@@ -21057,6 +21783,7 @@ let bslGlobals = {
             }
         },
         "РасположениеЗаголовкаГруппировкиТабличногоДокумента": {
+            "availability": 443,
             "name": "РасположениеЗаголовкаГруппировкиТабличногоДокумента",
             "name_en": "SpreadsheetDocumentGroupHeaderPlacement",
             "description": "Содержит варианты расположения заголовка группировки табличного документа.",
@@ -21079,6 +21806,7 @@ let bslGlobals = {
             }
         },
         "ТипДвустороннейПечати": {
+            "availability": 63,
             "name": "ТипДвустороннейПечати",
             "name_en": "DuplexPrintingType",
             "description": "Содержит варианты двусторонней печати.",
@@ -21106,6 +21834,7 @@ let bslGlobals = {
             }
         },
         "ЧередованиеРасположенияСтраниц": {
+            "availability": 63,
             "name": "ЧередованиеРасположенияСтраниц",
             "name_en": "PagePlacementAlternation",
             "description": "Содержит варианты вывода на печать чередующихся страниц.",
@@ -21133,6 +21862,7 @@ let bslGlobals = {
             }
         },
         "ТочностьПечати": {
+            "availability": 63,
             "name": "ТочностьПечати",
             "name_en": "PrintAccuracy",
             "description": "Содержит варианты точности печати табличного документа из веб-клиента.",
@@ -21150,6 +21880,7 @@ let bslGlobals = {
             }
         },
         "СпособЧтенияЗначенийТабличногоДокумента": {
+            "availability": 56,
             "name": "СпособЧтенияЗначенийТабличногоДокумента",
             "name_en": "SpreadsheetDocumentValuesReadingMode",
             "description": "Содержит варианты загрузки значений в табличный документ.",
@@ -21167,6 +21898,7 @@ let bslGlobals = {
             }
         },
         "ПоложениеТекстаОтносительноКартинки": {
+            "availability": 63,
             "name": "ПоложениеТекстаОтносительноКартинки",
             "name_en": "TextPositionRelativeToPicture",
             "description": "Содержит варианты расположения текста в ячейке относительно картинки.",
@@ -21204,6 +21936,7 @@ let bslGlobals = {
             }
         },
         "ТипКурсоровТабличногоДокумента": {
+            "availability": 59,
             "name": "ТипКурсоровТабличногоДокумента",
             "name_en": "SpreadsheetDocumentPointerType",
             "description": "Содержит варианты указателя мыши для табличного документа.",
@@ -21221,6 +21954,7 @@ let bslGlobals = {
             }
         },
         "ИспользованиеШириныСжатияТабличногоДокумента": {
+            "availability": 24,
             "name": "ИспользованиеШириныСжатияТабличногоДокумента",
             "name_en": "UseSpreadsheetDocumentWidthReduction",
             "description": "Содержит варианты использования ширины сжатия табличного документа.",
@@ -21248,6 +21982,7 @@ let bslGlobals = {
             }
         },
         "ОтображениеВремениЭлементовПланировщика": {
+            "availability": 63,
             "name": "ОтображениеВремениЭлементовПланировщика",
             "name_en": "PlannerItemsTimeRepresentation",
             "description": "Содержит варианты отображения времени элемента планировщика.",
@@ -21270,6 +22005,7 @@ let bslGlobals = {
             }
         },
         "ПоведениеЭлементовПланировщикаПриНедостаткеМеста": {
+            "availability": 479,
             "name": "ПоведениеЭлементовПланировщикаПриНедостаткеМеста",
             "name_en": "PlannerItemsBehaviorOnLackOfSpace",
             "description": "Содержит варианты поведения элементов планировщика при недостатке места в поле планировщика.",
@@ -21569,6 +22305,7 @@ let bslGlobals = {
             }
         },
         "СпособСравненияФайлов": {
+            "availability": 16,
             "name": "СпособСравненияФайлов",
             "name_en": "FileCompareMethod",
             "description": "Перечислимые значения свойства",
@@ -21591,6 +22328,7 @@ let bslGlobals = {
             }
         },
         "ДоступКФайлу": {
+            "availability": 511,
             "name": "ДоступКФайлу",
             "name_en": "FileAccess",
             "description": "Определяет возможные способы доступа к файлу.",
@@ -21613,6 +22351,7 @@ let bslGlobals = {
             }
         },
         "РежимОткрытияФайла": {
+            "availability": 511,
             "name": "РежимОткрытияФайла",
             "name_en": "FileOpenMode",
             "description": "Определяет режим открытия файла.",
@@ -21650,6 +22389,7 @@ let bslGlobals = {
             }
         },
         "ТипКаталогаБиблиотекиМобильногоУстройства": {
+            "availability": 452,
             "name": "ТипКаталогаБиблиотекиМобильногоУстройства",
             "name_en": "MobileDeviceLibraryDirType",
             "description": "Содержит варианты типов каталога библиотеки мобильного устройства.",
@@ -21672,6 +22412,7 @@ let bslGlobals = {
             }
         },
         "СпособПеретаскиванияФайлов": {
+            "availability": 27,
             "name": "СпособПеретаскиванияФайлов",
             "name_en": "FileDragMode",
             "description": "Содержит режим перетаскивания файлов на элементы управления.",
@@ -24169,6 +24910,7 @@ let bslGlobals = {
             }
         },
         "ТипЗаголовкаПолейКомпоновкиДанных": {
+            "availability": 511,
             "name": "ТипЗаголовкаПолейКомпоновкиДанных",
             "name_en": "DataCompositionFieldsTitleType",
             "description": "Содержит типы заголовков полей системы компоновки данных.",
@@ -24191,6 +24933,7 @@ let bslGlobals = {
             }
         },
         "ТипМакетаГруппировкиКомпоновкиДанных": {
+            "availability": 511,
             "name": "ТипМакетаГруппировкиКомпоновкиДанных",
             "name_en": "DataCompositionGroupTemplateType",
             "description": "Типы макета группировки - указывает расположение выбранных полей в макете группировки.",
@@ -24213,6 +24956,7 @@ let bslGlobals = {
             }
         },
         "ТипМакетаОбластиКомпоновкиДанных": {
+            "availability": 56,
             "name": "ТипМакетаОбластиКомпоновкиДанных",
             "name_en": "DataCompositionAreaTemplateType",
             "description": "Содержит возможные типы макета области схемы компоновки данных.",
@@ -24250,6 +24994,7 @@ let bslGlobals = {
             }
         },
         "ТипОстаткаКомпоновкиДанных": {
+            "availability": 56,
             "name": "ТипОстаткаКомпоновкиДанных",
             "name_en": "DataCompositionBalanceType",
             "description": "Содержит возможные типы остатка.",
@@ -24272,6 +25017,7 @@ let bslGlobals = {
             }
         },
         "ТипПериодаКомпоновкиДанных": {
+            "availability": 56,
             "name": "ТипПериодаКомпоновкиДанных",
             "name_en": "DataCompositionPeriodType",
             "description": "Типы периодов.",
@@ -25064,6 +25810,7 @@ let bslGlobals = {
             }
         },
         "МетодШифрованияZIP": {
+            "availability": 508,
             "name": "МетодШифрованияZIP",
             "name_en": "ZIPEncryptionMethod",
             "description": "Содержит варианты методов шифрования ZIP файлов.",
@@ -25091,6 +25838,7 @@ let bslGlobals = {
             }
         },
         "РежимВосстановленияПутейФайловZIP": {
+            "availability": 508,
             "name": "РежимВосстановленияПутейФайловZIP",
             "name_en": "ZIPRestoreFilePathsMode",
             "description": "Содержит варианты восстановления путей файлов при извлечении из архива.",
@@ -25108,6 +25856,7 @@ let bslGlobals = {
             }
         },
         "РежимОбработкиПодкаталоговZIP": {
+            "availability": 508,
             "name": "РежимОбработкиПодкаталоговZIP",
             "name_en": "ZIPSubDirProcessingMode",
             "description": "Содержит варианты обработки масок файлов в именах для упаковки в ZIP архив.",
@@ -25125,6 +25874,7 @@ let bslGlobals = {
             }
         },
         "РежимСохраненияПутейZIP": {
+            "availability": 508,
             "name": "РежимСохраненияПутейZIP",
             "name_en": "ZIPStorePathMode",
             "description": "Содержит варианты методов сохранения путей файлов при помещении их в архив.",
@@ -25147,6 +25897,7 @@ let bslGlobals = {
             }
         },
         "УровеньСжатияZIP": {
+            "availability": 509,
             "name": "УровеньСжатияZIP",
             "name_en": "ZIPCompressionLevel",
             "description": "Содержит варианты степени сжатия ZIP файлов.",
@@ -25169,6 +25920,7 @@ let bslGlobals = {
             }
         },
         "КодировкаИменФайловВZipФайле": {
+            "availability": 509,
             "name": "КодировкаИменФайловВZipФайле",
             "name_en": "FileNamesEncodingInZipFile",
             "description": "Содержит варианты кодировки имен файлов внутри архива.",
@@ -25191,6 +25943,7 @@ let bslGlobals = {
             }
         },
         "РежимБлокировкиДанных": {
+            "availability": 440,
             "name": "РежимБлокировкиДанных",
             "name_en": "DataLockMode",
             "description": "Перечисление режимов блокировки данных.",
@@ -25208,6 +25961,7 @@ let bslGlobals = {
             }
         },
         "РежимУправленияБлокировкойДанных": {
+            "availability": 440,
             "name": "РежимУправленияБлокировкойДанных",
             "name_en": "DataLockControlMode",
             "description": "Содержит варианты режимов управления блокировкой данных.",
@@ -25225,6 +25979,7 @@ let bslGlobals = {
             }
         },
         "СостояниеФоновогоЗадания": {
+            "availability": 440,
             "name": "СостояниеФоновогоЗадания",
             "name_en": "BackgroundJobState",
             "description": "Состояние фонового задания.",
@@ -25252,6 +26007,7 @@ let bslGlobals = {
             }
         },
         "НаправлениеПереходаКСтроке": {
+            "availability": 17,
             "name": "НаправлениеПереходаКСтроке",
             "name_en": "RowGotoDirection",
             "description": "Содержит варианты направлений перехода.",
@@ -25884,6 +26640,7 @@ let bslGlobals = {
             }
         },
         "СпособВыбора": {
+            "availability": 440,
             "name": "СпособВыбора",
             "name_en": "ChoiceMode",
             "description": "Задает приоритетный способ выбора для поля ввода.",
@@ -25906,6 +26663,7 @@ let bslGlobals = {
             }
         },
         "СпособРедактирования": {
+            "availability": 440,
             "name": "СпособРедактирования",
             "name_en": "EditType",
             "description": "Определяет набор вариантов способа ввода и редактирования.",
@@ -25928,6 +26686,7 @@ let bslGlobals = {
             }
         },
         "ТипКодаСправочника": {
+            "availability": 440,
             "name": "ТипКодаСправочника",
             "name_en": "CatalogCodeType",
             "description": "Определяет варианты типов кода справочника.",
@@ -25945,6 +26704,7 @@ let bslGlobals = {
             }
         },
         "ТипКодаПланаВидовРасчета": {
+            "availability": 56,
             "name": "ТипКодаПланаВидовРасчета",
             "name_en": "ChartOfCalculationTypesCodeType",
             "description": "Задает тип кода вида расчета.",
@@ -25962,6 +26722,7 @@ let bslGlobals = {
             }
         },
         "ТипМакета": {
+            "availability": 440,
             "name": "ТипМакета",
             "name_en": "TemplateType",
             "description": "Описывает тип макета.",
@@ -26019,6 +26780,7 @@ let bslGlobals = {
             }
         },
         "ТипНомераБизнесПроцесса": {
+            "availability": 56,
             "name": "ТипНомераБизнесПроцесса",
             "name_en": "BusinessProcessNumberType",
             "description": "Определяет варианты типов номеров бизнес-процессов.",
@@ -26036,6 +26798,7 @@ let bslGlobals = {
             }
         },
         "ТипНомераДокумента": {
+            "availability": 440,
             "name": "ТипНомераДокумента",
             "name_en": "DocumentNumberType",
             "description": "Определяет варианты типов номеров документов.",
@@ -26053,6 +26816,7 @@ let bslGlobals = {
             }
         },
         "ТипНомераЗадачи": {
+            "availability": 56,
             "name": "ТипНомераЗадачи",
             "name_en": "TaskNumberType",
             "description": "Определяет варианты типов номеров задач.",
@@ -26070,6 +26834,7 @@ let bslGlobals = {
             }
         },
         "УдалениеДвижений": {
+            "availability": 440,
             "name": "УдалениеДвижений",
             "name_en": "RegisterRecordsDeletion",
             "description": "Содержит варианты удаления движений документа по регистрам при проведении и отмене проведения.",
@@ -26092,6 +26857,7 @@ let bslGlobals = {
             }
         },
         "ИспользованиеБазыПланаВидовРасчета": {
+            "availability": 56,
             "name": "ИспользованиеБазыПланаВидовРасчета",
             "name_en": "ChartOfCalculationTypesBaseUse",
             "description": "Варианты использования базовых начислений.",
@@ -26114,6 +26880,7 @@ let bslGlobals = {
             }
         },
         "ОсновноеПредставлениеВидаРасчета": {
+            "availability": 56,
             "name": "ОсновноеПредставлениеВидаРасчета",
             "name_en": "CalculationTypeMainPresentation",
             "description": "Варианты основного представления вида расчета.",
@@ -26131,6 +26898,7 @@ let bslGlobals = {
             }
         },
         "ОперативноеПроведение": {
+            "availability": 440,
             "name": "ОперативноеПроведение",
             "name_en": "RealTimePosting",
             "description": "Варианты доступности оперативного проведения документов.",
@@ -26148,6 +26916,7 @@ let bslGlobals = {
             }
         },
         "НаправлениеПередачи": {
+            "availability": 56,
             "name": "НаправлениеПередачи",
             "name_en": "TransferDirection",
             "description": "Содержит варианты направления передачи параметров.",
@@ -26170,6 +26939,7 @@ let bslGlobals = {
             }
         },
         "ЗаписьДвиженийПриПроведении": {
+            "availability": 440,
             "name": "ЗаписьДвиженийПриПроведении",
             "name_en": "RegisterRecordsWritingOnPost",
             "description": "Содержит варианты поведения системы при создании движений во время проведения документа.",
@@ -26187,6 +26957,7 @@ let bslGlobals = {
             }
         },
         "ПовторноеИспользованиеВозвращаемыхЗначений": {
+            "availability": 440,
             "name": "ПовторноеИспользованиеВозвращаемыхЗначений",
             "name_en": "ReturnValuesReuse",
             "description": "Содержит варианты повторного использования результатов экспортных функций общего модуля.",
@@ -26209,6 +26980,7 @@ let bslGlobals = {
             }
         },
         "РежимСовместимости": {
+            "availability": 440,
             "name": "РежимСовместимости",
             "name_en": "CompatibilityMode",
             "description": "Некоторые усовершенствования, внесенные в текущую версию, могут вызвать конфликт с существующими конфигурациями, разработанными на более ранних версиях платформы. Использование данного перечисления позволяет отключить эти усовершенствования и использовать ранее разработанные конфигурации без внесения каких-либо исправлений.",
@@ -26316,6 +27088,7 @@ let bslGlobals = {
             }
         },
         "ИспользованиеБыстрогоВыбора": {
+            "availability": 440,
             "name": "ИспользованиеБыстрогоВыбора",
             "name_en": "UseQuickChoice",
             "description": "Используется для определения способа выбора значения в полях ввода.",
@@ -26338,6 +27111,7 @@ let bslGlobals = {
             }
         },
         "ТипФормы": {
+            "availability": 440,
             "name": "ТипФормы",
             "name_en": "FormType",
             "description": "Тип формы (обычная или управляемая). Задается при создании формы и впоследствии не может быть изменен.",
@@ -26355,6 +27129,7 @@ let bslGlobals = {
             }
         },
         "АвтоИспользованиеОбщегоРеквизита": {
+            "availability": 56,
             "name": "АвтоИспользованиеОбщегоРеквизита",
             "name_en": "CommonAttributeAutoUse",
             "description": "Содержит варианты включения в состав общего реквизита объекта метаданных из соответствующего элемента состава общего реквизита, если у элемента включение в состав установлено автоматическим.",
@@ -26372,6 +27147,7 @@ let bslGlobals = {
             }
         },
         "РазделениеДанныхОбщегоРеквизита": {
+            "availability": 56,
             "name": "РазделениеДанныхОбщегоРеквизита",
             "name_en": "CommonAttributeDataSeparation",
             "description": "Содержит варианты использования общего реквизита в разделении данных.",
@@ -26389,6 +27165,7 @@ let bslGlobals = {
             }
         },
         "ИспользованиеРазделяемыхДанныхОбщегоРеквизита": {
+            "availability": 56,
             "name": "ИспользованиеРазделяемыхДанныхОбщегоРеквизита",
             "name_en": "CommonAttributeSeparatedDataUse",
             "description": "Содержит варианты уровней разделения данных общим реквизитом.",
@@ -26406,6 +27183,7 @@ let bslGlobals = {
             }
         },
         "ИспользованиеОбщегоРеквизита": {
+            "availability": 56,
             "name": "ИспользованиеОбщегоРеквизита",
             "name_en": "CommonAttributeUse",
             "description": "Определяет вхождение связанного с элементом состава общего реквизита объекта метаданных в состав общего реквизита.",
@@ -26428,6 +27206,7 @@ let bslGlobals = {
             }
         },
         "РазделениеАутентификацииОбщегоРеквизита": {
+            "availability": 440,
             "name": "РазделениеАутентификацииОбщегоРеквизита",
             "name_en": "CommonAttributeAuthenticationSeparation",
             "description": "Содержит варианты необходимости указания значения разделителя для однозначного определения пользователя информационной базы по имени пользователя.",
@@ -26445,6 +27224,7 @@ let bslGlobals = {
             }
         },
         "ТипДанныхТаблицыВнешнегоИсточникаДанных": {
+            "availability": 56,
             "name": "ТипДанныхТаблицыВнешнегоИсточникаДанных",
             "name_en": "ExternalDataSourceTableDataType",
             "description": "Содержит варианты данных таблиц внешних источников данных.",
@@ -26462,6 +27242,7 @@ let bslGlobals = {
             }
         },
         "СпособПоискаСтрокиПриВводеПоСтроке": {
+            "availability": 511,
             "name": "СпособПоискаСтрокиПриВводеПоСтроке",
             "name_en": "SearchStringModeOnInputByString",
             "description": "Содержит возможные способы ввода по строке.",
@@ -26479,6 +27260,7 @@ let bslGlobals = {
             }
         },
         "ПолнотекстовыйПоискПриВводеПоСтроке": {
+            "availability": 479,
             "name": "ПолнотекстовыйПоискПриВводеПоСтроке",
             "name_en": "FullTextSearchOnInputByString",
             "description": "Содержит варианты использования полнотекстового поиска при вводе по строке.",
@@ -26496,6 +27278,7 @@ let bslGlobals = {
             }
         },
         "РежимПолученияДанныхВыбораПриВводеПоСтроке": {
+            "availability": 511,
             "name": "РежимПолученияДанныхВыбораПриВводеПоСтроке",
             "name_en": "ChoiceDataGetModeOnInputByString",
             "description": "Содержит варианты запуска поиска при вводе по строке.",
@@ -26513,6 +27296,7 @@ let bslGlobals = {
             }
         },
         "СозданиеПриВводе": {
+            "availability": 440,
             "name": "СозданиеПриВводе",
             "name_en": "CreateOnInput",
             "description": "Содержит варианты создания нового объекта при вводе.",
@@ -26535,6 +27319,7 @@ let bslGlobals = {
             }
         },
         "РежимИспользованияМодальности": {
+            "availability": 56,
             "name": "РежимИспользованияМодальности",
             "name_en": "ModalityUseMode",
             "description": "Содержит варианты контроля использования методов, которые открывают модальные окна, т.к. реализация веб-клиента для некоторых платформ не поддерживает создания модальных окон.",
@@ -26557,6 +27342,7 @@ let bslGlobals = {
             }
         },
         "ВидТаблицыВнешнегоИсточникаДанных": {
+            "availability": 56,
             "name": "ВидТаблицыВнешнегоИсточникаДанных",
             "name_en": "ExternalDataSourceTableType",
             "description": "Содержит виды таблиц внешних источников данных.",
@@ -26574,6 +27360,7 @@ let bslGlobals = {
             }
         },
         "HTTPМетод": {
+            "availability": 56,
             "name": "HTTPМетод",
             "name_en": "HTTPMethod",
             "description": "Перечисление описывает HTTP-методы.",
@@ -26671,6 +27458,7 @@ let bslGlobals = {
             }
         },
         "ПринадлежностьОбъекта": {
+            "availability": 440,
             "name": "ПринадлежностьОбъекта",
             "name_en": "ObjectBelonging",
             "description": "Определяет, относится ли объект к данной конфигурации или был заимствован из расширяемой конфигурации.",
@@ -26688,6 +27476,7 @@ let bslGlobals = {
             }
         },
         "РазделениеРасширенийКонфигурацииОбщегоРеквизита": {
+            "availability": 56,
             "name": "РазделениеРасширенийКонфигурацииОбщегоРеквизита",
             "name_en": "CommonAttributeConfigurationExtensionsSeparation",
             "description": "Содержит варианты разделения расширений конфигурации общим реквизитом.",
@@ -26705,6 +27494,7 @@ let bslGlobals = {
             }
         },
         "ИспользованиеИсторииДанных": {
+            "availability": 56,
             "name": "ИспользованиеИсторииДанных",
             "name_en": "DataHistoryUse",
             "description": "Определяет набор режимов использования истории данных.",
@@ -26722,6 +27512,7 @@ let bslGlobals = {
             }
         },
         "РежимИспользованияСинхронныхВызововРасширенийПлатформыИВнешнихКомпонент": {
+            "availability": 403,
             "name": "РежимИспользованияСинхронныхВызововРасширенийПлатформыИВнешнихКомпонент",
             "name_en": "SynchronousPlatformExtensionAndAddInCallUseMode",
             "description": "Содержит варианты проверки использования синхронных методов в конфигурации.",
@@ -26744,6 +27535,7 @@ let bslGlobals = {
             }
         },
         "НаправлениеСообщенияКаналаСервисаИнтеграции": {
+            "availability": 440,
             "name": "НаправлениеСообщенияКаналаСервисаИнтеграции",
             "name_en": "IntegrationServiceChannelMessageDirection",
             "description": "Содержит варианты направления передачи сообщений в канале сервиса интеграции.",
@@ -26761,6 +27553,7 @@ let bslGlobals = {
             }
         },
         "ТипНомераТелефонаДанныхКонтакта": {
+            "availability": 492,
             "name": "ТипНомераТелефонаДанныхКонтакта",
             "name_en": "ContactDataPhoneNumberType",
             "description": "Содержит типы номеров телефона, используемых в контактах.",
@@ -26818,6 +27611,7 @@ let bslGlobals = {
             }
         },
         "ТипАдресаЭлектроннойПочтыДанныхКонтакта": {
+            "availability": 492,
             "name": "ТипАдресаЭлектроннойПочтыДанныхКонтакта",
             "name_en": "ContactDataEmailAddressType",
             "description": "Содержит типы адресов электронной почты, используемых в контактах.",
@@ -26845,6 +27639,7 @@ let bslGlobals = {
             }
         },
         "ТипАдресаДанныхКонтакта": {
+            "availability": 492,
             "name": "ТипАдресаДанныхКонтакта",
             "name_en": "ContactDataAddressType",
             "description": "Содержит типы адресов, используемых в контактах.",
@@ -26867,6 +27662,7 @@ let bslGlobals = {
             }
         },
         "ТипАдресаМгновенныхСообщенийДанныхКонтакта": {
+            "availability": 492,
             "name": "ТипАдресаМгновенныхСообщенийДанныхКонтакта",
             "name_en": "ContactDataInstantMessagingAddressType",
             "description": "Содержит типы адресов мгновенных сообщений, используемых в контактах.",
@@ -26889,6 +27685,7 @@ let bslGlobals = {
             }
         },
         "ТипВебАдресаДанныхКонтакта": {
+            "availability": 492,
             "name": "ТипВебАдресаДанныхКонтакта",
             "name_en": "ContactDataURLType",
             "description": "Содержит варианты типов веб-адресов, используемых в контактах.",
@@ -26931,6 +27728,7 @@ let bslGlobals = {
             }
         },
         "ТипОтношенийДанныхКонтакта": {
+            "availability": 492,
             "name": "ТипОтношенийДанныхКонтакта",
             "name_en": "ContactDataRelationshipType",
             "description": "Содержит типы отношений, используемых в контактах.",
@@ -27008,6 +27806,7 @@ let bslGlobals = {
             }
         },
         "ПовторениеСобытияКалендаря": {
+            "availability": 492,
             "name": "ПовторениеСобытияКалендаря",
             "name_en": "CalendarEventRecurrence",
             "description": "Содержит варианты повторения события.",
@@ -27040,6 +27839,7 @@ let bslGlobals = {
             }
         },
         "ТипЗвонкаЖурналаЗвонков": {
+            "availability": 492,
             "name": "ТипЗвонкаЖурналаЗвонков",
             "name_en": "CallLogCallType",
             "description": "Тип звонка из записи журнала звонков.",
@@ -27062,6 +27862,7 @@ let bslGlobals = {
             }
         },
         "ВариантСобытияЗвонкаСредствТелефонии": {
+            "availability": 492,
             "name": "ВариантСобытияЗвонкаСредствТелефонии",
             "name_en": "TelephonyToolsCallEventVariant",
             "description": "Содержит варианты событий, по которым вызывается обработчик звонков средств телефонии.",
@@ -27094,6 +27895,7 @@ let bslGlobals = {
             }
         },
         "ТипSMSСредствТелефонии": {
+            "availability": 492,
             "name": "ТипSMSСредствТелефонии",
             "name_en": "TelephonyToolsSMSType",
             "description": "Содержит возможные типы записей журнала SMS.",
@@ -27131,6 +27933,7 @@ let bslGlobals = {
             }
         },
         "ТипШтрихКода": {
+            "availability": 68,
             "name": "ТипШтрихКода",
             "name_en": "BarcodeType",
             "description": "Предназначен для определения типов штрихкодов, которые система должна распознавать при вызове сканирования.",
@@ -27153,6 +27956,7 @@ let bslGlobals = {
             }
         },
         "ТипКамерыУстройства": {
+            "availability": 68,
             "name": "ТипКамерыУстройства",
             "name_en": "DeviceCameraType",
             "description": "Предназначен для определения типа используемой камеры мобильного устройства.",
@@ -27175,6 +27979,7 @@ let bslGlobals = {
             }
         },
         "КачествоВидеозаписи": {
+            "availability": 68,
             "name": "КачествоВидеозаписи",
             "name_en": "VideoQuality",
             "description": "Предназначен для определения качества видеозаписи.",
@@ -27197,6 +28002,7 @@ let bslGlobals = {
             }
         },
         "ТипПодсветкиКамеры": {
+            "availability": 452,
             "name": "ТипПодсветкиКамеры",
             "name_en": "CameraLightingType",
             "description": "Предназначен для определения типа подсветки (вспышки) камеры устройства.",
@@ -27219,6 +28025,7 @@ let bslGlobals = {
             }
         },
         "НаправлениеПорядкаСхемыЗапроса": {
+            "availability": 56,
             "name": "НаправлениеПорядкаСхемыЗапроса",
             "name_en": "QuerySchemaOrderDirection",
             "description": "Тип направления порядка схемы запроса.",
@@ -27246,6 +28053,7 @@ let bslGlobals = {
             }
         },
         "ТипДополненияПериодамиСхемыЗапроса": {
+            "availability": 56,
             "name": "ТипДополненияПериодамиСхемыЗапроса",
             "name_en": "QuerySchemaPeriodAdditionType",
             "description": "Тип дополнения периодами.",
@@ -27308,6 +28116,7 @@ let bslGlobals = {
             }
         },
         "ТипКонтрольнойТочкиСхемыЗапроса": {
+            "availability": 56,
             "name": "ТипКонтрольнойТочкиСхемыЗапроса",
             "name_en": "QuerySchemaTotalCalculationFieldType",
             "description": "Тип контрольной точки.",
@@ -27330,6 +28139,7 @@ let bslGlobals = {
             }
         },
         "ТипОбъединенияСхемыЗапроса": {
+            "availability": 56,
             "name": "ТипОбъединенияСхемыЗапроса",
             "name_en": "QuerySchemaUnionType",
             "description": "Тип объединения схемы запроса.",
@@ -27347,6 +28157,7 @@ let bslGlobals = {
             }
         },
         "ТипПараметраДоступнойТаблицыСхемыЗапроса": {
+            "availability": 56,
             "name": "ТипПараметраДоступнойТаблицыСхемыЗапроса",
             "name_en": "QuerySchemaAvailableTableParameterType",
             "description": "Тип параметра доступной таблицы.",
@@ -27384,6 +28195,7 @@ let bslGlobals = {
             }
         },
         "ТипСоединенияСхемыЗапроса": {
+            "availability": 56,
             "name": "ТипСоединенияСхемыЗапроса",
             "name_en": "QuerySchemaJoinType",
             "description": "Тип cоединения таблиц в схеме запроса.",
@@ -27411,6 +28223,7 @@ let bslGlobals = {
             }
         },
         "ТипПодписчикаДоставляемыхУведомлений": {
+            "availability": 509,
             "name": "ТипПодписчикаДоставляемыхУведомлений",
             "name_en": "DeliverableNotificationSubscriberType",
             "description": "Определяет сервис доставки уведомлений, используемый данным подписчиком.",
@@ -27433,6 +28246,7 @@ let bslGlobals = {
             }
         },
         "ЗвуковоеОповещение": {
+            "availability": 509,
             "name": "ЗвуковоеОповещение",
             "name_en": "SoundAlert",
             "description": "Перечисление стандартных звуков, используемых в доставляемом уведомлении.",
@@ -27450,6 +28264,7 @@ let bslGlobals = {
             }
         },
         "ТипОшибкиОтправкиДоставляемогоУведомления": {
+            "availability": 57,
             "name": "ТипОшибкиОтправкиДоставляемогоУведомления",
             "name_en": "DeliverableNotificationSendErrorType",
             "description": "Содержит варианты возможных ошибок отправки уведомлений.",
@@ -27492,6 +28307,7 @@ let bslGlobals = {
             }
         },
         "ОтображениеРекламногоБаннера": {
+            "availability": 68,
             "name": "ОтображениеРекламногоБаннера",
             "name_en": "AdBannerRepresentation",
             "description": "Определяет набор вариантов отображения рекламного баннера.",
@@ -27514,6 +28330,7 @@ let bslGlobals = {
             }
         },
         "СтатусРекламы": {
+            "availability": 68,
             "name": "СтатусРекламы",
             "name_en": "AdStatus",
             "description": "Содержит варианты текущего статуса конкретной рекламной сущности (баннер, полноэкранная реклама, видеообъявление).",
@@ -27541,6 +28358,7 @@ let bslGlobals = {
             }
         },
         "СервисВстроенныхПокупок": {
+            "availability": 509,
             "name": "СервисВстроенныхПокупок",
             "name_en": "InAppPurchaseService",
             "description": "Содержит варианты используемых сервисов встроенных покупок.",
@@ -27563,6 +28381,7 @@ let bslGlobals = {
             }
         },
         "УровеньИспользованияЗащищенногоСоединенияFTP": {
+            "availability": 61,
             "name": "УровеньИспользованияЗащищенногоСоединенияFTP",
             "name_en": "FTPSecureConnectionUsageLevel",
             "description": "Определяет требования клиента по использованию защищенного соединения с сервером FTP.",
@@ -27595,6 +28414,7 @@ let bslGlobals = {
             }
         },
         "ТипИнтернетСоединения": {
+            "availability": 452,
             "name": "ТипИнтернетСоединения",
             "name_en": "InternetConnectionType",
             "description": "Типы интернет-соединений.",
@@ -27622,6 +28442,7 @@ let bslGlobals = {
             }
         },
         "ИспользованиеРоуминга": {
+            "availability": 452,
             "name": "ИспользованиеРоуминга",
             "name_en": "RoamingUsage",
             "description": "Варианты использования роуминга.",
@@ -27644,6 +28465,7 @@ let bslGlobals = {
             }
         },
         "ПорядокБайтов": {
+            "availability": 511,
             "name": "ПорядокБайтов",
             "name_en": "ByteOrder",
             "description": "Формат представления целых чисел в память компьютера.",
@@ -27661,6 +28483,7 @@ let bslGlobals = {
             }
         },
         "ПозицияВПотоке": {
+            "availability": 511,
             "name": "ПозицияВПотоке",
             "name_en": "PositionInStream",
             "description": "Определяет начальную позицию при позиционировании в потоке.",
@@ -27683,6 +28506,7 @@ let bslGlobals = {
             }
         },
         "ВидИзмененияСтрокиДанных": {
+            "availability": 59,
             "name": "ВидИзмененияСтрокиДанных",
             "name_en": "DataLineChangeType",
             "description": "Содержит варианты вида изменений строки данных.",
@@ -27710,6 +28534,7 @@ let bslGlobals = {
             }
         },
         "ТипФайлаПакетаОтображаемыхДокументов": {
+            "availability": 59,
             "name": "ТипФайлаПакетаОтображаемыхДокументов",
             "name_en": "RepresentableDocumentBatchFileType",
             "description": "Типы файла для сохранения пакета отображаемых документов.",
@@ -27757,6 +28582,7 @@ let bslGlobals = {
             }
         },
         "СостояниеАгентаКлиентскогоПриложения": {
+            "availability": 19,
             "name": "СостояниеАгентаКлиентскогоПриложения",
             "name_en": "ClientApplicationAgentState",
             "description": "Содержит варианты состояния агента клиентского приложения.",
@@ -27779,6 +28605,7 @@ let bslGlobals = {
             }
         },
         "ТипСУБДКопииБазыДанных": {
+            "availability": 56,
             "name": "ТипСУБДКопииБазыДанных",
             "name_en": "DatabaseCopyDBMSType",
             "description": "Содержит варианты поддерживаемых типов СУБД копии базы данных.",
@@ -27801,6 +28628,7 @@ let bslGlobals = {
             }
         },
         "ТипРепликацииКопииБазыДанных": {
+            "availability": 56,
             "name": "ТипРепликацииКопииБазыДанных",
             "name_en": "DatabaseCopyReplicationType",
             "description": "Содержит варианты типов репликации копии базы данных.",
@@ -27818,6 +28646,7 @@ let bslGlobals = {
             }
         },
         "ТребуемаяАктуальностьДанных": {
+            "availability": 56,
             "name": "ТребуемаяАктуальностьДанных",
             "name_en": "RequiredDataRelevance",
             "description": "Содержит варианты типов требуемой актуальности данных.",
@@ -27840,6 +28669,7 @@ let bslGlobals = {
             }
         },
         "ТипВыводаАктуальностиДанныхКомпоновкиДанных": {
+            "availability": 56,
             "name": "ТипВыводаАктуальностиДанныхКомпоновкиДанных",
             "name_en": "DataCompositionDataRelevanceOutputType",
             "description": "Содержит варианты вывода времени актуальности полученных данных.",
@@ -27862,6 +28692,7 @@ let bslGlobals = {
             }
         },
         "ИспользованиеПоляЭлементаСоставаКопииБазыДанных": {
+            "availability": 56,
             "name": "ИспользованиеПоляЭлементаСоставаКопииБазыДанных",
             "name_en": "DatabaseCopyContentItemFieldUse",
             "description": "Содержит варианты использования поля элемента состава копии базы данных.",
@@ -27884,6 +28715,7 @@ let bslGlobals = {
             }
         },
         "ИсточникКомандСистемыВзаимодействия": {
+            "availability": 55,
             "name": "ИсточникКомандСистемыВзаимодействия",
             "name_en": "CollaborationSystemCommandSource",
             "description": "Содержит варианты элементов сообщения, для которых вызывается обработчик, установленный при вызове метода",
@@ -27911,6 +28743,7 @@ let bslGlobals = {
             }
         },
         "СтандартнаяКомандаСистемыВзаимодействия": {
+            "availability": 55,
             "name": "СтандартнаяКомандаСистемыВзаимодействия",
             "name_en": "CollaborationSystemStandardCommand",
             "description": "Содержит варианты стандартных команд системы взаимодействия.",
@@ -27968,6 +28801,7 @@ let bslGlobals = {
             }
         },
         "ОтображениеОповещенийСистемыВзаимодействия": {
+            "availability": 56,
             "name": "ОтображениеОповещенийСистемыВзаимодействия",
             "name_en": "CollaborationSystemNotificationRepresentation",
             "description": "Содержит варианты режимов отображения оповещений системы взаимодействия.",
@@ -27985,6 +28819,7 @@ let bslGlobals = {
             }
         },
         "НазначениеВыбораПользователейСистемыВзаимодействия": {
+            "availability": 55,
             "name": "НазначениеВыбораПользователейСистемыВзаимодействия",
             "name_en": "CollaborationSystemUsersChoicePurpose",
             "description": "Задает назначение вызова событий выбора пользователей системы взаимодействия.",
@@ -28007,6 +28842,7 @@ let bslGlobals = {
             }
         },
         "АдминистрированиеПриоритетВыбораПроцесса": {
+            "availability": 27,
             "name": "АдминистрированиеПриоритетВыбораПроцесса",
             "name_en": "AdministrationProcessChoicePriority",
             "description": "Определяет приоритет выбора рабочего процесса.",
@@ -28024,6 +28860,7 @@ let bslGlobals = {
             }
         },
         "АдминистрированиеСостояниеРабочегоПроцесса": {
+            "availability": 27,
             "name": "АдминистрированиеСостояниеРабочегоПроцесса",
             "name_en": "AdministrationWorkProcessStatus",
             "description": "Определяет использование рабочего процесса кластером.",
@@ -28046,6 +28883,7 @@ let bslGlobals = {
             }
         },
         "АдминистрированиеТипГруппировкиСчетчикаПотребленияРесурсов": {
+            "availability": 27,
             "name": "АдминистрированиеТипГруппировкиСчетчикаПотребленияРесурсов",
             "name_en": "AdministrationResourceConsumptionCounterGroupType",
             "description": "Определяет тип группировки счетчика потребления ресурсов.",
@@ -28063,6 +28901,7 @@ let bslGlobals = {
             }
         },
         "АдминистрированиеТипОтбораСчетчикаПотребленияРесурсов": {
+            "availability": 27,
             "name": "АдминистрированиеТипОтбораСчетчикаПотребленияРесурсов",
             "name_en": "AdministrationResourceConsumptionCounterFilterType",
             "description": "Определяет тип отбора счетчика потребления ресурсов.",
@@ -28085,6 +28924,7 @@ let bslGlobals = {
             }
         },
         "АдминистрированиеДействиеПриПревышенииОграниченияПотребленияРесурсов": {
+            "availability": 27,
             "name": "АдминистрированиеДействиеПриПревышенииОграниченияПотребленияРесурсов",
             "name_en": "AdministrationActionOnResourceConsumptionLimitExcess",
             "description": "Определяет тип действия при превышении предельных значений, указанных в ограничении потребления ресурсов.",
@@ -28112,6 +28952,7 @@ let bslGlobals = {
             }
         },
         "АдминистрированиеУровеньБезопасностиСоединений": {
+            "availability": 27,
             "name": "АдминистрированиеУровеньБезопасностиСоединений",
             "name_en": "AdministrationConnectionSecurityLevel",
             "description": "Определяет уровень безопасности соединений.",
@@ -28134,6 +28975,7 @@ let bslGlobals = {
             }
         },
         "АдминистрированиеТипТребованияНазначения": {
+            "availability": 27,
             "name": "АдминистрированиеТипТребованияНазначения",
             "name_en": "AdministrationAssignmentRuleType",
             "description": "Определяет действие требования назначения.",
@@ -28156,6 +28998,7 @@ let bslGlobals = {
             }
         },
         "АдминистрированиеРежимУдаленияИнформационнойБазы": {
+            "availability": 27,
             "name": "АдминистрированиеРежимУдаленияИнформационнойБазы",
             "name_en": "AdministrationInfoBaseDeletionMode",
             "description": "Определяет режим удаления информационной базы.",
@@ -28178,6 +29021,7 @@ let bslGlobals = {
             }
         },
         "СпособПолученияКомпонентСвязностиРасчетаСистемЛинейныхУравнений": {
+            "availability": 56,
             "name": "СпособПолученияКомпонентСвязностиРасчетаСистемЛинейныхУравнений",
             "name_en": "ConnectedComponentsTypeOfSystemOfLinearEquationsCalculationGetMethod",
             "description": "Содержит варианты типа рассчитываемых компонент связности.",
@@ -28200,6 +29044,7 @@ let bslGlobals = {
             }
         },
         "ТипОбработкиНастроекВторогоФактораАутентификации": {
+            "availability": 24,
             "name": "ТипОбработкиНастроекВторогоФактораАутентификации",
             "name_en": "SecondAuthenticationFactorSettingsProcessingType",
             "description": "Содержит варианты типа настроек второго фактора аутентификации.",
@@ -28217,6 +29062,7 @@ let bslGlobals = {
             }
         },
         "СпособЗащитыДоступаБезопасногоХранилища": {
+            "availability": 68,
             "name": "СпособЗащитыДоступаБезопасногоХранилища",
             "name_en": "SecureStorageAccessProtectionMethod",
             "description": "Содержит варианты защиты доступа к данным в безопасном хранилище.",
@@ -28239,6 +29085,7 @@ let bslGlobals = {
             }
         },
         "СпособДополнительнойПроверкиПользователя": {
+            "availability": 68,
             "name": "СпособДополнительнойПроверкиПользователя",
             "name_en": "AdditionalUserVerificationMethod",
             "description": "Содержит варианты дополнительной проверки пользователя.",
@@ -28256,6 +29103,7 @@ let bslGlobals = {
             }
         },
         "СпособБиометрическойПроверки": {
+            "availability": 68,
             "name": "СпособБиометрическойПроверки",
             "name_en": "BiometricVerificationMethod",
             "description": "Содержит варианты способов биометрической проверки пользователя.",
@@ -28283,6 +29131,7 @@ let bslGlobals = {
             }
         },
         "КатегорияОшибки": {
+            "availability": 479,
             "name": "КатегорияОшибки",
             "name_en": "ErrorCategory",
             "description": "Содержит варианты категории ошибки.",
@@ -28375,6 +29224,7 @@ let bslGlobals = {
             }
         },
         "ВариантОтображенияСообщенияОбОшибке": {
+            "availability": 27,
             "name": "ВариантОтображенияСообщенияОбОшибке",
             "name_en": "ErrorMessageDisplayVariant",
             "description": "Содержит варианты отображения сообщения об ошибке.",
@@ -28402,6 +29252,7 @@ let bslGlobals = {
             }
         },
         "РежимОтправкиИнформацииОбОшибке": {
+            "availability": 479,
             "name": "РежимОтправкиИнформацииОбОшибке",
             "name_en": "ErrorReportingMode",
             "description": "Содержит варианты режима отправки различной информации об ошибке.",
@@ -28429,6 +29280,7 @@ let bslGlobals = {
             }
         },
         "ИспользуемыйСервер": {
+            "availability": 452,
             "name": "ИспользуемыйСервер",
             "name_en": "UsedServer",
             "description": "Перечисление серверов, доступных для работы автономного клиента.",
@@ -28446,6 +29298,7 @@ let bslGlobals = {
             }
         },
         "ПоведениеПриНедоступностиОсновногоСервера": {
+            "availability": 452,
             "name": "ПоведениеПриНедоступностиОсновногоСервера",
             "name_en": "OnMainServerUnavalableBehavior",
             "description": "Перечисление содержит варианты поведения автономного объекта (общей команды, команды объекта конфигурации, команды или элемента формы) при недоступности основного сервера.",
@@ -28468,6 +29321,7 @@ let bslGlobals = {
             }
         },
         "ВариантГраницыИнтервала": {
+            "availability": 16,
             "name": "ВариантГраницыИнтервала",
             "name_en": "IntervalBoundVariant",
             "description": "Определяет набор вариантов границы интервала, используемых объектом",
@@ -28515,6 +29369,7 @@ let bslGlobals = {
             }
         },
         "ВариантНастройкиПериода": {
+            "availability": 16,
             "name": "ВариантНастройкиПериода",
             "name_en": "PeriodSettingsVariant",
             "description": "Определяет виды закладок диалога настройки периода.",
@@ -28532,6 +29387,7 @@ let bslGlobals = {
             }
         },
         "ВариантПериода": {
+            "availability": 16,
             "name": "ВариантПериода",
             "name_en": "PeriodVariant",
             "description": "Определяет набор вариантов задания периода, используемого объектом",
@@ -28594,6 +29450,7 @@ let bslGlobals = {
             }
         },
         "ВидГраницы": {
+            "availability": 509,
             "name": "ВидГраницы",
             "name_en": "BoundaryType",
             "description": "Определяет набор видов границ по отношению к граничному значению. Используется для определения значения свойства",
@@ -28611,6 +29468,7 @@ let bslGlobals = {
             }
         },
         "ВидКартинки": {
+            "availability": 511,
             "name": "ВидКартинки",
             "name_en": "PictureType",
             "description": "Определяет набор видов картинок.",
@@ -28633,6 +29491,7 @@ let bslGlobals = {
             }
         },
         "ВидРамки": {
+            "availability": 511,
             "name": "ВидРамки",
             "name_en": "BorderType",
             "description": "Определяет способы задания рамки. Используется для определения свойства",
@@ -28650,6 +29509,7 @@ let bslGlobals = {
             }
         },
         "ВидСравнения": {
+            "availability": 511,
             "name": "ВидСравнения",
             "name_en": "ComparisonType",
             "description": "Определяет набор видов сравнения, которые могут быть использованы в условиях отбора. Используется для определения свойства ВидСравнения.",
@@ -28747,6 +29607,7 @@ let bslGlobals = {
             }
         },
         "ВидЦвета": {
+            "availability": 511,
             "name": "ВидЦвета",
             "name_en": "ColorType",
             "description": "Определяет набор значений видов цветов. Используется для определения вида цвета объекта типа",
@@ -28779,6 +29640,7 @@ let bslGlobals = {
             }
         },
         "ВидШрифта": {
+            "availability": 511,
             "name": "ВидШрифта",
             "name_en": "FontType",
             "description": "Определяет набор значений видов шрифтов. Используется для определения вида шрифта объекта типа",
@@ -28806,6 +29668,7 @@ let bslGlobals = {
             }
         },
         "ДопустимаяДлина": {
+            "availability": 511,
             "name": "ДопустимаяДлина",
             "name_en": "AllowedLength",
             "description": "Определяет варианты ограничений длины строки. Используется для определения свойства",
@@ -28823,6 +29686,7 @@ let bslGlobals = {
             }
         },
         "ДопустимыйЗнак": {
+            "availability": 511,
             "name": "ДопустимыйЗнак",
             "name_en": "AllowedSign",
             "description": "Определяет набор допустимых знаков числа. Используется для определения свойства",
@@ -28840,6 +29704,7 @@ let bslGlobals = {
             }
         },
         "Клавиша": {
+            "availability": 63,
             "name": "Клавиша",
             "name_en": "Key",
             "description": "Определяет набор клавиш, которые могут быть использованы в качестве основной клавиши в объекте",
@@ -29182,6 +30047,7 @@ let bslGlobals = {
             }
         },
         "КодВозвратаДиалога": {
+            "availability": 87,
             "name": "КодВозвратаДиалога",
             "name_en": "DialogReturnCode",
             "description": "Определяет набор вариантов ответа пользователя на стандартный вопрос. Используется в качестве возвращаемого значения функции",
@@ -29229,6 +30095,7 @@ let bslGlobals = {
             }
         },
         "КодировкаXBase": {
+            "availability": 56,
             "name": "КодировкаXBase",
             "name_en": "XBaseEncoding",
             "description": "Содержит варианты кодировок XBase.",
@@ -29246,6 +30113,7 @@ let bslGlobals = {
             }
         },
         "ИсточникРасширенийКонфигурации": {
+            "availability": 440,
             "name": "ИсточникРасширенийКонфигурации",
             "name_en": "ConfigExtensionsSource",
             "description": "Определяет источник получения списка расширений.",
@@ -29268,6 +30136,7 @@ let bslGlobals = {
             }
         },
         "КодировкаТекста": {
+            "availability": 511,
             "name": "КодировкаТекста",
             "name_en": "TextEncoding",
             "description": "Определяет набор допустимых кодировок текстовых файлов.",
@@ -29300,6 +30169,7 @@ let bslGlobals = {
             }
         },
         "НаправлениеСортировки": {
+            "availability": 508,
             "name": "НаправлениеСортировки",
             "name_en": "SortDirection",
             "description": "Определяет возможные способы сортировки.",
@@ -29317,6 +30187,7 @@ let bslGlobals = {
             }
         },
         "РежимДиалогаВопрос": {
+            "availability": 87,
             "name": "РежимДиалогаВопрос",
             "name_en": "QuestionDialogMode",
             "description": "Определяет набор вариантов состава кнопок окна диалога вопроса. Используется в качестве параметра функции",
@@ -29354,6 +30225,7 @@ let bslGlobals = {
             }
         },
         "РежимОкругления": {
+            "availability": 511,
             "name": "РежимОкругления",
             "name_en": "RoundMode",
             "description": "Определяет режим округления.",
@@ -29371,6 +30243,7 @@ let bslGlobals = {
             }
         },
         "РежимПолнотекстовогоПоиска": {
+            "availability": 440,
             "name": "РежимПолнотекстовогоПоиска",
             "name_en": "FullTextSearchMode",
             "description": "Разрешает (запрещает) все операции полнотекстового поиска: обновление индексов, очистка индексов, поиск.",
@@ -29388,6 +30261,7 @@ let bslGlobals = {
             }
         },
         "ВидОтображенияПолнотекстовогоПоиска": {
+            "availability": 440,
             "name": "ВидОтображенияПолнотекстовогоПоиска",
             "name_en": "FullTextSearchRepresentationType",
             "description": "Содержит варианты представления полнотекстового поиска.",
@@ -29405,6 +30279,7 @@ let bslGlobals = {
             }
         },
         "РежимРабочейДаты": {
+            "availability": 16,
             "name": "РежимРабочейДаты",
             "name_en": "WorkingDateMode",
             "description": "Определяет набор вариантов использования рабочей даты в глобальном контексте. Используется для определения свойства",
@@ -29422,6 +30297,7 @@ let bslGlobals = {
             }
         },
         "СтатусСообщения": {
+            "availability": 479,
             "name": "СтатусСообщения",
             "name_en": "MessageStatus",
             "description": "Определяет набор статусов сообщений, обозначаемых пиктограммами при выводе сообщений в окно сообщений.",
@@ -29459,6 +30335,7 @@ let bslGlobals = {
             }
         },
         "ВариантСтандартнойДатыНачала": {
+            "availability": 511,
             "name": "ВариантСтандартнойДатыНачала",
             "name_en": "StandardBeginningDateVariant",
             "description": "Содержит возможные варианты стандартных дат начала.",
@@ -29576,6 +30453,7 @@ let bslGlobals = {
             }
         },
         "ВариантСтандартногоПериода": {
+            "availability": 511,
             "name": "ВариантСтандартногоПериода",
             "name_en": "StandardPeriodVariant",
             "description": "Содержит возможные варианты стандартного периода компоновки данных.",
@@ -29828,6 +30706,7 @@ let bslGlobals = {
             }
         },
         "ТипПоведенияКлавишиEnter": {
+            "availability": 63,
             "name": "ТипПоведенияКлавишиEnter",
             "name_en": "EnterKeyBehaviorType",
             "description": "Определяет набор типов поведения формы при нажатии клавиши Enter. Используется для определения свойства",
@@ -29845,6 +30724,7 @@ let bslGlobals = {
             }
         },
         "ЧастиДаты": {
+            "availability": 511,
             "name": "ЧастиДаты",
             "name_en": "DateFractions",
             "description": "Определяет набор вариантов использования значений типа",
@@ -29867,6 +30747,7 @@ let bslGlobals = {
             }
         },
         "ПроверкаЗаполнения": {
+            "availability": 511,
             "name": "ПроверкаЗаполнения",
             "name_en": "FillChecking",
             "description": "Содержит варианты проверки заполнения реквизитов.",
@@ -29884,6 +30765,7 @@ let bslGlobals = {
             }
         },
         "РежимЗапускаКлиентскогоПриложения": {
+            "availability": 511,
             "name": "РежимЗапускаКлиентскогоПриложения",
             "name_en": "ClientRunMode",
             "description": "Содержит варианты режимов запуска клиентского приложения.",
@@ -29906,6 +30788,7 @@ let bslGlobals = {
             }
         },
         "РежимОткрытияФормПриложения": {
+            "availability": 31,
             "name": "РежимОткрытияФормПриложения",
             "name_en": "ApplicationFormsOpenningMode",
             "description": "Содержит варианты открытия форм приложения.",
@@ -29923,6 +30806,7 @@ let bslGlobals = {
             }
         },
         "ОтображениеПанелиРазделов": {
+            "availability": 63,
             "name": "ОтображениеПанелиРазделов",
             "name_en": "SectionsPanelRepresentation",
             "description": "Содержит варианты режимов отображения панели разделов приложения.",
@@ -29955,6 +30839,7 @@ let bslGlobals = {
             }
         },
         "ВариантОсновногоШрифтаКлиентскогоПриложения": {
+            "availability": 31,
             "name": "ВариантОсновногоШрифтаКлиентскогоПриложения",
             "name_en": "ClientApplicationBaseFontVariant",
             "description": "Содержит варианты основного шрифта приложения.",
@@ -29972,6 +30857,7 @@ let bslGlobals = {
             }
         },
         "ТипПлатформы": {
+            "availability": 511,
             "name": "ТипПлатформы",
             "name_en": "PlatformType",
             "description": "Содержит возможные типы платформы.",
@@ -30009,6 +30895,7 @@ let bslGlobals = {
             }
         },
         "ТипВнешнейКомпоненты": {
+            "availability": 511,
             "name": "ТипВнешнейКомпоненты",
             "name_en": "AddInType",
             "description": "Содержит типы реализации внешнего компонента.",
@@ -30026,6 +30913,7 @@ let bslGlobals = {
             }
         },
         "СкоростьКлиентскогоСоединения": {
+            "availability": 63,
             "name": "СкоростьКлиентскогоСоединения",
             "name_en": "ClientConnectionSpeed",
             "description": "Содержит варианты скорости клиентского соединения.",
@@ -30043,6 +30931,7 @@ let bslGlobals = {
             }
         },
         "ОбновлениеПриИзмененииДанных": {
+            "availability": 511,
             "name": "ОбновлениеПриИзмененииДанных",
             "name_en": "UpdateOnDataChange",
             "description": "Содержит варианты режимов обновления элемента формы.",
@@ -30060,6 +30949,7 @@ let bslGlobals = {
             }
         },
         "СостояниеВнешнегоИсточникаДанных": {
+            "availability": 56,
             "name": "СостояниеВнешнегоИсточникаДанных",
             "name_en": "ExternalDataSourceState",
             "description": "Содержит возможные состояния внешнего источника данных.",
@@ -30077,6 +30967,7 @@ let bslGlobals = {
             }
         },
         "СостояниеОбновленияКонфигурацииБазыДанных": {
+            "availability": 56,
             "name": "СостояниеОбновленияКонфигурацииБазыДанных",
             "name_en": "DataBaseConfigurationUpdateState",
             "description": "Содержит варианты текущих фаз обновления конфигурации базы данных.",
@@ -30099,6 +30990,7 @@ let bslGlobals = {
             }
         },
         "ТипЭлементаИнформацииОВыполненииОбновленияКонфигурацииБазыДанных": {
+            "availability": 56,
             "name": "ТипЭлементаИнформацииОВыполненииОбновленияКонфигурацииБазыДанных",
             "name_en": "DataBaseConfigurationUpdateExecutionInformationItemType",
             "description": "Содержит типы элементов информации о выполнении обновления конфигурации базы данных.",
@@ -30121,6 +31013,7 @@ let bslGlobals = {
             }
         },
         "СпособВыбораСертификатаWindows": {
+            "availability": 21,
             "name": "СпособВыбораСертификатаWindows",
             "name_en": "WindowsCertificateSelectMode",
             "description": "Содержит варианты способов выбора клиентского сертификата из подходящих сертификатов, установленных в системном хранилище сертификатов операционной системы MS Windows.",
@@ -30138,6 +31031,7 @@ let bslGlobals = {
             }
         },
         "ХешФункция": {
+            "availability": 440,
             "name": "ХешФункция",
             "name_en": "HashFunction",
             "description": "Варианты типов хеш-функции. Определяет способ вычисления хеш-суммы и тип вычисляемого значения.",
@@ -30165,6 +31059,7 @@ let bslGlobals = {
             }
         },
         "СпособКодированияСтроки": {
+            "availability": 440,
             "name": "СпособКодированияСтроки",
             "name_en": "StringEncodingMethod",
             "description": "Варианты кодирования строк.",
@@ -30182,6 +31077,7 @@ let bslGlobals = {
             }
         },
         "ИспользованиеМетаданныхПолнотекстовогоПоиска": {
+            "availability": 440,
             "name": "ИспользованиеМетаданныхПолнотекстовогоПоиска",
             "name_en": "FullTextSearchMetadataUse",
             "description": "Содержит возможные варианты использования метаданных при полнотекстовом поиске.",
@@ -30199,6 +31095,7 @@ let bslGlobals = {
             }
         },
         "УровеньИзоляцииТранзакций": {
+            "availability": 56,
             "name": "УровеньИзоляцииТранзакций",
             "name_en": "TransactionsIsolationLevel",
             "description": "Содержит варианты уровней изоляции транзакций внешних источников данных.",
@@ -30231,6 +31128,7 @@ let bslGlobals = {
             }
         },
         "ВариантИнтерфейсаКлиентскогоПриложения": {
+            "availability": 31,
             "name": "ВариантИнтерфейсаКлиентскогоПриложения",
             "name_en": "ClientApplicationInterfaceVariant",
             "description": "Вариант интерфейса клиентского приложения.",
@@ -30248,6 +31146,7 @@ let bslGlobals = {
             }
         },
         "РежимСовместимостиИнтерфейса": {
+            "availability": 56,
             "name": "РежимСовместимостиИнтерфейса",
             "name_en": "InterfaceCompatibilityMode",
             "description": "Содержит возможные варианты режима интерфейса клиентского приложения.",
@@ -30275,6 +31174,7 @@ let bslGlobals = {
             }
         },
         "ВариантМасштабаФормКлиентскогоПриложения": {
+            "availability": 31,
             "name": "ВариантМасштабаФормКлиентскогоПриложения",
             "name_en": "ClientApplicationFormScaleVariant",
             "description": "Содержит варианты масштаба отображения форм в клиентском приложении.",
@@ -30297,6 +31197,7 @@ let bslGlobals = {
             }
         },
         "НаправлениеПоиска": {
+            "availability": 511,
             "name": "НаправлениеПоиска",
             "name_en": "SearchDirection",
             "description": "Определяет направление поиска подстроки в строке.",
@@ -30314,6 +31215,7 @@ let bslGlobals = {
             }
         },
         "ИспользованиеByteOrderMark": {
+            "availability": 509,
             "name": "ИспользованиеByteOrderMark",
             "name_en": "ByteOrderMarkUse",
             "description": "Содержит варианты использования метки порядка байтов ( от англ. Byte Order Mark (BOM)) при кодировании строк.",
@@ -30336,6 +31238,7 @@ let bslGlobals = {
             }
         },
         "ОбновлениеПредопределенныхДанных": {
+            "availability": 440,
             "name": "ОбновлениеПредопределенныхДанных",
             "name_en": "PredefinedDataUpdate",
             "description": "Определяет режим обновления предопределенных данных.",
@@ -30358,6 +31261,7 @@ let bslGlobals = {
             }
         },
         "ВажностьПроблемыПримененияРасширенияКонфигурации": {
+            "availability": 440,
             "name": "ВажностьПроблемыПримененияРасширенияКонфигурации",
             "name_en": "ConfigurationExtensionApplicationIssueSeverity",
             "description": "Уровни важности проблемы применения расширения конфигурации.",
@@ -30380,6 +31284,7 @@ let bslGlobals = {
             }
         },
         "ПоложениеОтносительноГеозоны": {
+            "availability": 492,
             "name": "ПоложениеОтносительноГеозоны",
             "name_en": "LocationRelativeToGeofence",
             "description": "Описывает положение точки относильно геозоны.",
@@ -30397,6 +31302,7 @@ let bslGlobals = {
             }
         },
         "ВидЧисловогоЗначения": {
+            "availability": 479,
             "name": "ВидЧисловогоЗначения",
             "name_en": "NumericValueType",
             "description": "Содержит виды числовых значений.",
@@ -30414,6 +31320,7 @@ let bslGlobals = {
             }
         },
         "ОбластьДействияРасширенияКонфигурации": {
+            "availability": 440,
             "name": "ОбластьДействияРасширенияКонфигурации",
             "name_en": "ConfigurationExtensionScope",
             "description": "Содержит варианты возможных областей действия расширения конфигурации.",
@@ -30431,6 +31338,7 @@ let bslGlobals = {
             }
         },
         "РежимРазделенияСоставныхСлов": {
+            "availability": 440,
             "name": "РежимРазделенияСоставныхСлов",
             "name_en": "CompositeWordsSeparationMode",
             "description": "Содержит варианты режимов использования механизма разделения слов на значащие части при построении индекса полнотекстового поиска.",
@@ -30453,6 +31361,7 @@ let bslGlobals = {
             }
         },
         "ВидКлючаДинамическогоСписка": {
+            "availability": 56,
             "name": "ВидКлючаДинамическогоСписка",
             "name_en": "DynamicListKeyType",
             "description": "Содержит варианты видов ключа динамического списка.",
@@ -30480,6 +31389,7 @@ let bslGlobals = {
             }
         },
         "СпособВыбораСертификатаMacOS": {
+            "availability": 21,
             "name": "СпособВыбораСертификатаMacOS",
             "name_en": "MacOSCertificateSelectMode",
             "description": "Содержит варианты способов выбора клиентского сертификата из подходящих сертификатов, установленных в системном хранилище сертификатов операционной системы macOS.",
@@ -30497,6 +31407,7 @@ let bslGlobals = {
             }
         },
         "СтандартныйВидГлобальногоПоиска": {
+            "availability": 511,
             "name": "СтандартныйВидГлобальногоПоиска",
             "name_en": "StandardGlobalSearchType",
             "description": "Содержит варианты стандартных элементов плана глобального поиска.",
@@ -30564,6 +31475,7 @@ let bslGlobals = {
             }
         },
         "ТипСвязиВложенияPDF": {
+            "availability": 27,
             "name": "ТипСвязиВложенияPDF",
             "name_en": "PDFAttachmentRelationshipType",
             "description": "Содержит варианты типов взаимоотношения между вложенным файлом и содержимым документа PDF.",
@@ -30596,6 +31508,7 @@ let bslGlobals = {
             }
         },
         "ТипПодписиPDF": {
+            "availability": 27,
             "name": "ТипПодписиPDF",
             "name_en": "PDFSignatureType",
             "description": "Содержит варианты типа подписи документа PDF.",
@@ -30613,6 +31526,7 @@ let bslGlobals = {
             }
         },
         "РазрешенияДоступаИзмененияPDF": {
+            "availability": 27,
             "name": "РазрешенияДоступаИзмененияPDF",
             "name_en": "PDFModificationAccessPermissions",
             "description": "Содержит варианты разрешения доступа на изменение PDF-документа. Используется только для сертифицирующей подписи.",
@@ -30635,6 +31549,7 @@ let bslGlobals = {
             }
         },
         "ВидПодписейКДиаграмме": {
+            "availability": 511,
             "name": "ВидПодписейКДиаграмме",
             "name_en": "ChartLabelType",
             "description": "Содержит варианты видов подписей к областям круговых диаграмм, а также видов подсказки к областям. Если размеры диаграммы не позволяют разместить диаграмму с указанным форматом подписей, видов подписей автоматически перейдёт в режим \"Нет\". При этом подсказки не изменятся.",
@@ -30757,6 +31672,7 @@ let bslGlobals = {
             }
         },
         "МаксимумСерий": {
+            "availability": 511,
             "name": "МаксимумСерий",
             "name_en": "MaxSeries",
             "description": "Содержит варианты режимов ограничения количества серий в диаграмме. Используется для определения свойства",
@@ -30779,6 +31695,7 @@ let bslGlobals = {
             }
         },
         "ОриентацияДиаграммы": {
+            "availability": 511,
             "name": "ОриентацияДиаграммы",
             "name_en": "ChartOrientation",
             "description": "Содержит варианты ориентации изометрических диаграмм. Используется для определения свойства",
@@ -30796,6 +31713,7 @@ let bslGlobals = {
             }
         },
         "РежимПробеловДиаграммы": {
+            "availability": 511,
             "name": "РежимПробеловДиаграммы",
             "name_en": "ChartSpaceMode",
             "description": "Содержит варианты выбора расстояния между группами серий в гистограммах, а также между значениями в изометрических диаграммах.",
@@ -30818,6 +31736,7 @@ let bslGlobals = {
             }
         },
         "ТипДиаграммы": {
+            "availability": 511,
             "name": "ТипДиаграммы",
             "name_en": "ChartType",
             "description": "Содержит типы диаграмм. Используется для определения свойства",
@@ -31060,6 +31979,7 @@ let bslGlobals = {
             }
         },
         "ТипМаркераДиаграммы": {
+            "availability": 511,
             "name": "ТипМаркераДиаграммы",
             "name_en": "ChartMarkerType",
             "description": "Содержит типы маркера, которым отмечаются значения в точках для диаграммы",
@@ -31097,6 +32017,7 @@ let bslGlobals = {
             }
         },
         "ТипЛинииДиаграммы": {
+            "availability": 511,
             "name": "ТипЛинииДиаграммы",
             "name_en": "ChartLineType",
             "description": "Содержит варианты стилей линий, используемых при рисовании диаграмм.",
@@ -31134,6 +32055,7 @@ let bslGlobals = {
             }
         },
         "АвтоРаздвижениеСерий": {
+            "availability": 511,
             "name": "АвтоРаздвижениеСерий",
             "name_en": "AutoSeriesSeparation",
             "description": "Содержит варианты режимов автоматического раздвижения серий для круговых диаграмм.",
@@ -31161,6 +32083,7 @@ let bslGlobals = {
             }
         },
         "ПоложениеПодписейКДиаграмме": {
+            "availability": 511,
             "name": "ПоложениеПодписейКДиаграмме",
             "name_en": "ChartLabelLocation",
             "description": "Определяет положение подписей в диаграмме. Для гистограмм с накоплением и нормированных гистограмм всегда используется вариант",
@@ -31223,6 +32146,7 @@ let bslGlobals = {
             }
         },
         "ТипШкалыРадарнойДиаграммы": {
+            "availability": 511,
             "name": "ТипШкалыРадарнойДиаграммы",
             "name_en": "RadarChartScaleType",
             "description": "Определяет способ отображения линий в шкале радарных диаграмм.",
@@ -31240,6 +32164,7 @@ let bslGlobals = {
             }
         },
         "ОтображениеЗначенияИзмерительнойДиаграммы": {
+            "availability": 511,
             "name": "ОтображениеЗначенияИзмерительнойДиаграммы",
             "name_en": "GaugeChartValueRepresentation",
             "description": "Определяет способ отображения значений в измерительной диаграмме.",
@@ -31257,6 +32182,7 @@ let bslGlobals = {
             }
         },
         "ПоложениеПодписейШкалыЗначенийИзмерительнойДиаграммы": {
+            "availability": 511,
             "name": "ПоложениеПодписейШкалыЗначенийИзмерительнойДиаграммы",
             "name_en": "GaugeChartValuesScaleLabelsLocation",
             "description": "Определяет положение подписей к шкале измерительной диаграммы.",
@@ -31274,6 +32200,7 @@ let bslGlobals = {
             }
         },
         "ПалитраЦветовДиаграммы": {
+            "availability": 511,
             "name": "ПалитраЦветовДиаграммы",
             "name_en": "ChartColorPalette",
             "description": "Содержит варианты палитр цветов, которые могут использоваться диаграммой при создании новых серий.",
@@ -31361,6 +32288,7 @@ let bslGlobals = {
             }
         },
         "ОриентацияПодписейДиаграммы": {
+            "availability": 511,
             "name": "ОриентацияПодписейДиаграммы",
             "name_en": "ChartLabelsOrientation",
             "description": "Содержит варианты ориентации меток диаграммы.",
@@ -31388,6 +32316,7 @@ let bslGlobals = {
             }
         },
         "РежимСглаживанияДиаграммы": {
+            "availability": 63,
             "name": "РежимСглаживанияДиаграммы",
             "name_en": "ChartSplineMode",
             "description": "Содержит режимы использования сплайнов (\"гладких\" кривых) в диаграммах \"непрерывного\" вида для визуализации соединений между точками серий.",
@@ -31405,6 +32334,7 @@ let bslGlobals = {
             }
         },
         "РежимПолупрозрачностиДиаграммы": {
+            "availability": 63,
             "name": "РежимПолупрозрачностиДиаграммы",
             "name_en": "ChartSemitransparencyMode",
             "description": "Содержит режимы полупрозрачности диаграмм, с помощью которых выполняется управление полупрозрачностью перекрывающихся элементов диаграмм.",
@@ -31432,6 +32362,7 @@ let bslGlobals = {
             }
         },
         "ТипСоединенияЗначенийПоСериямДиаграммы": {
+            "availability": 63,
             "name": "ТипСоединенияЗначенийПоСериямДиаграммы",
             "name_en": "ChartValuesBySeriesConnectionType",
             "description": "Содержит варианты типов соединения значений по сериям в гистограммах с накоплением.",
@@ -31449,6 +32380,7 @@ let bslGlobals = {
             }
         },
         "АнимацияДиаграммы": {
+            "availability": 63,
             "name": "АнимацияДиаграммы",
             "name_en": "ChartAnimation",
             "description": "Содержит варианты анимации диаграммы.",
@@ -31471,6 +32403,7 @@ let bslGlobals = {
             }
         },
         "ТипАппроксимацииЛинииТрендаДиаграммы": {
+            "availability": 59,
             "name": "ТипАппроксимацииЛинииТрендаДиаграммы",
             "name_en": "ChartTrendlineApproximationType",
             "description": "Содержит варианты алгоритма аппроксимации линии тренда.",
@@ -31503,6 +32436,7 @@ let bslGlobals = {
             }
         },
         "ФакторЛинииТрендаДиаграммы": {
+            "availability": 59,
             "name": "ФакторЛинииТрендаДиаграммы",
             "name_en": "ChartTrendlineFactor",
             "description": "Содержит варианты фактора линии тренда.",
@@ -31525,6 +32459,7 @@ let bslGlobals = {
             }
         },
         "ИспользуемоеЗначениеТочкиБиржевойДиаграммы": {
+            "availability": 59,
             "name": "ИспользуемоеЗначениеТочкиБиржевойДиаграммы",
             "name_en": "StockChartUsedPointValue",
             "description": "Содержит варианты выбора значения в биржевой диаграмме для линий тренда.",
@@ -31557,6 +32492,7 @@ let bslGlobals = {
             }
         },
         "ОтображениеВДиаграмме": {
+            "availability": 511,
             "name": "ОтображениеВДиаграмме",
             "name_en": "ShowInChart",
             "description": "Содержит варианты режимов отображения серии при отрисовке диаграммы.",
@@ -31579,6 +32515,7 @@ let bslGlobals = {
             }
         },
         "ОтображениеВЛегендеДиаграммы": {
+            "availability": 510,
             "name": "ОтображениеВЛегендеДиаграммы",
             "name_en": "ShowInChartLegend",
             "description": "Предназначен для управления режимом отображения серии в легенде диаграммы.",
@@ -31601,6 +32538,7 @@ let bslGlobals = {
             }
         },
         "ПорядокСерийВЛегендеДиаграммы": {
+            "availability": 59,
             "name": "ПорядокСерийВЛегендеДиаграммы",
             "name_en": "ChartSeriesOrderInLegend",
             "description": "Содержит варианты порядка расположения серий в легенде.",
@@ -31623,6 +32561,7 @@ let bslGlobals = {
             }
         },
         "ИсточникЗначенийОсиТочекДиаграммы": {
+            "availability": 59,
             "name": "ИсточникЗначенийОсиТочекДиаграммы",
             "name_en": "ChartPointsAxisValuesSource",
             "description": "Содержит варианты источника данных, откладываемых на оси точек.",
@@ -31645,6 +32584,7 @@ let bslGlobals = {
             }
         },
         "ИсточникЗначенияРазмераПузырькаДиаграммы": {
+            "availability": 59,
             "name": "ИсточникЗначенияРазмераПузырькаДиаграммы",
             "name_en": "ChartBubbleSizeValueSource",
             "description": "Содержит варианты источника значений размера пузырька диаграммы.",
@@ -31667,6 +32607,7 @@ let bslGlobals = {
             }
         },
         "ВлияниеРазмераНаПузырекДиаграммы": {
+            "availability": 59,
             "name": "ВлияниеРазмераНаПузырекДиаграммы",
             "name_en": "ChartBubbleSizing",
             "description": "Содержит варианты зависимости размера пузырька от значения размера точки.",
@@ -31694,6 +32635,7 @@ let bslGlobals = {
             }
         },
         "ОтображениеОтрицательныхЗначенийПузырьковойДиаграммы": {
+            "availability": 59,
             "name": "ОтображениеОтрицательныхЗначенийПузырьковойДиаграммы",
             "name_en": "BubbleChartNegativeValuesShowMode",
             "description": "Содержит варианты отображения пузырьков с отрицательными значениями размера.",
@@ -31721,6 +32663,7 @@ let bslGlobals = {
             }
         },
         "ТипСоединенияТочекДиаграммы": {
+            "availability": 59,
             "name": "ТипСоединенияТочекДиаграммы",
             "name_en": "ChartPointsConnectionType",
             "description": "Содержит варианты соединения точек диаграммы.",
@@ -31743,6 +32686,7 @@ let bslGlobals = {
             }
         },
         "СпособОпределенияОграничивающегоЗначенияДиаграммы": {
+            "availability": 59,
             "name": "СпособОпределенияОграничивающегоЗначенияДиаграммы",
             "name_en": "ChartBoundaryDetectionMethod",
             "description": "Содержит варианты расчета ограничивающего значения диаграммы.",
@@ -31765,6 +32709,7 @@ let bslGlobals = {
             }
         },
         "ПорядокОтображенияТочекГоризонтальнойГистограммы": {
+            "availability": 59,
             "name": "ПорядокОтображенияТочекГоризонтальнойГистограммы",
             "name_en": "BarChartPointsOrder",
             "description": "Содержит варианты порядка вывода точек в горизонтальных гистограммах.",
@@ -31787,6 +32732,7 @@ let bslGlobals = {
             }
         },
         "СпособЗаполненияТекстаЗаголовкаШкалыДиаграммы": {
+            "availability": 59,
             "name": "СпособЗаполненияТекстаЗаголовкаШкалыДиаграммы",
             "name_en": "ChartScaleTitleTextSource",
             "description": "Содержит варианты получения текста для заголовка шкалы диаграммы.",
@@ -31809,6 +32755,7 @@ let bslGlobals = {
             }
         },
         "ОтображениеЗаголовкаШкалыДиаграммы": {
+            "availability": 59,
             "name": "ОтображениеЗаголовкаШкалыДиаграммы",
             "name_en": "ShowChartScaleTitle",
             "description": "Определяет варианты отображения заголовка шкалы диаграммы.",
@@ -31831,6 +32778,7 @@ let bslGlobals = {
             }
         },
         "РасположениеЗаголовкаШкалыДиаграммы": {
+            "availability": 59,
             "name": "РасположениеЗаголовкаШкалыДиаграммы",
             "name_en": "ChartScaleTitlePlacement",
             "description": "Содержит варианты расположения области заголовка шкалы диаграммы.",
@@ -31853,6 +32801,7 @@ let bslGlobals = {
             }
         },
         "ОтображениеЛинийСеткиДиаграммы": {
+            "availability": 59,
             "name": "ОтображениеЛинийСеткиДиаграммы",
             "name_en": "ChartGridLinesShowMode",
             "description": "Содержит варианты отображения линий сетки диаграммы.",
@@ -31875,6 +32824,7 @@ let bslGlobals = {
             }
         },
         "ПоложениеШкалыДиаграммы": {
+            "availability": 59,
             "name": "ПоложениеШкалыДиаграммы",
             "name_en": "ChartScaleLocation",
             "description": "Содержит варианты положения шкалы диаграммы.",
@@ -31897,6 +32847,7 @@ let bslGlobals = {
             }
         },
         "ПоложениеОтметокШкалыДиаграммы": {
+            "availability": 59,
             "name": "ПоложениеОтметокШкалыДиаграммы",
             "name_en": "ChartScaleMarkLocation",
             "description": "Содержит варианты положения отметок на шкале диаграммы.",
@@ -31929,6 +32880,7 @@ let bslGlobals = {
             }
         },
         "ПоложениеПодписейШкалыДиаграммы": {
+            "availability": 59,
             "name": "ПоложениеПодписейШкалыДиаграммы",
             "name_en": "ChartScaleLabelLocation",
             "description": "Определяет положение подписей шкалы в диаграмме.",
@@ -31956,6 +32908,7 @@ let bslGlobals = {
             }
         },
         "РасположениеЛегендыДиаграммы": {
+            "availability": 27,
             "name": "РасположениеЛегендыДиаграммы",
             "name_en": "ChartLegendPlacement",
             "description": "Содержит варианты расположения легенды диаграммы.",
@@ -31998,6 +32951,7 @@ let bslGlobals = {
             }
         },
         "РасположениеОбластиПостроенияДиаграммы": {
+            "availability": 27,
             "name": "РасположениеОбластиПостроенияДиаграммы",
             "name_en": "ChartPlotAreaPlacement",
             "description": "Содержит варианты расположения области построения диаграммы.",
@@ -32020,6 +32974,7 @@ let bslGlobals = {
             }
         },
         "РасположениеОбластиЗаголовкаДиаграммы": {
+            "availability": 27,
             "name": "РасположениеОбластиЗаголовкаДиаграммы",
             "name_en": "ChartTitleAreaPlacement",
             "description": "Содержит варианты расположения области заголовка диаграммы.",
@@ -32072,6 +33027,7 @@ let bslGlobals = {
             }
         },
         "ПоложениеИнформационнойЛинииДиаграммы": {
+            "availability": 27,
             "name": "ПоложениеИнформационнойЛинииДиаграммы",
             "name_en": "ChartReferenceLinePosition",
             "description": "Варианты расположения информационной линии в точках диаграммы.",
@@ -32094,6 +33050,7 @@ let bslGlobals = {
             }
         },
         "ПоложениеГраницыИнформационногоИнтервалаДиаграммы": {
+            "availability": 27,
             "name": "ПоложениеГраницыИнформационногоИнтервалаДиаграммы",
             "name_en": "ChartReferenceBandBorderPosition",
             "description": "Содержит варианты расположения границы информационного интервала в точках диаграммы.",
@@ -32116,6 +33073,7 @@ let bslGlobals = {
             }
         },
         "ИспользованиеНечисловыхЗначенийДиаграммы": {
+            "availability": 27,
             "name": "ИспользованиеНечисловыхЗначенийДиаграммы",
             "name_en": "NonnumericChartValueUse",
             "description": "Содержит варианты режима использования значений диаграммы, которые не приводятся к числу.",
@@ -32138,6 +33096,7 @@ let bslGlobals = {
             }
         },
         "ТипСоединенияТочекПриПропущенныхЗначенияхДиаграммы": {
+            "availability": 27,
             "name": "ТипСоединенияТочекПриПропущенныхЗначенияхДиаграммы",
             "name_en": "PointsConnectionAcrossSkippedChartValuesType",
             "description": "Содержит варианты соединения точек при пропущенных значениях диаграммы.",
@@ -32165,6 +33124,7 @@ let bslGlobals = {
             }
         },
         "РежимВыделенияДиаграммы": {
+            "availability": 27,
             "name": "РежимВыделенияДиаграммы",
             "name_en": "ChartSelectionMode",
             "description": "Содержит варианты режимов выделения диаграммы.",
@@ -32192,6 +33152,7 @@ let bslGlobals = {
             }
         },
         "ЗаполнениеПодсказкиЗначенийДиаграммы": {
+            "availability": 27,
             "name": "ЗаполнениеПодсказкиЗначенийДиаграммы",
             "name_en": "ChartValuesToolTipFillType",
             "description": "Содержит варианты заполнения подсказки для значений диаграммы.",
@@ -32214,6 +33175,7 @@ let bslGlobals = {
             }
         },
         "ОтображатьВсплывающуюИнформационнуюЛиниюДиаграммы": {
+            "availability": 27,
             "name": "ОтображатьВсплывающуюИнформационнуюЛиниюДиаграммы",
             "name_en": "ShowChartPopupReferenceLine",
             "description": "Содержит варианты отображения всплывающей информационной линии диаграммы.",
@@ -32236,6 +33198,7 @@ let bslGlobals = {
             }
         },
         "ОтображениеПодсказкиЗначенийДиаграммы": {
+            "availability": 27,
             "name": "ОтображениеПодсказкиЗначенийДиаграммы",
             "name_en": "ChartValuesToolTipShowMode",
             "description": "Определяет набор режимов отображения всплывающей подсказки для значений диаграммы.",
@@ -32263,6 +33226,7 @@ let bslGlobals = {
             }
         },
         "ТипГрафическогоПредставленияСерииДиаграммы": {
+            "availability": 27,
             "name": "ТипГрафическогоПредставленияСерииДиаграммы",
             "name_en": "ChartSeriesGraphicalRepresentationType",
             "description": "Содержит варианты отображения серии в диаграмме.",
@@ -32300,6 +33264,7 @@ let bslGlobals = {
             }
         },
         "ТипНакопленияСерииДиаграммы": {
+            "availability": 27,
             "name": "ТипНакопленияСерииДиаграммы",
             "name_en": "ChartSeriesStackType",
             "description": "Задает тип накопления серии, отличный от типа накопления диаграммы.",
@@ -32327,6 +33292,7 @@ let bslGlobals = {
             }
         },
         "ИспользуемаяОсьЗначенийДиаграммы": {
+            "availability": 27,
             "name": "ИспользуемаяОсьЗначенийДиаграммы",
             "name_en": "UsedChartValuesAxis",
             "description": "Задает ось значений, на которой строится серия диаграммы.",
@@ -32349,6 +33315,7 @@ let bslGlobals = {
             }
         },
         "РежимРедактированияЗначенийДиаграммы": {
+            "availability": 27,
             "name": "РежимРедактированияЗначенийДиаграммы",
             "name_en": "ChartValuesEditMode",
             "description": "Содержит варианты режима редактирования значений диаграммы.",
@@ -32371,6 +33338,7 @@ let bslGlobals = {
             }
         },
         "СостояниеРедактированияЗначенияДиаграммы": {
+            "availability": 27,
             "name": "СостояниеРедактированияЗначенияДиаграммы",
             "name_en": "ChartValueEditState",
             "description": "Содержит варианты состояния редактирования значения диаграммы.",
@@ -32393,6 +33361,7 @@ let bslGlobals = {
             }
         },
         "ТипЕдиницыШкалыВремени": {
+            "availability": 63,
             "name": "ТипЕдиницыШкалыВремени",
             "name_en": "TimeScaleUnitType",
             "description": "Содержит варианты единиц измерения шкалы времени диаграммы Ганта.",
@@ -32440,6 +33409,7 @@ let bslGlobals = {
             }
         },
         "ПоложениеШкалыВремени": {
+            "availability": 63,
             "name": "ПоложениеШкалыВремени",
             "name_en": "TimeScalePosition",
             "description": "Содержит варианты положения шкалы времени диаграммы Ганта.",
@@ -32467,6 +33437,7 @@ let bslGlobals = {
             }
         },
         "ПоддержкаМасштабаДиаграммыГанта": {
+            "availability": 63,
             "name": "ПоддержкаМасштабаДиаграммыГанта",
             "name_en": "GanttChartScaleKeeping",
             "description": "Содержит варианты поддержки масштаба шкалы времени в видимой области диаграммы Ганта.",
@@ -32494,6 +33465,7 @@ let bslGlobals = {
             }
         },
         "ФорматДняШкалыВремени": {
+            "availability": 63,
             "name": "ФорматДняШкалыВремени",
             "name_en": "TimeScaleDayFormat",
             "description": "Содержит варианты предпочтительного формата дня для элемента шкалы времени с единицей времени",
@@ -32521,6 +33493,7 @@ let bslGlobals = {
             }
         },
         "ОтображениеИнтервалаДиаграммыГанта": {
+            "availability": 63,
             "name": "ОтображениеИнтервалаДиаграммыГанта",
             "name_en": "GanttChartIntervalRepresentation",
             "description": "Содержит варианты видов интервалов при отображении.",
@@ -32548,6 +33521,7 @@ let bslGlobals = {
             }
         },
         "РастягиваниеПоВертикалиДиаграммыГанта": {
+            "availability": 63,
             "name": "РастягиваниеПоВертикалиДиаграммыГанта",
             "name_en": "GanttChartVerticalStretch",
             "description": "Содержит варианты способов масштабирования строк.",
@@ -32570,6 +33544,7 @@ let bslGlobals = {
             }
         },
         "ОтображениеТекстаЗначенияДиаграммыГанта": {
+            "availability": 63,
             "name": "ОтображениеТекстаЗначенияДиаграммыГанта",
             "name_en": "GanttChartValueTextRepresentation",
             "description": "Содержит варианты отображения текста значения диаграммы Ганта.",
@@ -32587,6 +33562,7 @@ let bslGlobals = {
             }
         },
         "ТипСвязиДиаграммыГанта": {
+            "availability": 63,
             "name": "ТипСвязиДиаграммыГанта",
             "name_en": "GanttChartLinkType",
             "description": "Тип связи между интервалами диаграммы Ганта.",
@@ -32614,6 +33590,7 @@ let bslGlobals = {
             }
         },
         "ОриентацияДендрограммы": {
+            "availability": 63,
             "name": "ОриентацияДендрограммы",
             "name_en": "DendrogramOrientation",
             "description": "Содержит варианты ориентации связей дендрограммы. Метки будут располагаться противоположно ориентации связей. Например: если для связей задана ориентация",
@@ -32641,6 +33618,7 @@ let bslGlobals = {
             }
         },
         "ПоддержкаМасштабаДендрограммы": {
+            "availability": 63,
             "name": "ПоддержкаМасштабаДендрограммы",
             "name_en": "DendrogramScaleKeeping",
             "description": "Содержит варианты способов поддержки масштаба (количества одновременно отображаемых значений) при изменении размеров области построения.",
@@ -32663,6 +33641,7 @@ let bslGlobals = {
             }
         },
         "ОтображениеЗначенийСводнойДиаграммы": {
+            "availability": 25,
             "name": "ОтображениеЗначенийСводнойДиаграммы",
             "name_en": "PivotChartValuesShowMode",
             "description": "Содержит варианты способов представления иерархических измерений в сводной диаграмме.",
@@ -32680,6 +33659,7 @@ let bslGlobals = {
             }
         },
         "ПоддержкаМасштабаСводнойДиаграммы": {
+            "availability": 25,
             "name": "ПоддержкаМасштабаСводнойДиаграммы",
             "name_en": "PivotChartScaleKeeping",
             "description": "Содержит варианты способов поддержки масштаба (количества одновременно отображаемых значений) при изменении размеров области построения.",
@@ -32702,6 +33682,7 @@ let bslGlobals = {
             }
         },
         "ТипСводнойДиаграммы": {
+            "availability": 25,
             "name": "ТипСводнойДиаграммы",
             "name_en": "PivotChartType",
             "description": "Содержит варианты типов сводных диаграмм. Используется для определения свойства",
@@ -32719,6 +33700,7 @@ let bslGlobals = {
             }
         },
         "ОриентацияМетокСводнойДиаграммы": {
+            "availability": 25,
             "name": "ОриентацияМетокСводнойДиаграммы",
             "name_en": "PivotChartLabelsOrientation",
             "description": "Содержит варианты ориентации меток сводной диаграммы.",
@@ -32741,6 +33723,7 @@ let bslGlobals = {
             }
         },
         "ТипЛинииГеографическойСхемы": {
+            "availability": 56,
             "name": "ТипЛинииГеографическойСхемы",
             "name_en": "GeographicalSchemaLineType",
             "description": "Содержит типы линий, которыми рисуются полилинейные объекты географической схемы.",
@@ -32778,6 +33761,7 @@ let bslGlobals = {
             }
         },
         "ТипОтображенияТочечногоОбъектаГеографическойСхемы": {
+            "availability": 56,
             "name": "ТипОтображенияТочечногоОбъектаГеографическойСхемы",
             "name_en": "GeographicalSchemaPointObjectDrawingType",
             "description": "Содержит способ отображения точечного и многоточечного объекта географической схемы.",
@@ -32800,6 +33784,7 @@ let bslGlobals = {
             }
         },
         "ТипОтображенияСерииСлояГеографическойСхемы": {
+            "availability": 56,
             "name": "ТипОтображенияСерииСлояГеографическойСхемы",
             "name_en": "GeographicalSchemaLayerSeriesShowMode",
             "description": "Содержит типы отображения серии слоя географической схемы.",
@@ -32852,6 +33837,7 @@ let bslGlobals = {
             }
         },
         "ТипОрганизацииИсточникаДанныхГеографическойСхемы": {
+            "availability": 56,
             "name": "ТипОрганизацииИсточникаДанныхГеографическойСхемы",
             "name_en": "GeographicalSchemaDataSourceOrganizationType",
             "description": "Определяет тип организации содержимого источника данных слоя географической схемы.",
@@ -32869,6 +33855,7 @@ let bslGlobals = {
             }
         },
         "ПоложениеОпорнойТочкиОтрисовки": {
+            "availability": 56,
             "name": "ПоложениеОпорнойТочкиОтрисовки",
             "name_en": "PaintingReferencePointPosition",
             "description": "Определяет, относительно какой точки будет рисоваться картинка, если точечный объект отображается в режиме картинки.",
@@ -32921,6 +33908,7 @@ let bslGlobals = {
             }
         },
         "ТипМаркераГеографическойСхемы": {
+            "availability": 56,
             "name": "ТипМаркераГеографическойСхемы",
             "name_en": "GeographicalSchemaMarkerType",
             "description": "Содержит вид маркера точечного или многоточечного объекта. Цвет маркера задается в свойстве Цвет объекта.",
@@ -32983,6 +33971,7 @@ let bslGlobals = {
             }
         },
         "РежимОтображенияГеографическойСхемы": {
+            "availability": 56,
             "name": "РежимОтображенияГеографическойСхемы",
             "name_en": "GeographicalSchemaShowMode",
             "description": "Содержит режимы масштабирования географической схемы.",
@@ -33005,6 +33994,7 @@ let bslGlobals = {
             }
         },
         "Символы": {
+            "availability": 511,
             "name": "Символы",
             "name_en": "Chars",
             "description": "Определяет набор специальных символов. Значения этого набора имеют тип",
@@ -33042,6 +34032,7 @@ let bslGlobals = {
             }
         },
         "ТипИмпортаСерийСлояГеографическойСхемы": {
+            "availability": 56,
             "name": "ТипИмпортаСерийСлояГеографическойСхемы",
             "name_en": "GeographicalSchemaLayerSeriesImportModeType",
             "description": "Определяет тип импорта серий слоя географической схемы.",
@@ -33059,6 +34050,7 @@ let bslGlobals = {
             }
         },
         "ТипПоискаОбъектовГеографическойСхемы": {
+            "availability": 56,
             "name": "ТипПоискаОбъектовГеографическойСхемы",
             "name_en": "GeographicalSchemaObjectFindType",
             "description": "Определяет тип поиска объектов географической схемы.",
@@ -33086,6 +34078,7 @@ let bslGlobals = {
             }
         },
         "ТипОтображенияШкалыЭлементаЛегендыГеографическойСхемы": {
+            "availability": 56,
             "name": "ТипОтображенияШкалыЭлементаЛегендыГеографическойСхемы",
             "name_en": "GeographicalSchemaLegendItemShowScaleType",
             "description": "Определяет тип отображения шкалы элемент легенды географической схемы.",
@@ -33103,6 +34096,7 @@ let bslGlobals = {
             }
         },
         "РежимОтображенияЗначенийСерии": {
+            "availability": 56,
             "name": "РежимОтображенияЗначенийСерии",
             "name_en": "SeriesValuesDrawingMode",
             "description": "Содержит варианты режимов отображения значений в гистограммах.",
@@ -33120,6 +34114,7 @@ let bslGlobals = {
             }
         },
         "ТипПроекцииГеографическойСхемы": {
+            "availability": 56,
             "name": "ТипПроекцииГеографическойСхемы",
             "name_en": "GeographicalSchemaProjection",
             "description": "Содержит варианты проекций для отображения географической схемы.",
@@ -33275,6 +34270,7 @@ let bslGlobals = {
             }
         },
         "ПоложениеИтоговСтрокСводнойТаблицы": {
+            "availability": 56,
             "name": "ПоложениеИтоговСтрокСводнойТаблицы",
             "name_en": "PivotTableRowTotalPosition",
             "description": "Содержит варианты положения итоговых строк в строках сводной таблицы.",
@@ -33292,6 +34288,7 @@ let bslGlobals = {
             }
         },
         "ПоложениеИтоговКолонокСводнойТаблицы": {
+            "availability": 56,
             "name": "ПоложениеИтоговКолонокСводнойТаблицы",
             "name_en": "PivotTableColumnTotalPosition",
             "description": "Содержит варианты положения итоговых колонок в колонках сводной таблицы.",
@@ -33309,6 +34306,7 @@ let bslGlobals = {
             }
         },
         "ТипОтображенияЛинийСводнойТаблицы": {
+            "availability": 56,
             "name": "ТипОтображенияЛинийСводнойТаблицы",
             "name_en": "PivotTableLinesShowType",
             "description": "Перечисление, содержащее возможные типы вывода линий сводной таблицы.",
@@ -33903,11 +34901,20 @@ let bslGlobals = {
     },
     "customFunctions": {},
     "types": {
-        "COMSafeArray": {},
-        "COMОбъект": {},
-        "FTPСоединение": {},
-        "HTTPЗапрос": {},
+        "COMSafeArray": {
+            "availability": 57,
+        },
+        "COMОбъект": {
+            "availability": 59,
+        },
+        "FTPСоединение": {
+            "availability": 57,
+        },
+        "HTTPЗапрос": {
+            "availability": 509,
+        },
         "HTTPОтвет": {
+            "availability": 509,
             "name": "HTTPОтвет",
             "name_en": "HTTPResponse",
             "description": "Предоставляет доступ к содержимому ответа HTTP-сервера на запрос.",
@@ -33960,55 +34967,147 @@ let bslGlobals = {
                 }
             }
         },
-        "HTTPСервисЗапрос": {},
-        "HTTPСервисОтвет": {},
-        "HTTPСоединение": {},
+        "HTTPСервисЗапрос": {
+            "availability": 24,
+        },
+        "HTTPСервисОтвет": {
+            "availability": 24,
+        },
+        "HTTPСоединение": {
+            "availability": 509,
+        },
         "Null": {},
-        "WebЦвета": {},
-        "WindowsЦвета": {},
-        "WindowsШрифты": {},
-        "WSВозвращаемоеЗначение": {},
-        "WSИнтерфейс": {},
-        "WSКоллекцияОпераций": {},
-        "WSКоллекцияПараметров": {},
-        "WSКоллекцияСервисов": {},
-        "WSКоллекцияТочекПодключения": {},
-        "WSНаправлениеПараметра": {},
-        "WSОперация": {},
-        "WSОпределения": {},
-        "WSПараметр": {},
-        "WSПрокси": {},
-        "WSСервис": {},
+        "WebЦвета": {
+            "availability": 511,
+        },
+        "WindowsЦвета": {
+            "availability": 508,
+        },
+        "WindowsШрифты": {
+            "availability": 440,
+        },
+        "WSВозвращаемоеЗначение": {
+            "availability": 440,
+        },
+        "WSИнтерфейс": {
+            "availability": 440,
+        },
+        "WSКоллекцияОпераций": {
+            "availability": 440,
+        },
+        "WSКоллекцияПараметров": {
+            "availability": 440,
+        },
+        "WSКоллекцияСервисов": {
+            "availability": 440,
+        },
+        "WSКоллекцияТочекПодключения": {
+            "availability": 440,
+        },
+        "WSНаправлениеПараметра": {
+            "availability": 440,
+        },
+        "WSОперация": {
+            "availability": 440,
+        },
+        "WSОпределения": {
+            "availability": 440,
+        },
+        "WSПараметр": {
+            "availability": 440,
+        },
+        "WSПрокси": {
+            "availability": 440,
+        },
+        "WSСервис": {
+            "availability": 440,
+        },
         "WSСсылкаМенеджер": {},
-        "WSСсылкиМенеджер": {},
-        "WSТочкаПодключения": {},
-        "XBase": {},
-        "АвтоВыбранноеПолеКомпоновкиДанных": {},
-        "АвтоматическоеСохранениеДанныхФормыВНастройках": {},
-        "АвтонумерацияВФорме": {},
-        "АвтоПозицияРесурсовКомпоновкиДанных": {},
-        "АвтоПолеГруппировкиКомпоновкиДанных": {},
-        "АвтоРаздвижениеСерий": {},
-        "АвтоРегистрацияИзменений": {},
-        "АвтоЭлементПорядкаКомпоновкиДанных": {},
-        "АгрегатРегистраНакопления": {},
-        "АгрегатыРегистраНакопления": {},
-        "АнализДанных": {},
-        "АнализДанныхДеревоРешений": {},
-        "АнализДанныхКластеризация": {},
-        "АнализДанныхОбщаяСтатистика": {},
-        "АнализДанныхПоискАссоциаций": {},
-        "АнализДанныхПоискПоследовательностей": {},
-        "АнимацияДиаграммы": {},
-        "АннотацияXS": {},
-        "АссоциированнаяГруппа": {},
-        "АтрибутDOM": {},
-        "АтрибутHTML": {},
-        "БазовыеВидыРасчета": {},
+        "WSСсылкиМенеджер": {
+            "availability": 440,
+        },
+        "WSТочкаПодключения": {
+            "availability": 440,
+        },
+        "XBase": {
+            "availability": 57,
+        },
+        "АвтоВыбранноеПолеКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "АвтоматическоеСохранениеДанныхФормыВНастройках": {
+            "availability": 63,
+        },
+        "АвтонумерацияВФорме": {
+            "availability": 56,
+        },
+        "АвтоПозицияРесурсовКомпоновкиДанных": {
+            "availability": 63,
+        },
+        "АвтоПолеГруппировкиКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "АвтоРаздвижениеСерий": {
+            "availability": 511,
+        },
+        "АвтоРегистрацияИзменений": {
+            "availability": 440,
+        },
+        "АвтоЭлементПорядкаКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "АгрегатРегистраНакопления": {
+            "availability": 56,
+        },
+        "АгрегатыРегистраНакопления": {
+            "availability": 56,
+        },
+        "АнализДанных": {
+            "availability": 56,
+        },
+        "АнализДанныхДеревоРешений": {
+            "availability": 56,
+        },
+        "АнализДанныхКластеризация": {
+            "availability": 56,
+        },
+        "АнализДанныхОбщаяСтатистика": {
+            "availability": 56,
+        },
+        "АнализДанныхПоискАссоциаций": {
+            "availability": 56,
+        },
+        "АнализДанныхПоискПоследовательностей": {
+            "availability": 56,
+        },
+        "АнимацияДиаграммы": {
+            "availability": 63,
+        },
+        "АннотацияXS": {
+            "availability": 56,
+        },
+        "АссоциированнаяГруппа": {
+            "availability": 56,
+        },
+        "АтрибутDOM": {
+            "availability": 509,
+        },
+        "АтрибутHTML": {
+            "availability": 509,
+        },
+        "БазовыеВидыРасчета": {
+            "availability": 56,
+        },
         "БазовыеВидыРасчетаСтрока": {},
-        "БиблиотекаКартинок": {},
-        "БиблиотекаМакетовОформленияКомпоновкиДанных": {},
-        "БиблиотекаСтилей": {},
+        "БиблиотекаКартинок": {
+            "availability": 479,
+        },
+        "БиблиотекаМакетовОформленияКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "БиблиотекаСтилей": {
+            "availability": 24,
+        },
         "БизнесПроцессВыборка": {
             "name": "БизнесПроцессВыборка",
             "name_en": "BusinessProcessSelection",
@@ -34084,19 +35183,42 @@ let bslGlobals = {
         },
         "БизнесПроцессТабличнаяЧасть": {},
         "БизнесПроцессТабличнаяЧастьСтрока": {},
-        "БизнесПроцессыМенеджер": {},
-        "БлокировкаДанных": {},
-        "БлокировкаСеансов": {},
+        "БизнесПроцессыМенеджер": {
+            "availability": 56,
+        },
+        "БлокировкаДанных": {
+            "availability": 440,
+        },
+        "БлокировкаСеансов": {
+            "availability": 56,
+        },
         "Булево": {},
-        "ВажностьИнтернетПочтовогоСообщения": {},
-        "ВариантXDTO": {},
-        "ВариантXPathXS": {},
-        "ВариантГраницыИнтервала": {},
-        "ВариантЗаписиДатыJSON": {},
-        "ВариантИнтерфейсаКлиентскогоПриложения": {},
-        "ВариантИспользованияГруппировкиКомпоновкиДанных": {},
-        "ВариантМасштабаФормКлиентскогоПриложения": {},
+        "ВажностьИнтернетПочтовогоСообщения": {
+            "availability": 508,
+        },
+        "ВариантXDTO": {
+            "availability": 509,
+        },
+        "ВариантXPathXS": {
+            "availability": 508,
+        },
+        "ВариантГраницыИнтервала": {
+            "availability": 16,
+        },
+        "ВариантЗаписиДатыJSON": {
+            "availability": 509,
+        },
+        "ВариантИнтерфейсаКлиентскогоПриложения": {
+            "availability": 31,
+        },
+        "ВариантИспользованияГруппировкиКомпоновкиДанных": {
+            "availability": 58,
+        },
+        "ВариантМасштабаФормКлиентскогоПриложения": {
+            "availability": 31,
+        },
         "ВариантНастроекКомпоновкиДанных": {
+            "availability": 440,
             "name": "ВариантНастроекКомпоновкиДанных",
             "name_en": "DataCompositionSettingsVariant",
             "description": "Содержит вариант настроек компоновки данных.",
@@ -34121,61 +35243,166 @@ let bslGlobals = {
                 }
             }
         },
-        "ВариантНастройкиПериода": {},
-        "ВариантОсновногоШрифтаКлиентскогоПриложения": {},
+        "ВариантНастройкиПериода": {
+            "availability": 16,
+        },
+        "ВариантОсновногоШрифтаКлиентскогоПриложения": {
+            "availability": 31,
+        },
         "ВариантОткрытияОкна": {},
-        "ВариантПериода": {},
-        "ВариантПоложенияОкна": {},
-        "ВариантПользовательскогоПоляВыборКомпоновкиДанных": {},
-        "ВариантПрикрепленияОкна": {},
-        "ВариантПроверкиОтображенияНовойСтроки": {},
-        "ВариантПростогоТипаXS": {},
-        "ВариантСостоянияОкна": {},
-        "ВариантСпособаОтображенияОкна": {},
-        "ВариантСтандартногоПериода": {},
-        "ВариантСтандартнойДатыНачала": {},
-        "ВариантТочкиМаршрутаБизнесПроцесса": {},
-        "ВариантыНастроекКомпоновкиДанных": {},
-        "ВариантыПользовательскогоПоляВыборКомпоновкиДанных": {},
-        "ВариантыТочкиМаршрутаБизнесПроцесса": {},
-        "ВариантыЭлементаГрафическойСхемыВыборВарианта": {},
-        "ВариантЭлементаГрафическойСхемыВыборВарианта": {},
-        "ВедущиеВидыРасчета": {},
+        "ВариантПериода": {
+            "availability": 16,
+        },
+        "ВариантПоложенияОкна": {
+            "availability": 16,
+        },
+        "ВариантПользовательскогоПоляВыборКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ВариантПрикрепленияОкна": {
+            "availability": 16,
+        },
+        "ВариантПроверкиОтображенияНовойСтроки": {
+            "availability": 16,
+        },
+        "ВариантПростогоТипаXS": {
+            "availability": 508,
+        },
+        "ВариантСостоянияОкна": {
+            "availability": 16,
+        },
+        "ВариантСпособаОтображенияОкна": {
+            "availability": 16,
+        },
+        "ВариантСтандартногоПериода": {
+            "availability": 511,
+        },
+        "ВариантСтандартнойДатыНачала": {
+            "availability": 511,
+        },
+        "ВариантТочкиМаршрутаБизнесПроцесса": {
+            "availability": 56,
+        },
+        "ВариантыНастроекКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ВариантыПользовательскогоПоляВыборКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ВариантыТочкиМаршрутаБизнесПроцесса": {
+            "availability": 56,
+        },
+        "ВариантыЭлементаГрафическойСхемыВыборВарианта": {
+            "availability": 57,
+        },
+        "ВариантЭлементаГрафическойСхемыВыборВарианта": {
+            "availability": 56,
+        },
+        "ВедущиеВидыРасчета": {
+            "availability": 56,
+        },
         "ВедущиеВидыРасчетаСтрока": {},
-        "ВертикальнаяПрокруткаФормы": {},
-        "ВертикальноеПоложение": {},
-        "ВертикальноеПоложениеЭлемента": {},
-        "ВидГраницы": {},
-        "ВидГруппыМоделиXS": {},
-        "ВидГруппыФормы": {},
-        "ВидДанныхАнализа": {},
-        "ВидДвиженияБухгалтерии": {},
-        "ВидДвиженияНакопления": {},
-        "ВидДекорацииФормы": {},
-        "ВидДополненияЭлементаФормы": {},
-        "ВидЗаполненияРасшифровкиПостроителяОтчета": {},
-        "ВидИзмененияДанных": {},
-        "ВидКартинки": {},
-        "ВидКнопкиФормы": {},
-        "ВидОтображенияПолнотекстовогоПоиска": {},
-        "ВидПереключателя": {},
-        "ВидПериодаРегистраРасчета": {},
-        "ВидПодписейКДиаграмме": {},
-        "ВидПоляФормы": {},
-        "ВидРамки": {},
-        "ВидСравнения": {},
-        "ВидСравненияКомпоновкиДанных": {},
-        "ВидСчета": {},
-        "ВидТочкиМаршрутаБизнесПроцесса": {},
-        "ВидФасетаXDTO": {},
-        "ВидФлажка": {},
-        "ВидЦвета": {},
-        "ВидШрифта": {},
-        "ВключениеXS": {},
-        "ВложеннаяСхемаКомпоновкиДанных": {},
-        "ВложеннаяТаблицаСхемыЗапроса": {},
-        "ВложенныеНаборыДанныхМакетаКомпоновкиДанных": {},
+        "ВертикальнаяПрокруткаФормы": {
+            "availability": 31,
+        },
+        "ВертикальноеПоложение": {
+            "availability": 511,
+        },
+        "ВертикальноеПоложениеЭлемента": {
+            "availability": 479,
+        },
+        "ВидГраницы": {
+            "availability": 509,
+        },
+        "ВидГруппыМоделиXS": {
+            "availability": 508,
+        },
+        "ВидГруппыФормы": {
+            "availability": 511,
+        },
+        "ВидДанныхАнализа": {
+            "availability": 63,
+        },
+        "ВидДвиженияБухгалтерии": {
+            "availability": 63,
+        },
+        "ВидДвиженияНакопления": {
+            "availability": 511,
+        },
+        "ВидДекорацииФормы": {
+            "availability": 479,
+        },
+        "ВидДополненияЭлементаФормы": {
+            "availability": 63,
+        },
+        "ВидЗаполненияРасшифровкиПостроителяОтчета": {
+            "availability": 56,
+        },
+        "ВидИзмененияДанных": {
+            "availability": 31,
+        },
+        "ВидКартинки": {
+            "availability": 511,
+        },
+        "ВидКнопкиФормы": {
+            "availability": 511,
+        },
+        "ВидОтображенияПолнотекстовогоПоиска": {
+            "availability": 440,
+        },
+        "ВидПереключателя": {
+            "availability": 63,
+        },
+        "ВидПериодаРегистраРасчета": {
+            "availability": 63,
+        },
+        "ВидПодписейКДиаграмме": {
+            "availability": 511,
+        },
+        "ВидПоляФормы": {
+            "availability": 511,
+        },
+        "ВидРамки": {
+            "availability": 511,
+        },
+        "ВидСравнения": {
+            "availability": 511,
+        },
+        "ВидСравненияКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ВидСчета": {
+            "availability": 63,
+        },
+        "ВидТочкиМаршрутаБизнесПроцесса": {
+            "availability": 59,
+        },
+        "ВидФасетаXDTO": {
+            "availability": 440,
+        },
+        "ВидФлажка": {
+            "availability": 63,
+        },
+        "ВидЦвета": {
+            "availability": 511,
+        },
+        "ВидШрифта": {
+            "availability": 511,
+        },
+        "ВключениеXS": {
+            "availability": 56,
+        },
+        "ВложеннаяСхемаКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ВложеннаяТаблицаСхемыЗапроса": {
+            "availability": 56,
+        },
+        "ВложенныеНаборыДанныхМакетаКомпоновкиДанных": {
+            "availability": 440,
+        },
         "ВложенныеСхемыКомпоновкиДанных": {
+            "availability": 440,
             "name": "ВложенныеСхемыКомпоновкиДанных",
             "name_en": "NestedDataCompositionSchemas",
             "description": "Содержит вложенные схемы компоновки данных.",
@@ -34292,12 +35519,23 @@ let bslGlobals = {
                 }
             }
         },
-        "ВложенныйЗапросСхемыЗапроса": {},
-        "ВложенныйНаборДанныхМакетаКомпоновкиДанных": {},
-        "ВложенныйНаборДанныхСхемыКомпоновкиДанных": {},
-        "ВложенныйОбъектМакетаКомпоновкиДанных": {},
-        "ВнешниеИсточникиДанныхМенеджер": {},
+        "ВложенныйЗапросСхемыЗапроса": {
+            "availability": 24,
+        },
+        "ВложенныйНаборДанныхМакетаКомпоновкиДанных": {
+            "availability": 424,
+        },
+        "ВложенныйНаборДанныхСхемыКомпоновкиДанных": {
+            "availability": 424,
+        },
+        "ВложенныйОбъектМакетаКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ВнешниеИсточникиДанныхМенеджер": {
+            "availability": 56,
+        },
         "ВнешниеОбработкиМенеджер": {
+            "availability": 56,
             "name": "ВнешниеОбработки",
             "name_en": "ExternalDataProcessors",
             "description": "Предназначен для управления внешними обработками и позволяет получать значения типа ВнешняяОбработка при помощи метода Создать. Доступ к объекту осуществляется через свойство глобального контекста ВнешниеОбработки.",
@@ -34359,6 +35597,7 @@ let bslGlobals = {
             }
         },
         "ВнешниеОтчетыМенеджер": {
+            "availability": 56,
             "name": "ВнешниеОтчеты",
             "name_en": "ExternalReports",
             "description": "Предназначен для управления внешними отчетами и позволяет получать значения типа ВнешнийОтчет при помощи метода Создать. Доступ к объекту осуществляется через свойство глобального контекста ВнешниеОтчеты.",
@@ -34438,7 +35677,9 @@ let bslGlobals = {
         "ВнешнийИсточникДанныхТаблицаОбъект": {},
         "ВнешнийИсточникДанныхТаблицаСсылка": {},
         "ВнешнийИсточникДанныхТаблицыМенеджер": {},
-        "ВнешнийОбъект": {},
+        "ВнешнийОбъект": {
+            "availability": 2,
+        },
         "ВнешнийОтчетОбъект": {},
         "ВнешнийОтчетТабличнаяЧасть": {},
         "ВнешнийОтчетТабличнаяЧастьСтрока": {},
@@ -34446,6 +35687,7 @@ let bslGlobals = {
         "ВнешняяОбработкаТабличнаяЧасть": {},
         "ВнешняяОбработкаТабличнаяЧастьСтрока": {},
         "ВременнаяТаблицаЗапроса": {
+            "availability": 440,
             "name": "ВременнаяТаблицаЗапроса",
             "name_en": "QueryTempTable",
             "description": "Содержит описание временной таблицы запроса.",
@@ -34473,6 +35715,7 @@ let bslGlobals = {
             }
         },
         "ВременныеТаблицыЗапроса": {
+            "availability": 440,
             "name": "ВременныеТаблицыЗапроса",
             "name_en": "QueryTempTables",
             "description": "Содержит коллекцию временных таблиц запроса.",
@@ -34529,8 +35772,11 @@ let bslGlobals = {
                 }
             }
         },
-        "ВсеЭлементыФормы": {},
+        "ВсеЭлементыФормы": {
+            "availability": 479,
+        },
         "ВыборкаДанных": {
+            "availability": 440,
             "name": "ВыборкаДанных",
             "name_en": "DataSelection",
             "description": "Содержит ссылки на данные, представленные в базе данных. Объект позволяет обойти данные, попавшие в выборку и прочитать их.",
@@ -34555,6 +35801,7 @@ let bslGlobals = {
             }
         },
         "ВыборкаИзРезультатаЗапроса": {
+            "availability": 440,
             "name": "ВыборкаИзРезультатаЗапроса",
             "name_en": "QueryResultSelection",
             "description": "Объект этого типа возвращается методом Выбрать у объекта типа РезультатЗапроса и представляет собой специализированный способ перебора записей запроса.",
@@ -34669,15 +35916,32 @@ let bslGlobals = {
                 }
             }
         },
-        "ВыборНастроек": {},
-        "ВыбранноеПолеКомпоновкиДанных": {},
-        "ВыбранныеПоляКомпоновкиДанных": {},
-        "ВыделенныеОбластиТабличногоДокумента": {},
-        "ВыделенныеСтрокиТабличногоПоля": {},
-        "ВыравниваниеКнопокКоманднойПанели": {},
-        "ВыравниваниеЭлементовИЗаголовков": {},
-        "ВыражениеXPath": {},
+        "ВыборНастроек": {
+            "availability": 63,
+        },
+        "ВыбранноеПолеКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ВыбранныеПоляКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ВыделенныеОбластиТабличногоДокумента": {
+            "availability": 511,
+        },
+        "ВыделенныеСтрокиТабличногоПоля": {
+            "availability": 16,
+        },
+        "ВыравниваниеКнопокКоманднойПанели": {
+            "availability": 16,
+        },
+        "ВыравниваниеЭлементовИЗаголовков": {
+            "availability": 479,
+        },
+        "ВыражениеXPath": {
+            "availability": 509,
+        },
         "ВыражениеИндексаСхемыЗапроса": {
+            "availability": 56,
             "name": "ВыражениеИндексаСхемыЗапроса",
             "name_en": "IndexExpression",
             "description": "Содержит выражение индекса схемы запроса.",
@@ -34692,6 +35956,7 @@ let bslGlobals = {
             }
         },
         "ВыражениеИтогаСхемыЗапроса": {
+            "availability": 56,
             "name": "ВыражениеИтогаСхемыЗапроса",
             "name_en": "TotalExpression",
             "description": "Содержит выражение итога схемы запроса.",
@@ -34713,9 +35978,14 @@ let bslGlobals = {
             }
         },
         "ВыражениеИтоговСхемыЗапроса": {},
-        "ВыражениеКомпоновкиДанных": {},
-        "ВыражениеПоляПараметраОбластиРасшифровкаКомпоновкиДанных": {},
+        "ВыражениеКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ВыражениеПоляПараметраОбластиРасшифровкаКомпоновкиДанных": {
+            "availability": 440,
+        },
         "ВыражениеПорядкаСхемыЗапроса": {
+            "availability": 56,
             "name": "ВыражениеПорядкаСхемыЗапроса",
             "name_en": "OrderExpression",
             "description": "Выражение порядка схемы запроса.",
@@ -34737,6 +36007,7 @@ let bslGlobals = {
             }
         },
         "ВыражениеСхемыЗапроса": {
+            "availability": 56,
             "name": "ВыражениеСхемыЗапроса",
             "name_en": "Expression",
             "description": "Выражение схемы запроса.",
@@ -34761,8 +36032,11 @@ let bslGlobals = {
                 }
             }
         },
-        "ВыражениеУпорядочиванияКомпоновкиДанных": {},
+        "ВыражениеУпорядочиванияКомпоновкиДанных": {
+            "availability": 440,
+        },
         "ВыраженияИндексаСхемыЗапроса": {
+            "availability": 56,
             "name": "ВыраженияИндексаСхемыЗапроса",
             "name_en": "IndexExpressions",
             "description": "Коллекция выражений индекса схемы запроса.",
@@ -34881,6 +36155,7 @@ let bslGlobals = {
             }
         },
         "ВыраженияИтоговСхемыЗапроса": {
+            "availability": 56,
             "name": "ВыраженияИтоговСхемыЗапроса",
             "name_en": "TotalExpressions",
             "description": "Коллекция выражений итогов схемы запроса.",
@@ -34985,8 +36260,11 @@ let bslGlobals = {
                 }
             }
         },
-        "ВыраженияПолейПараметраОбластиРасшифровкаКомпоновкиДанных": {},
+        "ВыраженияПолейПараметраОбластиРасшифровкаКомпоновкиДанных": {
+            "availability": 440,
+        },
         "ВыраженияПорядкаСхемыЗапроса": {
+            "availability": 56,
             "name": "ВыраженияПорядкаСхемыЗапроса",
             "name_en": "OrderExpressions",
             "description": "Коллекция выражений порядка схемы запроса.",
@@ -35105,6 +36383,7 @@ let bslGlobals = {
             }
         },
         "ВыраженияСхемыЗапроса": {
+            "availability": 56,
             "name": "ВыраженияСхемыЗапроса",
             "name_en": "Expressions",
             "description": "Коллекция выражений схемы запроса.",
@@ -35210,11 +36489,18 @@ let bslGlobals = {
                 }
             }
         },
-        "ВыраженияУпорядочиванияКомпоновкиДанных": {},
-        "ВытесняющиеВидыРасчета": {},
+        "ВыраженияУпорядочиванияКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ВытесняющиеВидыРасчета": {
+            "availability": 56,
+        },
         "ВытесняющиеВидыРасчетаСтрока": {},
-        "ВычисляемоеПолеСхемыКомпоновкиДанных": {},
+        "ВычисляемоеПолеСхемыКомпоновкиДанных": {
+            "availability": 440,
+        },
         "ВычисляемыеПоляСхемыКомпоновкиДанных": {
+            "availability": 440,
             "name": "ВычисляемыеПоляСхемыКомпоновкиДанных",
             "name_en": "DataCompositionSchemaCalculatedFields",
             "description": "Коллекция вычисляемых полей схемы компоновки данных.",
@@ -35331,18 +36617,41 @@ let bslGlobals = {
                 }
             }
         },
-        "ГенераторМакетаКомпоновкиДанных": {},
-        "ГенераторМакетаКомпоновкиДанныхДляКоллекцииЗначений": {},
-        "ГенераторСлучайныхЧисел": {},
-        "ГеографическаяСхема": {},
-        "ГеографическиеКоординаты": {},
-        "ГоризонтальноеПоложение": {},
-        "ГоризонтальноеПоложениеЭлемента": {},
-        "Граница": {},
-        "ГраницаЭлементаУправления": {},
-        "ГрафическаяСхема": {},
-        "ГруппаВыбранныхПолейКомпоновкиДанных": {},
+        "ГенераторМакетаКомпоновкиДанных": {
+            "availability": 408,
+        },
+        "ГенераторМакетаКомпоновкиДанныхДляКоллекцииЗначений": {
+            "availability": 408,
+        },
+        "ГенераторСлучайныхЧисел": {
+            "availability": 509,
+        },
+        "ГеографическаяСхема": {
+            "availability": 56,
+        },
+        "ГеографическиеКоординаты": {
+            "availability": 511,
+        },
+        "ГоризонтальноеПоложение": {
+            "availability": 511,
+        },
+        "ГоризонтальноеПоложениеЭлемента": {
+            "availability": 511,
+        },
+        "Граница": {
+            "availability": 443,
+        },
+        "ГраницаЭлементаУправления": {
+            "availability": 16,
+        },
+        "ГрафическаяСхема": {
+            "availability": 59,
+        },
+        "ГруппаВыбранныхПолейКомпоновкиДанных": {
+            "availability": 511,
+        },
         "ГруппаДоступныхТаблицСхемыЗапроса": {
+            "availability": 56,
             "name": "ГруппаДоступныхТаблицСхемыЗапроса",
             "name_en": "AvailableTablesGroup",
             "description": "Группа доступных таблиц схемы запроса.",
@@ -35362,56 +36671,154 @@ let bslGlobals = {
                 }
             }
         },
-        "ГруппаМоделиXS": {},
-        "ГруппаНастройкиСоставаИнтерфейсаКлиентскогоПриложения": {},
-        "ГруппаФормы": {},
-        "ГруппаЭлементовОтбораКомпоновкиДанных": {},
-        "ГруппировкаДиаграммыКомпоновкиДанных": {},
-        "ГруппировкаДиаграммыМакетаКомпоновкиДанных": {},
-        "ГруппировкаКолонок": {},
-        "ГруппировкаКомпоновкиДанных": {},
-        "ГруппировкаМакетаКомпоновкиДанных": {},
-        "ГруппировкаПодчиненныхЭлементовФормы": {},
-        "ГруппировкаТаблицыКомпоновкиДанных": {},
-        "ГруппировкаТаблицыМакетаКомпоновкиДанных": {},
-        "ГруппировкиДиаграммыМакетаКомпоновкиДанных": {},
-        "ГруппировкиМакетаКомпоновкиДанных": {},
-        "ГруппыИЭлементы": {},
-        "ДанныеГрупповойОбработкиКомпоновкиДанных": {},
-        "ДанныеМестоположения": {},
-        "ДанныеРасшифровкиКомпоновкиДанных": {},
-        "ДанныеФормыДерево": {},
-        "ДанныеФормыКоллекция": {},
-        "ДанныеФормыКоллекцияЭлементовДерева": {},
-        "ДанныеФормыСтруктура": {},
-        "ДанныеФормыСтруктураСКоллекцией": {},
-        "ДанныеФормыЭлементДерева": {},
-        "ДанныеФормыЭлементКоллекции": {},
+        "ГруппаМоделиXS": {
+            "availability": 56,
+        },
+        "ГруппаНастройкиСоставаИнтерфейсаКлиентскогоПриложения": {
+            "availability": 24,
+        },
+        "ГруппаФормы": {
+            "availability": 479,
+        },
+        "ГруппаЭлементовОтбораКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ГруппировкаДиаграммыКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ГруппировкаДиаграммыМакетаКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ГруппировкаКолонок": {
+            "availability": 511,
+        },
+        "ГруппировкаКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ГруппировкаМакетаКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ГруппировкаПодчиненныхЭлементовФормы": {
+            "availability": 511,
+        },
+        "ГруппировкаТаблицыКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ГруппировкаТаблицыМакетаКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ГруппировкиДиаграммыМакетаКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ГруппировкиМакетаКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ГруппыИЭлементы": {
+            "availability": 511,
+        },
+        "ДанныеГрупповойОбработкиКомпоновкиДанных": {
+            "availability": 408,
+        },
+        "ДанныеМестоположения": {
+            "availability": 511,
+        },
+        "ДанныеРасшифровкиКомпоновкиДанных": {
+            "availability": 56,
+        },
+        "ДанныеФормыДерево": {
+            "availability": 479,
+        },
+        "ДанныеФормыКоллекция": {
+            "availability": 479,
+        },
+        "ДанныеФормыКоллекцияЭлементовДерева": {
+            "availability": 479,
+        },
+        "ДанныеФормыСтруктура": {
+            "availability": 479,
+        },
+        "ДанныеФормыСтруктураСКоллекцией": {
+            "availability": 479,
+        },
+        "ДанныеФормыЭлементДерева": {
+            "availability": 479,
+        },
+        "ДанныеФормыЭлементКоллекции": {
+            "availability": 479,
+        },
         "Дата": {},
-        "ДвоичныеДанные": {},
-        "Действие": {},
-        "ДействиеОбработкиРасшифровкиКомпоновкиДанных": {},
-        "ДействиеПеретаскивания": {},
-        "ДействиеПостроителяDOM": {},
-        "ДействиеПриНедоступностиНастроекКомпоновкиДанных": {},
-        "ДекорацияФормы": {},
-        "Дендрограмма": {},
-        "ДеревоЗначений": {},
-        "Диаграмма": {},
-        "ДиаграммаГанта": {},
-        "ДиаграммаКомпоновкиДанных": {},
-        "ДиаграммаМакетаКомпоновкиДанных": {},
-        "ДиалогВыбораФайла": {},
-        "ДиалогВыбораЦвета": {},
-        "ДиалогВыбораШрифта": {},
-        "ДиалогРасписанияРегламентногоЗадания": {},
-        "ДиалогРасписанияЭлементаПланировщика": {},
-        "ДиалогРедактированияСтандартногоПериода": {},
-        "Диапазон": {},
-        "ДинамическийСписок": {},
-        "ДокументDOM": {},
-        "ДокументHTML": {},
-        "ДокументацияXS": {},
+        "ДвоичныеДанные": {
+            "availability": 511,
+        },
+        "Действие": {
+            "availability": 16,
+        },
+        "ДействиеОбработкиРасшифровкиКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ДействиеПеретаскивания": {
+            "availability": 23,
+        },
+        "ДействиеПостроителяDOM": {
+            "availability": 509,
+        },
+        "ДействиеПриНедоступностиНастроекКомпоновкиДанных": {
+            "availability": 16,
+        },
+        "ДекорацияФормы": {
+            "availability": 479,
+        },
+        "Дендрограмма": {
+            "availability": 59,
+        },
+        "ДеревоЗначений": {
+            "availability": 440,
+        },
+        "Диаграмма": {
+            "availability": 511,
+        },
+        "ДиаграммаГанта": {
+            "availability": 59,
+        },
+        "ДиаграммаКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ДиаграммаМакетаКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ДиалогВыбораФайла": {
+            "availability": 87,
+        },
+        "ДиалогВыбораЦвета": {
+            "availability": 117,
+        },
+        "ДиалогВыбораШрифта": {
+            "availability": 119,
+        },
+        "ДиалогРасписанияРегламентногоЗадания": {
+            "availability": 55,
+        },
+        "ДиалогРасписанияЭлементаПланировщика": {
+            "availability": 119,
+        },
+        "ДиалогРедактированияСтандартногоПериода": {
+            "availability": 119,
+        },
+        "Диапазон": {
+            "availability": 56,
+        },
+        "ДинамическийСписок": {
+            "availability": 479,
+        },
+        "ДокументDOM": {
+            "availability": 509,
+        },
+        "ДокументHTML": {
+            "availability": 509,
+        },
+        "ДокументацияXS": {
+            "availability": 56,
+        },
         "ДокументВыборка": {
             "name": "ДокументВыборка",
             "name_en": "DocumentSelection",
@@ -35475,16 +36882,35 @@ let bslGlobals = {
         },
         "ДокументТабличнаяЧасть": {},
         "ДокументТабличнаяЧастьСтрока": {},
-        "ДокументыМенеджер": {},
-        "ДополнениеПериодаМакетаКомпоновкиДанных": {},
-        "ДополнениеЭлементаФормы": {},
-        "ДополнительныйРежимОтображения": {},
-        "ДопустимаяДлина": {},
-        "ДопустимыеДействияПеретаскивания": {},
-        "ДопустимыйЗнак": {},
-        "ДопустимыйНомерСообщения": {},
-        "ДоставляемоеУведомление": {},
+        "ДокументыМенеджер": {
+            "availability": 440,
+        },
+        "ДополнениеПериодаМакетаКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ДополнениеЭлементаФормы": {
+            "availability": 31,
+        },
+        "ДополнительныйРежимОтображения": {
+            "availability": 63,
+        },
+        "ДопустимаяДлина": {
+            "availability": 511,
+        },
+        "ДопустимыеДействияПеретаскивания": {
+            "availability": 23,
+        },
+        "ДопустимыйЗнак": {
+            "availability": 511,
+        },
+        "ДопустимыйНомерСообщения": {
+            "availability": 440,
+        },
+        "ДоставляемоеУведомление": {
+            "availability": 509,
+        },
         "ДоступнаяВложеннаяТаблицаСхемыЗапроса": {
+            "availability": 56,
             "name": "ДоступнаяВложеннаяТаблицаСхемыЗапроса",
             "name_en": "AvailableNestedTable",
             "description": "Доступная вложенная таблица схемы запроса.",
@@ -35505,6 +36931,7 @@ let bslGlobals = {
             }
         },
         "ДоступнаяТаблицаСхемыЗапроса": {
+            "availability": 56,
             "name": "ДоступнаяТаблицаСхемыЗапроса",
             "name_en": "AvailableTable",
             "description": "Доступная таблица схемы запроса.",
@@ -35531,9 +36958,14 @@ let bslGlobals = {
                 }
             }
         },
-        "ДоступноеПолеКомпоновкиДанных": {},
-        "ДоступноеПолеОтбораКомпоновкиДанных": {},
+        "ДоступноеПолеКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ДоступноеПолеОтбораКомпоновкиДанных": {
+            "availability": 511,
+        },
         "ДоступноеПолеСхемыЗапроса": {
+            "availability": 56,
             "name": "ДоступноеПолеСхемыЗапроса",
             "name_en": "AvailableField",
             "description": "Доступное поле схемы запроса.",
@@ -35566,10 +36998,17 @@ let bslGlobals = {
                 }
             }
         },
-        "ДоступныеОбъектыНастройкиКомпоновкиДанных": {},
-        "ДоступныеПараметрыКомпоновкиДанных": {},
-        "ДоступныеПоляКомпоновкиДанных": {},
+        "ДоступныеОбъектыНастройкиКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ДоступныеПараметрыКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ДоступныеПоляКомпоновкиДанных": {
+            "availability": 511,
+        },
         "ДоступныеПоляСхемыЗапроса": {
+            "availability": 56,
             "name": "ДоступныеПоляСхемыЗапроса",
             "name_en": "AvailableFields",
             "description": "Коллекция доступных полей схемы запроса.",
@@ -35678,6 +37117,7 @@ let bslGlobals = {
             }
         },
         "ДоступныеТаблицыСхемыЗапроса": {
+            "availability": 56,
             "name": "ДоступныеТаблицыСхемыЗапроса",
             "name_en": "AvailableTables",
             "description": "Коллекция доступных таблиц схемы запроса.",
@@ -35734,15 +37174,27 @@ let bslGlobals = {
                 }
             }
         },
-        "ДоступныйОбъектНастройкиКомпоновкиДанных": {},
-        "ДоступныйПараметрКомпоновкиДанных": {},
+        "ДоступныйОбъектНастройкиКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ДоступныйПараметрКомпоновкиДанных": {
+            "availability": 511,
+        },
         "ЖурналДокументовВыборка": {},
         "ЖурналДокументовМенеджер": {},
         "ЖурналДокументовСписок": {},
-        "ЖурналыДокументовМенеджер": {},
-        "ЗавершенностьПростогоТипаXS": {},
-        "ЗавершенностьСоставногоТипаXS": {},
-        "ЗавершенностьСхемыXS": {},
+        "ЖурналыДокументовМенеджер": {
+            "availability": 440,
+        },
+        "ЗавершенностьПростогоТипаXS": {
+            "availability": 508,
+        },
+        "ЗавершенностьСоставногоТипаXS": {
+            "availability": 508,
+        },
+        "ЗавершенностьСхемыXS": {
+            "availability": 508,
+        },
         "ЗадачаВыборка": {
             "name": "ЗадачаВыборка",
             "name_en": "TaskSelection",
@@ -35823,22 +37275,53 @@ let bslGlobals = {
         },
         "ЗадачаТабличнаяЧасть": {},
         "ЗадачаТабличнаяЧастьСтрока": {},
-        "ЗадачиМенеджер": {},
-        "ЗакладкаФорматированногоДокумента": {},
-        "ЗаписиМакетаКомпоновкиДанных": {},
-        "ЗаписиТаблицыМакетаКомпоновкиДанных": {},
-        "ЗаписьDOM": {},
-        "ЗаписьFastInfoset": {},
-        "ЗаписьHTML": {},
-        "ЗаписьJSON": {},
-        "ЗаписьXML": {},
-        "ЗаписьZipФайла": {},
-        "ЗаписьСообщенияОбмена": {},
-        "ЗаписьТекста": {},
-        "ЗаписьУзловDOM": {},
-        "ЗапрещенныеПодстановкиXS": {},
-        "Запрос": {},
+        "ЗадачиМенеджер": {
+            "availability": 56,
+        },
+        "ЗакладкаФорматированногоДокумента": {
+            "availability": 63,
+        },
+        "ЗаписиМакетаКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ЗаписиТаблицыМакетаКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ЗаписьDOM": {
+            "availability": 509,
+        },
+        "ЗаписьFastInfoset": {
+            "availability": 56,
+        },
+        "ЗаписьHTML": {
+            "availability": 509,
+        },
+        "ЗаписьJSON": {
+            "availability": 509,
+        },
+        "ЗаписьXML": {
+            "availability": 509,
+        },
+        "ЗаписьZipФайла": {
+            "availability": 509,
+        },
+        "ЗаписьСообщенияОбмена": {
+            "availability": 440,
+        },
+        "ЗаписьТекста": {
+            "availability": 509,
+        },
+        "ЗаписьУзловDOM": {
+            "availability": 509,
+        },
+        "ЗапрещенныеПодстановкиXS": {
+            "availability": 508,
+        },
+        "Запрос": {
+            "availability": 440,
+        },
         "ЗапросВыбораСхемыЗапроса": {
+            "availability": 56,
             "name": "ЗапросВыбораСхемыЗапроса",
             "name_en": "SelectQuery",
             "description": "Объект предназначен для создания и изменения запросов при помощи объектов встроенного языка.",
@@ -35973,6 +37456,7 @@ let bslGlobals = {
             }
         },
         "ЗапросУничтоженияТаблицыСхемыЗапроса": {
+            "availability": 56,
             "name": "ЗапросУничтоженияТаблицыСхемыЗапроса",
             "name_en": "DeleteTableQuery",
             "description": "Описание запроса, при помощи которого уничтожается временная таблица.",
@@ -35985,52 +37469,134 @@ let bslGlobals = {
                 }
             }
         },
-        "ЗащищенноеСоединениеOpenSSL": {},
-        "ЗвуковоеОповещение": {},
-        "ЗначениеXDTO": {},
-        "ЗначениеДиаграммы": {},
-        "ЗначениеДиаграммыГанта": {},
-        "ЗначениеПараметраКомпоновкиДанных": {},
-        "ЗначениеПараметраМакетаКомпоновкиДанных": {},
-        "ЗначениеПараметраНастроекКомпоновкиДанных": {},
-        "ЗначениеПоляАнализаДанных": {},
-        "ЗначениеПоляРасшифровкиКомпоновкиДанных": {},
-        "ЗначениеСерииСлояГеографическойСхемы": {},
-        "ЗначенияПараметровВыводаГруппировкиДиаграммыКомпоновкиДанных": {},
-        "ЗначенияПараметровВыводаГруппировкиКомпоновкиДанных": {},
-        "ЗначенияПараметровВыводаГруппировкиТаблицыКомпоновкиДанных": {},
-        "ЗначенияПараметровВыводаДиаграммыКомпоновкиДанных": {},
-        "ЗначенияПараметровВыводаКомпоновкиДанных": {},
-        "ЗначенияПараметровВыводаТаблицыКомпоновкиДанных": {},
-        "ЗначенияПараметровДанныхКомпоновкиДанных": {},
-        "ЗначенияПараметровМакетаКомпоновкиДанных": {},
-        "ЗначенияПолейРасшифровкиКомпоновкиДанных": {},
-        "ИдентификаторКомпоновкиДанных": {},
-        "ИдентификаторПодписчикаДоставляемыхУведомлений": {},
-        "ИдентификаторРасшифровкиКомпоновкиДанных": {},
-        "ИерархическаяГруппировкаДиаграммыМакетаКомпоновкиДанных": {},
-        "ИерархическаяГруппировкаМакетаКомпоновкиДанных": {},
-        "ИерархическаяГруппировкаТаблицыМакетаКомпоновкиДанных": {},
-        "ИерархическиеЗаписиМакетаКомпоновкиДанных": {},
-        "ИерархическиеЗаписиТаблицыМакетаКомпоновкиДанных": {},
-        "ИзбранноеРаботыПользователя": {},
-        "ИзвлечениеТекста": {},
-        "ИзменениеРазмераКолонки": {},
-        "ИзменениеРазмераОкна": {},
-        "ИзменениеСпособаОтображенияОкна": {},
-        "ИзмерениеПланировщика": {},
-        "ИзмерениеПостроителяЗапроса": {},
-        "ИзмерениеПостроителяОтчета": {},
-        "ИзмеренияПостроителяЗапроса": {},
-        "ИзмеренияПостроителяОтчета": {},
-        "ИмпортXS": {},
-        "ИндексXBase": {},
+        "ЗащищенноеСоединениеOpenSSL": {
+            "availability": 511,
+        },
+        "ЗвуковоеОповещение": {
+            "availability": 509,
+        },
+        "ЗначениеXDTO": {
+            "availability": 509,
+        },
+        "ЗначениеДиаграммы": {
+            "availability": 511,
+        },
+        "ЗначениеДиаграммыГанта": {
+            "availability": 59,
+        },
+        "ЗначениеПараметраКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ЗначениеПараметраМакетаКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ЗначениеПараметраНастроекКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ЗначениеПоляАнализаДанных": {
+            "availability": 56,
+        },
+        "ЗначениеПоляРасшифровкиКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ЗначениеСерииСлояГеографическойСхемы": {
+            "availability": 56,
+        },
+        "ЗначенияПараметровВыводаГруппировкиДиаграммыКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ЗначенияПараметровВыводаГруппировкиКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ЗначенияПараметровВыводаГруппировкиТаблицыКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ЗначенияПараметровВыводаДиаграммыКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ЗначенияПараметровВыводаКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ЗначенияПараметровВыводаТаблицыКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ЗначенияПараметровДанныхКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ЗначенияПараметровМакетаКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ЗначенияПолейРасшифровкиКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ИдентификаторКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ИдентификаторПодписчикаДоставляемыхУведомлений": {
+            "availability": 509,
+        },
+        "ИдентификаторРасшифровкиКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ИерархическаяГруппировкаДиаграммыМакетаКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ИерархическаяГруппировкаМакетаКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ИерархическаяГруппировкаТаблицыМакетаКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ИерархическиеЗаписиМакетаКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ИерархическиеЗаписиТаблицыМакетаКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ИзбранноеРаботыПользователя": {
+            "availability": 63,
+        },
+        "ИзвлечениеТекста": {
+            "availability": 57,
+        },
+        "ИзменениеРазмераКолонки": {
+            "availability": 16,
+        },
+        "ИзменениеРазмераОкна": {
+            "availability": 16,
+        },
+        "ИзменениеСпособаОтображенияОкна": {
+            "availability": 16,
+        },
+        "ИзмерениеПланировщика": {
+            "availability": 511,
+        },
+        "ИзмерениеПостроителяЗапроса": {
+            "availability": 56,
+        },
+        "ИзмерениеПостроителяОтчета": {
+            "availability": 56,
+        },
+        "ИзмеренияПостроителяЗапроса": {
+            "availability": 56,
+        },
+        "ИзмеренияПостроителяОтчета": {
+            "availability": 56,
+        },
+        "ИмпортXS": {
+            "availability": 56,
+        },
+        "ИндексXBase": {
+            "availability": 56,
+        },
         "ИндексКоллекции": {
+            "availability": 440,
             "name": "ИндексКоллекции",
             "name_en": "CollectionIndex",
             "description": "Индекс коллекции."
         },
         "ИндексыКоллекции": {
+            "availability": 440,
             "name": "ИндексыКоллекции",
             "name_en": "CollectionIndexes",
             "description": "Список индексов коллекции.",
@@ -36082,6 +37648,7 @@ let bslGlobals = {
             }
         },
         "ИндексСхемыЗапроса": {
+            "availability": 56,
             "name": "ИндексСхемыЗапроса",
             "name_en": "Index",
             "description": "Описание индекса схемы запроса.",
@@ -36102,6 +37669,7 @@ let bslGlobals = {
             }
         },
         "ИндексыСхемыЗапроса": {
+            "availability": 56,
             "name": "ИндексыСхемыЗапроса",
             "name_en": "Indexes",
             "description": "Коллекция описаний индексов схемы запроса (объекты типа ИндексСхемыЗапроса).",
@@ -36202,31 +37770,80 @@ let bslGlobals = {
                 }
             }
         },
-        "Индикатор": {},
-        "ИнструкцияОбработкиDOM": {},
-        "ИнтервалДиаграммыГанта": {},
-        "ИнтервалМеждуЭлементамиФормы": {},
-        "ИнтервалФонаДиаграммыГанта": {},
-        "ИнтервалФонаПланировщика": {},
-        "ИнтервалыФонаДиаграммыГанта": {},
-        "ИнтернетПочта": {},
-        "ИнтернетПочтовоеВложение": {},
-        "ИнтернетПочтовоеСообщение": {},
-        "ИнтернетПочтовыеАдреса": {},
-        "ИнтернетПочтовыеВложения": {},
-        "ИнтернетПочтовыйАдрес": {},
-        "ИнтернетПочтовыйПрофиль": {},
-        "ИнтернетПрокси": {},
-        "ИнтернетСоединение": {},
-        "ИнтернетТекстПочтовогоСообщения": {},
-        "ИнтернетТекстыПочтовогоСообщения": {},
-        "ИнформацияДискретногоПоляАнализаДанных": {},
-        "ИнформацияДляПриложенияXS": {},
-        "ИнформацияМодуляКриптографии": {},
-        "ИнформацияНепрерывногоПоляАнализаДанных": {},
-        "ИнформацияОбАгрегатах": {},
-        "ИнформацияОбАгрегате": {},
+        "Индикатор": {
+            "availability": 16,
+        },
+        "ИнструкцияОбработкиDOM": {
+            "availability": 509,
+        },
+        "ИнтервалДиаграммыГанта": {
+            "availability": 59,
+        },
+        "ИнтервалМеждуЭлементамиФормы": {
+            "availability": 479,
+        },
+        "ИнтервалФонаДиаграммыГанта": {
+            "availability": 59,
+        },
+        "ИнтервалФонаПланировщика": {
+            "availability": 511,
+        },
+        "ИнтервалыФонаДиаграммыГанта": {
+            "availability": 59,
+        },
+        "ИнтернетПочта": {
+            "availability": 509,
+        },
+        "ИнтернетПочтовоеВложение": {
+            "availability": 509,
+        },
+        "ИнтернетПочтовоеСообщение": {
+            "availability": 509,
+        },
+        "ИнтернетПочтовыеАдреса": {
+            "availability": 509,
+        },
+        "ИнтернетПочтовыеВложения": {
+            "availability": 509,
+        },
+        "ИнтернетПочтовыйАдрес": {
+            "availability": 509,
+        },
+        "ИнтернетПочтовыйПрофиль": {
+            "availability": 509,
+        },
+        "ИнтернетПрокси": {
+            "availability": 509,
+        },
+        "ИнтернетСоединение": {
+            "availability": 57,
+        },
+        "ИнтернетТекстПочтовогоСообщения": {
+            "availability": 509,
+        },
+        "ИнтернетТекстыПочтовогоСообщения": {
+            "availability": 509,
+        },
+        "ИнформацияДискретногоПоляАнализаДанных": {
+            "availability": 56,
+        },
+        "ИнформацияДляПриложенияXS": {
+            "availability": 56,
+        },
+        "ИнформацияМодуляКриптографии": {
+            "availability": 511,
+        },
+        "ИнформацияНепрерывногоПоляАнализаДанных": {
+            "availability": 56,
+        },
+        "ИнформацияОбАгрегатах": {
+            "availability": 56,
+        },
+        "ИнформацияОбАгрегате": {
+            "availability": 56,
+        },
         "ИнформацияОбОшибке": {
+            "availability": 511,
             "name": "ИнформацияОбОшибке",
             "name_en": "ErrorInfo",
             "description": "Предназначен для представления структурированной информации об ошибке (исключении).",
@@ -36275,31 +37892,80 @@ let bslGlobals = {
                 }
             }
         },
-        "ИнформацияЭкранаКлиента": {},
-        "ИсключенияГруппПодстановкиXS": {},
-        "ИспользованиеByteOrderMark": {},
-        "ИспользованиеАгрегатаРегистраНакопления": {},
-        "ИспользованиеАтрибутаXS": {},
-        "ИспользованиеВывода": {},
-        "ИспользованиеГруппИЭлементов": {},
-        "ИспользованиеМетаданныхПолнотекстовогоПоиска": {},
-        "ИспользованиеОбщегоРеквизита": {},
-        "ИспользованиеПараметраКомпоновкиДанных": {},
-        "ИспользованиеПолосыПрокрутки": {},
-        "ИспользованиеРасшифровкиТабличногоДокумента": {},
-        "ИспользованиеРежимаМеню": {},
-        "ИспользованиеРежимаПроведения": {},
-        "ИспользованиеСобытияЖурналаРегистрации": {},
-        "ИспользованиеСреза": {},
-        "ИспользованиеУсловногоОформленияКомпоновкиДанных": {},
-        "ИсторияВыбораПриВводе": {},
-        "ИсторияПоискаТаблицы": {},
-        "ИсточникДанныхМакетаКомпоновкиДанных": {},
-        "ИсточникДанныхСводнойТаблицыКомпоновкиДанных": {},
-        "ИсточникДанныхСхемыКомпоновкиДанных": {},
-        "ИсточникДоступныхНастроекКомпоновкиДанных": {},
-        "ИсточникиДанныхМакетаКомпоновкиДанных": {},
+        "ИнформацияЭкранаКлиента": {
+            "availability": 511,
+        },
+        "ИсключенияГруппПодстановкиXS": {
+            "availability": 508,
+        },
+        "ИспользованиеByteOrderMark": {
+            "availability": 509,
+        },
+        "ИспользованиеАгрегатаРегистраНакопления": {
+            "availability": 56,
+        },
+        "ИспользованиеАтрибутаXS": {
+            "availability": 56,
+        },
+        "ИспользованиеВывода": {
+            "availability": 440,
+        },
+        "ИспользованиеГруппИЭлементов": {
+            "availability": 479,
+        },
+        "ИспользованиеМетаданныхПолнотекстовогоПоиска": {
+            "availability": 440,
+        },
+        "ИспользованиеОбщегоРеквизита": {
+            "availability": 56,
+        },
+        "ИспользованиеПараметраКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ИспользованиеПолосыПрокрутки": {
+            "availability": 31,
+        },
+        "ИспользованиеРасшифровкиТабличногоДокумента": {
+            "availability": 58,
+        },
+        "ИспользованиеРежимаМеню": {
+            "availability": 16,
+        },
+        "ИспользованиеРежимаПроведения": {
+            "availability": 479,
+        },
+        "ИспользованиеСобытияЖурналаРегистрации": {
+            "availability": 56,
+        },
+        "ИспользованиеСреза": {
+            "availability": 508,
+        },
+        "ИспользованиеУсловногоОформленияКомпоновкиДанных": {
+            "availability": 63,
+        },
+        "ИсторияВыбораПриВводе": {
+            "availability": 511,
+        },
+        "ИсторияПоискаТаблицы": {
+            "availability": 24,
+        },
+        "ИсточникДанныхМакетаКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ИсточникДанныхСводнойТаблицыКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ИсточникДанныхСхемыКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ИсточникДоступныхНастроекКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ИсточникиДанныхМакетаКомпоновкиДанных": {
+            "availability": 440,
+        },
         "ИсточникиДанныхСхемыКомпоновкиДанных": {
+            "availability": 440,
             "name": "ИсточникиДанныхСхемыКомпоновкиДанных",
             "name_en": "DataCompositionSchemaDataSources",
             "description": "Коллекция источников данных схемы компоновки данных.",
@@ -36424,28 +38090,71 @@ let bslGlobals = {
                 }
             }
         },
-        "ИсточникиСхемыЗапроса": {},
-        "ИсточникРасширенийКонфигурации": {},
-        "ИсточникСхемыЗапроса": {},
-        "ИтераторУзловDOM": {},
-        "КаноническаяЗаписьXML": {},
-        "КаноническийDOM": {},
-        "Картинка": {},
-        "КартинкаФорматированногоДокумента": {},
-        "КатегорияГруппыКоманд": {},
-        "КатегорияИспользованияАтрибутаXS": {},
-        "КатегорияОграниченияИдентичностиXS": {},
-        "КатегорияОграниченияПространствИменXS": {},
-        "КвалификаторыДаты": {},
-        "КвалификаторыДвоичныхДанных": {},
-        "КвалификаторыСтроки": {},
-        "КвалификаторыЧисла": {},
-        "КвитанцияВстроеннойПокупки": {},
-        "Клавиша": {},
-        "КлассификацияОбъектаАнализаДанных": {},
-        "КластерАнализаДанных": {},
-        "КлючXBase": {},
+        "ИсточникиСхемыЗапроса": {
+            "availability": 56,
+        },
+        "ИсточникРасширенийКонфигурации": {
+            "availability": 440,
+        },
+        "ИсточникСхемыЗапроса": {
+            "availability": 56,
+        },
+        "ИтераторУзловDOM": {
+            "availability": 509,
+        },
+        "КаноническаяЗаписьXML": {
+            "availability": 509,
+        },
+        "КаноническийDOM": {
+            "availability": 509,
+        },
+        "Картинка": {
+            "availability": 511,
+        },
+        "КартинкаФорматированногоДокумента": {
+            "availability": 63,
+        },
+        "КатегорияГруппыКоманд": {
+            "availability": 440,
+        },
+        "КатегорияИспользованияАтрибутаXS": {
+            "availability": 508,
+        },
+        "КатегорияОграниченияИдентичностиXS": {
+            "availability": 508,
+        },
+        "КатегорияОграниченияПространствИменXS": {
+            "availability": 508,
+        },
+        "КвалификаторыДаты": {
+            "availability": 511,
+        },
+        "КвалификаторыДвоичныхДанных": {
+            "availability": 511,
+        },
+        "КвалификаторыСтроки": {
+            "availability": 511,
+        },
+        "КвалификаторыЧисла": {
+            "availability": 511,
+        },
+        "КвитанцияВстроеннойПокупки": {
+            "availability": 509,
+        },
+        "Клавиша": {
+            "availability": 63,
+        },
+        "КлассификацияОбъектаАнализаДанных": {
+            "availability": 56,
+        },
+        "КластерАнализаДанных": {
+            "availability": 56,
+        },
+        "КлючXBase": {
+            "availability": 56,
+        },
         "КлючИЗначение": {
+            "availability": 511,
             "name": "КлючИЗначение",
             "name_en": "KeyAndValue",
             "description": "Элемент коллекции",
@@ -36462,27 +38171,68 @@ let bslGlobals = {
                 }
             }
         },
-        "Кнопка": {},
-        "КнопкаКоманднойПанели": {},
-        "КнопкаФормы": {},
-        "КнопкиКоманднойПанели": {},
-        "КодВозвратаДиалога": {},
-        "КодировкаXBase": {},
-        "КодировкаТекста": {},
-        "КоллекцияАтрибутовDOM": {},
-        "КоллекцияАтрибутовHTML": {},
-        "КоллекцияВариантовПользовательскогоПоляВыборКомпоновкиДанных": {},
-        "КоллекцияВстроенныхТаблиц": {},
-        "КоллекцияВыбранныхПолейКомпоновкиДанных": {},
-        "КоллекцияВыделенныхДат": {},
-        "КоллекцияДвижений": {},
-        "КоллекцияДоступныхОбъектовНастройкиКомпоновкиДанных": {},
-        "КоллекцияДоступныхПараметровКомпоновкиДанных": {},
-        "КоллекцияДоступныхПолейКомпоновкиДанных": {},
-        "КоллекцияЗамещающихЭлементовПланировщика": {},
-        "КоллекцияЗначенийXDTO": {},
-        "КоллекцияЗначенийПараметровКомпоновкиДанных": {},
+        "Кнопка": {
+            "availability": 16,
+        },
+        "КнопкаКоманднойПанели": {
+            "availability": 16,
+        },
+        "КнопкаФормы": {
+            "availability": 479,
+        },
+        "КнопкиКоманднойПанели": {
+            "availability": 16,
+        },
+        "КодВозвратаДиалога": {
+            "availability": 87,
+        },
+        "КодировкаXBase": {
+            "availability": 56,
+        },
+        "КодировкаТекста": {
+            "availability": 511,
+        },
+        "КоллекцияАтрибутовDOM": {
+            "availability": 509,
+        },
+        "КоллекцияАтрибутовHTML": {
+            "availability": 509,
+        },
+        "КоллекцияВариантовПользовательскогоПоляВыборКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "КоллекцияВстроенныхТаблиц": {
+            "availability": 56,
+        },
+        "КоллекцияВыбранныхПолейКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "КоллекцияВыделенныхДат": {
+            "availability": 16,
+        },
+        "КоллекцияДвижений": {
+            "availability": 440,
+        },
+        "КоллекцияДоступныхОбъектовНастройкиКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "КоллекцияДоступныхПараметровКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "КоллекцияДоступныхПолейКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "КоллекцияЗамещающихЭлементовПланировщика": {
+            "availability": 511,
+        },
+        "КоллекцияЗначенийXDTO": {
+            "availability": 509,
+        },
+        "КоллекцияЗначенийПараметровКомпоновкиДанных": {
+            "availability": 511,
+        },
         "КоллекцияЗначенийСвойстваОбъектаМетаданных": {
+            "availability": 440,
             "name": "КоллекцияЗначенийСвойстваОбъектаМетаданных",
             "name_en": "MetadataObjectPropertyValueCollection",
             "description": "Значение такого типа имеют свойства объектов описания метаданного, хранящих множественную ссылку на другие объекты, например, 'Вводится на основании' у документов.",
@@ -36509,11 +38259,20 @@ let bslGlobals = {
                 }
             }
         },
-        "КоллекцияИзмеренийПланировщика": {},
-        "КоллекцияИменованныхКомпонентXS": {},
-        "КоллекцияИндексовXBase": {},
-        "КоллекцияИнтерваловФонаПланировщика": {},
+        "КоллекцияИзмеренийПланировщика": {
+            "availability": 511,
+        },
+        "КоллекцияИменованныхКомпонентXS": {
+            "availability": 56,
+        },
+        "КоллекцияИндексовXBase": {
+            "availability": 56,
+        },
+        "КоллекцияИнтерваловФонаПланировщика": {
+            "availability": 511,
+        },
         "КоллекцияКолонокДереваЗначений": {
+            "availability": 440,
             "name": "КоллекцияКолонокДереваЗначений",
             "name_en": "ValueTreeColumnCollection",
             "description": "Представляет собой коллекцию колонок дерева значений.",
@@ -36639,8 +38398,11 @@ let bslGlobals = {
                 }
             }
         },
-        "КоллекцияКолонокРезультатаЗапроса": {},
+        "КоллекцияКолонокРезультатаЗапроса": {
+            "availability": 440,
+        },
         "КоллекцияКолонокТаблицыЗначений": {
+            "availability": 440,
             "name": "КоллекцияКолонокТаблицыЗначений",
             "name_en": "ValueTableColumnCollection",
             "description": "Представляет собой коллекцию колонок таблицы значений. Доступ к объекту осуществляется через свойство",
@@ -36766,9 +38528,14 @@ let bslGlobals = {
                 }
             }
         },
-        "КоллекцияНотацийDOM": {},
-        "КоллекцияОбластейТабличногоДокумента": {},
+        "КоллекцияНотацийDOM": {
+            "availability": 509,
+        },
+        "КоллекцияОбластейТабличногоДокумента": {
+            "availability": 511,
+        },
         "КоллекцияОбъектовМетаданных": {
+            "availability": 440,
             "name": "КоллекцияОбъектовМетаданных",
             "name_en": "MetadataObjectCollection",
             "description": "Представляет собой коллекцию объектов описания метаданных определенного типа.",
@@ -36836,17 +38603,38 @@ let bslGlobals = {
                 }
             }
         },
-        "КоллекцияОформленийДат": {},
-        "КоллекцияОформляемыхПолейКомпоновкиДанных": {},
-        "КоллекцияПакетовXDTO": {},
-        "КоллекцияПолейXBase": {},
-        "КоллекцияПолейГруппировкиКомпоновкиДанных": {},
-        "КоллекцияПолейСводнойДиаграммы": {},
-        "КоллекцияПолейСводнойТаблицы": {},
-        "КоллекцияПользовательскихПолейКомпоновкиДанных": {},
-        "КоллекцияРисунковТабличногоДокумента": {},
-        "КоллекцияСвойствXDTO": {},
+        "КоллекцияОформленийДат": {
+            "availability": 87,
+        },
+        "КоллекцияОформляемыхПолейКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "КоллекцияПакетовXDTO": {
+            "availability": 509,
+        },
+        "КоллекцияПолейXBase": {
+            "availability": 56,
+        },
+        "КоллекцияПолейГруппировкиКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "КоллекцияПолейСводнойДиаграммы": {
+            "availability": 56,
+        },
+        "КоллекцияПолейСводнойТаблицы": {
+            "availability": 56,
+        },
+        "КоллекцияПользовательскихПолейКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "КоллекцияРисунковТабличногоДокумента": {
+            "availability": 511,
+        },
+        "КоллекцияСвойствXDTO": {
+            "availability": 509,
+        },
         "КоллекцияСтрокДереваЗначений": {
+            "availability": 440,
             "name": "КоллекцияСтрокДереваЗначений",
             "name_en": "ValueTreeRowCollection",
             "description": "Представляет собой коллекцию строк, подчиненных какой-либо строке дерева значений.",
@@ -37047,26 +38835,65 @@ let bslGlobals = {
                 }
             }
         },
-        "КоллекцияСущностейDOM": {},
-        "КоллекцияТекущихПериодовОтображенияПланировщика": {},
-        "КоллекцияТиповЗначенийXDTO": {},
-        "КоллекцияФасетовXDTO": {},
-        "КоллекцияЭлементовHTML": {},
-        "КоллекцияЭлементовИзмеренияПланировщика": {},
-        "КоллекцияЭлементовОтбораКомпоновкиДанных": {},
-        "КоллекцияЭлементовПланировщика": {},
-        "КоллекцияЭлементовПользовательскихНастроекКомпоновкиДанных": {},
-        "КоллекцияЭлементовПорядкаКомпоновкиДанных": {},
-        "КоллекцияЭлементовСтруктурыДиаграммыКомпоновкиДанных": {},
-        "КоллекцияЭлементовСтруктурыНастроекКомпоновкиДанных": {},
-        "КоллекцияЭлементовСтруктурыТаблицыКомпоновкиДанных": {},
-        "КоллекцияЭлементовУправленияИнтерфейсами": {},
-        "КоллекцияЭлементовУсловногоОформленияКомпоновкиДанных": {},
-        "КоллекцияЭлементовФорматированногоДокумента": {},
-        "КолонкаАнализаДанных": {},
-        "КолонкаВложеннаяТаблицаСхемыЗапроса": {},
-        "КолонкаВременнойТаблицыЗапроса": {},
+        "КоллекцияСущностейDOM": {
+            "availability": 509,
+        },
+        "КоллекцияТекущихПериодовОтображенияПланировщика": {
+            "availability": 511,
+        },
+        "КоллекцияТиповЗначенийXDTO": {
+            "availability": 509,
+        },
+        "КоллекцияФасетовXDTO": {
+            "availability": 509,
+        },
+        "КоллекцияЭлементовHTML": {
+            "availability": 509,
+        },
+        "КоллекцияЭлементовИзмеренияПланировщика": {
+            "availability": 511,
+        },
+        "КоллекцияЭлементовОтбораКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "КоллекцияЭлементовПланировщика": {
+            "availability": 511,
+        },
+        "КоллекцияЭлементовПользовательскихНастроекКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "КоллекцияЭлементовПорядкаКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "КоллекцияЭлементовСтруктурыДиаграммыКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "КоллекцияЭлементовСтруктурыНастроекКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "КоллекцияЭлементовСтруктурыТаблицыКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "КоллекцияЭлементовУправленияИнтерфейсами": {
+            "availability": 16,
+        },
+        "КоллекцияЭлементовУсловногоОформленияКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "КоллекцияЭлементовФорматированногоДокумента": {
+            "availability": 63,
+        },
+        "КолонкаАнализаДанных": {
+            "availability": 56,
+        },
+        "КолонкаВложеннаяТаблицаСхемыЗапроса": {
+            "availability": 56,
+        },
+        "КолонкаВременнойТаблицыЗапроса": {
+            "availability": 440,
+        },
         "КолонкаДереваЗначений": {
+            "availability": 440,
             "name": "КолонкаДереваЗначений",
             "name_en": "ValueTreeColumn",
             "description": "Описывает параметры колонки дерева значений.",
@@ -37093,12 +38920,23 @@ let bslGlobals = {
                 }
             }
         },
-        "КолонкаМоделиПрогноза": {},
-        "КолонкаОписанияИсточникаДанных": {},
-        "КолонкаРезультатаЗапроса": {},
-        "КолонкаРезультатаМоделиПрогноза": {},
-        "КолонкаСписка": {},
+        "КолонкаМоделиПрогноза": {
+            "availability": 56,
+        },
+        "КолонкаОписанияИсточникаДанных": {
+            "availability": 56,
+        },
+        "КолонкаРезультатаЗапроса": {
+            "availability": 440,
+        },
+        "КолонкаРезультатаМоделиПрогноза": {
+            "availability": 56,
+        },
+        "КолонкаСписка": {
+            "availability": 56,
+        },
         "КолонкаСхемыЗапроса": {
+            "availability": 56,
             "name": "КолонкаСхемыЗапроса",
             "name_en": "Column",
             "description": "Колонка схемы запроса.",
@@ -37125,6 +38963,7 @@ let bslGlobals = {
             }
         },
         "КолонкаТаблицыЗначений": {
+            "availability": 440,
             "name": "КолонкаТаблицыЗначений",
             "name_en": "ValueTableColumn",
             "description": "Представляет собой отдельную колонку таблицы значений. Доступ к объекту осуществляется через свойства коллекции колонок таблицы значений.",
@@ -37152,9 +38991,14 @@ let bslGlobals = {
                 }
             }
         },
-        "КолонкаТабличногоПоля": {},
-        "КолонкиАнализаДанных": {},
+        "КолонкаТабличногоПоля": {
+            "availability": 16,
+        },
+        "КолонкиАнализаДанных": {
+            "availability": 56,
+        },
         "КолонкиВременнойТаблицыЗапроса": {
+            "availability": 440,
             "name": "КолонкиВременнойТаблицыЗапроса",
             "name_en": "QueryTempTableColumns",
             "description": "Коллекция колонок временной таблицы",
@@ -37211,11 +39055,20 @@ let bslGlobals = {
                 }
             }
         },
-        "КолонкиМоделиПрогноза": {},
-        "КолонкиОписанияИсточникаДанных": {},
-        "КолонкиРезультатаМоделиПрогноза": {},
-        "КолонкиСписка": {},
+        "КолонкиМоделиПрогноза": {
+            "availability": 56,
+        },
+        "КолонкиОписанияИсточникаДанных": {
+            "availability": 56,
+        },
+        "КолонкиРезультатаМоделиПрогноза": {
+            "availability": 56,
+        },
+        "КолонкиСписка": {
+            "availability": 56,
+        },
         "КолонкиСхемыЗапроса": {
+            "availability": 56,
             "name": "КолонкиСхемыЗапроса",
             "name_en": "Columns",
             "description": "Коллекция колонок схемы запроса.",
@@ -37318,26 +39171,61 @@ let bslGlobals = {
                 }
             }
         },
-        "КолонкиТабличногоПоля": {},
-        "КолонтитулТабличногоДокумента": {},
-        "КомандаКомандногоИнтерфейса": {},
-        "КомандаФормы": {},
-        "КоманднаяПанель": {},
-        "КомандыФормы": {},
-        "КомментарийDOM": {},
-        "КомпоновщикМакетаКомпоновкиДанных": {},
-        "КомпоновщикНастроекКомпоновкиДанных": {},
+        "КолонкиТабличногоПоля": {
+            "availability": 16,
+        },
+        "КолонтитулТабличногоДокумента": {
+            "availability": 511,
+        },
+        "КомандаКомандногоИнтерфейса": {
+            "availability": 23,
+        },
+        "КомандаФормы": {
+            "availability": 479,
+        },
+        "КоманднаяПанель": {
+            "availability": 16,
+        },
+        "КомандыФормы": {
+            "availability": 479,
+        },
+        "КомментарийDOM": {
+            "availability": 509,
+        },
+        "КомпоновщикМакетаКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "КомпоновщикНастроекКомпоновкиДанных": {
+            "availability": 511,
+        },
         "КонстантаМенеджер": {},
         "КонстантаМенеджерЗначения": {},
-        "КонстантыМенеджер": {},
-        "КонстантыНабор": {},
-        "КонструкторЗапроса": {},
-        "КонструкторМакетаОформленияКомпоновкиДанных": {},
-        "КонструкторНастроекКомпоновкиДанных": {},
-        "КонструкторСхемыКомпоновкиДанных": {},
-        "КонструкторФорматнойСтроки": {},
-        "КонтекстПространствИменXML": {},
+        "КонстантыМенеджер": {
+            "availability": 440,
+        },
+        "КонстантыНабор": {
+            "availability": 440,
+        },
+        "КонструкторЗапроса": {
+            "availability": 59,
+        },
+        "КонструкторМакетаОформленияКомпоновкиДанных": {
+            "availability": 48,
+        },
+        "КонструкторНастроекКомпоновкиДанных": {
+            "availability": 56,
+        },
+        "КонструкторСхемыКомпоновкиДанных": {
+            "availability": 16,
+        },
+        "КонструкторФорматнойСтроки": {
+            "availability": 23,
+        },
+        "КонтекстПространствИменXML": {
+            "availability": 509,
+        },
         "КонтрольнаяТочкаИтоговСхемыЗапроса": {
+            "availability": 56,
             "name": "КонтрольнаяТочкаИтоговСхемыЗапроса",
             "name_en": "TotalCalculationField",
             "description": "Контрольная точка итогов схемы запроса.",
@@ -37384,6 +39272,7 @@ let bslGlobals = {
             }
         },
         "КонтрольныеТочкиИтоговСхемыЗапроса": {
+            "availability": 56,
             "name": "КонтрольныеТочкиИтоговСхемыЗапроса",
             "name_en": "TotalCalculationFields",
             "description": "Коллекция контрольных точек итогов схемы запроса.",
@@ -37516,32 +39405,79 @@ let bslGlobals = {
                 }
             }
         },
-        "КонтурПолигональногоОбъектаГеографическойСхемы": {},
-        "КонтурыПолигональногоОбъектаГеографическойСхемы": {},
-        "КонфигурацияДокументаDOM": {},
-        "КонфигурацияЗаписиDOM": {},
-        "КонфигурацияПостроителяDOM": {},
-        "КритерииОтбораМенеджер": {},
+        "КонтурПолигональногоОбъектаГеографическойСхемы": {
+            "availability": 56,
+        },
+        "КонтурыПолигональногоОбъектаГеографическойСхемы": {
+            "availability": 56,
+        },
+        "КонфигурацияДокументаDOM": {
+            "availability": 445,
+        },
+        "КонфигурацияЗаписиDOM": {
+            "availability": 509,
+        },
+        "КонфигурацияПостроителяDOM": {
+            "availability": 509,
+        },
+        "КритерииОтбораМенеджер": {
+            "availability": 56,
+        },
         "КритерийОтбораМенеджер": {},
         "КритерийОтбораСписок": {},
-        "Линия": {},
-        "МакетГруппировкиДиаграммыМакетаКомпоновкиДанных": {},
-        "МакетГруппировкиДиаграммыОбластиКомпоновкиДанных": {},
-        "МакетГруппировкиСхемыКомпоновкиДанных": {},
-        "МакетГруппировкиТаблицыМакетаКомпоновкиДанных": {},
-        "МакетДиаграммыОбластиКомпоновкиДанных": {},
-        "МакетЗаголовкаКоллекцииЗначенийОбластиКомпоновкиДанных": {},
-        "МакетКоллекцииЗначенийОбластиКомпоновкиДанных": {},
-        "МакетКомпоновкиДанных": {},
-        "МакетОбластиКомпоновкиДанных": {},
-        "МакетОбластиМакетаКомпоновкиДанных": {},
-        "МакетОформленияКомпоновкиДанных": {},
-        "МакетПолейИтогаСхемыКомпоновкиДанных": {},
-        "МакетПоляСхемыКомпоновкиДанных": {},
-        "МакетРесурсаДиаграммыОбластиКомпоновкиДанных": {},
-        "МакетТелаДиаграммыМакетаКомпоновкиДанных": {},
-        "МакетТелаТаблицыМакетаКомпоновкиДанных": {},
+        "Линия": {
+            "availability": 511,
+        },
+        "МакетГруппировкиДиаграммыМакетаКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "МакетГруппировкиДиаграммыОбластиКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "МакетГруппировкиСхемыКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "МакетГруппировкиТаблицыМакетаКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "МакетДиаграммыОбластиКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "МакетЗаголовкаКоллекцииЗначенийОбластиКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "МакетКоллекцииЗначенийОбластиКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "МакетКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "МакетОбластиКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "МакетОбластиМакетаКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "МакетОформленияКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "МакетПолейИтогаСхемыКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "МакетПоляСхемыКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "МакетРесурсаДиаграммыОбластиКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "МакетТелаДиаграммыМакетаКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "МакетТелаТаблицыМакетаКомпоновкиДанных": {
+            "availability": 440,
+        },
         "МакетыГруппировокСхемыКомпоновкиДанных": {
+            "availability": 440,
             "name": "МакетыГруппировокСхемыКомпоновкиДанных",
             "name_en": "DataCompositionSchemaGroupTemplates",
             "description": "Содержит макеты группировок.",
@@ -37644,6 +39580,7 @@ let bslGlobals = {
             }
         },
         "МакетыПолейИтогаСхемыКомпоновкиДанных": {
+            "availability": 440,
             "name": "МакетыПолейИтогаСхемыКомпоновкиДанных",
             "name_en": "DataCompositionSchemaTotalFieldsTemplates",
             "description": "Содержит макеты полей итога.",
@@ -37746,6 +39683,7 @@ let bslGlobals = {
             }
         },
         "МакетыПолейСхемыКомпоновкиДанных": {
+            "availability": 440,
             "name": "МакетыПолейСхемыКомпоновкиДанных",
             "name_en": "DataCompositionSchemaFieldTemplates",
             "description": "Содержит макеты полей.",
@@ -37862,12 +39800,23 @@ let bslGlobals = {
                 }
             }
         },
-        "МакетыТелаДиаграммыМакетаКомпоновкиДанных": {},
-        "МакетыТелаТаблицыМакетаКомпоновкиДанных": {},
-        "МаксимумСерий": {},
-        "МаскаXS": {},
-        "Массив": {},
+        "МакетыТелаДиаграммыМакетаКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "МакетыТелаТаблицыМакетаКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "МаксимумСерий": {
+            "availability": 511,
+        },
+        "МаскаXS": {
+            "availability": 56,
+        },
+        "Массив": {
+            "availability": 511,
+        },
         "МенеджерВременныхТаблиц": {
+            "availability": 440,
             "name": "МенеджерВременныхТаблиц",
             "name_en": "TempTablesManager",
             "description": "Предназначен для хранения временных таблиц.",
@@ -37887,16 +39836,35 @@ let bslGlobals = {
                 }
             }
         },
-        "МенеджерИсторииРаботыПользователя": {},
-        "МенеджерКриптографии": {},
-        "МенеджерОтправкиДоставляемыхУведомлений": {},
-        "МенеджерПанелиЗадачОС": {},
-        "МенеджерПолнотекстовогоПоиска": {},
-        "МенеджерПользователейИнформационнойБазы": {},
-        "МенеджерПроверкиВстроенныхПокупок": {},
-        "МенеджерРасширенийКонфигурации": {},
-        "МенеджерРегламентныхЗаданий": {},
+        "МенеджерИсторииРаботыПользователя": {
+            "availability": 63,
+        },
+        "МенеджерКриптографии": {
+            "availability": 511,
+        },
+        "МенеджерОтправкиДоставляемыхУведомлений": {
+            "availability": 57,
+        },
+        "МенеджерПанелиЗадачОС": {
+            "availability": 17,
+        },
+        "МенеджерПолнотекстовогоПоиска": {
+            "availability": 440,
+        },
+        "МенеджерПользователейИнформационнойБазы": {
+            "availability": 440,
+        },
+        "МенеджерПроверкиВстроенныхПокупок": {
+            "availability": 509,
+        },
+        "МенеджерРасширенийКонфигурации": {
+            "availability": 56,
+        },
+        "МенеджерРегламентныхЗаданий": {
+            "availability": 56,
+        },
         "МенеджерСистемыВзаимодействия": {
+            "availability": 63,
             "name": "МенеджерСистемыВзаимодействия",
             "name_en": "CollaborationSystemManager",
             "description": "Предоставляет доступ к функциям системы взаимодействия.",
@@ -39308,6 +41276,7 @@ let bslGlobals = {
             }
         },
         "МенеджерФайловыхПотоков": {
+            "availability": 511,
             "name": "МенеджерФайловыхПотоков",
             "name_en": "FileStreamsManager",
             "description": "Предоставляет методы для использования в типовых сценариях работы с файлами.",
@@ -39516,30 +41485,77 @@ let bslGlobals = {
                 }
             }
         },
-        "МенеджерФоновыхЗаданий": {},
-        "МеткаЭлементаШкалыВремени": {},
-        "МеткиЭлементаШкалыВремени": {},
-        "МетодКластеризации": {},
-        "МетодНаследованияXS": {},
-        "МетодСжатияZIP": {},
-        "МетодШифрованияZIP": {},
-        "МноготочечныйОбъектГеографическойСхемы": {},
-        "МодельПрогнозаДеревоРешений": {},
-        "МодельПрогнозаКластеризация": {},
-        "МодельПрогнозаПоискАссоциаций": {},
-        "МодельПрогнозаПоискПоследовательностей": {},
-        "МодельСодержимогоXS": {},
-        "МоментВремени": {},
-        "НаборДанныхЗапросМакетаКомпоновкиДанных": {},
-        "НаборДанныхЗапросСхемыКомпоновкиДанных": {},
-        "НаборДанныхОбъединениеМакетаКомпоновкиДанных": {},
-        "НаборДанныхОбъединениеСхемыКомпоновкиДанных": {},
-        "НаборДанныхОбъектМакетаКомпоновкиДанных": {},
-        "НаборДанныхОбъектСхемыКомпоновкиДанных": {},
-        "НаборСхемXML": {},
-        "НаборУзлов": {},
-        "НаборыДанныхМакетаКомпоновкиДанных": {},
+        "МенеджерФоновыхЗаданий": {
+            "availability": 440,
+        },
+        "МеткаЭлементаШкалыВремени": {
+            "availability": 59,
+        },
+        "МеткиЭлементаШкалыВремени": {
+            "availability": 59,
+        },
+        "МетодКластеризации": {
+            "availability": 63,
+        },
+        "МетодНаследованияXS": {
+            "availability": 508,
+        },
+        "МетодСжатияZIP": {
+            "availability": 508,
+        },
+        "МетодШифрованияZIP": {
+            "availability": 508,
+        },
+        "МноготочечныйОбъектГеографическойСхемы": {
+            "availability": 56,
+        },
+        "МодельПрогнозаДеревоРешений": {
+            "availability": 56,
+        },
+        "МодельПрогнозаКластеризация": {
+            "availability": 56,
+        },
+        "МодельПрогнозаПоискАссоциаций": {
+            "availability": 56,
+        },
+        "МодельПрогнозаПоискПоследовательностей": {
+            "availability": 56,
+        },
+        "МодельСодержимогоXS": {
+            "availability": 508,
+        },
+        "МоментВремени": {
+            "availability": 443,
+        },
+        "НаборДанныхЗапросМакетаКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "НаборДанныхЗапросСхемыКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "НаборДанныхОбъединениеМакетаКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "НаборДанныхОбъединениеСхемыКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "НаборДанныхОбъектМакетаКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "НаборДанныхОбъектСхемыКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "НаборСхемXML": {
+            "availability": 440,
+        },
+        "НаборУзлов": {
+            "availability": 440,
+        },
+        "НаборыДанныхМакетаКомпоновкиДанных": {
+            "availability": 440,
+        },
         "НаборыДанныхСхемыКомпоновкиДанных": {
+            "availability": 440,
             "name": "НаборыДанныхСхемыКомпоновкиДанных",
             "name_en": "DataCompositionSchemaDataSets",
             "description": "Содержит наборы данных.",
@@ -39659,106 +41675,293 @@ let bslGlobals = {
                 }
             }
         },
-        "Надпись": {},
+        "Надпись": {
+            "availability": 16,
+        },
         "НазначениеИспользованияПриложения": {},
-        "НазначениеТипаXML": {},
-        "НаправлениеПоиска": {},
-        "НаправлениеПорядкаСхемыЗапроса": {},
-        "НаправлениеСортировки": {},
-        "НаправлениеСортировкиКомпоновкиДанных": {},
-        "НастройкаВходнойКолонкиМоделиПрогноза": {},
-        "НастройкаВходныхКолонокМоделиПрогноза": {},
-        "НастройкаКолонокАнализаДанных": {},
-        "НастройкаНастройкиОформления": {},
-        "НастройкаОбластиОформления": {},
-        "НастройкаОтбора": {},
-        "НастройкаОтображенияДиаграмм": {},
-        "НастройкаОформления": {},
-        "НастройкаПараметровАнализаДанных": {},
-        "НастройкаПериода": {},
-        "НастройкаПорядка": {},
-        "НастройкаУсловногоОформления": {},
-        "НастройкиВложенногоОбъектаКомпоновкиДанных": {},
-        "НастройкиВнешнейКомпоненты": {},
-        "НастройкиИнтерфейсаКлиентскогоПриложения": {},
-        "НастройкиИсторииВыбора": {},
-        "НастройкиКлиентскогоПриложения": {},
-        "НастройкиКомандногоИнтерфейса": {},
-        "НастройкиКомпоновкиДанных": {},
-        "НастройкиНачальнойСтраницы": {},
-        "НастройкиОкна": {},
-        "НастройкиПечатиТабличногоДокумента": {},
-        "НастройкиПостроителяОтчета": {},
-        "НастройкиСериализацииJSON": {},
-        "НастройкиСоставаИнтерфейсаКлиентскогоПриложения": {},
-        "НастройкиСправки": {},
-        "НастройкиСравнения": {},
-        "НастройкиФормы": {},
-        "НачальноеОтображениеДерева": {},
-        "НачальноеОтображениеСписка": {},
-        "НедопустимыеПодстановкиXS": {},
-        "НеобходимостьЗавершенияСоединения": {},
+        "НазначениеТипаXML": {
+            "availability": 508,
+        },
+        "НаправлениеПоиска": {
+            "availability": 511,
+        },
+        "НаправлениеПорядкаСхемыЗапроса": {
+            "availability": 56,
+        },
+        "НаправлениеСортировки": {
+            "availability": 508,
+        },
+        "НаправлениеСортировкиКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "НастройкаВходнойКолонкиМоделиПрогноза": {
+            "availability": 56,
+        },
+        "НастройкаВходныхКолонокМоделиПрогноза": {
+            "availability": 56,
+        },
+        "НастройкаКолонокАнализаДанных": {
+            "availability": 56,
+        },
+        "НастройкаНастройкиОформления": {
+            "availability": 56,
+        },
+        "НастройкаОбластиОформления": {
+            "availability": 56,
+        },
+        "НастройкаОтбора": {
+            "availability": 56,
+        },
+        "НастройкаОтображенияДиаграмм": {
+            "availability": 63,
+        },
+        "НастройкаОформления": {
+            "availability": 56,
+        },
+        "НастройкаПараметровАнализаДанных": {
+            "availability": 56,
+        },
+        "НастройкаПериода": {
+            "availability": 16,
+        },
+        "НастройкаПорядка": {
+            "availability": 56,
+        },
+        "НастройкаУсловногоОформления": {
+            "availability": 56,
+        },
+        "НастройкиВложенногоОбъектаКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "НастройкиВнешнейКомпоненты": {
+            "availability": 24,
+        },
+        "НастройкиИнтерфейсаКлиентскогоПриложения": {
+            "availability": 24,
+        },
+        "НастройкиИсторииВыбора": {
+            "availability": 24,
+        },
+        "НастройкиКлиентскогоПриложения": {
+            "availability": 24,
+        },
+        "НастройкиКомандногоИнтерфейса": {
+            "availability": 24,
+        },
+        "НастройкиКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "НастройкиНачальнойСтраницы": {
+            "availability": 408,
+        },
+        "НастройкиОкна": {
+            "availability": 24,
+        },
+        "НастройкиПечатиТабличногоДокумента": {
+            "availability": 392,
+        },
+        "НастройкиПостроителяОтчета": {
+            "availability": 56,
+        },
+        "НастройкиСериализацииJSON": {
+            "availability": 509,
+        },
+        "НастройкиСоставаИнтерфейсаКлиентскогоПриложения": {
+            "availability": 24,
+        },
+        "НастройкиСправки": {
+            "availability": 24,
+        },
+        "НастройкиСравнения": {
+            "availability": 24,
+        },
+        "НастройкиФормы": {
+            "availability": 24,
+        },
+        "НачальноеОтображениеДерева": {
+            "availability": 127,
+        },
+        "НачальноеОтображениеСписка": {
+            "availability": 511,
+        },
+        "НедопустимыеПодстановкиXS": {
+            "availability": 508,
+        },
+        "НеобходимостьЗавершенияСоединения": {
+            "availability": 56,
+        },
         "Неопределено": {},
-        "НотацияDOM": {},
-        "ОбластьЗаголовкаГеографическойСхемы": {},
-        "ОбластьЗаголовкаДендрограммы": {},
-        "ОбластьЗаголовкаДиаграммы": {},
-        "ОбластьЗаголовкаДиаграммыГанта": {},
-        "ОбластьЗаголовкаСводнойДиаграммы": {},
-        "ОбластьЛегендыГеографическойСхемы": {},
-        "ОбластьЛегендыДиаграммы": {},
-        "ОбластьЛегендыДиаграммыГанта": {},
-        "ОбластьЛегендыСводнойДиаграммы": {},
-        "ОбластьМакетаОформленияКомпоновкиДанных": {},
-        "ОбластьОформления": {},
-        "ОбластьПостроенияГеографическойСхемы": {},
-        "ОбластьПостроенияДендрограммы": {},
-        "ОбластьПостроенияДиаграммы": {},
-        "ОбластьПостроенияДиаграммыГанта": {},
-        "ОбластьПостроенияСводнойДиаграммы": {},
-        "ОбластьФорматированногоДокумента": {},
-        "ОбластьЯчеекТабличногоДокумента": {},
-        "ОбновлениеКонфигурацииБазыДанных": {},
-        "ОбновлениеПредопределенныхДанных": {},
-        "ОбновлениеПриИзмененииДанных": {},
-        "ОбновлениеТекстаРедактирования": {},
-        "ОболочкаActiveDocument": {},
-        "ОболочкаHTMLДокумента": {},
-        "ОбработкаКартинок": {},
+        "НотацияDOM": {
+            "availability": 509,
+        },
+        "ОбластьЗаголовкаГеографическойСхемы": {
+            "availability": 56,
+        },
+        "ОбластьЗаголовкаДендрограммы": {
+            "availability": 57,
+        },
+        "ОбластьЗаголовкаДиаграммы": {
+            "availability": 511,
+        },
+        "ОбластьЗаголовкаДиаграммыГанта": {
+            "availability": 59,
+        },
+        "ОбластьЗаголовкаСводнойДиаграммы": {
+            "availability": 56,
+        },
+        "ОбластьЛегендыГеографическойСхемы": {
+            "availability": 56,
+        },
+        "ОбластьЛегендыДиаграммы": {
+            "availability": 511,
+        },
+        "ОбластьЛегендыДиаграммыГанта": {
+            "availability": 59,
+        },
+        "ОбластьЛегендыСводнойДиаграммы": {
+            "availability": 56,
+        },
+        "ОбластьМакетаОформленияКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ОбластьОформления": {
+            "availability": 56,
+        },
+        "ОбластьПостроенияГеографическойСхемы": {
+            "availability": 56,
+        },
+        "ОбластьПостроенияДендрограммы": {
+            "availability": 57,
+        },
+        "ОбластьПостроенияДиаграммы": {
+            "availability": 511,
+        },
+        "ОбластьПостроенияДиаграммыГанта": {
+            "availability": 59,
+        },
+        "ОбластьПостроенияСводнойДиаграммы": {
+            "availability": 56,
+        },
+        "ОбластьФорматированногоДокумента": {
+            "availability": 63,
+        },
+        "ОбластьЯчеекТабличногоДокумента": {
+            "availability": 511,
+        },
+        "ОбновлениеКонфигурацииБазыДанных": {
+            "availability": 56,
+        },
+        "ОбновлениеПредопределенныхДанных": {
+            "availability": 440,
+        },
+        "ОбновлениеПриИзмененииДанных": {
+            "availability": 511,
+        },
+        "ОбновлениеТекстаРедактирования": {
+            "availability": 31,
+        },
+        "ОболочкаActiveDocument": {
+            "availability": 24,
+        },
+        "ОболочкаHTMLДокумента": {
+            "availability": 56,
+        },
+        "ОбработкаКартинок": {
+            "availability": 56,
+        },
         "ОбработкаМенеджер": {},
         "ОбработкаОбъект": {},
-        "ОбработкаПробельныхСимволовXS": {},
-        "ОбработкаРасшифровкиКомпоновкиДанных": {},
-        "ОбработкаСодержимогоXS": {},
+        "ОбработкаПробельныхСимволовXS": {
+            "availability": 508,
+        },
+        "ОбработкаРасшифровкиКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ОбработкаСодержимогоXS": {
+            "availability": 508,
+        },
         "ОбработкаТабличнаяЧасть": {},
         "ОбработкаТабличнаяЧастьСтрока": {},
-        "ОбработкаТекстаИнтернетПочтовогоСообщения": {},
-        "ОбработкиМенеджер": {},
-        "ОбходДереваDOM": {},
-        "ОбходРезультатаЗапроса": {},
-        "ОбщийМодуль": {},
-        "ОбъединениеЗавершенностиПростогоТипаXS": {},
-        "ОбъединениеЗавершенностиСоставногоТипаXS": {},
-        "ОбъединениеЗавершенностиСхемыXS": {},
-        "ОбъединениеЗапрещенныхПодстановокXS": {},
-        "ОбъединениеИсключенийГруппПодстановкиXS": {},
-        "ОбъединениеНедопустимыхПодстановкиXS": {},
-        "ОбъектXDTO": {},
-        "ОбъектАнализаДанных": {},
-        "ОбъектМетаданных": {},
-        "ОбъектМетаданныхКонфигурация": {},
-        "ОбъектыСлояГеографическойСхемы": {},
-        "ОбъявлениеАтрибутаXS": {},
-        "ОбъявлениеНотацииXS": {},
-        "ОбъявлениеЭлементаXS": {},
-        "ОграничениеЗначенияXS": {},
-        "ОграничениеИспользованияДоступногоПараметраКомпоновкиДанных": {},
-        "ОграничениеИспользованияДоступногоПоляКомпоновкиДанных": {},
-        "ОграничениеИспользованияПоляСхемыКомпоновкиДанных": {},
-        "ОграниченияИспользованияДоступныхПараметровКомпоновкиДанных": {},
-        "ОграниченияИспользованияДоступныхПолейКомпоновкиДанных": {},
-        "ОкноКлиентскогоПриложения": {},
+        "ОбработкаТекстаИнтернетПочтовогоСообщения": {
+            "availability": 508,
+        },
+        "ОбработкиМенеджер": {
+            "availability": 440,
+        },
+        "ОбходДереваDOM": {
+            "availability": 509,
+        },
+        "ОбходРезультатаЗапроса": {
+            "availability": 56,
+        },
+        "ОбщийМодуль": {
+            "availability": 447,
+        },
+        "ОбъединениеЗавершенностиПростогоТипаXS": {
+            "availability": 56,
+        },
+        "ОбъединениеЗавершенностиСоставногоТипаXS": {
+            "availability": 56,
+        },
+        "ОбъединениеЗавершенностиСхемыXS": {
+            "availability": 56,
+        },
+        "ОбъединениеЗапрещенныхПодстановокXS": {
+            "availability": 56,
+        },
+        "ОбъединениеИсключенийГруппПодстановкиXS": {
+            "availability": 56,
+        },
+        "ОбъединениеНедопустимыхПодстановкиXS": {
+            "availability": 56,
+        },
+        "ОбъектXDTO": {
+            "availability": 509,
+        },
+        "ОбъектАнализаДанных": {
+            "availability": 56,
+        },
+        "ОбъектМетаданных": {
+            "availability": 508,
+        },
+        "ОбъектМетаданныхКонфигурация": {
+            "availability": 440,
+        },
+        "ОбъектыСлояГеографическойСхемы": {
+            "availability": 56,
+        },
+        "ОбъявлениеАтрибутаXS": {
+            "availability": 56,
+        },
+        "ОбъявлениеНотацииXS": {
+            "availability": 56,
+        },
+        "ОбъявлениеЭлементаXS": {
+            "availability": 56,
+        },
+        "ОграничениеЗначенияXS": {
+            "availability": 508,
+        },
+        "ОграничениеИспользованияДоступногоПараметраКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ОграничениеИспользованияДоступногоПоляКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ОграничениеИспользованияПоляСхемыКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ОграниченияИспользованияДоступныхПараметровКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ОграниченияИспользованияДоступныхПолейКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ОкноКлиентскогоПриложения": {
+            "availability": 119,
+        },
         "ОператорВыбратьСхемыЗапроса": {
+            "availability": 56,
             "name": "ОператорВыбратьСхемыЗапроса",
             "name_en": "SelectOperator",
             "description": "Оператор выбора (ВЫБРАТЬ) схемы запроса.",
@@ -39841,6 +42044,7 @@ let bslGlobals = {
             }
         },
         "ОператорыСхемыЗапроса": {
+            "availability": 56,
             "name": "ОператорыСхемыЗапроса",
             "name_en": "Operators",
             "description": "Коллекция операторов схемы запроса.",
@@ -39943,16 +42147,35 @@ let bslGlobals = {
                 }
             }
         },
-        "ОписаниеВременнойТаблицыСхемыЗапроса": {},
-        "ОписаниеИспользованияСобытияДоступЖурналаРегистрации": {},
-        "ОписаниеИспользованияСобытияОтказВДоступеЖурналаРегистрации": {},
-        "ОписаниеИсточникаДанных": {},
-        "ОписаниеМакетаОбластиМакетаКомпоновкиДанных": {},
-        "ОписаниеМакетаСхемыКомпоновкиДанных": {},
-        "ОписаниеНастроек": {},
-        "ОписаниеОбработкиРасшифровкиКомпоновкиДанных": {},
-        "ОписаниеОповещения": {},
+        "ОписаниеВременнойТаблицыСхемыЗапроса": {
+            "availability": 56,
+        },
+        "ОписаниеИспользованияСобытияДоступЖурналаРегистрации": {
+            "availability": 56,
+        },
+        "ОписаниеИспользованияСобытияОтказВДоступеЖурналаРегистрации": {
+            "availability": 56,
+        },
+        "ОписаниеИсточникаДанных": {
+            "availability": 56,
+        },
+        "ОписаниеМакетаОбластиМакетаКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ОписаниеМакетаСхемыКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ОписаниеНастроек": {
+            "availability": 184,
+        },
+        "ОписаниеОбработкиРасшифровкиКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ОписаниеОповещения": {
+            "availability": 87,
+        },
         "ОписаниеПараметраЗапроса": {
+            "availability": 440,
             "name": "ОписаниеПараметраЗапроса",
             "name_en": "QueryParameterDescription",
             "description": "Содержит описание параметра запроса.",
@@ -39971,6 +42194,7 @@ let bslGlobals = {
             }
         },
         "ОписаниеПараметровЗапроса": {
+            "availability": 440,
             "name": "ОписаниеПараметровЗапроса",
             "name_en": "QueryParametersDescription",
             "description": "Содержит параметры запроса.",
@@ -39998,13 +42222,26 @@ let bslGlobals = {
                 }
             },
         },
-        "ОписаниеПередаваемогоФайла": {},
-        "ОписаниеПереданногоФайла": {},
-        "ОписаниеСтандартногоРеквизита": {},
-        "ОписаниеСтандартнойТабличнойЧасти": {},
-        "ОписаниеТипов": {},
-        "ОписанияМакетовОбластейМакетаКомпоновкиДанных": {},
+        "ОписаниеПередаваемогоФайла": {
+            "availability": 511,
+        },
+        "ОписаниеПереданногоФайла": {
+            "availability": 511,
+        },
+        "ОписаниеСтандартногоРеквизита": {
+            "availability": 440,
+        },
+        "ОписаниеСтандартнойТабличнойЧасти": {
+            "availability": 440,
+        },
+        "ОписаниеТипов": {
+            "availability": 511,
+        },
+        "ОписанияМакетовОбластейМакетаКомпоновкиДанных": {
+            "availability": 440,
+        },
         "ОписанияМакетовСхемыКомпоновкиДанных": {
+            "availability": 440,
             "name": "ОписанияМакетовСхемыКомпоновкиДанных",
             "name_en": "DataCompositionSchemaTemplateDescriptions",
             "description": "Коллекция описаний макетов схемы компоновки данных.",
@@ -40121,66 +42358,173 @@ let bslGlobals = {
                 }
             }
         },
-        "ОписанияСтандартныхРеквизитов": {},
-        "ОписанияСтандартныхТабличныхЧастей": {},
-        "ОпределениеГруппыАтрибутовXS": {},
-        "ОпределениеГруппыМоделиXS": {},
-        "ОпределениеОграниченияИдентичностиXS": {},
-        "ОпределениеПростогоТипаXS": {},
-        "ОпределениеСоставногоТипаXS": {},
-        "ОпределениеТипаДокументаDOM": {},
-        "ОпределенияXPathXS": {},
-        "Ориентация": {},
-        "ОриентацияДендрограммы": {},
-        "ОриентацияДиаграммы": {},
+        "ОписанияСтандартныхРеквизитов": {
+            "availability": 440,
+        },
+        "ОписанияСтандартныхТабличныхЧастей": {
+            "availability": 440,
+        },
+        "ОпределениеГруппыАтрибутовXS": {
+            "availability": 56,
+        },
+        "ОпределениеГруппыМоделиXS": {
+            "availability": 56,
+        },
+        "ОпределениеОграниченияИдентичностиXS": {
+            "availability": 56,
+        },
+        "ОпределениеПростогоТипаXS": {
+            "availability": 56,
+        },
+        "ОпределениеСоставногоТипаXS": {
+            "availability": 56,
+        },
+        "ОпределениеТипаДокументаDOM": {
+            "availability": 509,
+        },
+        "ОпределенияXPathXS": {
+            "availability": 56,
+        },
+        "Ориентация": {
+            "availability": 16,
+        },
+        "ОриентацияДендрограммы": {
+            "availability": 63,
+        },
+        "ОриентацияДиаграммы": {
+            "availability": 511,
+        },
         "ОриентацияМетокДиаграммы": {},
-        "ОриентацияМетокСводнойДиаграммы": {},
-        "ОриентацияСтраницы": {},
-        "ОриентацияЭлементаФормы": {},
+        "ОриентацияМетокСводнойДиаграммы": {
+            "availability": 25,
+        },
+        "ОриентацияСтраницы": {
+            "availability": 511,
+        },
+        "ОриентацияЭлементаФормы": {
+            "availability": 511,
+        },
         "Отбор": {},
-        "ОтборКомпоновкиДанных": {},
-        "ОтображениеВремениЭлементовПланировщика": {},
-        "ОтображениеГруппыКнопок": {},
-        "ОтображениеЗакладок": {},
-        "ОтображениеЗначенийСводнойДиаграммы": {},
-        "ОтображениеЗначенияИзмерительнойДиаграммы": {},
-        "ОтображениеИнтервалаДиаграммыГанта": {},
-        "ОтображениеКнопки": {},
-        "ОтображениеКнопкиВыбора": {},
-        "ОтображениеКнопкиКоманднойПанели": {},
-        "ОтображениеОбычнойГруппы": {},
-        "ОтображениеПанелиРазделов": {},
-        "ОтображениеПодсказки": {},
-        "ОтображениеПредупрежденияПриРедактировании": {},
-        "ОтображениеРазметкиПолосыРегулирования": {},
-        "ОтображениеСостояния": {},
-        "ОтображениеСтраницФормы": {},
-        "ОтображениеТаблицы": {},
-        "ОтображениеТекстаЗначенияДиаграммыГанта": {},
-        "ОтображениеУправленияОбычнойГруппы": {},
-        "ОтображениеФигурыКнопки": {},
-        "ОтправкаЭлементаДанных": {},
+        "ОтборКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ОтображениеВремениЭлементовПланировщика": {
+            "availability": 63,
+        },
+        "ОтображениеГруппыКнопок": {
+            "availability": 511,
+        },
+        "ОтображениеЗакладок": {
+            "availability": 16,
+        },
+        "ОтображениеЗначенийСводнойДиаграммы": {
+            "availability": 25,
+        },
+        "ОтображениеЗначенияИзмерительнойДиаграммы": {
+            "availability": 511,
+        },
+        "ОтображениеИнтервалаДиаграммыГанта": {
+            "availability": 63,
+        },
+        "ОтображениеКнопки": {
+            "availability": 511,
+        },
+        "ОтображениеКнопкиВыбора": {
+            "availability": 511,
+        },
+        "ОтображениеКнопкиКоманднойПанели": {
+            "availability": 16,
+        },
+        "ОтображениеОбычнойГруппы": {
+            "availability": 511,
+        },
+        "ОтображениеПанелиРазделов": {
+            "availability": 63,
+        },
+        "ОтображениеПодсказки": {
+            "availability": 479,
+        },
+        "ОтображениеПредупрежденияПриРедактировании": {
+            "availability": 479,
+        },
+        "ОтображениеРазметкиПолосыРегулирования": {
+            "availability": 31,
+        },
+        "ОтображениеСостояния": {
+            "availability": 63,
+        },
+        "ОтображениеСтраницФормы": {
+            "availability": 511,
+        },
+        "ОтображениеТаблицы": {
+            "availability": 511,
+        },
+        "ОтображениеТекстаЗначенияДиаграммыГанта": {
+            "availability": 63,
+        },
+        "ОтображениеУправленияОбычнойГруппы": {
+            "availability": 63,
+        },
+        "ОтображениеФигурыКнопки": {
+            "availability": 479,
+        },
+        "ОтправкаЭлементаДанных": {
+            "availability": 56,
+        },
         "ОтчетМенеджер": {},
         "ОтчетОбъект": {},
         "ОтчетТабличнаяЧасть": {},
         "ОтчетТабличнаяЧастьСтрока": {},
-        "ОтчетыМенеджер": {},
-        "ОформлениеГруппировкиДиаграммыОбластиКомпоновкиДанных": {},
-        "ОформлениеДаты": {},
-        "ОформлениеДиаграммыОбластиКомпоновкиДанных": {},
-        "ОформлениеКомпоновкиДанных": {},
-        "ОформлениеМакетаОформленияКомпоновкиДанных": {},
-        "ОформлениеПериода": {},
-        "ОформлениеПоляОбластиКомпоновкиДанных": {},
-        "ОформлениеРесурсаДиаграммыОбластиКомпоновкиДанных": {},
-        "ОформлениеСтроки": {},
-        "ОформлениеЯчейки": {},
-        "ОформлениеЯчейкиТаблицыОбластиКомпоновкиДанных": {},
-        "ОформленияСтрок": {},
-        "ОформляемоеПолеКомпоновкиДанных": {},
-        "ОформляемыеПоляКомпоновкиДанных": {},
-        "ПакетXDTO": {},
+        "ОтчетыМенеджер": {
+            "availability": 440,
+        },
+        "ОформлениеГруппировкиДиаграммыОбластиКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ОформлениеДаты": {
+            "availability": 87,
+        },
+        "ОформлениеДиаграммыОбластиКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ОформлениеКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ОформлениеМакетаОформленияКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ОформлениеПериода": {
+            "availability": 87,
+        },
+        "ОформлениеПоляОбластиКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ОформлениеРесурсаДиаграммыОбластиКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ОформлениеСтроки": {
+            "availability": 16,
+        },
+        "ОформлениеЯчейки": {
+            "availability": 16,
+        },
+        "ОформлениеЯчейкиТаблицыОбластиКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ОформленияСтрок": {
+            "availability": 16,
+        },
+        "ОформляемоеПолеКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ОформляемыеПоляКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ПакетXDTO": {
+            "availability": 509,
+        },
         "ПакетЗапросовСхемыЗапроса": {
+            "availability": 56,
             "name": "ПакетЗапросовСхемыЗапроса",
             "name_en": "QueryBatch",
             "description": "Коллекция запросов пакета.",
@@ -40298,15 +42642,32 @@ let bslGlobals = {
                 }
             }
         },
-        "ПакетОтображаемыхДокументов": {},
-        "ПалитраЦветовДиаграммы": {},
-        "Панель": {},
-        "ПапкаПолейНабораДанныхСхемыКомпоновкиДанных": {},
-        "ПараграфФорматированногоДокумента": {},
-        "ПараметрАнализаДанных": {},
-        "ПараметрВыбора": {},
-        "ПараметрВыбораКомпоновкиДанных": {},
+        "ПакетОтображаемыхДокументов": {
+            "availability": 511,
+        },
+        "ПалитраЦветовДиаграммы": {
+            "availability": 511,
+        },
+        "Панель": {
+            "availability": 16,
+        },
+        "ПапкаПолейНабораДанныхСхемыКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ПараграфФорматированногоДокумента": {
+            "availability": 63,
+        },
+        "ПараметрАнализаДанных": {
+            "availability": 56,
+        },
+        "ПараметрВыбора": {
+            "availability": 509,
+        },
+        "ПараметрВыбораКомпоновкиДанных": {
+            "availability": 63,
+        },
         "ПараметрДоступнойТаблицыСхемыЗапроса": {
+            "availability": 56,
             "name": "ПараметрДоступнойТаблицыСхемыЗапроса",
             "name_en": "AvailableTableParameter",
             "description": "Параметр доступной таблицы схемы запроса.",
@@ -40345,10 +42706,17 @@ let bslGlobals = {
                 }
             }
         },
-        "ПараметрКомпоновкиДанных": {},
-        "ПараметрОбластиВыражениеКомпоновкиДанных": {},
-        "ПараметрОбластиРасшифровкаКомпоновкиДанных": {},
+        "ПараметрКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ПараметрОбластиВыражениеКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ПараметрОбластиРасшифровкаКомпоновкиДанных": {
+            "availability": 440,
+        },
         "ПараметрСхемыКомпоновкиДанных": {
+            "availability": 440,
             "name": "ПараметрСхемыКомпоновкиДанных",
             "name_en": "DataCompositionSchemaParameter",
             "description": "Описание параметра.",
@@ -40455,12 +42823,23 @@ let bslGlobals = {
                 }
             }
         },
-        "ПараметрТаблицыСхемыЗапроса": {},
-        "ПараметрыАнализаДанных": {},
-        "ПараметрыВыбораКомпоновкиДанных": {},
-        "ПараметрыВыполненияКоманды": {},
-        "ПараметрыДоступа": {},
+        "ПараметрТаблицыСхемыЗапроса": {
+            "availability": 56,
+        },
+        "ПараметрыАнализаДанных": {
+            "availability": 56,
+        },
+        "ПараметрыВыбораКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ПараметрыВыполненияКоманды": {
+            "availability": 87,
+        },
+        "ПараметрыДоступа": {
+            "availability": 440,
+        },
         "ПараметрыДоступнойТаблицыСхемыЗапроса": {
+            "availability": 56,
             "name": "ПараметрыДоступнойТаблицыСхемыЗапроса",
             "name_en": "AvailableTableParameters",
             "description": "Коллекция параметров доступной таблицы схемы запроса.",
@@ -40517,13 +42896,26 @@ let bslGlobals = {
                 }
             }
         },
-        "ПараметрыЗаписиJSON": {},
-        "ПараметрыЗаписиXML": {},
-        "ПараметрыКолонкиКластерногоАнализа": {},
-        "ПараметрыМакетаТабличногоДокумента": {},
-        "ПараметрыМакетаТекстовогоДокумента": {},
-        "ПараметрыОбластиКомпоновкиДанных": {},
+        "ПараметрыЗаписиJSON": {
+            "availability": 509,
+        },
+        "ПараметрыЗаписиXML": {
+            "availability": 440,
+        },
+        "ПараметрыКолонкиКластерногоАнализа": {
+            "availability": 56,
+        },
+        "ПараметрыМакетаТабличногоДокумента": {
+            "availability": 508,
+        },
+        "ПараметрыМакетаТекстовогоДокумента": {
+            "availability": 56,
+        },
+        "ПараметрыОбластиКомпоновкиДанных": {
+            "availability": 440,
+        },
         "ПараметрыОбменаДанными": {
+            "availability": 440,
             "name": "ПараметрыОбменаДанными",
             "name_en": "DataExchangeParameters",
             "description": "Объект данного типа представляет собой значение свойства ОбменДанными объектов, представляющих данные, по которым ведется учет изменений",
@@ -40546,12 +42938,23 @@ let bslGlobals = {
                 }
             }
         },
-        "ПараметрыОтбораУзловDOM": {},
-        "ПараметрыПеретаскивания": {},
-        "ПараметрыРедактированияКомпоновкиДанных": {},
-        "ПараметрыСеанса": {},
-        "ПараметрыСоединенияВнешнегоИсточникаДанных": {},
+        "ПараметрыОтбораУзловDOM": {
+            "availability": 509,
+        },
+        "ПараметрыПеретаскивания": {
+            "availability": 19,
+        },
+        "ПараметрыРедактированияКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ПараметрыСеанса": {
+            "availability": 440,
+        },
+        "ПараметрыСоединенияВнешнегоИсточникаДанных": {
+            "availability": 56,
+        },
         "ПараметрыСхемыКомпоновкиДанных": {
+            "availability": 440,
             "name": "ПараметрыСхемыКомпоновкиДанных",
             "name_en": "DataCompositionSchemaParameters",
             "description": "Коллекция параметров схемы компоновки данных.",
@@ -40668,12 +43071,24 @@ let bslGlobals = {
                 }
             }
         },
-        "ПараметрыТаблицыСхемыЗапроса": {},
-        "ПараметрыЧтенияXML": {},
-        "ПереводСтрокиФорматированногоДокумента": {},
-        "Переключатель": {},
-        "ПереносСтрокJSON": {},
-        "ПереопределениеXS": {},
+        "ПараметрыТаблицыСхемыЗапроса": {
+            "availability": 56,
+        },
+        "ПараметрыЧтенияXML": {
+            "availability": 509,
+        },
+        "ПереводСтрокиФорматированногоДокумента": {
+            "availability": 63,
+        },
+        "Переключатель": {
+            "availability": 16,
+        },
+        "ПереносСтрокJSON": {
+            "availability": 509,
+        },
+        "ПереопределениеXS": {
+            "availability": 56,
+        },
         "ПерерасчетЗапись": {},
         "ПерерасчетМенеджер": {},
         "ПерерасчетНаборЗаписей": {},
@@ -40687,10 +43102,18 @@ let bslGlobals = {
         "ПеречислениеСсылка": {
             "ref": "enums"
         },
-        "ПеречисленияМенеджер": {},
-        "ПеречислимыеСвойстваОбъектовМетаданных": {},
-        "ПериодичностьАгрегатаРегистраНакопления": {},
-        "ПериодОтображенияПланировщика": {},
+        "ПеречисленияМенеджер": {
+            "availability": 440,
+        },
+        "ПеречислимыеСвойстваОбъектовМетаданных": {
+            "availability": 440,
+        },
+        "ПериодичностьАгрегатаРегистраНакопления": {
+            "availability": 56,
+        },
+        "ПериодОтображенияПланировщика": {
+            "availability": 511,
+        },
         "ПланВидовРасчетаВыборка": {
             "name": "ПланВидовРасчетаВыборка",
             "name_en": "ChartOfCalculationTypesSelection",
@@ -40872,7 +43295,9 @@ let bslGlobals = {
         },
         "ПланВидовХарактеристикТабличнаяЧасть": {},
         "ПланВидовХарактеристикТабличнаяЧастьСтрока": {},
-        "Планировщик": {},
+        "Планировщик": {
+            "availability": 511,
+        },
         "ПланОбменаВыборка": {
             "ref": "exchangePlans"
         },
@@ -40962,22 +43387,53 @@ let bslGlobals = {
         },
         "ПланСчетовТабличнаяЧасть": {},
         "ПланСчетовТабличнаяЧастьСтрока": {},
-        "ПланыВидовРасчетаМенеджер": {},
-        "ПланыВидовХарактеристикМенеджер": {},
-        "ПланыОбменаМенеджер": {},
-        "ПланыСчетовМенеджер": {},
-        "ПоведениеОбычнойГруппы": {},
-        "ПоддержкаМасштабаДендрограммы": {},
-        "ПоддержкаМасштабаДиаграммыГанта": {},
-        "ПоддержкаМасштабаСводнойДиаграммы": {},
-        "ПозицияВДокументеDOM": {},
-        "ПоискВТаблицеПриВводе": {},
-        "ПоказываемаяОбластьГеографическойСхемы": {},
-        "ПолеHTMLДокумента": {},
-        "ПолеXBase": {},
-        "ПолеАнализаДанных": {},
-        "ПолеВвода": {},
+        "ПланыВидовРасчетаМенеджер": {
+            "availability": 56,
+        },
+        "ПланыВидовХарактеристикМенеджер": {
+            "availability": 440,
+        },
+        "ПланыОбменаМенеджер": {
+            "availability": 440,
+        },
+        "ПланыСчетовМенеджер": {
+            "availability": 56,
+        },
+        "ПоведениеОбычнойГруппы": {
+            "availability": 511,
+        },
+        "ПоддержкаМасштабаДендрограммы": {
+            "availability": 63,
+        },
+        "ПоддержкаМасштабаДиаграммыГанта": {
+            "availability": 63,
+        },
+        "ПоддержкаМасштабаСводнойДиаграммы": {
+            "availability": 25,
+        },
+        "ПозицияВДокументеDOM": {
+            "availability": 509,
+        },
+        "ПоискВТаблицеПриВводе": {
+            "availability": 479,
+        },
+        "ПоказываемаяОбластьГеографическойСхемы": {
+            "availability": 16,
+        },
+        "ПолеHTMLДокумента": {
+            "availability": 16,
+        },
+        "ПолеXBase": {
+            "availability": 56,
+        },
+        "ПолеАнализаДанных": {
+            "availability": 56,
+        },
+        "ПолеВвода": {
+            "availability": 16,
+        },
         "ПолеВыбораКомпоновкиДанныхСхемыЗапроса": {
+            "availability": 56,
             "name": "ПолеВыбораКомпоновкиДанныхСхемыЗапроса",
             "name_en": "DataCompositionSelectionField",
             "description": "Поле выбора компоновки данных схемы запроса.",
@@ -41004,6 +43460,7 @@ let bslGlobals = {
             }
         },
         "ПоляВыбораКомпоновкиДанныхСхемыЗапроса": {
+            "availability": 56,
             "name": "ПоляВыбораКомпоновкиДанныхСхемыЗапроса",
             "name_en": "DataCompositionSelectionFields",
             "description": "Коллекция полей выбора компоновки данных схемы запроса.",
@@ -41121,62 +43578,173 @@ let bslGlobals = {
                 }
             }
         },
-        "ПолеВыбора": {},
-        "ПолеГеографическойСхемы": {},
-        "ПолеГрафическойСхемы": {},
-        "ПолеГруппировкиКомпоновкиДанных": {},
-        "ПолеИтогаСхемыКомпоновкиДанных": {},
-        "ПолеКалендаря": {},
-        "ПолеКартинки": {},
-        "ПолеКомпоновкиДанных": {},
-        "ПолеНабораДанныхМакетаКомпоновкиДанных": {},
-        "ПолеНабораДанныхСхемыКомпоновкиДанных": {},
-        "ПолеНастройки": {},
-        "ПолеОбластиКомпоновкиДанных": {},
-        "ПолеПостроителяЗапроса": {},
-        "ПолеПостроителяОтчета": {},
-        "ПолеСводнойДиаграммы": {},
-        "ПолеСводнойТаблицы": {},
-        "ПолеСписка": {},
-        "ПолеТабличногоДокумента": {},
-        "ПолеТекстовогоДокумента": {},
-        "ПолеФормы": {},
-        "ПолеЭлементаБлокировкиДанных": {},
-        "ПолигональныйОбъектГеографическойСхемы": {},
-        "ПолилинейныйОбъектГеографическойСхемы": {},
-        "ПолнотекстовыйПоискПриВводеПоСтроке": {},
-        "ПоложениеЗаголовка": {},
-        "ПоложениеЗаголовкаЭлементаФормы": {},
-        "ПоложениеИтоговКолонокСводнойТаблицы": {},
-        "ПоложениеИтоговСтрокСводнойТаблицы": {},
-        "ПоложениеКартинкиКнопки": {},
-        "ПоложениеКартинкиКнопкиФормы": {},
-        "ПоложениеКартинкиНадписи": {},
-        "ПоложениеКартинкиПанели": {},
-        "ПоложениеКартинкиЭлементаГрафическойСхемы": {},
-        "ПоложениеКолонки": {},
-        "ПоложениеКоманднойПанелиФормы": {},
-        "ПоложениеКоманднойПанелиЭлементаФормы": {},
-        "ПоложениеОпорнойТочкиОтрисовки": {},
-        "ПоложениеПодписейКДиаграмме": {},
-        "ПоложениеПодписейШкалыЗначенийИзмерительнойДиаграммы": {},
-        "ПоложениеСостоянияПросмотра": {},
-        "ПоложениеСтрокиПоиска": {},
-        "ПоложениеТекстаОтносительноКартинки": {},
-        "ПоложениеТекстаСоединительнойЛинии": {},
-        "ПоложениеУправленияПоиском": {},
-        "ПоложениеШкалыВремени": {},
-        "ПолосаИзмерительнойДиаграммы": {},
-        "ПолосаРегулирования": {},
-        "ПолосыИзмерительнойДиаграммы": {},
-        "ПолучениеЭлементаДанных": {},
-        "ПользовательИнформационнойБазы": {},
-        "ПользовательскиеНастройкиКомпоновкиДанных": {},
-        "ПользовательскиеПоляКомпоновкиДанных": {},
-        "ПользовательскоеПолеВыборКомпоновкиДанных": {},
-        "ПользовательскоеПолеВыражениеКомпоновкиДанных": {},
-        "ПоляГруппировкиКомпоновкиДанных": {},
+        "ПолеВыбора": {
+            "availability": 16,
+        },
+        "ПолеГеографическойСхемы": {
+            "availability": 16,
+        },
+        "ПолеГрафическойСхемы": {
+            "availability": 16,
+        },
+        "ПолеГруппировкиКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ПолеИтогаСхемыКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ПолеКалендаря": {
+            "availability": 16,
+        },
+        "ПолеКартинки": {
+            "availability": 16,
+        },
+        "ПолеКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ПолеНабораДанныхМакетаКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ПолеНабораДанныхСхемыКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ПолеНастройки": {
+            "availability": 440,
+        },
+        "ПолеОбластиКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ПолеПостроителяЗапроса": {
+            "availability": 56,
+        },
+        "ПолеПостроителяОтчета": {
+            "availability": 56,
+        },
+        "ПолеСводнойДиаграммы": {
+            "availability": 56,
+        },
+        "ПолеСводнойТаблицы": {
+            "availability": 56,
+        },
+        "ПолеСписка": {
+            "availability": 16,
+        },
+        "ПолеТабличногоДокумента": {
+            "availability": 16,
+        },
+        "ПолеТекстовогоДокумента": {
+            "availability": 16,
+        },
+        "ПолеФормы": {
+            "availability": 479,
+        },
+        "ПолеЭлементаБлокировкиДанных": {
+            "availability": 440,
+        },
+        "ПолигональныйОбъектГеографическойСхемы": {
+            "availability": 56,
+        },
+        "ПолилинейныйОбъектГеографическойСхемы": {
+            "availability": 56,
+        },
+        "ПолнотекстовыйПоискПриВводеПоСтроке": {
+            "availability": 479,
+        },
+        "ПоложениеЗаголовка": {
+            "availability": 16,
+        },
+        "ПоложениеЗаголовкаЭлементаФормы": {
+            "availability": 511,
+        },
+        "ПоложениеИтоговКолонокСводнойТаблицы": {
+            "availability": 56,
+        },
+        "ПоложениеИтоговСтрокСводнойТаблицы": {
+            "availability": 56,
+        },
+        "ПоложениеКартинкиКнопки": {
+            "availability": 16,
+        },
+        "ПоложениеКартинкиКнопкиФормы": {
+            "availability": 479,
+        },
+        "ПоложениеКартинкиНадписи": {
+            "availability": 16,
+        },
+        "ПоложениеКартинкиПанели": {
+            "availability": 16,
+        },
+        "ПоложениеКартинкиЭлементаГрафическойСхемы": {
+            "availability": 25,
+        },
+        "ПоложениеКолонки": {
+            "availability": 16,
+        },
+        "ПоложениеКоманднойПанелиФормы": {
+            "availability": 479,
+        },
+        "ПоложениеКоманднойПанелиЭлементаФормы": {
+            "availability": 511,
+        },
+        "ПоложениеОпорнойТочкиОтрисовки": {
+            "availability": 56,
+        },
+        "ПоложениеПодписейКДиаграмме": {
+            "availability": 511,
+        },
+        "ПоложениеПодписейШкалыЗначенийИзмерительнойДиаграммы": {
+            "availability": 511,
+        },
+        "ПоложениеСостоянияПросмотра": {
+            "availability": 63,
+        },
+        "ПоложениеСтрокиПоиска": {
+            "availability": 511,
+        },
+        "ПоложениеТекстаОтносительноКартинки": {
+            "availability": 63,
+        },
+        "ПоложениеТекстаСоединительнойЛинии": {
+            "availability": 25,
+        },
+        "ПоложениеУправленияПоиском": {
+            "availability": 63,
+        },
+        "ПоложениеШкалыВремени": {
+            "availability": 63,
+        },
+        "ПолосаИзмерительнойДиаграммы": {
+            "availability": 511,
+        },
+        "ПолосаРегулирования": {
+            "availability": 16,
+        },
+        "ПолосыИзмерительнойДиаграммы": {
+            "availability": 511,
+        },
+        "ПолучениеЭлементаДанных": {
+            "availability": 56,
+        },
+        "ПользовательИнформационнойБазы": {
+            "availability": 440,
+        },
+        "ПользовательскиеНастройкиКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ПользовательскиеПоляКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ПользовательскоеПолеВыборКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ПользовательскоеПолеВыражениеКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ПоляГруппировкиКомпоновкиДанных": {
+            "availability": 511,
+        },
         "ПоляИтогаСхемыКомпоновкиДанных": {
+            "availability": 440,
             "name": "ПоляИтогаСхемыКомпоновкиДанных",
             "name_en": "DataCompositionSchemaTotalFields",
             "description": "Коллекция полей итога.",
@@ -41294,6 +43862,7 @@ let bslGlobals = {
             }
         },
         "ПоляКолонкиСхемыЗапроса": {
+            "availability": 56,
             "name": "ПоляКолонкиСхемыЗапроса",
             "name_en": "ColumnFields",
             "description": "Коллекция полей колонки схемы запроса.",
@@ -41348,27 +43917,62 @@ let bslGlobals = {
                 }
             }
         },
-        "ПоляНабораДанныхМакетаКомпоновкиДанных": {},
-        "ПоляНабораДанныхСхемыКомпоновкиДанных": {},
-        "ПоляНастройки": {},
-        "ПоляПостроителяЗапроса": {},
-        "ПоляПостроителяОтчета": {},
-        "ПоляСхемыЗапроса": {},
-        "ПоляЭлементаБлокировкиДанных": {},
-        "Порядок": {},
-        "ПорядокКнопокКоманднойПанели": {},
-        "ПорядокКомпоновкиДанных": {},
-        "ПоследовательностиМенеджер": {},
-        "ПоследовательностьXDTO": {},
+        "ПоляНабораДанныхМакетаКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ПоляНабораДанныхСхемыКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ПоляНастройки": {
+            "availability": 440,
+        },
+        "ПоляПостроителяЗапроса": {
+            "availability": 56,
+        },
+        "ПоляПостроителяОтчета": {
+            "availability": 56,
+        },
+        "ПоляСхемыЗапроса": {
+            "availability": 56,
+        },
+        "ПоляЭлементаБлокировкиДанных": {
+            "availability": 440,
+        },
+        "Порядок": {
+            "availability": 56,
+        },
+        "ПорядокКнопокКоманднойПанели": {
+            "availability": 16,
+        },
+        "ПорядокКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ПоследовательностиМенеджер": {
+            "availability": 440,
+        },
+        "ПоследовательностьXDTO": {
+            "availability": 509,
+        },
         "ПоследовательностьЗапись": {},
         "ПоследовательностьМенеджер": {},
         "ПоследовательностьНаборЗаписей": {},
-        "ПостроительDOM": {},
-        "ПостроительЗапроса": {},
-        "ПостроительОтчета": {},
-        "ПостроительОтчетаАнализаДанных": {},
-        "ПостроительСхемXML": {},
+        "ПостроительDOM": {
+            "availability": 509,
+        },
+        "ПостроительЗапроса": {
+            "availability": 56,
+        },
+        "ПостроительОтчета": {
+            "availability": 56,
+        },
+        "ПостроительОтчетаАнализаДанных": {
+            "availability": 56,
+        },
+        "ПостроительСхемXML": {
+            "availability": 440,
+        },
         "Поток": {
+            "availability": 1023,
             "name": "Поток",
             "name_en": "Stream",
             "description": "Представляет собой поток данных, который можно последовательно читать и/или в который можно последовательно писать.",
@@ -41610,45 +44214,123 @@ let bslGlobals = {
                 }
             }
         },
-        "Почта": {},
-        "ПочтовоеВложение": {},
-        "ПочтовоеСообщение": {},
-        "ПочтовыеАдреса": {},
-        "ПочтовыеВложения": {},
-        "ПочтовыйАдрес": {},
-        "ПравилоАссоциации": {},
-        "ПредставлениеНавигационнойСсылки": {},
-        "ПреобразованиеXSL": {},
-        "ПробельныеСимволыXML": {},
-        "ПроверкаЗаполнения": {},
-        "ПространствоИменXPath": {},
-        "ПротоколИнтернетПочты": {},
-        "ПроцессорВыводаРезультатаКомпоновкиДанныхВКоллекциюЗначений": {},
-        "ПроцессорВыводаРезультатаКомпоновкиДанныхВТабличныйДокумент": {},
-        "ПроцессорКомпоновкиДанных": {},
-        "ПрямоугольникГеографическойСхемы": {},
-        "Разделитель": {},
-        "РазмерКартинки": {},
-        "РазыменовательПространствИменDOM": {},
-        "Рамка": {},
-        "РамкаГруппы": {},
-        "РамкиСтиля": {},
-        "РасписаниеРегламентногоЗадания": {},
-        "РасписаниеЭлементаПланировщика": {},
-        "РасположениеВложенныхЭлементовРезультатаКомпоновкиДанных": {},
-        "РасположениеГруппировкиКомпоновкиДанных": {},
-        "РасположениеЗаголовкаГруппировкиТабличногоДокумента": {},
-        "РасположениеИтоговКомпоновкиДанных": {},
-        "РасположениеЛегендыДиаграммыКомпоновкиДанных": {},
-        "РасположениеПолейГруппировкиКомпоновкиДанных": {},
-        "РасположениеПоляКомпоновкиДанных": {},
-        "РасположениеРеквизитовКомпоновкиДанных": {},
-        "РасположениеРесурсовВДиаграммеКомпоновкиДанных": {},
-        "РасположениеРесурсовКомпоновкиДанных": {},
-        "РасположениеХранилищаСертификатовКриптографии": {},
-        "РастягиваниеПоВертикалиДиаграммыГанта": {},
-        "РасширениеКонфигурации": {},
-        "РасширенноеИмяXML": {},
+        "Почта": {
+            "availability": 17,
+        },
+        "ПочтовоеВложение": {
+            "availability": 17,
+        },
+        "ПочтовоеСообщение": {
+            "availability": 17,
+        },
+        "ПочтовыеАдреса": {
+            "availability": 17,
+        },
+        "ПочтовыеВложения": {
+            "availability": 17,
+        },
+        "ПочтовыйАдрес": {
+            "availability": 17,
+        },
+        "ПравилоАссоциации": {
+            "availability": 56,
+        },
+        "ПредставлениеНавигационнойСсылки": {
+            "availability": 443,
+        },
+        "ПреобразованиеXSL": {
+            "availability": 57,
+        },
+        "ПробельныеСимволыXML": {
+            "availability": 508,
+        },
+        "ПроверкаЗаполнения": {
+            "availability": 511,
+        },
+        "ПространствоИменXPath": {
+            "availability": 509,
+        },
+        "ПротоколИнтернетПочты": {
+            "availability": 509,
+        },
+        "ПроцессорВыводаРезультатаКомпоновкиДанныхВКоллекциюЗначений": {
+            "availability": 440,
+        },
+        "ПроцессорВыводаРезультатаКомпоновкиДанныхВТабличныйДокумент": {
+            "availability": 440,
+        },
+        "ПроцессорКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ПрямоугольникГеографическойСхемы": {
+            "availability": 56,
+        },
+        "Разделитель": {
+            "availability": 16,
+        },
+        "РазмерКартинки": {
+            "availability": 440,
+        },
+        "РазыменовательПространствИменDOM": {
+            "availability": 509,
+        },
+        "Рамка": {
+            "availability": 511,
+        },
+        "РамкаГруппы": {
+            "availability": 16,
+        },
+        "РамкиСтиля": {
+            "availability": 440,
+        },
+        "РасписаниеРегламентногоЗадания": {
+            "availability": 63,
+        },
+        "РасписаниеЭлементаПланировщика": {
+            "availability": 511,
+        },
+        "РасположениеВложенныхЭлементовРезультатаКомпоновкиДанных": {
+            "availability": 56,
+        },
+        "РасположениеГруппировкиКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "РасположениеЗаголовкаГруппировкиТабличногоДокумента": {
+            "availability": 443,
+        },
+        "РасположениеИтоговКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "РасположениеЛегендыДиаграммыКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "РасположениеПолейГруппировкиКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "РасположениеПоляКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "РасположениеРеквизитовКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "РасположениеРесурсовВДиаграммеКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "РасположениеРесурсовКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "РасположениеХранилищаСертификатовКриптографии": {
+            "availability": 511,
+        },
+        "РастягиваниеПоВертикалиДиаграммыГанта": {
+            "availability": 63,
+        },
+        "РасширениеКонфигурации": {
+            "availability": 56,
+        },
+        "РасширенноеИмяXML": {
+            "availability": 509,
+        },
         "РегистрБухгалтерииВыборка": {
             "name": "РегистрБухгалтерииВыборка",
             "name_en": "AccountingRegisterSelection",
@@ -41937,69 +44619,194 @@ let bslGlobals = {
         "РегистрСведенийСписок": {
             "ref": "infoRegs"
         },
-        "РегистрыБухгалтерииМенеджер": {},
-        "РегистрыНакопленияМенеджер": {},
-        "РегистрыРасчетаМенеджер": {},
-        "РегистрыСведенийМенеджер": {},
-        "РегламентноеЗадание": {},
-        "РежимАвтоВремя": {},
-        "РежимАвтоОтображенияСостояния": {},
-        "РежимБегущейСтроки": {},
-        "РежимБлокировкиДанных": {},
-        "РежимВводаСтрокТаблицы": {},
-        "РежимВводаСтрокТабличногоПоля": {},
-        "РежимВключенияСертификатовКриптографии": {},
-        "РежимВосстановленияПутейФайловZIP": {},
-        "РежимВыбораНезаполненного": {},
-        "РежимВыделенияДаты": {},
-        "РежимВыделенияСтрокиТаблицы": {},
-        "РежимВыделенияСтрокиТабличногоПоля": {},
-        "РежимВыделенияТаблицы": {},
-        "РежимВыделенияТабличногоПоля": {},
-        "РежимДиалогаВопрос": {},
-        "РежимДиалогаВыбораФайла": {},
-        "РежимЗаписиДокумента": {},
-        "РежимЗапускаКлиентскогоПриложения": {},
-        "РежимИзмененияРазмера": {},
-        "РежимИзмененияСвязанногоЗначения": {},
-        "РежимИспользованияДиалогаПечати": {},
-        "РежимИспользованияПараметраКоманды": {},
-        "РежимКомпоновкиРезультата": {},
-        "РежимМасштабированияПросмотра": {},
-        "РежимОбработкиПодкаталоговZIP": {},
-        "РежимОкругления": {},
-        "РежимОткрытияОкнаФормы": {},
-        "РежимОткрытияФормПриложения": {},
-        "РежимОтображенияВыделения": {},
-        "РежимОтображенияГеографическойСхемы": {},
-        "РежимОтображенияЗначенийСерии": {},
-        "РежимОтображенияНастроекКомпоновкиДанных": {},
-        "РежимОтображенияЭлементаНастройкиКомпоновкиДанных": {},
-        "РежимОтрисовкиСеткиГрафическойСхемы": {},
-        "РежимПолнотекстовогоПоиска": {},
-        "РежимПолупрозрачностиДиаграммы": {},
-        "РежимПолученияДанныхВыбораПриВводеПоСтроке": {},
-        "РежимПоляHTMLДокумента": {},
-        "РежимПробеловДиаграммы": {},
-        "РежимПроведенияДокумента": {},
-        "РежимПроверкиСертификатаКриптографии": {},
-        "РежимРабочейДаты": {},
-        "РежимРазмещенияНаСтранице": {},
-        "РежимРедактированияКолонки": {},
-        "РежимСверткиЭлементаУправления": {},
-        "РежимСглаживанияДиаграммы": {},
-        "РежимСглаживанияИндикатора": {},
-        "РежимСохраненияПутейZIP": {},
-        "РежимСпискаЗадач": {},
-        "РежимТранзакцииЗаписиЖурналаРегистрации": {},
-        "РежимУправленияБлокировкойДанных": {},
-        "РезультатXPath": {},
-        "РезультатАнализаДанныхДеревоРешений": {},
-        "РезультатАнализаДанныхКластеризация": {},
-        "РезультатАнализаДанныхОбщаяСтатистика": {},
-        "РезультатАнализаДанныхПоискАссоциаций": {},
-        "РезультатАнализаДанныхПоискПоследовательностей": {},
+        "РегистрыБухгалтерииМенеджер": {
+            "availability": 56,
+        },
+        "РегистрыНакопленияМенеджер": {
+            "availability": 440,
+        },
+        "РегистрыРасчетаМенеджер": {
+            "availability": 56,
+        },
+        "РегистрыСведенийМенеджер": {
+            "availability": 440,
+        },
+        "РегламентноеЗадание": {
+            "availability": 56,
+        },
+        "РежимАвтоВремя": {
+            "availability": 511,
+        },
+        "РежимАвтоОтображенияСостояния": {
+            "availability": 63,
+        },
+        "РежимБегущейСтроки": {
+            "availability": 16,
+        },
+        "РежимБлокировкиДанных": {
+            "availability": 440,
+        },
+        "РежимВводаСтрокТаблицы": {
+            "availability": 511,
+        },
+        "РежимВводаСтрокТабличногоПоля": {
+            "availability": 16,
+        },
+        "РежимВключенияСертификатовКриптографии": {
+            "availability": 511,
+        },
+        "РежимВосстановленияПутейФайловZIP": {
+            "availability": 508,
+        },
+        "РежимВыбораНезаполненного": {
+            "availability": 511,
+        },
+        "РежимВыделенияДаты": {
+            "availability": 511,
+        },
+        "РежимВыделенияСтрокиТаблицы": {
+            "availability": 511,
+        },
+        "РежимВыделенияСтрокиТабличногоПоля": {
+            "availability": 16,
+        },
+        "РежимВыделенияТаблицы": {
+            "availability": 511,
+        },
+        "РежимВыделенияТабличногоПоля": {
+            "availability": 16,
+        },
+        "РежимДиалогаВопрос": {
+            "availability": 87,
+        },
+        "РежимДиалогаВыбораФайла": {
+            "availability": 21,
+        },
+        "РежимЗаписиДокумента": {
+            "availability": 511,
+        },
+        "РежимЗапускаКлиентскогоПриложения": {
+            "availability": 511,
+        },
+        "РежимИзмененияРазмера": {
+            "availability": 511,
+        },
+        "РежимИзмененияСвязанногоЗначения": {
+            "availability": 511,
+        },
+        "РежимИспользованияДиалогаПечати": {
+            "availability": 511,
+        },
+        "РежимИспользованияПараметраКоманды": {
+            "availability": 440,
+        },
+        "РежимКомпоновкиРезультата": {
+            "availability": 63,
+        },
+        "РежимМасштабированияПросмотра": {
+            "availability": 63,
+        },
+        "РежимОбработкиПодкаталоговZIP": {
+            "availability": 508,
+        },
+        "РежимОкругления": {
+            "availability": 511,
+        },
+        "РежимОткрытияОкнаФормы": {
+            "availability": 511,
+        },
+        "РежимОткрытияФормПриложения": {
+            "availability": 31,
+        },
+        "РежимОтображенияВыделения": {
+            "availability": 511,
+        },
+        "РежимОтображенияГеографическойСхемы": {
+            "availability": 56,
+        },
+        "РежимОтображенияЗначенийСерии": {
+            "availability": 56,
+        },
+        "РежимОтображенияНастроекКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "РежимОтображенияЭлементаНастройкиКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "РежимОтрисовкиСеткиГрафическойСхемы": {
+            "availability": 25,
+        },
+        "РежимПолнотекстовогоПоиска": {
+            "availability": 440,
+        },
+        "РежимПолупрозрачностиДиаграммы": {
+            "availability": 63,
+        },
+        "РежимПолученияДанныхВыбораПриВводеПоСтроке": {
+            "availability": 511,
+        },
+        "РежимПоляHTMLДокумента": {
+            "availability": 16,
+        },
+        "РежимПробеловДиаграммы": {
+            "availability": 511,
+        },
+        "РежимПроведенияДокумента": {
+            "availability": 511,
+        },
+        "РежимПроверкиСертификатаКриптографии": {
+            "availability": 511,
+        },
+        "РежимРабочейДаты": {
+            "availability": 16,
+        },
+        "РежимРазмещенияНаСтранице": {
+            "availability": 25,
+        },
+        "РежимРедактированияКолонки": {
+            "availability": 63,
+        },
+        "РежимСверткиЭлементаУправления": {
+            "availability": 16,
+        },
+        "РежимСглаживанияДиаграммы": {
+            "availability": 63,
+        },
+        "РежимСглаживанияИндикатора": {
+            "availability": 31,
+        },
+        "РежимСохраненияПутейZIP": {
+            "availability": 508,
+        },
+        "РежимСпискаЗадач": {
+            "availability": 56,
+        },
+        "РежимТранзакцииЗаписиЖурналаРегистрации": {
+            "availability": 56,
+        },
+        "РежимУправленияБлокировкойДанных": {
+            "availability": 440,
+        },
+        "РезультатXPath": {
+            "availability": 509,
+        },
+        "РезультатАнализаДанныхДеревоРешений": {
+            "availability": 56,
+        },
+        "РезультатАнализаДанныхКластеризация": {
+            "availability": 56,
+        },
+        "РезультатАнализаДанныхОбщаяСтатистика": {
+            "availability": 56,
+        },
+        "РезультатАнализаДанныхПоискАссоциаций": {
+            "availability": 56,
+        },
+        "РезультатАнализаДанныхПоискПоследовательностей": {
+            "availability": 56,
+        },
         "РезультатЗапроса": {
+            "availability": 440,
             "name": "РезультатЗапроса",
             "name_en": "QueryResult",
             "description": "Содержит результат выполнения запроса. Предназначен для хранения и обработки полученных данных.",
@@ -42121,19 +44928,44 @@ let bslGlobals = {
                 }
             }
         },
-        "РеквизитФормы": {},
-        "РешениеАнализаДанных": {},
-        "РисунокТабличногоДокумента": {},
-        "РолиПользователя": {},
-        "РольПоляНабораДанныхКомпоновкиДанных": {},
-        "РольПоляСхемыЗапроса": {},
-        "СводнаяДиаграмма": {},
-        "СводнаяТаблица": {},
-        "СвойствоXDTO": {},
-        "СвойствоОбъектаАнализаДанных": {},
-        "СвязиДендрограммы": {},
-        "СвязиНаборовДанныхМакетаКомпоновкиДанных": {},
+        "РеквизитФормы": {
+            "availability": 392,
+        },
+        "РешениеАнализаДанных": {
+            "availability": 56,
+        },
+        "РисунокТабличногоДокумента": {
+            "availability": 511,
+        },
+        "РолиПользователя": {
+            "availability": 56,
+        },
+        "РольПоляНабораДанныхКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "РольПоляСхемыЗапроса": {
+            "availability": 56,
+        },
+        "СводнаяДиаграмма": {
+            "availability": 56,
+        },
+        "СводнаяТаблица": {
+            "availability": 56,
+        },
+        "СвойствоXDTO": {
+            "availability": 509,
+        },
+        "СвойствоОбъектаАнализаДанных": {
+            "availability": 56,
+        },
+        "СвязиДендрограммы": {
+            "availability": 57,
+        },
+        "СвязиНаборовДанныхМакетаКомпоновкиДанных": {
+            "availability": 440,
+        },
         "СвязиНаборовДанныхСхемыКомпоновкиДанных": {
+            "availability": 440,
             "name": "СвязиНаборовДанныхСхемыКомпоновкиДанных",
             "name_en": "DataCompositionSchemaDataSetLinks",
             "description": "Содержит описания связей между наборами данных.",
@@ -42235,76 +45067,216 @@ let bslGlobals = {
                 }
             }
         },
-        "СвязиПараметровВыбораКомпоновкиДанных": {},
-        "СвязьДендрограммы": {},
-        "СвязьДиаграммыГанта": {},
-        "СвязьНаборовДанныхМакетаКомпоновкиДанных": {},
-        "СвязьНаборовДанныхСхемыКомпоновкиДанных": {},
-        "СвязьПараметраВыбора": {},
-        "СвязьПараметраВыбораКомпоновкиДанных": {},
-        "СвязьПоТипу": {},
-        "СвязьПоТипуКомпоновкиДанных": {},
-        "СеансИнформационнойБазы": {},
-        "СегментПолилинейногоОбъектаГеографическойСхемы": {},
-        "СегментыПолилинейногоОбъектаГеографическойСхемы": {},
-        "СекцияCDATADOM": {},
-        "СервисВстроенныхПокупок": {},
-        "СериализаторXDTO": {},
-        "СерииДиаграммы": {},
-        "СерииДиаграммыГанта": {},
-        "СерииСлояГеографическойСхемы": {},
-        "СерияДанныхСлояГеографическойСхемы": {},
-        "СерияДиаграммы": {},
-        "СерияДиаграммыГанта": {},
-        "СертификатКлиентаWindows": {},
-        "СертификатКлиентаФайл": {},
-        "СертификатКриптографии": {},
-        "СертификатыУдостоверяющихЦентровLinux": {},
-        "СертификатыУдостоверяющихЦентровWindows": {},
-        "СертификатыУдостоверяющихЦентровОС": {},
-        "СертификатыУдостоверяющихЦентровФайл": {},
-        "СжатиеДанных": {},
-        "Символы": {},
-        "СистемнаяИнформация": {},
-        "СквозноеВыравнивание": {},
-        "СкоростьКлиентскогоСоединения": {},
-        "СлоиГеографическойСхемы": {},
-        "СлойГеографическойСхемы": {},
-        "СоединениеИнформационнойБазы": {},
-        "СоединениеИсточникаЗапросаСхемыЗапроса": {},
-        "СоединенияИсточникаЗапросаСхемыЗапроса": {},
-        "СообщениеПользователю": {},
-        "Соответствие": {},
-        "СоставОбщегоРеквизита": {},
-        "СоставПланаОбмена": {},
-        "СоставФормНачальнойСтраницы": {},
-        "СоставФункциональнойОпции": {},
-        "СостояниеВнешнегоИсточникаДанных": {},
-        "СостояниеОбновленияКонфигурацииБазыДанных": {},
-        "СостояниеФоновогоЗадания": {},
-        "СостояниеЭлементаНастройкиКомпоновкиДанных": {},
-        "СохранениеДанныхФормыВНастройках": {},
-        "СочетаниеКлавиш": {},
-        "СписокXDTO": {},
-        "СписокЗначений": {},
-        "СписокКомпонентXS": {},
-        "СписокПолей": {},
-        "СписокПолнотекстовогоПоиска": {},
-        "СписокРасширенныхИменXML": {},
-        "СписокСтрокDOM": {},
-        "СписокУзловDOM": {},
-        "СписокУзловHTML": {},
-        "СписокЭлементовDOM": {},
-        "СпособВосстановленияНастроекКомпоновкиДанных": {},
-        "СпособВыбораСертификатаWindows": {},
-        "СпособЗапросаОбновления": {},
-        "СпособКодированияИнтернетПочтовогоВложения": {},
-        "СпособКодированияНеASCIIСимволовИнтернетПочтовогоСообщения": {},
-        "СпособКодированияСтроки": {},
-        "СпособПоискаСтрокиПриВводеПоСтроке": {},
-        "СпособРедактированияСписка": {},
-        "СпособСравненияФайлов": {},
-        "СпособЧтенияЗначенийТабличногоДокумента": {},
+        "СвязиПараметровВыбораКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "СвязьДендрограммы": {
+            "availability": 59,
+        },
+        "СвязьДиаграммыГанта": {
+            "availability": 59,
+        },
+        "СвязьНаборовДанныхМакетаКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "СвязьНаборовДанныхСхемыКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "СвязьПараметраВыбора": {
+            "availability": 511,
+        },
+        "СвязьПараметраВыбораКомпоновкиДанных": {
+            "availability": 87,
+        },
+        "СвязьПоТипу": {
+            "availability": 509,
+        },
+        "СвязьПоТипуКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "СеансИнформационнойБазы": {
+            "availability": 56,
+        },
+        "СегментПолилинейногоОбъектаГеографическойСхемы": {
+            "availability": 56,
+        },
+        "СегментыПолилинейногоОбъектаГеографическойСхемы": {
+            "availability": 56,
+        },
+        "СекцияCDATADOM": {
+            "availability": 509,
+        },
+        "СервисВстроенныхПокупок": {
+            "availability": 509,
+        },
+        "СериализаторXDTO": {
+            "availability": 509,
+        },
+        "СерииДиаграммы": {
+            "availability": 511,
+        },
+        "СерииДиаграммыГанта": {
+            "availability": 59,
+        },
+        "СерииСлояГеографическойСхемы": {
+            "availability": 56,
+        },
+        "СерияДанныхСлояГеографическойСхемы": {
+            "availability": 56,
+        },
+        "СерияДиаграммы": {
+            "availability": 511,
+        },
+        "СерияДиаграммыГанта": {
+            "availability": 59,
+        },
+        "СертификатКлиентаWindows": {
+            "availability": 57,
+        },
+        "СертификатКлиентаФайл": {
+            "availability": 509,
+        },
+        "СертификатКриптографии": {
+            "availability": 511,
+        },
+        "СертификатыУдостоверяющихЦентровLinux": {
+            "availability": 57,
+        },
+        "СертификатыУдостоверяющихЦентровWindows": {
+            "availability": 57,
+        },
+        "СертификатыУдостоверяющихЦентровОС": {
+            "availability": 57,
+        },
+        "СертификатыУдостоверяющихЦентровФайл": {
+            "availability": 509,
+        },
+        "СжатиеДанных": {
+            "availability": 509,
+        },
+        "Символы": {
+            "availability": 511,
+        },
+        "СистемнаяИнформация": {
+            "availability": 511,
+        },
+        "СквозноеВыравнивание": {
+            "availability": 479,
+        },
+        "СкоростьКлиентскогоСоединения": {
+            "availability": 63,
+        },
+        "СлоиГеографическойСхемы": {
+            "availability": 56,
+        },
+        "СлойГеографическойСхемы": {
+            "availability": 56,
+        },
+        "СоединениеИнформационнойБазы": {
+            "availability": 56,
+        },
+        "СоединениеИсточникаЗапросаСхемыЗапроса": {
+            "availability": 56,
+        },
+        "СоединенияИсточникаЗапросаСхемыЗапроса": {
+            "availability": 56,
+        },
+        "СообщениеПользователю": {
+            "availability": 511,
+        },
+        "Соответствие": {
+            "availability": 511,
+        },
+        "СоставОбщегоРеквизита": {
+            "availability": 56,
+        },
+        "СоставПланаОбмена": {
+            "availability": 440,
+        },
+        "СоставФормНачальнойСтраницы": {
+            "availability": 408,
+        },
+        "СоставФункциональнойОпции": {
+            "availability": 440,
+        },
+        "СостояниеВнешнегоИсточникаДанных": {
+            "availability": 56,
+        },
+        "СостояниеОбновленияКонфигурацииБазыДанных": {
+            "availability": 56,
+        },
+        "СостояниеФоновогоЗадания": {
+            "availability": 440,
+        },
+        "СостояниеЭлементаНастройкиКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "СохранениеДанныхФормыВНастройках": {
+            "availability": 63,
+        },
+        "СочетаниеКлавиш": {
+            "availability": 23,
+        },
+        "СписокXDTO": {
+            "availability": 509,
+        },
+        "СписокЗначений": {
+            "availability": 511,
+        },
+        "СписокКомпонентXS": {
+            "availability": 56,
+        },
+        "СписокПолей": {
+            "availability": 440,
+        },
+        "СписокПолнотекстовогоПоиска": {
+            "availability": 440,
+        },
+        "СписокРасширенныхИменXML": {
+            "availability": 509,
+        },
+        "СписокСтрокDOM": {
+            "availability": 509,
+        },
+        "СписокУзловDOM": {
+            "availability": 509,
+        },
+        "СписокУзловHTML": {
+            "availability": 509,
+        },
+        "СписокЭлементовDOM": {
+            "availability": 509,
+        },
+        "СпособВосстановленияНастроекКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "СпособВыбораСертификатаWindows": {
+            "availability": 21,
+        },
+        "СпособЗапросаОбновления": {
+            "availability": 460,
+        },
+        "СпособКодированияИнтернетПочтовогоВложения": {
+            "availability": 508,
+        },
+        "СпособКодированияНеASCIIСимволовИнтернетПочтовогоСообщения": {
+            "availability": 508,
+        },
+        "СпособКодированияСтроки": {
+            "availability": 440,
+        },
+        "СпособПоискаСтрокиПриВводеПоСтроке": {
+            "availability": 511,
+        },
+        "СпособРедактированияСписка": {
+            "availability": 16,
+        },
+        "СпособСравненияФайлов": {
+            "availability": 16,
+        },
+        "СпособЧтенияЗначенийТабличногоДокумента": {
+            "availability": 56,
+        },
         "СправочникВыборка": {
             "name": "СправочникВыборка",
             "name_en": "CatalogSelection",
@@ -42381,7 +45353,9 @@ let bslGlobals = {
                 }
             }
         },
-        "СправочникиМенеджер": {},
+        "СправочникиМенеджер": {
+            "availability": 440,
+        },
         "СправочникМенеджер": {},
         "СправочникОбъект": {
             "ref": "catalogs"
@@ -42394,23 +45368,54 @@ let bslGlobals = {
         },
         "СправочникТабличнаяЧасть": {},
         "СправочникТабличнаяЧастьСтрока": {},
-        "СравнениеЗначений": {},
-        "СравнениеФайлов": {},
-        "СсылкаНаСущностьDOM": {},
-        "СтандартнаяГруппаКоманд": {},
-        "СтандартнаяДатаНачала": {},
-        "СтандартноеОформление": {},
-        "СтандартноеХранилищеНастроекМенеджер": {},
-        "СтандартныйПериод": {},
-        "СтатусСообщения": {},
-        "СтатусТранзакцииЗаписиЖурналаРегистрации": {},
-        "Стиль": {},
-        "СтильСтрелки": {},
-        "СтраницаПанели": {},
-        "СтраницыПанели": {},
+        "СравнениеЗначений": {
+            "availability": 56,
+        },
+        "СравнениеФайлов": {
+            "availability": 16,
+        },
+        "СсылкаНаСущностьDOM": {
+            "availability": 509,
+        },
+        "СтандартнаяГруппаКоманд": {
+            "availability": 440,
+        },
+        "СтандартнаяДатаНачала": {
+            "availability": 511,
+        },
+        "СтандартноеОформление": {
+            "availability": 56,
+        },
+        "СтандартноеХранилищеНастроекМенеджер": {
+            "availability": 184,
+        },
+        "СтандартныйПериод": {
+            "availability": 511,
+        },
+        "СтатусСообщения": {
+            "availability": 479,
+        },
+        "СтатусТранзакцииЗаписиЖурналаРегистрации": {
+            "availability": 56,
+        },
+        "Стиль": {
+            "availability": 61,
+        },
+        "СтильСтрелки": {
+            "availability": 25,
+        },
+        "СтраницаПанели": {
+            "availability": 16,
+        },
+        "СтраницыПанели": {
+            "availability": 16,
+        },
         "Строка": {},
-        "СтрокаГруппировкиДинамическогоСписка": {},
+        "СтрокаГруппировкиДинамическогоСписка": {
+            "availability": 479,
+        },
         "СтрокаДереваЗначений": {
+            "availability": 440,
             "name": "СтрокаДереваЗначений",
             "name_en": "ValueTreeRow",
             "description": "Используется для доступа к свойствам и методам строки дерева значений. Позволяет читать и записывать данные в конкретных колонках строки, также обладает коллекцией подчиненных строк (может быть пустой).",
@@ -42470,6 +45475,7 @@ let bslGlobals = {
             }
         },
         "СтрокаТаблицыЗначений": {
+            "availability": 440,
             "name": "СтрокаТаблицыЗначений",
             "name_en": "ValueTableRow",
             "description": "Предоставляет собой отдельную строку таблицы значений.",
@@ -42511,173 +45517,504 @@ let bslGlobals = {
                 }
             }
         },
-        "СтрокаТаблицыОбластиКомпоновкиДанных": {},
-        "Структура": {},
-        "СтруктураНастроекКомпоновкиДанных": {},
-        "СущностьDOM": {},
-        "СхемаXML": {},
-        "СхемаЗапроса": {},
-        "СхемаКомпоновкиДанных": {},
-        "ТаблицаДляИзмененияСхемыЗапроса": {},
-        "ТаблицаЗначений": {},
-        "ТаблицаКомпоновкиДанных": {},
-        "ТаблицаМакетаКомпоновкиДанных": {},
-        "ТаблицаСхемыЗапроса": {},
-        "ТаблицаФормы": {},
-        "ТаблицыДляИзмененияСхемыЗапроса": {},
-        "ТабличноеПоле": {},
-        "ТабличныйДокумент": {},
-        "ТекстDOM": {},
-        "ТекстовыйДокумент": {},
-        "ТекстФорматированногоДокумента": {},
-        "ТекущиеДанныеСписка": {},
-        "ТекущиеДанныеСтруктурыНастроекКомпоновкиДанных": {},
-        "ТелоГруппировкиДиаграммыМакетаКомпоновкиДанных": {},
-        "ТелоГруппировкиТаблицыМакетаКомпоновкиДанных": {},
-        "ТелоМакетаКомпоновкиДанных": {},
-        "Тип": {},
-        "ТипАтрибутаXML": {},
-        "ТипБухгалтерскогоОстаткаКомпоновкиДанных": {},
-        "ТипВнешнейКомпоненты": {},
-        "ТипВыводаТекстаКомпоновкиДанных": {},
-        "ТипГруппировкиКомпоновкиДанных": {},
-        "ТипГруппыЭлементовОтбораКомпоновкиДанных": {},
-        "ТипДанныхXML": {},
-        "ТипДвустороннейПечати": {},
-        "ТипДиаграммы": {},
-        "ТипДобавленияПредставлений": {},
-        "ТипДополненияПериодаКомпоновкиДанных": {},
-        "ТипДополненияПериодамиСхемыЗапроса": {},
-        "ТипЕдиницыИнтервалаВремениАнализаДанных": {},
-        "ТипЕдиницыШкалыВремени": {},
-        "ТипЗаголовкаПолейКомпоновкиДанных": {},
-        "ТипЗаписиЗапроса": {},
-        "ТипЗаполненияОбластиТабличногоДокумента": {},
-        "ТипЗаполненияТаблицыРезультатаАнализаДанных": {},
-        "ТипЗначенияJSON": {},
-        "ТипЗначенияXDTO": {},
-        "ТипИзмеренияПостроителяЗапроса": {},
-        "ТипИзмеренияПостроителяОтчета": {},
-        "ТипИмпортаСерийСлояГеографическойСхемы": {},
-        "ТипИспользованияЧисловыхЗначенийАнализаДанных": {},
-        "ТипИсточникаДанныхПоискаАссоциаций": {},
-        "ТипКаноническогоXML": {},
-        "ТипКнопкиКоманднойПанели": {},
-        "ТипКолонкиАнализаДанныхДеревоРешений": {},
-        "ТипКолонкиАнализаДанныхКластеризация": {},
-        "ТипКолонкиАнализаДанныхОбщаяСтатистика": {},
-        "ТипКолонкиАнализаДанныхПоискАссоциаций": {},
-        "ТипКолонкиАнализаДанныхПоискПоследовательностей": {},
-        "ТипКолонкиМоделиПрогноза": {},
-        "ТипКомпонентыXS": {},
-        "ТипКонтрольнойТочкиСхемыЗапроса": {},
-        "ТипЛинииГеографическойСхемы": {},
-        "ТипЛинииДиаграммы": {},
-        "ТипЛинииРисункаТабличногоДокумента": {},
-        "ТипЛинииЯчейкиТабличногоДокумента": {},
-        "ТипМакетаГруппировкиКомпоновкиДанных": {},
-        "ТипМакетаОбластиКомпоновкиДанных": {},
-        "ТипМаркераГеографическойСхемы": {},
-        "ТипМаркераДиаграммы": {},
-        "ТипМерыРасстоянияАнализаДанных": {},
-        "ТипНаправленияПереходаТабличногоДокумента": {},
-        "ТипОбластиОформления": {},
-        "ТипОбластиЯчеекТабличногоДокумента": {},
-        "ТипОбъединенияСхемыЗапроса": {},
-        "ТипОбъектаXDTO": {},
-        "ТипОрганизацииИсточникаДанныхГеографическойСхемы": {},
-        "ТипОстаткаКомпоновкиДанных": {},
-        "ТипОтображенияВыделенияТабличногоДокумента": {},
-        "ТипОтображенияЛинийСводнойТаблицы": {},
-        "ТипОтображенияСерииСлояГеографическойСхемы": {},
-        "ТипОтображенияТочечногоОбъектаГеографическойСхемы": {},
-        "ТипОтображенияШкалыЭлементаЛегендыГеографическойСхемы": {},
-        "ТипОтсеченияПравилАссоциации": {},
-        "ТипПараметраДоступнойТаблицыСхемыЗапроса": {},
-        "ТипПериодаКомпоновкиДанных": {},
-        "ТипПлатформы": {},
-        "ТипПоведенияКлавишиEnter": {},
-        "ТипПодписчикаДоставляемыхУведомлений": {},
-        "ТипПоискаОбъектовГеографическойСхемы": {},
-        "ТипПоляАнализаДанных": {},
-        "ТипПримененияОтбораКомпоновкиДанных": {},
-        "ТипПроверкиXML": {},
-        "ТипПроекцииГеографическойСхемы": {},
-        "ТипРазмещенияИзмерений": {},
-        "ТипРазмещенияИтогов": {},
-        "ТипРазмещенияРеквизитовИзмерений": {},
-        "ТипРазмещенияТекстаКомпоновкиДанных": {},
-        "ТипРазмещенияТекстаТабличногоДокумента": {},
-        "ТипРамкиЭлементаУправления": {},
-        "ТипРезультатаDOMXPath": {},
-        "ТипРисункаТабличногоДокумента": {},
-        "ТипСводнойДиаграммы": {},
-        "ТипСвязиДиаграммыГанта": {},
-        "ТипСвязиНаборовДанныхКомпоновкиДанных": {},
-        "ТипСмещенияТабличногоДокумента": {},
-        "ТипСоединенияЗначенийПоСериямДиаграммы": {},
-        "ТипСоединенияСхемыЗапроса": {},
-        "ТипСоединительнойЛинии": {},
-        "ТипСтандартизацииАнализаДанных": {},
-        "ТипСтороныЭлементаГрафическойСхемы": {},
-        "ТипТекстаПочтовогоСообщения": {},
-        "ТипУзлаDOM": {},
-        "ТипУзлаXML": {},
-        "ТипУзораТабличногоДокумента": {},
-        "ТипУпорядочиванияПравилАссоциацииАнализаДанных": {},
-        "ТипУпорядочиванияШаблоновПоследовательностейАнализаДанных": {},
-        "ТипУпрощенияДереваРешений": {},
-        "ТипФайлаТабличногоДокумента": {},
-        "ТипФайлаФорматированногоДокумента": {},
-        "ТипФормыОтчета": {},
-        "ТипХранилищаСертификатовКриптографии": {},
-        "ТипШкалыРадарнойДиаграммы": {},
-        "ТипЭлементаИнформацииОВыполненииОбновленияКонфигурацииБазыДанных": {},
-        "ТипЭлементаРезультатаКомпоновкиДанных": {},
-        "ТочечныйОбъектГеографическойСхемы": {},
-        "ТочкаДиаграммы": {},
-        "ТочкаДиаграммыГанта": {},
-        "ТочкиДиаграммы": {},
-        "ТочкиДиаграммыГанта": {},
-        "ТочкиМноготочечногоОбъектаГеографическойСхемы": {},
-        "ТочностьПечати": {},
-        "УдалениеОбъекта": {},
-        "УзелДереваРешений": {},
-        "УникальныйИдентификатор": {},
+        "СтрокаТаблицыОбластиКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "Структура": {
+            "availability": 511,
+        },
+        "СтруктураНастроекКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "СущностьDOM": {
+            "availability": 509,
+        },
+        "СхемаXML": {
+            "availability": 440,
+        },
+        "СхемаЗапроса": {
+            "availability": 56,
+        },
+        "СхемаКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ТаблицаДляИзмененияСхемыЗапроса": {
+            "availability": 56,
+        },
+        "ТаблицаЗначений": {
+            "availability": 440,
+        },
+        "ТаблицаКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ТаблицаМакетаКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ТаблицаСхемыЗапроса": {
+            "availability": 56,
+        },
+        "ТаблицаФормы": {
+            "availability": 479,
+        },
+        "ТаблицыДляИзмененияСхемыЗапроса": {
+            "availability": 56,
+        },
+        "ТабличноеПоле": {
+            "availability": 16,
+        },
+        "ТабличныйДокумент": {
+            "availability": 511,
+        },
+        "ТекстDOM": {
+            "availability": 509,
+        },
+        "ТекстовыйДокумент": {
+            "availability": 63,
+        },
+        "ТекстФорматированногоДокумента": {
+            "availability": 63,
+        },
+        "ТекущиеДанныеСписка": {
+            "availability": 56,
+        },
+        "ТекущиеДанныеСтруктурыНастроекКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ТелоГруппировкиДиаграммыМакетаКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ТелоГруппировкиТаблицыМакетаКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ТелоМакетаКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "Тип": {
+            "availability": 56,
+        },
+        "ТипАтрибутаXML": {
+            "availability": 508,
+        },
+        "ТипБухгалтерскогоОстаткаКомпоновкиДанных": {
+            "availability": 56,
+        },
+        "ТипВнешнейКомпоненты": {
+            "availability": 511,
+        },
+        "ТипВыводаТекстаКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ТипГруппировкиКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ТипГруппыЭлементовОтбораКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ТипДанныхXML": {
+            "availability": 509,
+        },
+        "ТипДвустороннейПечати": {
+            "availability": 63,
+        },
+        "ТипДиаграммы": {
+            "availability": 511,
+        },
+        "ТипДобавленияПредставлений": {
+            "availability": 56,
+        },
+        "ТипДополненияПериодаКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ТипДополненияПериодамиСхемыЗапроса": {
+            "availability": 56,
+        },
+        "ТипЕдиницыИнтервалаВремениАнализаДанных": {
+            "availability": 63,
+        },
+        "ТипЕдиницыШкалыВремени": {
+            "availability": 63,
+        },
+        "ТипЗаголовкаПолейКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ТипЗаписиЗапроса": {
+            "availability": 56,
+        },
+        "ТипЗаполненияОбластиТабличногоДокумента": {
+            "availability": 63,
+        },
+        "ТипЗаполненияТаблицыРезультатаАнализаДанных": {
+            "availability": 63,
+        },
+        "ТипЗначенияJSON": {
+            "availability": 509,
+        },
+        "ТипЗначенияXDTO": {
+            "availability": 509,
+        },
+        "ТипИзмеренияПостроителяЗапроса": {
+            "availability": 56,
+        },
+        "ТипИзмеренияПостроителяОтчета": {
+            "availability": 56,
+        },
+        "ТипИмпортаСерийСлояГеографическойСхемы": {
+            "availability": 56,
+        },
+        "ТипИспользованияЧисловыхЗначенийАнализаДанных": {
+            "availability": 63,
+        },
+        "ТипИсточникаДанныхПоискаАссоциаций": {
+            "availability": 63,
+        },
+        "ТипКаноническогоXML": {
+            "availability": 508,
+        },
+        "ТипКнопкиКоманднойПанели": {
+            "availability": 16,
+        },
+        "ТипКолонкиАнализаДанныхДеревоРешений": {
+            "availability": 63,
+        },
+        "ТипКолонкиАнализаДанныхКластеризация": {
+            "availability": 63,
+        },
+        "ТипКолонкиАнализаДанныхОбщаяСтатистика": {
+            "availability": 63,
+        },
+        "ТипКолонкиАнализаДанныхПоискАссоциаций": {
+            "availability": 63,
+        },
+        "ТипКолонкиАнализаДанныхПоискПоследовательностей": {
+            "availability": 63,
+        },
+        "ТипКолонкиМоделиПрогноза": {
+            "availability": 63,
+        },
+        "ТипКомпонентыXS": {
+            "availability": 508,
+        },
+        "ТипКонтрольнойТочкиСхемыЗапроса": {
+            "availability": 56,
+        },
+        "ТипЛинииГеографическойСхемы": {
+            "availability": 56,
+        },
+        "ТипЛинииДиаграммы": {
+            "availability": 511,
+        },
+        "ТипЛинииРисункаТабличногоДокумента": {
+            "availability": 63,
+        },
+        "ТипЛинииЯчейкиТабличногоДокумента": {
+            "availability": 63,
+        },
+        "ТипМакетаГруппировкиКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ТипМакетаОбластиКомпоновкиДанных": {
+            "availability": 56,
+        },
+        "ТипМаркераГеографическойСхемы": {
+            "availability": 56,
+        },
+        "ТипМаркераДиаграммы": {
+            "availability": 511,
+        },
+        "ТипМерыРасстоянияАнализаДанных": {
+            "availability": 63,
+        },
+        "ТипНаправленияПереходаТабличногоДокумента": {
+            "availability": 63,
+        },
+        "ТипОбластиОформления": {
+            "availability": 56,
+        },
+        "ТипОбластиЯчеекТабличногоДокумента": {
+            "availability": 59,
+        },
+        "ТипОбъединенияСхемыЗапроса": {
+            "availability": 56,
+        },
+        "ТипОбъектаXDTO": {
+            "availability": 509,
+        },
+        "ТипОрганизацииИсточникаДанныхГеографическойСхемы": {
+            "availability": 56,
+        },
+        "ТипОстаткаКомпоновкиДанных": {
+            "availability": 56,
+        },
+        "ТипОтображенияВыделенияТабличногоДокумента": {
+            "availability": 443,
+        },
+        "ТипОтображенияЛинийСводнойТаблицы": {
+            "availability": 56,
+        },
+        "ТипОтображенияСерииСлояГеографическойСхемы": {
+            "availability": 56,
+        },
+        "ТипОтображенияТочечногоОбъектаГеографическойСхемы": {
+            "availability": 56,
+        },
+        "ТипОтображенияШкалыЭлементаЛегендыГеографическойСхемы": {
+            "availability": 56,
+        },
+        "ТипОтсеченияПравилАссоциации": {
+            "availability": 63,
+        },
+        "ТипПараметраДоступнойТаблицыСхемыЗапроса": {
+            "availability": 56,
+        },
+        "ТипПериодаКомпоновкиДанных": {
+            "availability": 56,
+        },
+        "ТипПлатформы": {
+            "availability": 511,
+        },
+        "ТипПоведенияКлавишиEnter": {
+            "availability": 63,
+        },
+        "ТипПодписчикаДоставляемыхУведомлений": {
+            "availability": 509,
+        },
+        "ТипПоискаОбъектовГеографическойСхемы": {
+            "availability": 56,
+        },
+        "ТипПоляАнализаДанных": {
+            "availability": 56,
+        },
+        "ТипПримененияОтбораКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ТипПроверкиXML": {
+            "availability": 508,
+        },
+        "ТипПроекцииГеографическойСхемы": {
+            "availability": 56,
+        },
+        "ТипРазмещенияИзмерений": {
+            "availability": 56,
+        },
+        "ТипРазмещенияИтогов": {
+            "availability": 56,
+        },
+        "ТипРазмещенияРеквизитовИзмерений": {
+            "availability": 56,
+        },
+        "ТипРазмещенияТекстаКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ТипРазмещенияТекстаТабличногоДокумента": {
+            "availability": 63,
+        },
+        "ТипРамкиЭлементаУправления": {
+            "availability": 95,
+        },
+        "ТипРезультатаDOMXPath": {
+            "availability": 509,
+        },
+        "ТипРисункаТабличногоДокумента": {
+            "availability": 127,
+        },
+        "ТипСводнойДиаграммы": {
+            "availability": 25,
+        },
+        "ТипСвязиДиаграммыГанта": {
+            "availability": 63,
+        },
+        "ТипСвязиНаборовДанныхКомпоновкиДанных": {
+            "availability": 56,
+        },
+        "ТипСмещенияТабличногоДокумента": {
+            "availability": 56,
+        },
+        "ТипСоединенияЗначенийПоСериямДиаграммы": {
+            "availability": 63,
+        },
+        "ТипСоединенияСхемыЗапроса": {
+            "availability": 56,
+        },
+        "ТипСоединительнойЛинии": {
+            "availability": 26,
+        },
+        "ТипСтандартизацииАнализаДанных": {
+            "availability": 63,
+        },
+        "ТипСтороныЭлементаГрафическойСхемы": {
+            "availability": 56,
+        },
+        "ТипТекстаПочтовогоСообщения": {
+            "availability": 509,
+        },
+        "ТипУзлаDOM": {
+            "availability": 509,
+        },
+        "ТипУзлаXML": {
+            "availability": 508,
+        },
+        "ТипУзораТабличногоДокумента": {
+            "availability": 63,
+        },
+        "ТипУпорядочиванияПравилАссоциацииАнализаДанных": {
+            "availability": 63,
+        },
+        "ТипУпорядочиванияШаблоновПоследовательностейАнализаДанных": {
+            "availability": 63,
+        },
+        "ТипУпрощенияДереваРешений": {
+            "availability": 63,
+        },
+        "ТипФайлаТабличногоДокумента": {
+            "availability": 511,
+        },
+        "ТипФайлаФорматированногоДокумента": {
+            "availability": 63,
+        },
+        "ТипФормыОтчета": {
+            "availability": 63,
+        },
+        "ТипХранилищаСертификатовКриптографии": {
+            "availability": 511,
+        },
+        "ТипШкалыРадарнойДиаграммы": {
+            "availability": 511,
+        },
+        "ТипЭлементаИнформацииОВыполненииОбновленияКонфигурацииБазыДанных": {
+            "availability": 56,
+        },
+        "ТипЭлементаРезультатаКомпоновкиДанных": {
+            "availability": 56,
+        },
+        "ТочечныйОбъектГеографическойСхемы": {
+            "availability": 56,
+        },
+        "ТочкаДиаграммы": {
+            "availability": 511,
+        },
+        "ТочкаДиаграммыГанта": {
+            "availability": 59,
+        },
+        "ТочкиДиаграммы": {
+            "availability": 511,
+        },
+        "ТочкиДиаграммыГанта": {
+            "availability": 59,
+        },
+        "ТочкиМноготочечногоОбъектаГеографическойСхемы": {
+            "availability": 56,
+        },
+        "ТочностьПечати": {
+            "availability": 63,
+        },
+        "УдалениеОбъекта": {
+            "availability": 440,
+        },
+        "УзелДереваРешений": {
+            "availability": 56,
+        },
+        "УникальныйИдентификатор": {
+            "availability": 511,
+        },
         "УправляемаяФорма": {},
-        "УровеньЖурналаРегистрации": {},
-        "УровеньИзоляцииТранзакций": {},
-        "УровеньСжатияZIP": {},
-        "УсловноеОформление": {},
-        "УсловноеОформлениеКомпоновкиДанных": {},
-        "ФабрикаXDTO": {},
-        "Файл": {},
-        "ФасетXDTO": {},
-        "ФасетДлиныXS": {},
-        "ФасетКоличестваРазрядовДробнойЧастиXS": {},
-        "ФасетМаксимальногоВключающегоЗначенияXS": {},
-        "ФасетМаксимальногоИсключающегоЗначенияXS": {},
-        "ФасетМаксимальнойДлиныXS": {},
-        "ФасетМинимальногоВключающегоЗначенияXS": {},
-        "ФасетМинимальногоИсключающегоЗначенияXS": {},
-        "ФасетМинимальнойДлиныXS": {},
-        "ФасетОбразцаXS": {},
-        "ФасетОбщегоКоличестваРазрядовXS": {},
-        "ФасетПеречисленияXS": {},
-        "ФасетПробельныхСимволовXS": {},
-        "ФигураКнопки": {},
-        "ФигурыГрафическойСхемы": {},
-        "ФиксацияВТаблице": {},
-        "ФиксацияКомпоновкиДанных": {},
-        "ФиксированнаяКоллекция": {},
-        "ФиксированнаяСтруктура": {},
-        "ФиксированноеСоответствие": {},
-        "ФиксированныйМассив": {},
-        "ФиксированныйСписокКомпонентXS": {},
-        "ФильтрУзловDOM": {},
-        "Флажок": {},
-        "ФоновоеЗадание": {},
+        "УровеньЖурналаРегистрации": {
+            "availability": 56,
+        },
+        "УровеньИзоляцииТранзакций": {
+            "availability": 56,
+        },
+        "УровеньСжатияZIP": {
+            "availability": 509,
+        },
+        "УсловноеОформление": {
+            "availability": 56,
+        },
+        "УсловноеОформлениеКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ФабрикаXDTO": {
+            "availability": 509,
+        },
+        "Файл": {
+            "availability": 511,
+        },
+        "ФасетXDTO": {
+            "availability": 509,
+        },
+        "ФасетДлиныXS": {
+            "availability": 56,
+        },
+        "ФасетКоличестваРазрядовДробнойЧастиXS": {
+            "availability": 56,
+        },
+        "ФасетМаксимальногоВключающегоЗначенияXS": {
+            "availability": 56,
+        },
+        "ФасетМаксимальногоИсключающегоЗначенияXS": {
+            "availability": 56,
+        },
+        "ФасетМаксимальнойДлиныXS": {
+            "availability": 56,
+        },
+        "ФасетМинимальногоВключающегоЗначенияXS": {
+            "availability": 56,
+        },
+        "ФасетМинимальногоИсключающегоЗначенияXS": {
+            "availability": 56,
+        },
+        "ФасетМинимальнойДлиныXS": {
+            "availability": 56,
+        },
+        "ФасетОбразцаXS": {
+            "availability": 56,
+        },
+        "ФасетОбщегоКоличестваРазрядовXS": {
+            "availability": 56,
+        },
+        "ФасетПеречисленияXS": {
+            "availability": 56,
+        },
+        "ФасетПробельныхСимволовXS": {
+            "availability": 56,
+        },
+        "ФигураКнопки": {
+            "availability": 479,
+        },
+        "ФигурыГрафическойСхемы": {
+            "availability": 56,
+        },
+        "ФиксацияВТаблице": {
+            "availability": 511,
+        },
+        "ФиксацияКомпоновкиДанных": {
+            "availability": 63,
+        },
+        "ФиксированнаяКоллекция": {
+            "availability": 509,
+        },
+        "ФиксированнаяСтруктура": {
+            "availability": 511,
+        },
+        "ФиксированноеСоответствие": {
+            "availability": 511,
+        },
+        "ФиксированныйМассив": {
+            "availability": 511,
+        },
+        "ФиксированныйСписокКомпонентXS": {
+            "availability": 56,
+        },
+        "ФильтрУзловDOM": {
+            "availability": 445,
+        },
+        "Флажок": {
+            "availability": 16,
+        },
+        "ФоновоеЗадание": {
+            "availability": 440,
+        },
         "Форма": {
+            "availability": 16,
             "name": "Форма",
             "name_en": "Form",
             "description": "Форма",
@@ -42726,19 +46063,44 @@ let bslGlobals = {
                 }
             }
         },
-        "ФормаXML": {},
-        "ФормаПредставленияXS": {},
-        "ФорматДатыJSON": {},
-        "ФорматДняШкалыВремени": {},
-        "ФорматированнаяСтрока": {},
-        "ФорматированныйДокумент": {},
-        "ФорматКартинки": {},
-        "ФрагментXS": {},
-        "ФрагментДокументаDOM": {},
-        "ХешированиеДанных": {},
-        "ХешФункция": {},
-        "ХранилищаНастроекМенеджер": {},
+        "ФормаXML": {
+            "availability": 440,
+        },
+        "ФормаПредставленияXS": {
+            "availability": 508,
+        },
+        "ФорматДатыJSON": {
+            "availability": 509,
+        },
+        "ФорматДняШкалыВремени": {
+            "availability": 63,
+        },
+        "ФорматированнаяСтрока": {
+            "availability": 511,
+        },
+        "ФорматированныйДокумент": {
+            "availability": 63,
+        },
+        "ФорматКартинки": {
+            "availability": 511,
+        },
+        "ФрагментXS": {
+            "availability": 56,
+        },
+        "ФрагментДокументаDOM": {
+            "availability": 509,
+        },
+        "ХешированиеДанных": {
+            "availability": 440,
+        },
+        "ХешФункция": {
+            "availability": 440,
+        },
+        "ХранилищаНастроекМенеджер": {
+            "availability": 184,
+        },
         "ХарактеристикаКомпоновкиДанныхСхемыЗапроса": {
+            "availability": 56,
             "name": "ХарактеристикаКомпоновкиДанныхСхемыЗапроса",
             "name_en": "DataCompositionCharacteristic",
             "description": "Характеристика компоновки данных схемы запроса.",
@@ -42812,6 +46174,7 @@ let bslGlobals = {
             }
         },
         "ХарактеристикиКомпоновкиДанныхСхемыЗапроса": {
+            "availability": 56,
             "name": "ХарактеристикиКомпоновкиДанныхСхемыЗапроса",
             "name_en": "DataCompositionCharacteristics",
             "description": "Коллекция характеристик компоновки данных схемы запроса.",
@@ -42922,31 +46285,76 @@ let bslGlobals = {
                 }
             }
         },
-        "ХранилищеЗначения": {},
+        "ХранилищеЗначения": {
+            "availability": 56,
+        },
         "ХранилищеНастроекМенеджер": {},
-        "ХранилищеСертификатовКриптографии": {},
-        "Цвет": {},
-        "ЦветаСтиля": {},
-        "ЧастиДаты": {},
-        "ЧередованиеРасположенияСтраниц": {},
+        "ХранилищеСертификатовКриптографии": {
+            "availability": 511,
+        },
+        "Цвет": {
+            "availability": 511,
+        },
+        "ЦветаСтиля": {
+            "availability": 440,
+        },
+        "ЧастиДаты": {
+            "availability": 511,
+        },
+        "ЧередованиеРасположенияСтраниц": {
+            "availability": 63,
+        },
         "Число": {},
-        "ЧтениеFastInfoset": {},
-        "ЧтениеHTML": {},
-        "ЧтениеJSON": {},
-        "ЧтениеXML": {},
-        "ЧтениеZipФайла": {},
-        "ЧтениеСообщенияОбмена": {},
-        "ЧтениеТекста": {},
-        "ЧтениеУзловDOM": {},
-        "ШаблонПоследовательностиАнализаДанных": {},
-        "ШиринаПодчиненныхЭлементовФормы": {},
-        "ШкалаВремени": {},
-        "Шрифт": {},
-        "ШрифтыСтиля": {},
-        "ЭкранированиеСимволовJSON": {},
-        "ЭлементDOM": {},
-        "ЭлементHTML": {},
+        "ЧтениеFastInfoset": {
+            "availability": 56,
+        },
+        "ЧтениеHTML": {
+            "availability": 509,
+        },
+        "ЧтениеJSON": {
+            "availability": 509,
+        },
+        "ЧтениеXML": {
+            "availability": 509,
+        },
+        "ЧтениеZipФайла": {
+            "availability": 509,
+        },
+        "ЧтениеСообщенияОбмена": {
+            "availability": 440,
+        },
+        "ЧтениеТекста": {
+            "availability": 509,
+        },
+        "ЧтениеУзловDOM": {
+            "availability": 509,
+        },
+        "ШаблонПоследовательностиАнализаДанных": {
+            "availability": 56,
+        },
+        "ШиринаПодчиненныхЭлементовФормы": {
+            "availability": 508,
+        },
+        "ШкалаВремени": {
+            "availability": 59,
+        },
+        "Шрифт": {
+            "availability": 511,
+        },
+        "ШрифтыСтиля": {
+            "availability": 440,
+        },
+        "ЭкранированиеСимволовJSON": {
+            "availability": 509,
+        },
+        "ЭлементDOM": {
+            "availability": 509,
+        },
+        "ЭлементHTML": {
+            "availability": 509,
+        },
         "ЭлементZipФайла": {
+            "availability": 509,
             "name": "ЭлементZipФайла",
             "name_en": "ZipFileEntry",
             "description": "Предназначен для описания элемента в ZIP-файле.",
@@ -43033,61 +46441,170 @@ let bslGlobals = {
                 }
             }
         },
-        "ЭлементАплетHTML": {},
-        "ЭлементБиблиотекиМакетовОформленияКомпоновкиДанных": {},
-        "ЭлементБлокHTML": {},
-        "ЭлементБлокировкиДанных": {},
-        "ЭлементВводаHTML": {},
-        "ЭлементВставкаHTML": {},
-        "ЭлементГрафическойСхемыВложенныйБизнесПроцесс": {},
-        "ЭлементГрафическойСхемыВыборВарианта": {},
-        "ЭлементГрафическойСхемыДействие": {},
-        "ЭлементГрафическойСхемыДекоративнаяЛиния": {},
-        "ЭлементГрафическойСхемыДекорация": {},
-        "ЭлементГрафическойСхемыЗавершение": {},
-        "ЭлементГрафическойСхемыОбработка": {},
-        "ЭлементГрафическойСхемыРазделение": {},
-        "ЭлементГрафическойСхемыСлияние": {},
-        "ЭлементГрафическойСхемыСоединительнаяЛиния": {},
-        "ЭлементГрафическойСхемыСтарт": {},
-        "ЭлементГрафическойСхемыУсловие": {},
-        "ЭлементГруппировкиМакетаКомпоновкиДанных": {},
-        "ЭлементДендрограммы": {},
-        "ЭлементЗаголовокHTML": {},
-        "ЭлементЗаголовокТаблицыHTML": {},
-        "ЭлементИзбранногоРаботыПользователя": {},
-        "ЭлементИзмеренияПланировщика": {},
-        "ЭлементИнформацииОВыполненииОбновленияКонфигурацииБазыДанных": {},
-        "ЭлементИсторииРаботыПользователя": {},
-        "ЭлементКартинкаHTML": {},
-        "ЭлементКнопкаHTML": {},
-        "ЭлементКолонкаТаблицыHTML": {},
-        "ЭлементЛегендыГеографическойСхемы": {},
-        "ЭлементЛинияHTML": {},
-        "ЭлементМетаHTML": {},
-        "ЭлементНаборФреймовHTML": {},
-        "ЭлементНастройкиОформления": {},
-        "ЭлементНастройкиСоставаИнтерфейсаКлиентскогоПриложения": {},
-        "ЭлементОбластиМакетаОформленияКомпоновкиДанных": {},
-        "ЭлементОбластиОформления": {},
-        "ЭлементОбъектHTML": {},
-        "ЭлементОтбора": {},
-        "ЭлементОтбораКомпоновкиДанных": {},
-        "ЭлементПакетаОтображаемыхДокументов": {},
-        "ЭлементПлавающийФреймHTML": {},
-        "ЭлементПланировщика": {},
-        "ЭлементПорядка": {},
-        "ЭлементПорядкаКомпоновкиДанных": {},
-        "ЭлементРазметкаHTML": {},
-        "ЭлементРасшифровкиКомпоновкиДанныхГруппировка": {},
-        "ЭлементРасшифровкиКомпоновкиДанныхПоля": {},
-        "ЭлементРезультатаКомпоновкиДанных": {},
-        "ЭлементСвязьHTML": {},
-        "ЭлементСкриптHTML": {},
-        "ЭлементСоставаОбщегоРеквизита": {},
-        "ЭлементСоставаПланаОбмена": {},
-        "ЭлементСоставаФункциональнойОпции": {},
+        "ЭлементАплетHTML": {
+            "availability": 509,
+        },
+        "ЭлементБиблиотекиМакетовОформленияКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ЭлементБлокHTML": {
+            "availability": 509,
+        },
+        "ЭлементБлокировкиДанных": {
+            "availability": 440,
+        },
+        "ЭлементВводаHTML": {
+            "availability": 509,
+        },
+        "ЭлементВставкаHTML": {
+            "availability": 509,
+        },
+        "ЭлементГрафическойСхемыВложенныйБизнесПроцесс": {
+            "availability": 59,
+        },
+        "ЭлементГрафическойСхемыВыборВарианта": {
+            "availability": 59,
+        },
+        "ЭлементГрафическойСхемыДействие": {
+            "availability": 59,
+        },
+        "ЭлементГрафическойСхемыДекоративнаяЛиния": {
+            "availability": 59,
+        },
+        "ЭлементГрафическойСхемыДекорация": {
+            "availability": 59,
+        },
+        "ЭлементГрафическойСхемыЗавершение": {
+            "availability": 59,
+        },
+        "ЭлементГрафическойСхемыОбработка": {
+            "availability": 59,
+        },
+        "ЭлементГрафическойСхемыРазделение": {
+            "availability": 59,
+        },
+        "ЭлементГрафическойСхемыСлияние": {
+            "availability": 59,
+        },
+        "ЭлементГрафическойСхемыСоединительнаяЛиния": {
+            "availability": 59,
+        },
+        "ЭлементГрафическойСхемыСтарт": {
+            "availability": 59,
+        },
+        "ЭлементГрафическойСхемыУсловие": {
+            "availability": 59,
+        },
+        "ЭлементГруппировкиМакетаКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ЭлементДендрограммы": {
+            "availability": 59,
+        },
+        "ЭлементЗаголовокHTML": {
+            "availability": 509,
+        },
+        "ЭлементЗаголовокТаблицыHTML": {
+            "availability": 509,
+        },
+        "ЭлементИзбранногоРаботыПользователя": {
+            "availability": 63,
+        },
+        "ЭлементИзмеренияПланировщика": {
+            "availability": 511,
+        },
+        "ЭлементИнформацииОВыполненииОбновленияКонфигурацииБазыДанных": {
+            "availability": 56,
+        },
+        "ЭлементИсторииРаботыПользователя": {
+            "availability": 63,
+        },
+        "ЭлементКартинкаHTML": {
+            "availability": 509,
+        },
+        "ЭлементКнопкаHTML": {
+            "availability": 509,
+        },
+        "ЭлементКолонкаТаблицыHTML": {
+            "availability": 509,
+        },
+        "ЭлементЛегендыГеографическойСхемы": {
+            "availability": 56,
+        },
+        "ЭлементЛинияHTML": {
+            "availability": 509,
+        },
+        "ЭлементМетаHTML": {
+            "availability": 509,
+        },
+        "ЭлементНаборФреймовHTML": {
+            "availability": 509,
+        },
+        "ЭлементНастройкиОформления": {
+            "availability": 56,
+        },
+        "ЭлементНастройкиСоставаИнтерфейсаКлиентскогоПриложения": {
+            "availability": 24,
+        },
+        "ЭлементОбластиМакетаОформленияКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ЭлементОбластиОформления": {
+            "availability": 56,
+        },
+        "ЭлементОбъектHTML": {
+            "availability": 509,
+        },
+        "ЭлементОтбора": {
+            "availability": 440,
+        },
+        "ЭлементОтбораКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ЭлементПакетаОтображаемыхДокументов": {
+            "availability": 511,
+        },
+        "ЭлементПлавающийФреймHTML": {
+            "availability": 509,
+        },
+        "ЭлементПланировщика": {
+            "availability": 511,
+        },
+        "ЭлементПорядка": {
+            "availability": 56,
+        },
+        "ЭлементПорядкаКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ЭлементРазметкаHTML": {
+            "availability": 509,
+        },
+        "ЭлементРасшифровкиКомпоновкиДанныхГруппировка": {
+            "availability": 440,
+        },
+        "ЭлементРасшифровкиКомпоновкиДанныхПоля": {
+            "availability": 440,
+        },
+        "ЭлементРезультатаКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ЭлементСвязьHTML": {
+            "availability": 509,
+        },
+        "ЭлементСкриптHTML": {
+            "availability": 509,
+        },
+        "ЭлементСоставаОбщегоРеквизита": {
+            "availability": 56,
+        },
+        "ЭлементСоставаПланаОбмена": {
+            "availability": 440,
+        },
+        "ЭлементСоставаФункциональнойОпции": {
+            "availability": 440,
+        },
         "ЭлементСпискаЗначений": {
+            "availability": 511,
             "name": "ЭлементСпискаЗначений",
             "name_en": "ValueListItem",
             "description": "Используется для доступа к свойствам и методам элемента списка значений.",
@@ -43122,26 +46639,65 @@ let bslGlobals = {
                 }
             }
         },
-        "ЭлементСпискаПолнотекстовогоПоиска": {},
-        "ЭлементСтрокаТаблицыHTML": {},
-        "ЭлементТаблицаHTML": {},
-        "ЭлементТелоHTML": {},
-        "ЭлементУправленияИнтерфейсом": {},
-        "ЭлементУправленияКолонкамиАнализаДанных": {},
-        "ЭлементУправленияНастройкойНастройкиОформления": {},
-        "ЭлементУправленияНастройкойОбластиОформления": {},
-        "ЭлементУправленияНастройкойУсловногоОформления": {},
-        "ЭлементУправленияОтбором": {},
-        "ЭлементУправленияПараметрамиАнализаДанных": {},
-        "ЭлементУправленияПорядком": {},
-        "ЭлементУсловногоОформления": {},
-        "ЭлементУсловногоОформленияКомпоновкиДанных": {},
-        "ЭлементФактическогоПериодаДействия": {},
-        "ЭлементФормаHTML": {},
-        "ЭлементФорматированногоТекстаHTML": {},
-        "ЭлементФреймHTML": {},
-        "ЭлементШкалыВремени": {},
+        "ЭлементСпискаПолнотекстовогоПоиска": {
+            "availability": 440,
+        },
+        "ЭлементСтрокаТаблицыHTML": {
+            "availability": 509,
+        },
+        "ЭлементТаблицаHTML": {
+            "availability": 509,
+        },
+        "ЭлементТелоHTML": {
+            "availability": 509,
+        },
+        "ЭлементУправленияИнтерфейсом": {
+            "availability": 16,
+        },
+        "ЭлементУправленияКолонкамиАнализаДанных": {
+            "availability": 56,
+        },
+        "ЭлементУправленияНастройкойНастройкиОформления": {
+            "availability": 56,
+        },
+        "ЭлементУправленияНастройкойОбластиОформления": {
+            "availability": 56,
+        },
+        "ЭлементУправленияНастройкойУсловногоОформления": {
+            "availability": 56,
+        },
+        "ЭлементУправленияОтбором": {
+            "availability": 56,
+        },
+        "ЭлементУправленияПараметрамиАнализаДанных": {
+            "availability": 56,
+        },
+        "ЭлементУправленияПорядком": {
+            "availability": 56,
+        },
+        "ЭлементУсловногоОформления": {
+            "availability": 56,
+        },
+        "ЭлементУсловногоОформленияКомпоновкиДанных": {
+            "availability": 511,
+        },
+        "ЭлементФактическогоПериодаДействия": {
+            "availability": 56,
+        },
+        "ЭлементФормаHTML": {
+            "availability": 509,
+        },
+        "ЭлементФорматированногоТекстаHTML": {
+            "availability": 509,
+        },
+        "ЭлементФреймHTML": {
+            "availability": 509,
+        },
+        "ЭлементШкалыВремени": {
+            "availability": 59,
+        },
         "ЭлементыZipФайла": {
+            "availability": 509,
             "name": "ЭлементыZipФайла",
             "name_en": "ZipFileEntries",
             "description": "Содержит коллекцию элементов ZIP файла.",
@@ -43184,22 +46740,54 @@ let bslGlobals = {
                 }
             }
         },
-        "ЭлементыГрафическойСхемы": {},
-        "ЭлементыДендрограммы": {},
-        "ЭлементыЛегендыГеографическойСхемы": {},
-        "ЭлементыМакетаОбластиКомпоновкиДанных": {},
-        "ЭлементыПакетаОтображаемыхДокументов": {},
-        "ЭлементыРасшифровкиКомпоновкиДанных": {},
-        "ЭлементыФормы": {},
-        "ЭлементыШкалыВремени": {},
-        "ЭлементЯкорьHTML": {},
-        "ЭлементЯчейкаТаблицыHTML": {},
-        "ЯчейкаМакетаЗаголовкаКоллекцииЗначенийОбластиКомпоновкиДанных": {},
-        "ЯчейкаМакетаКоллекцииЗначенийОбластиКомпоновкиДанных": {},
-        "ЯчейкаТаблицыОбластиКомпоновкиДанных": {},
-        "ЯчейкиМакетаЗаголовкаКоллекцииЗначенийОбластиКомпоновкиДанных": {},
-        "ЯчейкиМакетаКоллекцииЗначенийОбластиКомпоновкиДанных": {},
-        "ЯчейкиТаблицыОбластиКомпоновкиДанных": {}
+        "ЭлементыГрафическойСхемы": {
+            "availability": 59,
+        },
+        "ЭлементыДендрограммы": {
+            "availability": 57,
+        },
+        "ЭлементыЛегендыГеографическойСхемы": {
+            "availability": 56,
+        },
+        "ЭлементыМакетаОбластиКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ЭлементыПакетаОтображаемыхДокументов": {
+            "availability": 511,
+        },
+        "ЭлементыРасшифровкиКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ЭлементыФормы": {
+            "availability": 16,
+        },
+        "ЭлементыШкалыВремени": {
+            "availability": 59,
+        },
+        "ЭлементЯкорьHTML": {
+            "availability": 509,
+        },
+        "ЭлементЯчейкаТаблицыHTML": {
+            "availability": 509,
+        },
+        "ЯчейкаМакетаЗаголовкаКоллекцииЗначенийОбластиКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ЯчейкаМакетаКоллекцииЗначенийОбластиКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ЯчейкаТаблицыОбластиКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ЯчейкиМакетаЗаголовкаКоллекцииЗначенийОбластиКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ЯчейкиМакетаКоллекцииЗначенийОбластиКомпоновкиДанных": {
+            "availability": 440,
+        },
+        "ЯчейкиТаблицыОбластиКомпоновкиДанных": {
+            "availability": 440,
+        }
     },
     "universalObjects": {
         "ТабличнаяЧасть": {
@@ -43958,3 +47546,21 @@ let bslGlobals = {
 }
 
 export default bslGlobals;
+
+// Декодирование битовой маски доступности в массив/строку контекстов.
+// Пример: availabilityToString(1023) === "ThinClient,WebClient,...,Integration"
+function availabilityToArray(mask) {
+    let result = [];
+    for (let i = 0; i < bslAvailabilityContexts.length; i++) {
+        if (mask & (1 << i)) {
+            result.push(bslAvailabilityContexts[i]);
+        }
+    }
+    return result;
+}
+
+function availabilityToString(mask) {
+    return availabilityToArray(mask).join(",");
+}
+
+export { availabilityToArray, availabilityToString };

@@ -2,6 +2,7 @@ import Finder from "./finder";
 import queryModelService from "./query_model_service";
 import queryNavigation from "./query_navigation";
 import BslFormatter from "./bsl_formatter";
+import { availabilityToArray } from "./bslGlobals";
 
 let formatterPlatformNamesSource = null;
 let formatterPlatformNames = null;
@@ -1295,7 +1296,15 @@ class bslHelper {
 
 					let template = value.hasOwnProperty('template') ? value.template : '';
 
-					values.push({ name: value[this.nameField], detail: value.description, description: value.hasOwnProperty('returns') ? value.returns : '', postfix: postfix, template: template, command: command });
+					values.push({ 
+						name: value[this.nameField],
+						detail: value.description,
+						description: value.hasOwnProperty('returns') ? value.returns : '',
+						postfix: postfix,
+						template: template,
+						command: command,
+						availability: value.availability
+					});
 
 				}
 				else {
@@ -1324,7 +1333,8 @@ class bslHelper {
 						insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
 						detail: value.detail,
 						documentation: value.description,
-						command: value.command
+						command: value.command,
+						availability: value.availability
 					});
 				}
 			});
@@ -3187,7 +3197,8 @@ class bslHelper {
 					kind: monaco.languages.CompletionItemKind.Constructor,
 					insertText: value[this.nameField] + postfix,
 					insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-					detail: value.description						
+					detail: value.description,
+					availability: value.availability
 				});	
 
 			}
@@ -5128,6 +5139,52 @@ class bslHelper {
 	}
 
 	/**
+	 * Determines whether an object is available in the current context.
+	 * 
+	 * @param {item} item of suggestions
+	 * 
+	 * @returns {bool}
+	 */
+	isObjectAvailableInContext(item, contextMode) {
+
+		let availability = []
+
+		if (item.hasOwnProperty('availability') && item.availability !== null)
+			availability = availabilityToArray(item.availability)
+
+		if (!availability.length)
+			return true;
+
+		if (contextMode.toLowerCase() == 'server')
+			return 0 <= availability.indexOf('Server');
+		else
+			return 0 <= availability.indexOf('ThinClient');
+
+	}
+
+	/**
+	 * Filter array of suggestions by availability property
+	 * 
+	 * @param {suggestions} context
+	 * 
+	 * @returns {array} suggestions
+	 */
+	filterSuggestionsByContext(suggestions) {
+
+		const contextMode = window.getOption('contextMode');
+		const helper  = this;
+		if (contextMode) {
+			return suggestions.filter(function (item) {
+				return helper.isObjectAvailableInContext(item, contextMode);
+			});
+		}
+		else {
+			return suggestions;
+		}
+
+	}
+
+	/**
 	 * Completion provider
 	 * 
 	 * @param {CompletionContext} context
@@ -5141,7 +5198,7 @@ class bslHelper {
 
 		if (!suggestions.length && !window.editor.disableNativeSuggestions) {
 
-			if (!this.isItStringLiteral()) {				
+			if (!this.isItStringLiteral()) {
 				suggestions = this.getCodeCompletion(context, token);
 			}
 			else {
@@ -5154,7 +5211,7 @@ class bslHelper {
 		}
 
 		if (suggestions.length)
-			return { suggestions: suggestions }
+			return { suggestions: this.filterSuggestionsByContext(suggestions) }
 		else
 			return [];
 
