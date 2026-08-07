@@ -98,6 +98,7 @@ window.selectedQueryDelimiters = new Map();
 window.reviewWidgets = new Map();
 window.currentIssue = -1;
 window.inlineSuggestionsChanged = new monaco.Emitter();
+window.objectContext = null;
 // #endregion
 
 // #region public API
@@ -322,6 +323,27 @@ window.updateMetadata = function (metadata, path = '') {
   } catch (e) { /* best-effort */ }
 
   return result;
+
+}
+
+window.setObjectContext = function (metadataName) {
+
+  let bsl = new bslHelper(window.editor.getModel(), window.editor.getPosition());
+
+  try {
+    return bsl.setObjectContext(metadataName);
+  }
+  catch (e) {
+    window.customHovers = {};
+    return { errorDescription: e.message };
+  }
+
+}
+
+window.clearObjectContext = function () {
+
+  let bsl = new bslHelper(window.editor.getModel(), window.editor.getPosition());
+  return bsl.clearObjectContext();
 
 }
 

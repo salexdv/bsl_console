@@ -222,6 +222,8 @@ npm run build -- --env customOptions="automaticLayout: true, someOption: false"
 | Функция                        | Описание                                                                                      |
 | ------------------------------ | --------------------------------------------------------------------------------------------- |
 | [`updateMetadata`](docs/update_metadata.md) | Обновляет через JSON структуру метаданных (Справочники/Документы/пр.)            |
+| [`setObjectContext`](docs/set_object_context.md) | Задаёт контекст объекта (реквизиты/методы/ТЧ доступны как в модуле объекта) |
+| `clearObjectContext`           | Сбрасывает контекст объекта, заданный через `setObjectContext`                                |
 | `clearMetadata`                | Очищает структуру метаданных                                                                  |
 | `updateSnippets`               | Обновляет пользовательские сниппеты                                                           |
 | [`parseSnippets`](docs/parse_snippets.md) |  Загружает шаблоны кода (сниппеты) в формате 1С:Предприятия                        |

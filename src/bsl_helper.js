@@ -1829,7 +1829,24 @@ class bslHelper {
 		}
 
 	}
-	
+
+	/**
+	 * Adds the object itself to the suggestions
+	 * 
+	 * @param {array} suggestions the list of suggestions
+	 */
+	getSelfObjectSuggestions(suggestions) {
+
+		const label = window.engLang ? 'ThisObject': 'ЭтотОбъект';
+
+		suggestions.push({
+			label: label,
+			kind: monaco.languages.CompletionItemKind.Object,
+			insertText: label,
+			insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+		});
+
+	}
 
 	/**
 	 * Fills the suggestions for reference-type object
@@ -1985,6 +2002,20 @@ class bslHelper {
 			// Здесь было присваивание вместо сравнения: условие всегда истинно, да ещё и
 			// подменяло номер строки у position, из-за чего слово читалось с чужой строки.
 			if (position.lineNumber == currentPosition.lineNumber) {
+
+				// Переменная "ЭтотОбъект"/"ThisObject" при установленном через setObjectContext
+				// контексте объекта всегда раскрывается в объектные подсказки после точки,
+				// даже если в строке нет данных contextData.
+				if (window.objectContext && match.matches && match.matches[0] == '.') {
+
+					let thisObjectWord = this.model.getWordUntilPosition(position).word;
+
+					if (thisObjectWord && (thisObjectWord.toLowerCase() == 'этотобъект' || thisObjectWord.toLowerCase() == 'thisobject')) {
+						wordContext = { ref: window.objectContext, parent_ref: null, sig: null };
+						this.getRefSuggestions(suggestions, wordContext);
+					}
+
+				}
 
 				let lineContextData = window.contextData.get(position.lineNumber)
 
@@ -5185,6 +5216,14 @@ class bslHelper {
 					if (!suggestions.length)
 						this.getMetadataDescription(suggestions);
 
+					// Контекст объекта, заданный через setObjectContext: показываем реквизиты, методы
+					// и табличные части объекта (как в модуле объекта) по Ctrl+Space или при наборе,
+					// даже если точка/переменная не введены.
+					if (window.objectContext && context.triggerCharacter != '.') {
+						this.getSelfObjectSuggestions(suggestions);
+						this.getRefSuggestions(suggestions, { ref: window.objectContext, parent_ref: null, sig: null });
+					}
+
 				}
 
 			}
@@ -7941,6 +7980,84 @@ class bslHelper {
 			return { errorDescription: e.message };
 		}
 
+
+	}
+
+	/**
+	 * Sets the context of the object which the editor should work with,
+	 * for example "Справочники.Товары". After that the editor behaves
+	 * like the object module: the list of suggestions contains the object`s
+	 * attributes, methods and tabular parts (by Ctrl+Space or while typing)
+	 * and also after the dot for the "ЭтотОбъект"/"ThisObject" variable.
+	 * If the metadata of the requested object is not loaded yet, a request
+	 * is performed through the EVENT_GET_METADATA event.
+	 *
+	 * @param {string} metadataName name of metadata object like "Справочники.Товары"
+	 *
+	 * @returns {boolean|object} true or object with errorDescription
+	 */
+	setObjectContext(metadataName) {
+
+		try {
+
+			if (typeof metadataName != 'string' || !metadataName.trim())
+				throw new TypeError("Некорректный тип метаданных");
+
+			let parts = metadataName.split('.');
+
+			if (parts.length < 2)
+				throw new TypeError("Некорректная структура метаданных");
+
+			let groupName = parts[0].toLowerCase();
+			let itemName = parts[1];
+			let groupKey = null;
+
+			for (const [key, value] of Object.entries(window.bslMetadata)) {
+
+				if (value.hasOwnProperty('name')) {
+
+					if (value.name.toLowerCase() == groupName || value.name_en.toLowerCase() == groupName) {
+						groupKey = key;
+						break;
+					}
+
+				}
+
+			}
+
+			if (!groupKey)
+				throw new TypeError("Не найдена группа объекта метаданных");
+
+			window.objectContext = groupKey + '.' + itemName + '.obj';
+
+			if (!Object.keys(window.bslMetadata[groupKey].items).length) {
+				window.requestMetadata(window.bslMetadata[groupKey].name);
+			}
+
+			if (!bslHelper.objectHasPropertiesFromArray(window.bslMetadata, [groupKey, 'items', itemName, 'properties'])) {
+				window.requestMetadata(window.bslMetadata[groupKey].name + '.' + itemName);
+			}
+
+			return true;
+
+		}
+		catch (e) {
+			return { errorDescription: e.message };
+		}
+
+	}
+
+	/**
+	 * Clears the context of the object that was set earlier
+	 * through setObjectContext
+	 *
+	 * @returns {boolean} true if the context was cleared
+	 */
+	clearObjectContext() {
+
+		let cleared = window.objectContext !== null && window.objectContext !== undefined;
+		window.objectContext = null;
+		return cleared;
 
 	}
 

@@ -1423,6 +1423,105 @@ setTimeout(() => {
 
       });
 
+      describe("setObjectContext: контекст текущего объекта", function () {
+
+        it("подсказки объекта по Ctrl+Space в пустом редакторе", function () {
+          try {
+            window.setObjectContext('Справочники.Товары');
+            let suggestions = [];
+            bsl = helper('');
+            bsl.getRefSuggestions(suggestions, { ref: window.objectContext, parent_ref: null, sig: null });
+            expect(suggestions).to.be.an('array').that.not.is.empty;
+            assert.equal(suggestions.some(suggest => suggest.label === "Записать"), true);
+            assert.equal(suggestions.some(suggest => suggest.label === "Заблокировать"), true);
+            assert.equal(suggestions.some(suggest => suggest.label === "ОбменДанными"), true);
+          }
+          finally {
+            window.clearObjectContext();
+          }
+        });
+
+        it("подсказки объекта при наборе префикса", function () {
+          try {
+            window.setObjectContext('Справочники.Товары');
+            bsl = helper('Запи');
+            let suggestions = bsl.getCodeCompletion({ triggerCharacter: '' });
+            expect(suggestions).to.be.an('array').that.not.is.empty;
+            assert.equal(suggestions.some(suggest => suggest.label === "Записать"), true);
+          }
+          finally {
+            window.clearObjectContext();
+          }
+        });
+
+        it("подсказка после точки для переменной ЭтотОбъект", function () {
+          try {
+            window.setObjectContext('Справочники.Товары');
+            bsl = helper('ЭтотОбъект.');
+            let suggestions = [];
+            bsl.getRefCompletion(suggestions);
+            expect(suggestions).to.be.an('array').that.not.is.empty;
+            assert.equal(suggestions.some(suggest => suggest.label === "Записать"), true);
+            assert.equal(suggestions.some(suggest => suggest.label === "ОбменДанными"), true);
+          }
+          finally {
+            window.clearObjectContext();
+          }
+        });
+
+        it("подсказка после точки для переменной ThisObject", function () {
+          try {
+            window.setObjectContext('Справочники.Товары');
+            bsl = helper('ThisObject.');
+            let suggestions = [];
+            bsl.getRefCompletion(suggestions);
+            expect(suggestions).to.be.an('array').that.not.is.empty;
+            assert.equal(suggestions.some(suggest => suggest.label === "Записать"), true);
+          }
+          finally {
+            window.clearObjectContext();
+          }
+        });
+
+        it("другие переменные после точки не получают объектный контекст", function () {
+          try {
+            window.setObjectContext('Справочники.Товары');
+            bsl = helper('СпрОбъект.');
+            let suggestions = [];
+            bsl.getRefCompletion(suggestions);
+            assert.equal(suggestions.some(suggest => suggest.label === "ОбменДанными"), false);
+            assert.equal(suggestions.some(suggest => suggest.label === "Записать"), false);
+          }
+          finally {
+            window.clearObjectContext();
+          }
+        });
+
+        it("переменная со своим контекстом работает как раньше", function () {
+          try {
+            window.setObjectContext('Справочники.Товары');
+            bsl = helper('СтавкаНДС = Справочники.СтавкиНДС.НайтиПоКоду(1);\nСтавкаНДС.');
+            let suggestions = [];
+            bsl.getMetadataCompletion(suggestions, window.bslMetadata)
+            expect(suggestions).to.be.an('array').that.not.is.empty;
+            assert.equal(suggestions.some(suggest => suggest.label === "Ставка"), true);
+          }
+          finally {
+            window.clearObjectContext();
+          }
+        });
+
+        it("clearObjectContext снимает установленный контекст объекта", function () {
+          window.setObjectContext('Справочники.Товары');
+          assert.equal(window.clearObjectContext(), true);
+          bsl = helper('ЭтотОбъект.');
+          let suggestions = [];
+          bsl.getRefCompletion(suggestions);
+          assert.equal(suggestions.some(suggest => suggest.label === "ОбменДанными"), false);
+        });
+
+      })
+
       it("проверка подсказки параметров для функции ВыгрузитьКолонку таблицы значений, полученной из другой таблицы", function () {
         bsl = helper('Таблица1 = Новый ТаблицаЗначений();\nТаблица2 = Таблица1.Скопировать();\nТаблица2.ВыгрузитьКолонку(');
         let suggestions = [];  
