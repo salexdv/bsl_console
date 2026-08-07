@@ -80,6 +80,7 @@ window.currentIssue = -1;
 window.hiddenBlocks = new Map();
 window.inlineCompletionProviders = [];
 window.inlineSuggestEnabled = true;
+window.objectContext = null;
 // #endregion
 
 // #region public API
@@ -268,6 +269,27 @@ window.updateMetadata = function (metadata, path = '') {
       
   let bsl = new bslHelper(window.editor.getModel(), window.editor.getPosition());		
   return bsl.updateMetadata(metadata, path);
+
+}
+
+window.setObjectContext = function (metadataName) {
+
+  let bsl = new bslHelper(window.editor.getModel(), window.editor.getPosition());
+
+  try {
+    return bsl.setObjectContext(metadataName);
+  }
+  catch (e) {
+    window.customHovers = {};
+    return { errorDescription: e.message };
+  }
+
+}
+
+window.clearObjectContext = function () {
+
+  let bsl = new bslHelper(window.editor.getModel(), window.editor.getPosition());
+  return bsl.clearObjectContext();
 
 }
 
