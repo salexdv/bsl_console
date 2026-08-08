@@ -104,7 +104,7 @@ module.exports = (env, argv) => {
           use: [
             {
               loader: 'esbuild-loader',
-              options: { target: 'es2015' }
+              options: { target: 'es2015', charset: 'utf8' }
             },
             {
               loader: 'replace-strings',
@@ -215,9 +215,10 @@ module.exports = (env, argv) => {
           terserOptions: {
             // Старый WebKit 1С не понимает ES2020: иначе terser генерит `a ?? b` из
             // `null==a?b:a` и раскавычивает не-ASCII ключи (`℘:"wp"`). ecma 2015 +
-            // закавыченные ASCII-ключи = вывод как в webpack 4.
+            // закавыченные ключи сохраняют совместимость, а UTF-8 не раздувает большие
+            // кириллические справочники bslGlobals/bslMetadata до `\uXXXX`.
             ecma: 2015,
-            format: { quote_keys: true, ascii_only: true }
+            format: { quote_keys: true, ascii_only: false }
           }
         })
       ],

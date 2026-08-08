@@ -24,10 +24,12 @@ import Treeview from './tree/tree.js'
 import Finder from "./finder";
 import SnippetsParser from "./parsers";
 import { patchWebKit1C } from './1c-webkit-patch';
+import SearchHistoryController from './search_history';
 
 const hiddenBlocksController = new HiddenBlocksController(monaco, function () {
   return window.engLang;
 });
+const searchHistoryController = new SearchHistoryController(monaco);
 
 // Иконки дерева переменных инлайнятся в бандл (data:-URI) через require.context, а не тянутся
 // отдельными файлами — это нужно для single-file сборки. В обычной сборке результат тот же:
@@ -96,6 +98,7 @@ window.selectedQueryDelimiters = new Map();
 window.reviewWidgets = new Map();
 window.currentIssue = -1;
 window.inlineSuggestionsChanged = new monaco.Emitter();
+window.objectContext = null;
 // #endregion
 
 // #region public API
@@ -243,6 +246,30 @@ window.getText = function(txt) {
 
 }
 
+window.getModuleMethods = function() {
+
+  return JSON.stringify(bslHelper.getModuleMethods(getActiveEditor().getModel()));
+
+}
+
+window.saveSearchHistory = function () {
+
+  return searchHistoryController.save();
+
+}
+
+window.restoreSearchHistory = function (state) {
+
+  return searchHistoryController.restore(state);
+
+}
+
+window.showModuleMethods = function() {
+
+  getActiveEditor().trigger('', 'editor.action.quickOutline');
+
+}
+
 window.getQuery = function () {
 
   // В режиме запроса весь текст редактора и ЕСТЬ запрос — строкового литерала BSL тут нет, поэтому
@@ -296,6 +323,27 @@ window.updateMetadata = function (metadata, path = '') {
   } catch (e) { /* best-effort */ }
 
   return result;
+
+}
+
+window.setObjectContext = function (metadataName) {
+
+  let bsl = new bslHelper(window.editor.getModel(), window.editor.getPosition());
+
+  try {
+    return bsl.setObjectContext(metadataName);
+  }
+  catch (e) {
+    window.customHovers = {};
+    return { errorDescription: e.message };
+  }
+
+}
+
+window.clearObjectContext = function () {
+
+  let bsl = new bslHelper(window.editor.getModel(), window.editor.getPosition());
+  return bsl.clearObjectContext();
 
 }
 
@@ -455,6 +503,18 @@ window.isQueryMode = function() {
 window.isDCSMode = function() {
 
   return window.getCurrentLanguageId() == 'dcs_query';
+
+}
+
+window.setContextMode = function(mode) {
+
+  window.setOption('contextMode', mode);
+
+}
+
+window.getContextMode = function(mode) {
+
+  return window.getOption('contextMode');
 
 }
 
@@ -1584,14 +1644,16 @@ window.enableKeyBinding = function (keybinding) {
 window.jumpToBracket = function () {
 
   if (!jumpToIfBracket())
-    window.editor.trigger('', 'editor.action.jumpToBracket');
+    if (!jumpToKeywordBracket())
+      window.editor.trigger('', 'editor.action.jumpToBracket');
 
 }
 
 window.selectToBracket = function () {
 
   if (!selectToIfBracket())
-    window.editor.trigger('', 'editor.action.selectToBracket');
+    if (!selectToKeywordBracket())
+      window.editor.trigger('', 'editor.action.selectToBracket');
 
 }
 
@@ -1666,9 +1728,78 @@ window.getDiffCount = function() {
 
 }
 
-window.formatDocument = function() {
+const bslFormatOptionNames = [
+  'formatCanonicalKeywords',
+  'formatCanonicalPlatformNames',
+  'formatSplitStatements',
+  'formatSpaceAfterComma',
+  'formatAlignAssignments',
+  'formatJoinThen',
+  'formatBlankLinesAroundBlocks'
+];
 
-  window.editor.trigger('', 'editor.action.formatDocument');
+function parseBslFormatOptions(optionsJSON) {
+
+  const result = {};
+  bslFormatOptionNames.forEach(name => result[name] = true);
+
+  if (optionsJSON === undefined)
+    return result;
+
+  if (typeof optionsJSON != 'string')
+    throw new Error('Параметры форматирования должны быть JSON-строкой объекта');
+
+  const source = JSON.parse(optionsJSON);
+
+  if (!source || Array.isArray(source) || typeof source != 'object')
+    throw new Error('Параметры форматирования должны быть JSON-объектом');
+
+  bslFormatOptionNames.forEach(name => {
+    if (!Object.prototype.hasOwnProperty.call(source, name))
+      return;
+    if (typeof source[name] != 'boolean')
+      throw new Error('Опция ' + name + ' должна иметь тип boolean');
+    result[name] = source[name];
+  });
+
+  return result;
+
+}
+
+window.formatDocument = function(optionsJSON) {
+
+  let options;
+  try {
+    options = parseBslFormatOptions(optionsJSON);
+  }
+  catch (error) {
+    return { errorDescription: error.message };
+  }
+
+  const selection = window.editor.getSelection();
+  const action = selection && !selection.isEmpty()
+    ? 'editor.action.formatSelection'
+    : 'editor.action.formatDocument';
+  const context = {
+    model: window.editor.getModel(),
+    options: options
+  };
+
+  window.editor.bslFormattingContext = context;
+
+  const clearContext = function() {
+    if (window.editor.bslFormattingContext === context)
+      delete window.editor.bslFormattingContext;
+  };
+
+  try {
+    // Эквивалент finally без Promise.prototype.finally для старого WebKit поля HTML-документа.
+    Promise.resolve(window.editor.getAction(action).run()).then(clearContext, clearContext);
+  }
+  catch (error) {
+    clearContext();
+    throw error;
+  }
 
 }
 
@@ -2140,6 +2271,7 @@ window.createEditor = function(language_id, text, theme) {
   changeCommandKeybinding('editor.action.peekDefinition', monaco.KeyMod.CtrlCmd | monaco.KeyCode.F12);
   changeCommandKeybinding('editor.action.deleteLines',  monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyL);
   changeCommandKeybinding('editor.action.selectToBracket',  monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.KeyB);
+  changeCommandKeybinding('editor.action.quickOutline',  monaco.KeyMod.CtrlCmd | monaco.KeyMod.Alt | monaco.KeyCode.KeyP);
 
   window.lineNumbersDedocrations = [];
   window.setDefaultStyle();
@@ -2180,9 +2312,14 @@ for (const [key, lang] of Object.entries(window.languages)) {
   // Register providers for the new language
   monaco.languages.registerCompletionItemProvider(language.id, lang.completionProvider);
   monaco.languages.registerFoldingRangeProvider(language.id, lang.foldingProvider);
+  if (lang.documentSymbolProvider)
+    monaco.languages.registerDocumentSymbolProvider(language.id, lang.documentSymbolProvider);
+
   monaco.languages.registerSignatureHelpProvider(language.id, lang.signatureProvider);
   monaco.languages.registerHoverProvider(language.id, lang.hoverProvider);
   monaco.languages.registerDocumentFormattingEditProvider(language.id, lang.formatProvider);
+  if (lang.formatProvider.provideDocumentRangeFormattingEdits)
+    monaco.languages.registerDocumentRangeFormattingEditProvider(language.id, lang.formatProvider);
   monaco.languages.registerColorProvider(language.id, lang.colorProvider);
   monaco.languages.registerDefinitionProvider(language.id, lang.definitionProvider);
   monaco.languages.registerCodeActionProvider(language.id, lang.codeActionProvider);
@@ -2457,7 +2594,7 @@ function initEditorEventListenersAndProperies() {
     updateStatusBar();
     onChangeSnippetSelection(e);
     updateSelectedQueryDelimiters(e);
-    updateIfHighlights();
+    updateBlockHighlights();
     
   });
 
@@ -2818,6 +2955,185 @@ function selectToIfBracket(active_editor = getActiveEditor()) {
 
 }
 
+function getKeywordBracketInfo(model, lineNumber) {
+
+  const lineContent = model.getLineContent(lineNumber);
+  const match = lineContent.match(languages.bsl.keywordBracketRegExp);
+
+  if (!match)
+    return null;
+
+  const word = match[1].toLowerCase();
+  const startColumn = match[0].length - match[1].length + 1;
+  const endColumn = startColumn + match[1].length;
+  const range = new monaco.Range(lineNumber, startColumn, lineNumber, endColumn);
+
+  for (const group of languages.bsl.keywordBracketGroups)
+    if (group.open.some(w => w === word))
+      return { type: group.type, isClose: false, range: range };
+
+  for (const group of languages.bsl.keywordBracketGroups)
+    if (group.close.some(w => w === word))
+      return { type: group.type, isClose: true, range: range };
+
+  return null;
+
+}
+
+function getKeywordBlock(model, activeRange) {
+
+  const stack = [];
+
+  for (let lineNumber = 1; lineNumber <= model.getLineCount(); lineNumber++) {
+    const info = getKeywordBracketInfo(model, lineNumber);
+
+    if (!info)
+      continue;
+
+    if (!info.isClose) {
+      stack.push({ type: info.type, start: info.range });
+      continue;
+    }
+
+    const openBlock = stack.pop();
+
+    if (!openBlock || openBlock.type != info.type)
+      continue;
+
+    if (openBlock.start.equalsRange(activeRange) || info.range.equalsRange(activeRange))
+      return { type: openBlock.type, start: openBlock.start, end: info.range };
+  }
+
+  return null;
+
+}
+
+function getContainingKeywordBlock(model, position) {
+
+  const stack = [];
+  let result = null;
+
+  for (let lineNumber = 1; lineNumber <= model.getLineCount(); lineNumber++) {
+    const info = getKeywordBracketInfo(model, lineNumber);
+
+    if (!info)
+      continue;
+
+    if (!info.isClose) {
+      stack.push({ type: info.type, start: info.range });
+      continue;
+    }
+
+    const openBlock = stack.pop();
+
+    if (!openBlock || openBlock.type != info.type)
+      continue;
+
+    const fullRange = new monaco.Range(
+      openBlock.start.startLineNumber,
+      openBlock.start.startColumn,
+      info.range.endLineNumber,
+      info.range.endColumn
+    );
+
+    if (rangeContainsPosition(fullRange, position))
+      result = { type: openBlock.type, start: openBlock.start, end: info.range };
+  }
+
+  return result;
+
+}
+
+function getKeywordBlockContext(active_editor = getActiveEditor()) {
+
+  if (!active_editor || !active_editor.getModel)
+    return null;
+
+  const model = active_editor.getModel();
+
+  if (!model || model.getLanguageId() != 'bsl')
+    return null;
+
+  const position = active_editor.getPosition();
+  const keywordInfo = getKeywordBracketInfo(model, position.lineNumber);
+
+  if (keywordInfo && keywordInfo.range.containsPosition(position)) {
+    const block = getKeywordBlock(model, keywordInfo.range);
+
+    if (block)
+      return {
+        editor: active_editor,
+        position: position,
+        keywordInfo: keywordInfo,
+        block: block,
+        fromKeyword: true
+      };
+  }
+
+  const containingBlock = getContainingKeywordBlock(model, position);
+
+  if (!containingBlock)
+    return null;
+
+  return {
+    editor: active_editor,
+    position: position,
+    keywordInfo: null,
+    block: containingBlock,
+    fromKeyword: false
+  };
+
+}
+
+function jumpToKeywordBracket(active_editor = getActiveEditor()) {
+
+  const context = getKeywordBlockContext(active_editor);
+
+  if (!context)
+    return false;
+
+  let target = null;
+
+  if (context.fromKeyword) {
+    target = context.keywordInfo.isClose
+      ? context.block.start.getStartPosition()
+      : context.block.end.getStartPosition();
+  }
+  else {
+    const position = context.position;
+    const start = context.block.start.getStartPosition();
+    const end = context.block.end.getStartPosition();
+    const startDistance = Math.abs(position.lineNumber - start.lineNumber) * 1000 + Math.abs(position.column - start.column);
+    const endDistance = Math.abs(position.lineNumber - end.lineNumber) * 1000 + Math.abs(position.column - end.column);
+    target = startDistance <= endDistance ? start : end;
+  }
+
+  context.editor.setPosition(target);
+  context.editor.revealPositionInCenterIfOutsideViewport(target);
+  return true;
+
+}
+
+function selectToKeywordBracket(active_editor = getActiveEditor()) {
+
+  const context = getKeywordBlockContext(active_editor);
+
+  if (!context)
+    return false;
+
+  const range = new monaco.Range(
+    context.block.start.startLineNumber,
+    context.block.start.startColumn,
+    context.block.end.endLineNumber,
+    context.block.end.endColumn
+  );
+
+  context.editor.setSelection(range);
+  context.editor.revealPositionInCenterIfOutsideViewport(range.getEndPosition());
+  return true;
+
+}
+
 function clearIfHighlights(active_editor = getActiveEditor()) {
 
   if (!active_editor)
@@ -2827,7 +3143,7 @@ function clearIfHighlights(active_editor = getActiveEditor()) {
 
 }
 
-function updateIfHighlights(active_editor = getActiveEditor()) {
+function updateBlockHighlights(active_editor = getActiveEditor()) {
 
   if (!active_editor || !active_editor.getModel)
     return;
@@ -2840,16 +3156,19 @@ function updateIfHighlights(active_editor = getActiveEditor()) {
     return;
   }
 
-  const context = getIfBlockContext(active_editor);
+  const ranges = [];
 
-  if (!context) {
-    clearIfHighlights(active_editor);
-    return;
-  }
+  const ifContext = getIfBlockContext(active_editor);
 
-  const ranges = context.ranges;
+  if (ifContext && ifContext.ranges && ifContext.ranges.length)
+    ranges.push(...ifContext.ranges);
 
-  if (!ranges || ranges.length == 0) {
+  const keywordContext = getKeywordBlockContext(active_editor);
+
+  if (keywordContext)
+    ranges.push(keywordContext.block.start, keywordContext.block.end);
+
+  if (ranges.length == 0) {
     clearIfHighlights(active_editor);
     return;
   }
@@ -3756,7 +4075,7 @@ function diffEditorOnDidChangeCursorPosition(e) {
       });
     }
 
-    updateIfHighlights(getActiveDiffEditor());
+    updateBlockHighlights(getActiveDiffEditor());
     updateStatusBar();
 
   }

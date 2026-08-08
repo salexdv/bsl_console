@@ -1,5 +1,10 @@
 import bslHelper from './bsl_helper';
 
+function getFormatOptions(model) {
+    const context = window.editor && window.editor.bslFormattingContext;
+    return context && context.model === model ? context.options : {};
+}
+
 function deepCopyArray(sourceArray, destinationArray) {
 
     sourceArray.forEach(value => {
@@ -712,6 +717,14 @@ let dcs_language = {
 let dcs_expressions = query_expressions.concat(bsl_language.rules.DCSFunctions);
 dcs_language.rules.expressions = dcs_expressions;
 
+const keywordBracketGroups = [
+    { type: 'loop', open: ['пока', 'для', 'while', 'for'], close: ['конеццикла', 'enddo'] },
+    { type: 'try', open: ['попытка', 'try'], close: ['конецпопытки', 'endtry'] },
+    { type: 'func', open: ['функция', 'function'], close: ['конецфункции', 'endfunction'] },
+    { type: 'proc', open: ['процедура', 'procedure'], close: ['конецпроцедуры', 'endprocedure'] },
+    { type: 'region', open: ['#область'], close: ['#конецобласти'] }
+];
+
 export let languages = {
     bsl: {
         languageDef: bsl_language,
@@ -744,6 +757,12 @@ export let languages = {
                 return bslHelper.getFoldingRanges(model);
             }
         },
+        documentSymbolProvider: {
+            provideDocumentSymbols: function (model, token) {
+                return bslHelper.provideDocumentSymbols(model);
+            }
+        },
+
         signatureProvider: {
             signatureHelpTriggerCharacters: ['(', ','],
             signatureHelpRetriggerCharacters: [')'],
@@ -772,10 +791,10 @@ export let languages = {
         },
         formatProvider: {
             provideDocumentFormattingEdits: function (model, options, token) {
-                return [{
-                    text: bslHelper.formatCode(model),
-                    range: model.getFullModelRange()
-                }];
+                return bslHelper.formatCode(model, null, getFormatOptions(model));
+            },
+            provideDocumentRangeFormattingEdits: function (model, range, options, token) {
+                return bslHelper.formatCode(model, range, getFormatOptions(model));
             }
         },
         codeLenses: {
@@ -829,20 +848,18 @@ export let languages = {
         },
         brackets: [
             ['(', ')'],
-            ['[', ']'],
-            ['пока', 'конеццикла'],
-            ['для', 'конеццикла'],
-            ['while', 'enddo'],
-            ['for', 'enddo'],
-            ['попытка', 'конецпопытки'],
-            ['try', 'endtry'],
-            ['функция', 'конецфункции'],
-            ['function', 'endfunction'],
-            ['процедура', 'конецпроцедуры'],
-            ['procedure', 'endprocedure'],
-            ['#область', '#конецобласти']
+            ['[', ']']
         ],
-        autoClosingPairs: []
+        autoClosingPairs: [],
+        keywordBracketGroups: keywordBracketGroups,
+        keywordBracketRegExp: (() => {
+            const all = [];
+            for (const group of keywordBracketGroups) {
+                all.push(...group.open, ...group.close);
+            }
+            all.sort((a, b) => b.length - a.length);
+            return new RegExp('^\\s*(' + all.join('|') + ')(?=[\\s;]|$)', 'i');
+        })()
     },
     query: {
         languageDef: query_language,
@@ -861,6 +878,11 @@ export let languages = {
         foldingProvider: {
             provideFoldingRanges: function (model, context, token) {
                 return bslHelper.getQueryFoldingRanges(model);
+            }
+        },
+        documentSymbolProvider: {
+            provideDocumentSymbols: function (model, token) {
+                return bslHelper.provideQueryDocumentSymbols(model, token);
             }
         },
         signatureProvider: {
@@ -903,9 +925,8 @@ export let languages = {
             provideDocumentColors: () => {}
         },
         definitionProvider: {
-            provideDefinition: (model, position) => {
-                let bsl = new bslHelper(model, position);
-                return bsl.provideQueryDefinition();
+            provideDefinition: (model, position, token) => {
+                return bslHelper.provideQueryDefinition(model, position, token);
             }
         },
         codeActionProvider: {

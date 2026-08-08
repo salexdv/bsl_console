@@ -11,36 +11,57 @@
 
 ## Направления работ
 
-Значимые изменения ведутся через спецификации (см. раздел «Процесс разработки — SDD»). Активные треки:
+Значимые изменения ведутся через спецификации (см. раздел «Процесс разработки — SDD»).
+
+**Закрытые треки** (влиты в upstream, вошли в релиз 0.5.0):
 
 1. **Single-file сборка** ([`specs/single-file-build/`](specs/single-file-build/spec.md)) — один self-contained
    HTML (ноль внешних файлов), чтобы грузить в поле 1С текстом и обойти предупреждение безопасности платформы
-   **8.3.27+** «ПолеHTMLДокумента пытается открыть локальный файл». База — ветка `webpack`, `maxChunks=1` +
-   инлайн иконок/картинок (issue #18).
-2. **Апгрейд Monaco 0.20 → 0.55** ([`specs/monaco-0.55/`](specs/monaco-0.55/spec.md)) — спайк подъёма редактора
+   **8.3.27+** «ПолеHTMLДокумента пытается открыть локальный файл» (issue #18).
+2. **Апгрейд Monaco 0.20 → 0.55** ([`specs/monaco-0.55/`](specs/monaco-0.55/spec.md)) — подъём редактора
    на актуальный Monaco в поле 1С включая Linux (ориентир — [Pr-Mex/VAEditor](https://github.com/Pr-Mex/VAEditor),
-   BSD-3, работает на 0.55). Отдельно от single-file.
+   BSD-3).
+
+**Активные треки:**
+
+1. **Вывод типов переменных** ([`specs/type-inference/`](specs/type-inference/spec.md)) — подсказка «через
+   точку» для набранного руками кода: тип из `Новый Х`, из присваивания, из результата метода; дальше —
+   типизирующие комментарии и состояние коллекций.
 
 ## Модель веток
 
 | Ветка | Роль |
 | --- | --- |
-| `develop` | Изменения приходят первыми. Сборка под **Windows**. Raw-AMD (`vs/loader.js`) + **Monaco 0.20**, без webpack. Default-ветка. |
-| `webpack` | Немного отстаёт от `develop`. Сборка под **Linux**. **webpack4 + Monaco 0.20**. База single-file- и апгрейд-задач. |
-| `webpack-monaco-v0.47.0` | **Экспериментальная, НЕ использовать** (заход на свежий Monaco). |
-| `monaco-v0.52.0` | Апгрейд Monaco до 0.52 без webpack. Справочно. |
-| `feature/inline-completion` | Свежие фичи от develop. |
+| `webpack` | **Основная.** webpack 5 + **Monaco 0.55.1**, релиз 0.5.0. Требует платформу **8.3.24+**. Собирается под Windows и Linux. |
+| `webpack_0_20` | Консервация **Monaco 0.20** для платформ 8.3.14–8.3.23. ES-модули, webpack 5, есть single-file сборка. |
+| `develop_0_20` | Консервация Monaco 0.20 в виде AMD-модулей (набор файлов, без webpack). |
+| `webpack-monaco-v0.47.0`, `monaco-v0.52.0` | Заброшенные заходы на свежий Monaco. Справочно, **не использовать**. |
 
-Диф в PR держать минимальным — узкие ревьюибельные PR предпочтительны. `develop` и `webpack` со временем
-сходятся; при работе от `webpack` учитывать возможный ребейз под конвергенцию.
+Ветка `develop` в upstream **удалена** (была default до перехода на 0.55) — ссылки на неё в старых
+доках и issue устарели.
+
+Диф в PR держать минимальным — узкие ревьюибельные PR предпочтительны.
 
 ## Сборка и запуск
 
-- **`develop`**: сборки нет — открыть `src/index.html` в браузере; в 1С грузится через обработку `console.epf`
-  (в релизах) или свою.
-- **`webpack`**: `npm install` → сборка/дебаг через npm-скрипты из `package.json` ветки (`build` = продакшн
-  в `dist/`, `debug`/`dev` = dev-server). Prod-режим уже инлайнит `console.js` в `index.html`
-  (`script-ext-html-webpack-plugin`), шрифты — base64, воркер — Blob.
+`npm install` → npm-скрипты из `package.json`:
+
+| Скрипт | Что делает |
+| --- | --- |
+| `build` | продакшн-сборка в `dist/` (`index.html` + `console.js`) |
+| `build:single` | один self-contained HTML, JS инлайном (~9 МБ) |
+| `build:pack` | то же, но JS сжат gzip+base64 с распаковкой pako в поле (~2,6 МБ) |
+| `debug` / `dev` | dev-server |
+| `test:formatter` | 22 чистых теста BSL-форматтера в Node, без сборки и браузера |
+| `test:mocha` | интеграционные тесты редактора в headless Chrome (нужен `build:test`) |
+| `test:headless` | смоук моста и чистоты консоли на `dist/` |
+| `escheck` | ES-floor сборки (es2018) |
+
+Для поля 1С на 8.3.27+ нужен single-file (`build:single` или `build:pack`) — иначе платформа ругается на
+открытие локального файла. Шрифты — base64, воркеры — Blob.
+
+**Node:** сборка требует Node 20+ (в шелле дефолт может быть 16 — звать по полному пути
+`C:\Users\aaa\AppData\Local\nvm\v20.20.2`).
 
 ## Архитектура / ключевые файлы (`src/`)
 
@@ -77,15 +98,21 @@
 - нет нативного `globalThis`, нет ES2020-синтаксиса (`?.`, `??`, приватные поля) → SyntaxError всего бандла;
 - часть современных фич регэкспов ломается (флаг `d`/hasIndices, lookbehind `(?<=)`, возможно sticky `y`).
 
-На `develop` это обходится тем, что код держат в ES5. На `webpack`/при апгрейде — транспиляцией (babel/esbuild
-в es2015), полифиллами (globalThis→self, queueMicrotask, ResizeObserver, WeakRef/FinalizationRegistry-стабы,
-ClipboardItem) и строковыми патчами Monaco (срезать флаг `d`, переписать lookbehind). Готовый рецепт —
-VAEditor (см. [`specs/monaco-0.55/analysis.md`](specs/monaco-0.55/analysis.md)). Proxy движок поддерживает
-нативно (полифилл не нужен).
+Обходится транспиляцией (esbuild в es2015), полифиллами (globalThis→self, queueMicrotask, ResizeObserver,
+WeakRef/FinalizationRegistry-стабы, ClipboardItem) и строковыми патчами Monaco (срезать флаг `d`, переписать
+lookbehind). Готовый рецепт — VAEditor (см. [`specs/monaco-0.55/analysis.md`](specs/monaco-0.55/analysis.md)).
+Proxy движок поддерживает нативно (полифилл не нужен). Гейт ES-floor — `npm run escheck`.
+
+Точечные патчи под этот WebKit собраны в `src/1c-webkit-patch.js` (снятие стиля скроллбара 1С, подавление
+мусорных управляющих символов от спец-клавиш на macOS, возврат фокуса после ухода в форму). На ветках
+`*_0_20` этого файла нет.
 
 ## Тесты
 
-- Dev-сборки/страницы: `test.html`, `test_query.html`. На ветке `webpack` — `mocha` (`npm test`).
+- `npm run test:formatter` — быстрые тесты чистого BSL-форматтера без Monaco и браузера.
+- `npm run build:test` + `npm run test:mocha` — интеграционные тесты (`test.html`, `test_query.html`) в headless Chrome.
+- `npm run test:headless` — смоук моста и чистоты консоли на собранном `dist/`.
+- `src/test_query_model.html` — визуальный инспектор объектной модели запроса.
 
 ## Процесс разработки — SDD (Specification-Driven Development)
 

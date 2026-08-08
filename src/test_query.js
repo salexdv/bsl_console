@@ -60,6 +60,92 @@ setTimeout(() => {
 
     let bsl = helper('', 1, 1);
 
+    it("регистрация структуры только для bsl_query", async function () {
+      let text = `ВЫБРАТЬ Товары.Код КАК Код
+ПОМЕСТИТЬ ВтТовары
+ИЗ Справочник.Товары КАК Товары;`;
+      let queryModelInstance = monaco.editor.createModel(text, 'bsl_query');
+      let dcsModelInstance = monaco.editor.createModel(text, 'dcs_query');
+
+      try {
+        expect(window.languages.query.documentSymbolProvider).to.be.an('object');
+        assert.equal(window.languages.dcs.documentSymbolProvider, undefined);
+
+        let querySymbols = await window.editor._commandService.executeCommand(
+          '_executeDocumentSymbolProvider',
+          queryModelInstance.uri
+        );
+        let dcsSymbols = await window.editor._commandService.executeCommand(
+          '_executeDocumentSymbolProvider',
+          dcsModelInstance.uri
+        );
+
+        expect(querySymbols).to.be.an('array').that.has.length(1);
+        expect(dcsSymbols).to.be.an('array').that.is.empty;
+      }
+      finally {
+        queryModelInstance.dispose();
+        dcsModelInstance.dispose();
+      }
+    });
+
+    it("иерархия, SymbolKind и selectionRange структуры запроса", async function () {
+      let text = `ВЫБРАТЬ Источник.Ссылка КАК Ссылка
+ПОМЕСТИТЬ ВтСсылки
+ИЗ Справочник.Товары КАК Источник
+ОБЪЕДИНИТЬ ВСЕ
+ВЫБРАТЬ Возврат.Ссылка
+ИЗ Документ.Возврат КАК Возврат;`;
+      let model = monaco.editor.createModel(text, 'bsl_query');
+
+      try {
+        let symbols = await window.languages.query.documentSymbolProvider.provideDocumentSymbols(model, {
+          isCancellationRequested: false
+        });
+
+        expect(symbols).to.be.an('array').that.has.length(1);
+        assert.equal(symbols[0].name, 'ВтСсылки');
+        assert.equal(symbols[0].kind, monaco.languages.SymbolKind.Struct);
+        assert.equal(model.getValueInRange(symbols[0].selectionRange), 'ВтСсылки');
+        expect(symbols[0].children).to.be.an('array').that.has.length(2);
+        assert.equal(symbols[0].children[0].kind, monaco.languages.SymbolKind.Namespace);
+        assert.equal(symbols[0].children[0].children[0].kind, monaco.languages.SymbolKind.Field);
+        assert.equal(model.getValueInRange(symbols[0].children[0].children[0].selectionRange), 'Ссылка');
+        assert.equal(model.getValueInRange(symbols[0].children[1].children[0].selectionRange), 'Ссылка');
+      }
+      finally {
+        model.dispose();
+      }
+    });
+
+    it("асинхронный DefinitionProvider возвращает точный LocationLink", async function () {
+      let text = `ВЫБРАТЬ Товары.Код КАК Код
+ПОМЕСТИТЬ ВтТовары
+ИЗ Справочник.Товары КАК Товары;
+
+ВЫБРАТЬ вт.кОд
+ИЗ втТовары КАК вт;`;
+      let model = monaco.editor.createModel(text, 'bsl_query');
+
+      try {
+        let offset = text.indexOf('вт.кОд') + 'вт.'.length + 1;
+        let position = model.getPositionAt(offset);
+        let pending = window.languages.query.definitionProvider.provideDefinition(model, position, {
+          isCancellationRequested: false
+        });
+
+        assert.instanceOf(pending, Promise);
+        let links = await pending;
+        expect(links).to.be.an('array').that.has.length(1);
+        assert.equal(links[0].targetUri.toString(), model.uri.toString());
+        assert.equal(model.getValueInRange(links[0].originSelectionRange), 'кОд');
+        assert.equal(model.getValueInRange(links[0].targetSelectionRange), 'Код');
+      }
+      finally {
+        model.dispose();
+      }
+    });
+
     it("проверка построения модели запроса", function () {
       let model = queryModel.parse(`ВЫБРАТЬ
         Товары.Ссылка КАК Ссылка,
@@ -641,7 +727,7 @@ setTimeout(() => {
       expect(suggestions.suggestions).to.be.an('array').that.is.empty;
 
       bsl = helper("ВЫРАЗИТЬ(Товары.Код ");
-      suggestions = bsl.getQueryCompletion();
+      suggestions = bsl.getQueryCompletion({ triggerCharacter: " " });
       expect(suggestions).to.be.an('object');
       expect(suggestions.suggestions).to.be.an('array').that.is.not.empty;
       assert.equal(suggestions.suggestions.some(suggest => suggest.label === "КАК "), true);
@@ -658,6 +744,33 @@ setTimeout(() => {
       expect(suggestions).to.be.an('object');
       expect(suggestions.suggestions).to.be.an('array').that.is.not.empty;
       assert.equal(suggestions.suggestions.some(suggest => suggest.label === "Товары"), true);      
+
+    });
+
+    it("проверка автоподсказки ВЫРАЗИТЬ и CAST по SPACE", function () {
+
+      bsl = helper("ВЫРАЗИТЬ(Валюты КАК ");
+      let suggestions = bsl.getQueryCompletion({ triggerCharacter: " " });
+      expect(suggestions).to.be.an('object');
+      expect(suggestions.suggestions).to.be.an('array').that.is.not.empty;
+      assert.equal(suggestions.suggestions.some(suggest => suggest.label === "Строка"), true);
+      assert.equal(suggestions.suggestions.some(suggest => suggest.label === "Справочник"), true);
+      assert.equal(suggestions.suggestions.some(suggest => suggest.label === "КАК "), false);
+      assert.equal(suggestions.suggestions.some(suggest => suggest.label === "Валюты"), false);
+
+      bsl = helper("CAST(smth AS ");
+      suggestions = bsl.getQueryCompletion({ triggerCharacter: " " });
+      expect(suggestions).to.be.an('object');
+      expect(suggestions.suggestions).to.be.an('array').that.is.not.empty;
+      assert.equal(suggestions.suggestions.some(suggest => suggest.label === "Строка"), true);
+      assert.equal(suggestions.suggestions.some(suggest => suggest.label === "Справочник"), true);
+      assert.equal(suggestions.suggestions.some(suggest => suggest.label === "КАК "), false);
+
+      bsl = helper("ВЫБРАТЬ Товары.Код КАК ");
+      suggestions = bsl.getQueryCompletion({ triggerCharacter: " " });
+      expect(suggestions).to.be.an('object');
+      expect(suggestions.suggestions).to.be.an('array').that.is.not.empty;
+      assert.equal(suggestions.suggestions.some(suggest => suggest.label === "Код"), true);
 
     });
 

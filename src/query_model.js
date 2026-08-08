@@ -13,6 +13,7 @@ const KEYWORDS = new Set([
         'totals', 'итоги',
         'autoorder', 'автоупорядочивание',
         'index', 'индексировать',
+        'drop', 'уничтожить',
         'union', 'объединить',
         'all', 'все',
         'as', 'как',

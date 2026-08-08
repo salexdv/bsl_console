@@ -1,6 +1,20 @@
 import monaco from "./expose-monaco";
 import Finder from "./finder";
 import queryModelService from "./query_model_service";
+import queryNavigation from "./query_navigation";
+import BslFormatter from "./bsl_formatter";
+import { availabilityToArray } from "./bslGlobals";
+
+let formatterPlatformNamesSource = null;
+let formatterPlatformNames = null;
+
+function getFormatterPlatformNames() {
+	if (formatterPlatformNamesSource !== window.bslGlobals) {
+		formatterPlatformNamesSource = window.bslGlobals;
+		formatterPlatformNames = BslFormatter.buildPlatformNameMaps(window.bslGlobals);
+	}
+	return formatterPlatformNames;
+}
 
 /**
  * Class for provideSignatureHelp
@@ -40,7 +54,27 @@ class bslHelper {
 		
 		this.nameField = window.engLang ? 'name_en' : 'name';
 		this.queryNameField = window.engLang ? 'query_name_en' : 'query_name';
-		this.token = this.getLastToken();
+		this._token = undefined;
+
+	}
+
+	/**
+	 * Возвращает токен в текущей позиции и кеширует результат.
+	 * Пользовательские подсказки не обращаются к токену, поэтому не запускают
+	 * повторную токенизацию всего текста до курсора.
+	 */
+	get token() {
+
+		if (this._token === undefined)
+			this._token = this.getLastToken();
+
+		return this._token;
+
+	}
+
+	set token(value) {
+
+		this._token = value;
 
 	}
 
@@ -73,9 +107,137 @@ class bslHelper {
 	 */	
 	getLastToken(wordData = null) {
 
-		let token = '';
-
 		let column = wordData == null ? this.column : wordData.endColumn + 1;
+		let modelToken = this.getLastModelToken(column);
+
+		if (modelToken !== null)
+			return modelToken;
+
+		return this.getLastTokenFallback(column);
+
+	}
+
+	/**
+	 * Возвращает токен, используя состояние токенизатора модели.
+	 * Токенизируется только текущая строка, а не весь текст до курсора.
+	 *
+	 * @param {int} column колонка, до которой нужно токенизировать строку
+	 *
+	 * @returns {string|null} имя токена или null, если внутренний API недоступен
+	 */
+	getLastModelToken(column) {
+
+		try {
+
+			const model = this.model;
+			const lineNumber = this.lineNumber;
+
+			if (!model)
+				return null;
+
+			let support = null;
+			let startState = null;
+
+			// Monaco 0.20
+			if (model._tokenization && model._tokenization._tokenizationSupport && model._tokenization._tokenizationStateStore) {
+
+				const oldTokenization = model._tokenization;
+				const oldStateStore = oldTokenization._tokenizationStateStore;
+
+				support = oldTokenization._tokenizationSupport;
+
+				if (lineNumber === 1) {
+					startState = support.getInitialState();
+				}
+				else {
+
+					if (typeof model.forceTokenization !== 'function')
+						return null;
+
+					model.forceTokenization(lineNumber - 1);
+
+					if (typeof oldStateStore.getBeginState !== 'function')
+						return null;
+
+					startState = oldStateStore.getBeginState(lineNumber - 1);
+
+				}
+
+			}
+			// Современный Monaco
+			else if (model.tokenization) {
+
+				const tokenizationPart = model.tokenization;
+
+				const backend =
+					tokenizationPart.tokens
+						&& typeof tokenizationPart.tokens.get === 'function'
+						? tokenizationPart.tokens.get()
+						: null;
+
+				const tokenizer = backend && backend._tokenizer;
+
+				if (!tokenizer)
+					return null;
+
+				support = tokenizer.tokenizationSupport;
+
+				if (!support || typeof tokenizer.getStartState !== 'function')
+					return null;
+
+				if (lineNumber > 1) {
+
+					if (typeof tokenizationPart.forceTokenization !== 'function')
+						return null;
+
+					tokenizationPart.forceTokenization(lineNumber - 1);
+
+				}
+
+				startState = tokenizer.getStartState(lineNumber);
+
+			}
+			else {
+
+				return null;
+
+			}
+
+			if (!support || typeof support.tokenize !== 'function' || !startState)
+				return null;
+
+			const state = typeof startState.clone === 'function' ? startState.clone() : startState;
+
+			const line = model.getLineContent(lineNumber);
+
+			const safeColumn = Math.max(1, Math.min(column, line.length + 1));
+
+			const value = line.substring(0, safeColumn - 1);
+			const result = support.tokenize(value, 0, state);
+			const tokens = result && result.tokens;
+
+			if (!Array.isArray(tokens))
+				return null;
+
+			return tokens.length? tokens[tokens.length - 1].type : '';
+
+		}
+		catch (error) {
+			return null;
+		}
+
+	}
+
+	/**
+	 * Совместимый способ получения токена при недоступном API модели.
+	 *
+	 * @param {int} column колонка, до которой нужно токенизировать текст
+	 *
+	 * @returns {string} имя токена
+	 */
+	getLastTokenFallback(column) {
+
+		let token = '';
 		let value = this.model.getValueInRange(new monaco.Range(1, 1, this.lineNumber, column));
 		let lang_id = this.getLangId();
 		let tokens = monaco.editor.tokenize(value, lang_id);
@@ -990,6 +1152,145 @@ class bslHelper {
 	}
 
 	/**
+	 * Разбирает позицию внутри незакрытого первого строкового параметра метода
+	 * `Свойство` / `Property`. Получатель намеренно ограничен простым именем —
+	 * составные цепочки в контракт issue #228 не входят.
+	 *
+	 * @returns {object|null} {receiverName, prefix, range} либо null
+	 */
+	getStructurePropertyNameCallContext() {
+
+		if (window.isQueryMode() || window.isDCSMode() || !this.isItStringLiteral())
+			return null;
+
+		let text = this.getRawTextBefore(this.position);
+		let match = /(?:^|[^a-zA-Z0-9А-яЁё_.])([a-zA-ZА-яЁё_][a-zA-Z0-9А-яЁё_]*)\s*\.\s*(?:Свойство|Property)\s*\(\s*"([^"\r\n]*)$/i.exec(text);
+
+		if (!match)
+			return null;
+
+		let prefix = match[2];
+		let endOffset = this.model.getOffsetAt(this.position);
+		let startPosition = this.model.getPositionAt(endOffset - prefix.length);
+
+		return {
+			receiverName: match[1],
+			prefix: prefix,
+			range: new monaco.Range(startPosition.lineNumber, startPosition.column, this.position.lineNumber, this.position.column)
+		};
+
+	}
+
+	/**
+	 * Возвращает структурный пользовательский объект по имени. Свойства из
+	 * `updateMetadata` становятся начальным набором, а операции кода выше курсора
+	 * применяются поверх через общий анализатор `collectMembers`.
+	 *
+	 * @param {string} objectName имя пользовательского объекта
+	 * @param {IPosition} position позиция курсора
+	 *
+	 * @returns {object|null} {ref, properties} либо null
+	 */
+	getCustomStructureContext(objectName, position) {
+
+		let customObjects = window.bslMetadata
+			&& window.bslMetadata.customObjects
+			&& window.bslMetadata.customObjects.items;
+
+		if (!customObjects)
+			return null;
+
+		for (const [name, definition] of Object.entries(customObjects)) {
+
+			if (name.toLowerCase() != objectName.toLowerCase()
+				|| !definition
+				|| bslHelper.KEYS_REFS.indexOf(definition.ref) < 0)
+				continue;
+
+			let properties = [];
+
+			if (definition.properties) {
+				for (const [propertyName, propertyDefinition] of Object.entries(definition.properties)) {
+
+					let property = propertyDefinition && typeof propertyDefinition == 'object'
+						? propertyDefinition
+						: {};
+
+					properties.push({
+						name: propertyName,
+						type: '',
+						ref: property.ref || '',
+						detail: property.detail || property.name || '',
+						description: property.description || ''
+					});
+
+				}
+			}
+
+			return {
+				ref: definition.ref,
+				properties: this.collectMembers(objectName, position, definition.ref, properties)
+			};
+
+		}
+
+		return null;
+
+	}
+
+	/**
+	 * Добавляет подсказки известных ключей структуры внутри первого параметра
+	 * `Свойство("...")`. Данные берутся из пользовательских метаданных либо из
+	 * локального вывода типа и состояния коллекции (PR #387).
+	 *
+	 * @param {array} suggestions список подсказок
+	 *
+	 * @returns {boolean} распознано ли подходящее место вызова
+	 */
+	getStructurePropertyNameCompletion(suggestions) {
+
+		let callContext = this.getStructurePropertyNameCallContext();
+
+		if (!callContext)
+			return false;
+
+		let context = this.getCustomStructureContext(callContext.receiverName, this.position);
+
+		if (!context)
+			context = this.getInferredContext(callContext.receiverName, this.position);
+
+		if (!context || bslHelper.KEYS_REFS.indexOf(context.ref) < 0)
+			return false;
+
+		let prefix = callContext.prefix.toLowerCase();
+		let names = [];
+
+		(context.properties || []).forEach(property => {
+
+			let name = property && property.name ? String(property.name) : '';
+			let normalizedName = name.toLowerCase();
+
+			if (!name || !normalizedName.startsWith(prefix) || names.indexOf(normalizedName) >= 0)
+				return;
+
+			names.push(normalizedName);
+
+			suggestions.push({
+				label: name,
+				kind: monaco.languages.CompletionItemKind.Field,
+				insertText: name,
+				range: callContext.range,
+				detail: property.detail || property.type || property.ref || '',
+				documentation: property.description || ''
+			});
+
+		});
+
+		return true;
+
+	}
+
+	/**
 	 * Fills array of completion for language keywords, classes, global functions,
 	 * global variables and system enumarations
 	 * 
@@ -1052,7 +1353,15 @@ class bslHelper {
 
 					let template = value.hasOwnProperty('template') ? value.template : '';
 
-					values.push({ name: value[this.nameField], detail: value.description, description: value.hasOwnProperty('returns') ? value.returns : '', postfix: postfix, template: template, command: command });
+					values.push({ 
+						name: value[this.nameField],
+						detail: value.description,
+						description: value.hasOwnProperty('returns') ? value.returns : '',
+						postfix: postfix,
+						template: template,
+						command: command,
+						availability: value.availability
+					});
 
 				}
 				else {
@@ -1081,7 +1390,8 @@ class bslHelper {
 						insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
 						detail: value.detail,
 						documentation: value.description,
-						command: value.command
+						command: value.command,
+						availability: value.availability
 					});
 				}
 			});
@@ -1480,7 +1790,9 @@ class bslHelper {
 
 				if (value.hasOwnProperty('ref')) {
 
-					let refArray = value.ref.split('.');
+					let refs = value.ref.split(';');
+					let firstRef = refs[0];
+					let refArray = firstRef.split('.');
 
 					if (bslHelper.objectHasPropertiesFromArray(window.bslGlobals, refArray)) {
 
@@ -1491,7 +1803,7 @@ class bslHelper {
 								{
 									"name": refItem[this.nameField],
 									"data": {
-										"ref": value.ref,
+										"ref": firstRef,
 										"sig": null
 									}
 								}
@@ -1517,7 +1829,24 @@ class bslHelper {
 		}
 
 	}
-	
+
+	/**
+	 * Adds the object itself to the suggestions
+	 * 
+	 * @param {array} suggestions the list of suggestions
+	 */
+	getSelfObjectSuggestions(suggestions) {
+
+		const label = window.engLang ? 'ThisObject': 'ЭтотОбъект';
+
+		suggestions.push({
+			label: label,
+			kind: monaco.languages.CompletionItemKind.Object,
+			insertText: label,
+			insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+		});
+
+	}
 
 	/**
 	 * Fills the suggestions for reference-type object
@@ -1667,8 +1996,26 @@ class bslHelper {
 		if (match) {
 
 			let position = new monaco.Position(match.range.startLineNumber, match.range.startColumn);
+			// Ветка lookBehind ниже переприсваивает position, поэтому позицию точки запоминаем.
+			let refPosition = position;
 
-			if (position.lineNumber = currentPosition.lineNumber) {
+			// Здесь было присваивание вместо сравнения: условие всегда истинно, да ещё и
+			// подменяло номер строки у position, из-за чего слово читалось с чужой строки.
+			if (position.lineNumber == currentPosition.lineNumber) {
+
+				// Переменная "ЭтотОбъект"/"ThisObject" при установленном через setObjectContext
+				// контексте объекта всегда раскрывается в объектные подсказки после точки,
+				// даже если в строке нет данных contextData.
+				if (window.objectContext && match.matches && match.matches[0] == '.') {
+
+					let thisObjectWord = this.model.getWordUntilPosition(position).word;
+
+					if (thisObjectWord && (thisObjectWord.toLowerCase() == 'этотобъект' || thisObjectWord.toLowerCase() == 'thisobject')) {
+						wordContext = { ref: window.objectContext, parent_ref: null, sig: null };
+						this.getRefSuggestions(suggestions, wordContext);
+					}
+
+				}
 
 				let lineContextData = window.contextData.get(position.lineNumber)
 
@@ -1694,6 +2041,29 @@ class bslHelper {
 					}
 
 					
+				}
+
+				// Вывод типа из объявления переменной идёт ДО эвристики lookBehind ниже.
+				// Та ищет выше по тексту ближайший `.метод(` и переиспользует его сохранённый
+				// тип, поэтому после `А.Колонки.Добавить(...)` подсказывает для `А.` колонку
+				// вместо самой таблицы (issue #305). Разбор присваивания точнее такой догадки,
+				// а прямое попадание в contextData выше — точнее их обоих.
+				if (!suggestions.length && !window.isQueryMode() && !window.isDCSMode()) {
+
+					let inferredWord = this.model.getWordUntilPosition(refPosition).word;
+
+					if (inferredWord) {
+
+						let inferredContext = this.getInferredContext(inferredWord, refPosition);
+
+						if (inferredContext) {
+							wordContext = inferredContext;
+							this.getRefSuggestions(suggestions, wordContext);
+							this.getDeclaredPropertiesSuggestions(suggestions, inferredContext.properties);
+						}
+
+					}
+
 				}
 
 				if (!suggestions.length && allowLookBehind) {
@@ -1746,9 +2116,738 @@ class bslHelper {
 	 * @param {array} suggestions the list of suggestions
 	 */
 	getRefCompletion(suggestions) {
-		
+
 		this.getRefCompletionFromPosition(suggestions, this.position, true);
-		
+
+	}
+
+	/**
+	 * Заменяет содержимое комментариев и строковых литералов пробелами, сохраняя длину текста.
+	 * Нужно, чтобы присваивание внутри строки или комментария не принималось за источник типа:
+	 * `Текст = "Таблица = Новый ТаблицаЗначений"` не должен типизировать Таблица.
+	 *
+	 * @param {string} text исходный текст
+	 *
+	 * @returns {string} текст той же длины без содержимого комментариев и литералов
+	 */
+	maskCommentsAndStrings(text, keepStrings) {
+
+		let result = text.split('');
+		let inString = false;
+		let inComment = false;
+
+		for (let i = 0; i < text.length; i++) {
+
+			let char = text[i];
+
+			if (inComment) {
+				if (char == '\n')
+					inComment = false;
+				else
+					result[i] = ' ';
+			}
+			else if (inString) {
+				// Удвоенная кавычка внутри строки закроет и тут же откроет её заново —
+				// для наших целей (спрятать содержимое) этого достаточно.
+				if (char == '"' || char == '\n')
+					inString = false;
+				else if (!keepStrings)
+					result[i] = ' ';
+			}
+			else if (char == '/' && text[i + 1] == '/') {
+				inComment = true;
+				result[i] = ' ';
+			}
+			else if (char == '"') {
+				inString = true;
+			}
+
+		}
+
+		return result.join('');
+
+	}
+
+	/**
+	 * Возвращает текст документа до позиции, очищенный от комментариев и строк.
+	 * Маскирование кешируется по версии модели: разбор идёт на каждой подсказке,
+	 * а текст между нажатиями клавиш не меняется.
+	 *
+	 * @param {IPosition} position позиция, до которой нужен текст
+	 *
+	 * @returns {string} замаскированный текст до позиции
+	 */
+	getMaskedTextBefore(position, keepStrings) {
+
+		let versionId = this.model.getVersionId ? this.model.getVersionId() : 0;
+		let cache = this.model._maskedTextCache;
+		let slot = keepStrings ? 'withStrings' : 'masked';
+
+		if (!cache || cache.versionId != versionId) {
+			cache = { versionId: versionId };
+			this.model._maskedTextCache = cache;
+		}
+
+		if (!cache[slot])
+			cache[slot] = this.maskCommentsAndStrings(this.model.getValue(), keepStrings);
+
+		return cache[slot].substr(0, this.model.getOffsetAt(position));
+
+	}
+
+	/**
+	 * Возвращает ref встроенного типа по его имени на русском или английском:
+	 * `ТаблицаЗначений` и `ValueTable` → `classes.ТаблицаЗначений`.
+	 * Индекс строится один раз: classes перекрывают types при совпадении имён.
+	 *
+	 * @param {string} typeName имя типа
+	 *
+	 * @returns {string} ref вида `classes.X` / `types.X` либо пустая строка
+	 */
+	getRefByTypeName(typeName) {
+
+		if (!typeName)
+			return '';
+
+		if (!window.bslTypeNameIndex) {
+
+			let index = new Map();
+
+			['types', 'classes'].forEach(function (section) {
+
+				let data = window.bslGlobals ? window.bslGlobals[section] : null;
+
+				if (data) {
+
+					for (const [key, value] of Object.entries(data)) {
+						let ref = section + '.' + key;
+						index.set(key.toLowerCase(), ref);
+						if (value.name)
+							index.set(value.name.toLowerCase(), ref);
+						if (value.name_en)
+							index.set(value.name_en.toLowerCase(), ref);
+					}
+
+				}
+
+			});
+
+			window.bslTypeNameIndex = index;
+
+		}
+
+		return window.bslTypeNameIndex.get(typeName.toLowerCase()) || '';
+
+	}
+
+	/**
+	 * Достаёт ref из текстового описания результата вида `Тип: ТаблицаЗначений. ...`.
+	 * В справочнике поле `ref` заполнено лишь у части методов и функций, тогда как
+	 * текстовое `returns` есть почти везде — это заметно расширяет покрытие.
+	 * Составные результаты (`Тип: Число, Строка`) пропускаем: гадать, какой из них имелся
+	 * в виду, хуже, чем не подсказать ничего.
+	 *
+	 * @param {string} returns описание результата из справочника
+	 *
+	 * @returns {string} ref либо пустая строка
+	 */
+	getRefFromReturnsDescription(returns) {
+
+		if (!returns)
+			return '';
+
+		let match = /^\s*(?:Тип|Type)\s*:\s*([a-zA-ZА-яЁё_][a-zA-Z0-9А-яЁё_]*)\s*\./.exec(returns);
+
+		if (!match)
+			return '';
+
+		return this.getRefByTypeName(match[1]);
+
+	}
+
+	/**
+	 * Возвращает ref результата метода или свойства у типа-владельца.
+	 *
+	 * @param {string} ownerRef ref владельца, например `classes.ТаблицаЗначений`
+	 * @param {string} memberName имя метода или свойства
+	 *
+	 * @returns {string} ref результата либо пустая строка
+	 */
+	getMemberResultRef(ownerRef, memberName) {
+
+		if (!ownerRef || !memberName)
+			return '';
+
+		let refArray = ownerRef.split('.');
+
+		if (refArray.length != 2 || !this.objectHasProperties(window.bslGlobals, refArray[0], refArray[1]))
+			return '';
+
+		let owner = window.bslGlobals[refArray[0]][refArray[1]];
+		let name = memberName.toLowerCase();
+
+		for (let section of ['methods', 'properties']) {
+
+			if (!owner[section])
+				continue;
+
+			for (const [key, member] of Object.entries(owner[section])) {
+
+				let matched = key.toLowerCase() == name
+					|| (member.name && member.name.toLowerCase() == name)
+					|| (member.name_en && member.name_en.toLowerCase() == name);
+
+				if (matched)
+					return member.ref || this.getRefFromReturnsDescription(member.returns);
+
+			}
+
+		}
+
+		return '';
+
+	}
+
+	/**
+	 * Возвращает ref результата глобальной функции встроенного языка.
+	 *
+	 * @param {string} funcName имя функции
+	 *
+	 * @returns {string} ref результата либо пустая строка
+	 */
+	getGlobalFunctionResultRef(funcName) {
+
+		if (!funcName || !window.bslGlobals || !window.bslGlobals.globalfunctions)
+			return '';
+
+		let name = funcName.toLowerCase();
+
+		for (const [key, func] of Object.entries(window.bslGlobals.globalfunctions)) {
+
+			let matched = key.toLowerCase() == name
+				|| (func.name && func.name.toLowerCase() == name)
+				|| (func.name_en && func.name_en.toLowerCase() == name);
+
+			if (matched)
+				return func.ref || this.getRefFromReturnsDescription(func.returns);
+
+		}
+
+		return '';
+
+	}
+
+	/**
+	 * Схлопывает аргументы вызовов: `Ф(А(1), "б").Метод(2)` → `Ф().Метод()`.
+	 * После этого цепочку можно разбирать простым делением по точке, не путаясь
+	 * в точках и скобках внутри аргументов.
+	 *
+	 * @param {string} expression исходное выражение
+	 *
+	 * @returns {string} выражение со схлопнутыми аргументами
+	 */
+	collapseCallArguments(expression) {
+
+		let result = '';
+		let depth = 0;
+
+		for (let i = 0; i < expression.length; i++) {
+
+			let char = expression[i];
+
+			if (char == '(') {
+				if (depth == 0)
+					result += '(';
+				depth++;
+			}
+			else if (char == ')') {
+				depth--;
+				if (depth < 0)
+					return result;
+				if (depth == 0)
+					result += ')';
+			}
+			else if (depth == 0) {
+				result += char;
+			}
+
+		}
+
+		return result;
+
+	}
+
+	/**
+	 * Выводит ref типа результата выражения в правой части присваивания.
+	 * Поддержаны формы из specs/type-inference/spec.md §3.1: `Новый Х`, другая переменная,
+	 * цепочка вызовов методов и свойств, глобальная функция.
+	 *
+	 * @param {string} expression выражение
+	 * @param {IPosition} position позиция, до которой разрешается искать объявления
+	 * @param {array} seen имена переменных в текущей цепочке разрешения (защита от цикла)
+	 *
+	 * @returns {string} ref либо пустая строка
+	 */
+	inferExpressionContext(expression, position, seen) {
+
+		if (!expression)
+			return null;
+
+		let newMatch = /^\s*(?:новый|new)\s+([a-zA-ZА-яЁё_][a-zA-Z0-9А-яЁё_]*)/i.exec(expression);
+
+		if (newMatch) {
+			let ref = this.getRefByTypeName(newMatch[1]);
+			return ref ? { ref: ref, properties: [] } : null;
+		}
+
+		let parts = this.collapseCallArguments(expression).trim().split('.');
+		let context = null;
+
+		for (let i = 0; i < parts.length; i++) {
+
+			let part = parts[i].trim();
+			let isCall = /\(\s*\)$/.test(part);
+			let name = part.replace(/\(\s*\)$/, '').trim();
+
+			if (!/^[a-zA-ZА-яЁё_][a-zA-Z0-9А-яЁё_]*$/.test(name))
+				return null;
+
+			if (i == 0) {
+
+				// Начало цепочки — либо вызов глобальной функции, либо переменная,
+				// либо имя типа (`Метаданные`, системные перечисления).
+				if (isCall) {
+					let ref = this.getGlobalFunctionResultRef(name);
+					context = ref ? { ref: ref, properties: [] } : null;
+				}
+				else {
+					context = this.inferVariableContext(name, position, seen);
+					if (!context) {
+						let ref = this.getRefByTypeName(name);
+						context = ref ? { ref: ref, properties: [] } : null;
+					}
+				}
+
+			}
+			else {
+
+				// Свойство, объявленное в типизирующем комментарии, справочнику неизвестно —
+				// его тип берём из самого объявления.
+				let declared = context.properties.find(property => property.name.toLowerCase() == name.toLowerCase());
+				let ref = declared && declared.type
+					? this.getRefByTypeName(declared.type)
+					: this.getMemberResultRef(context.ref, name);
+
+				// `Стр = ТЗ.Добавить()` — у строки те же колонки, что у самой таблицы.
+				let inherited = ref && this.isRowOfCollection(context.ref, ref) ? context.properties : [];
+
+				context = ref ? { ref: ref, properties: inherited } : null;
+
+			}
+
+			if (!context)
+				return null;
+
+		}
+
+		return context;
+
+	}
+
+	/**
+	 * Выводит ref типа переменной по последнему присваиванию выше позиции.
+	 * Присваивания ниже позиции игнорируются: тип берётся из того, что уже написано.
+	 *
+	 * @param {string} varName имя переменной
+	 * @param {IPosition} position позиция курсора
+	 * @param {array} seen имена переменных в текущей цепочке разрешения (защита от цикла)
+	 *
+	 * @returns {string} ref либо пустая строка
+	 */
+	inferVariableContext(varName, position, seen) {
+
+		if (!varName)
+			return null;
+
+		seen = seen || [];
+
+		let key = varName.toLowerCase();
+
+		// Цепочки вида `А = Б; Б = А;` и слишком длинные цепочки обрываем.
+		if (bslHelper.INFER_DEPTH_LIMIT <= seen.length || 0 <= seen.indexOf(key))
+			return null;
+
+		if (!/^[a-zA-ZА-яЁё_][a-zA-Z0-9А-яЁё_]*$/.test(varName))
+			return null;
+
+		seen.push(key);
+
+		// Явное объявление в комментарии сильнее вывода из кода: разработчик написал его
+		// как раз потому, что вывести тип нельзя (specs/type-inference/spec.md §3.1).
+		let context = this.inferContextFromComment(varName, position);
+
+		if (!context) {
+
+			let text = this.getMaskedTextBefore(position);
+			// Отсекаем `==`, `>=`, `<=`, `<>`, чтобы сравнение не принять за присваивание.
+			let regexp = new RegExp('(?:^|[^a-zA-Z0-9А-яЁё_.])' + varName + '\\s*=(?!=)\\s*([^;\\n]*)', 'gmi');
+			let match = null;
+			let assignment = null;
+
+			while ((match = regexp.exec(text)) !== null)
+				assignment = match;
+
+			if (assignment)
+				context = this.inferExpressionContext(assignment[1].trim(), position, seen);
+
+		}
+
+		if (!context)
+			return null;
+
+		// Комментарий задаёт начальный набор имён, код меняет его дальше — в обе стороны.
+		let members = this.collectMembers(varName, position, context.ref, context.properties);
+
+		return { ref: context.ref, properties: members };
+
+	}
+
+	/**
+	 * Определяет, чем являются «имена» у типа: ключами (структура, соответствие) или
+	 * колонками (таблица, дерево значений). Для остальных типов состояние не собирается.
+	 *
+	 * @param {string} ref ref типа
+	 *
+	 * @returns {string} 'keys' | 'columns' | ''
+	 */
+	getMembersKindByRef(ref) {
+
+		if (bslHelper.KEYS_REFS.indexOf(ref) >= 0)
+			return 'keys';
+
+		if (bslHelper.COLUMNS_REFS.indexOf(ref) >= 0)
+			return 'columns';
+
+		return '';
+
+	}
+
+	/**
+	 * Собирает имена, которых нет в справочнике: ключи структуры и колонки таблицы значений.
+	 * Набор — результат применения операций ВЫШЕ позиции курсора по порядку: Вставить и
+	 * Колонки.Добавить добавляют, Удалить убирает, Очистить снимает всё
+	 * (specs/type-inference/spec.md §3.4).
+	 *
+	 * Операции ищутся по всему тексту сразу и применяются в порядке следования, поэтому
+	 * несколько операций в одной строке отрабатывают правильно.
+	 *
+	 * Имена, объявленные типизирующим комментарием, образуют НАЧАЛЬНЫЙ набор: операции кода
+	 * применяются поверх них и в том числе снимают объявленное — иначе `Удалить("Ключ2")`
+	 * не убирал бы ключ, пришедший из блока `// Структура:`.
+	 *
+	 * @param {string} varName имя переменной
+	 * @param {IPosition} position позиция курсора
+	 * @param {string} ref ref типа переменной
+	 * @param {array} initial начальный набор свойств вида {name, type}
+	 *
+	 * @returns {array} свойства вида {name, type}
+	 */
+	collectMembers(varName, position, ref, initial) {
+
+		let kind = this.getMembersKindByRef(ref);
+
+		if (!kind)
+			return initial || [];
+
+		// Имена ключей и колонок живут в строковых литералах, поэтому строки не маскируем.
+		let text = this.getMaskedTextBefore(position, true);
+		let head = '(?:^|[^a-zA-Z0-9А-яЁё_.])' + varName + '\\s*';
+		let rules = [];
+
+		if (kind == 'keys') {
+			rules.push({ kind: 'reset', re: head + '=\\s*(?:Новый|New)\\s+(?:Структура|Structure|ФиксированнаяСтруктура|FixedStructure)\\s*\\(\\s*(?:"([^"]*)")?' });
+			rules.push({ kind: 'add', re: head + '\\.\\s*(?:Вставить|Insert)\\s*\\(\\s*"([^"]*)"' });
+			rules.push({ kind: 'remove', re: head + '\\.\\s*(?:Удалить|Delete)\\s*\\(\\s*"([^"]*)"' });
+			rules.push({ kind: 'clear', re: head + '\\.\\s*(?:Очистить|Clear)\\s*\\(' });
+		}
+		else {
+
+			let columns = head + '\\.\\s*(?:Колонки|Columns)\\s*\\.\\s*';
+
+			rules.push({ kind: 'clear', re: head + '=\\s*(?:Новый|New)\\s+(?:ТаблицаЗначений|ValueTable|ДеревоЗначений|ValueTree)' });
+			rules.push({ kind: 'add', re: columns + '(?:Добавить|Add)\\s*\\(\\s*"([^"]*)"' });
+			// У Вставить имя идёт ВТОРЫМ: Вставить(Индекс, Имя, Тип, Заголовок, Ширина).
+			rules.push({ kind: 'add', re: columns + '(?:Вставить|Insert)\\s*\\(\\s*[^,]*,\\s*"([^"]*)"' });
+			rules.push({ kind: 'remove', re: columns + '(?:Удалить|Delete)\\s*\\(\\s*"([^"]*)"' });
+			rules.push({ kind: 'clear', re: columns + '(?:Очистить|Clear)\\s*\\(' });
+
+		}
+
+		let operations = [];
+
+		rules.forEach(rule => {
+
+			let regexp = new RegExp(rule.re, 'gmi');
+			let match = null;
+
+			while ((match = regexp.exec(text)) !== null)
+				operations.push({ index: match.index, kind: rule.kind, value: match[1] || '' });
+
+		});
+
+		operations.sort((left, right) => left.index - right.index);
+
+		// Объявленные комментарием имена несут ещё и тип — сохраняем его при переносе.
+		let members = (initial || []).slice();
+
+		operations.forEach(operation => {
+
+			if (operation.kind == 'clear') {
+				members = [];
+				return;
+			}
+
+			if (operation.kind == 'reset') {
+				// `Новый Структура("Ключ1, Ключ2")` — ключи перечислены в первом аргументе.
+				members = operation.value
+					? operation.value.split(',').map(name => name.trim()).filter(name => name).map(name => ({ name: name, type: '' }))
+					: [];
+				return;
+			}
+
+			if (!operation.value)
+				return;
+
+			if (operation.kind == 'add') {
+				if (!members.some(member => member.name.toLowerCase() == operation.value.toLowerCase()))
+					members.push({ name: operation.value, type: '' });
+			}
+			else {
+				members = members.filter(member => member.name.toLowerCase() != operation.value.toLowerCase());
+			}
+
+		});
+
+		return members;
+
+	}
+
+	/**
+	 * Проверяет, что результат метода — строка коллекции, которой достаются колонки
+	 * самой коллекции: `Стр = ТЗ.Добавить()` даёт строку с колонками таблицы.
+	 *
+	 * @param {string} ownerRef ref коллекции
+	 * @param {string} resultRef ref результата
+	 *
+	 * @returns {boolean} наследует ли результат имена владельца
+	 */
+	isRowOfCollection(ownerRef, resultRef) {
+
+		return bslHelper.COLUMNS_REFS.indexOf(ownerRef) >= 0 && bslHelper.ROW_REFS.indexOf(resultRef) >= 0;
+
+	}
+
+	/**
+	 * Тонкая обёртка над inferVariableContext, отдающая только ref.
+	 * Удобна для диагностики и точечных проверок.
+	 *
+	 * @param {string} varName имя переменной
+	 * @param {IPosition} position позиция курсора
+	 * @param {array} seen имена переменных в текущей цепочке разрешения
+	 *
+	 * @returns {string} ref либо пустая строка
+	 */
+	inferVariableRef(varName, position, seen) {
+
+		let context = this.inferVariableContext(varName, position, seen);
+
+		return context ? context.ref : '';
+
+	}
+
+	/**
+	 * Возвращает исходный текст до позиции — без маскирования, в отличие от
+	 * getMaskedTextBefore: типизирующие комментарии живут именно в комментариях.
+	 *
+	 * @param {IPosition} position позиция, до которой нужен текст
+	 *
+	 * @returns {string} текст документа до позиции
+	 */
+	getRawTextBefore(position) {
+
+		return this.model.getValue().substr(0, this.model.getOffsetAt(position));
+
+	}
+
+	/**
+	 * Разбирает типизирующие комментарии в стиле строгой типизации ЕДТ и возвращает
+	 * объявленный тип переменной. Поддержаны три формы (specs/type-inference/spec.md §4.3):
+	 *
+	 *   // Таб - ТаблицаЗначений          объявление типа для конкретной переменной
+	 *   Таб = ПолучитьТаблицу();
+	 *
+	 *   Таб = ПолучитьТаблицу(); // ТаблицаЗначений    тип в конце строки присваивания
+	 *
+	 *   // Структура:                     тип с перечислением свойств
+	 *   //  * Свойство1 - Строка
+	 *   Парам = ПолучитьПараметры();
+	 *
+	 * Побеждает последнее объявление выше позиции.
+	 *
+	 * @param {string} varName имя переменной
+	 * @param {IPosition} position позиция курсора
+	 *
+	 * @returns {object|null} {ref, properties} либо null
+	 */
+	inferContextFromComment(varName, position) {
+
+		const NAME = '[a-zA-ZА-яЁё_][a-zA-Z0-9А-яЁё_]*';
+		const DASH = '[-–—]';
+
+		let blockHeaderRe = new RegExp('^\\s*//\\s*(' + NAME + ')\\s*:\\s*$');
+		let blockItemRe = new RegExp('^\\s*//\\s*\\*\\s*(' + NAME + ')\\s*(?:' + DASH + '\\s*(' + NAME + '))?');
+		let declarationRe = new RegExp('^\\s*//\\s*(' + NAME + ')\\s*' + DASH + '\\s*(' + NAME + ')');
+		let assignmentRe = new RegExp('^\\s*(' + NAME + ')\\s*=(?!=)');
+		let trailingTypeRe = new RegExp('//\\s*(' + NAME + ')\\s*$');
+
+		let lines = this.getRawTextBefore(position).split('\n');
+		let name = varName.toLowerCase();
+		let result = null;
+
+		// Блок `// Тип:` со списком свойств копится до ближайшего присваивания.
+		let blockRef = '';
+		let blockProperties = [];
+
+		for (let i = 0; i < lines.length; i++) {
+
+			let line = lines[i];
+			let match = blockHeaderRe.exec(line);
+
+			if (match) {
+				blockRef = this.getRefByTypeName(match[1]);
+				blockProperties = [];
+				continue;
+			}
+
+			match = blockItemRe.exec(line);
+
+			if (match) {
+				if (blockRef)
+					blockProperties.push({ name: match[1], type: match[2] || '' });
+				continue;
+			}
+
+			match = declarationRe.exec(line);
+
+			if (match) {
+
+				if (match[1].toLowerCase() == name) {
+					let ref = this.getRefByTypeName(match[2]);
+					if (ref)
+						result = { ref: ref, properties: [] };
+				}
+
+				continue;
+
+			}
+
+			match = assignmentRe.exec(line);
+
+			if (match) {
+
+				if (match[1].toLowerCase() == name) {
+
+					let trailing = trailingTypeRe.exec(line);
+					let ref = trailing ? this.getRefByTypeName(trailing[1]) : '';
+
+					if (ref)
+						result = { ref: ref, properties: [] };
+					else if (blockRef)
+						result = { ref: blockRef, properties: blockProperties };
+
+				}
+
+				blockRef = '';
+				blockProperties = [];
+				continue;
+
+			}
+
+			// Пустая строка блок не рвёт, строка кода — рвёт.
+			if (line.trim() != '' && !/^\s*\/\//.test(line)) {
+				blockRef = '';
+				blockProperties = [];
+			}
+
+		}
+
+		return result;
+
+	}
+
+	/**
+	 * Добавляет в подсказку свойства, перечисленные в типизирующем комментарии.
+	 * В справочнике их нет — имена придуманы разработчиком, — поэтому отдаём их
+	 * напрямую, проставляя ref из указанного типа, чтобы работала подсказка по цепочке.
+	 *
+	 * @param {array} suggestions список подсказок
+	 * @param {array} properties свойства вида {name, type}
+	 */
+	getDeclaredPropertiesSuggestions(suggestions, properties) {
+
+		if (!properties || !properties.length)
+			return;
+
+		properties.forEach(property => {
+
+			let exists = suggestions.some(suggestion => String(suggestion.label).toLowerCase() == property.name.toLowerCase());
+
+			if (exists)
+				return;
+
+			let ref = property.type ? this.getRefByTypeName(property.type) : '';
+
+			suggestions.push({
+				label: property.name,
+				kind: monaco.languages.CompletionItemKind.Field,
+				insertText: property.name,
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				detail: property.type || '',
+				documentation: '',
+				command: ref ? { id: 'bsl.saveref', arguments: [{ "name": property.name, "data": { "ref": ref, "sig": null } }] } : null
+			});
+
+		});
+
+	}
+
+	/**
+	 * Формирует контекст переменной, выведенный из текста, — запасной источник типа,
+	 * когда 1С ничего про переменную не присылала и подсказка не выбиралась вручную.
+	 * Явное объявление в комментарии сильнее вывода из кода: разработчик написал его
+	 * как раз потому, что вывести тип нельзя (specs/type-inference/spec.md §3.1).
+	 *
+	 * @param {string} varName имя переменной
+	 * @param {IPosition} position позиция курсора
+	 *
+	 * @returns {object|null} контекст вида {ref, parent_ref, sig, properties} либо null
+	 */
+	getInferredContext(varName, position) {
+
+		// Слой вывода — вспомогательный: сбой разбора не должен ронять подсказку целиком.
+		try {
+
+			let context = this.inferVariableContext(varName, position, []);
+
+			return context ? { ref: context.ref, parent_ref: null, sig: null, properties: context.properties } : null;
+
+		} catch (e) {
+
+			console.debug('type inference failed', e);
+			return null;
+
+		}
+
 	}
 
 	/**
@@ -2186,7 +3285,8 @@ class bslHelper {
 					kind: monaco.languages.CompletionItemKind.Constructor,
 					insertText: value[this.nameField] + postfix,
 					insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-					detail: value.description						
+					detail: value.description,
+					availability: value.availability
 				});	
 
 			}
@@ -4116,6 +5216,14 @@ class bslHelper {
 					if (!suggestions.length)
 						this.getMetadataDescription(suggestions);
 
+					// Контекст объекта, заданный через setObjectContext: показываем реквизиты, методы
+					// и табличные части объекта (как в модуле объекта) по Ctrl+Space или при наборе,
+					// даже если точка/переменная не введены.
+					if (window.objectContext && context.triggerCharacter != '.') {
+						this.getSelfObjectSuggestions(suggestions);
+						this.getRefSuggestions(suggestions, { ref: window.objectContext, parent_ref: null, sig: null });
+					}
+
 				}
 
 			}
@@ -4123,6 +5231,52 @@ class bslHelper {
 		}
 
 		return suggestions;
+
+	}
+
+	/**
+	 * Determines whether an object is available in the current context.
+	 * 
+	 * @param {item} item of suggestions
+	 * 
+	 * @returns {bool}
+	 */
+	isObjectAvailableInContext(item, contextMode) {
+
+		let availability = []
+
+		if (item.hasOwnProperty('availability') && item.availability !== null)
+			availability = availabilityToArray(item.availability)
+
+		if (!availability.length)
+			return true;
+
+		if (contextMode.toLowerCase() == 'server')
+			return 0 <= availability.indexOf('Server');
+		else
+			return 0 <= availability.indexOf('ThinClient');
+
+	}
+
+	/**
+	 * Filter array of suggestions by availability property
+	 * 
+	 * @param {suggestions} context
+	 * 
+	 * @returns {array} suggestions
+	 */
+	filterSuggestionsByContext(suggestions) {
+
+		const contextMode = window.getOption('contextMode');
+		const helper = this;
+		if (contextMode) {
+			return suggestions.filter(function (item) {
+				return helper.isObjectAvailableInContext(item, contextMode);
+			});
+		}
+		else {
+			return suggestions;
+		}
 
 	}
 
@@ -4144,14 +5298,16 @@ class bslHelper {
 				suggestions = this.getCodeCompletion(context, token);
 			}
 			else {
-				if (this.requireType())
+				this.getStructurePropertyNameCompletion(suggestions);
+
+				if (!suggestions.length && this.requireType())
 					this.getTypesCompletion(suggestions, window.bslGlobals.types, monaco.languages.CompletionItemKind.Enum);
 			}
 
 		}
 
 		if (suggestions.length)
-			return { suggestions: suggestions }
+			return { suggestions: this.filterSuggestionsByContext(suggestions) };
 		else
 			return { suggestions: [] };
 
@@ -5907,10 +7063,15 @@ class bslHelper {
 
 		if (trigger_char == ' ') {
 
-			this.getQueryAliasCompletion(suggestions);
+			if (this.isItCastFunction()) {
+				this.getCastValuesCompletion(suggestions, bslQuery.values);
+			}
+			else {
+				this.getQueryAliasCompletion(suggestions);
 
-			if (!suggestions.length);
-			this.getCastDelimiter(suggestions);
+				if (!suggestions.length)
+					this.getCastDelimiter(suggestions);
+			}
 		}
 		else {
 
@@ -6823,6 +7984,84 @@ class bslHelper {
 	}
 
 	/**
+	 * Sets the context of the object which the editor should work with,
+	 * for example "Справочники.Товары". After that the editor behaves
+	 * like the object module: the list of suggestions contains the object`s
+	 * attributes, methods and tabular parts (by Ctrl+Space or while typing)
+	 * and also after the dot for the "ЭтотОбъект"/"ThisObject" variable.
+	 * If the metadata of the requested object is not loaded yet, a request
+	 * is performed through the EVENT_GET_METADATA event.
+	 *
+	 * @param {string} metadataName name of metadata object like "Справочники.Товары"
+	 *
+	 * @returns {boolean|object} true or object with errorDescription
+	 */
+	setObjectContext(metadataName) {
+
+		try {
+
+			if (typeof metadataName != 'string' || !metadataName.trim())
+				throw new TypeError("Некорректный тип метаданных");
+
+			let parts = metadataName.split('.');
+
+			if (parts.length < 2)
+				throw new TypeError("Некорректная структура метаданных");
+
+			let groupName = parts[0].toLowerCase();
+			let itemName = parts[1];
+			let groupKey = null;
+
+			for (const [key, value] of Object.entries(window.bslMetadata)) {
+
+				if (value.hasOwnProperty('name')) {
+
+					if (value.name.toLowerCase() == groupName || value.name_en.toLowerCase() == groupName) {
+						groupKey = key;
+						break;
+					}
+
+				}
+
+			}
+
+			if (!groupKey)
+				throw new TypeError("Не найдена группа объекта метаданных");
+
+			window.objectContext = groupKey + '.' + itemName + '.obj';
+
+			if (!Object.keys(window.bslMetadata[groupKey].items).length) {
+				window.requestMetadata(window.bslMetadata[groupKey].name);
+			}
+
+			if (!bslHelper.objectHasPropertiesFromArray(window.bslMetadata, [groupKey, 'items', itemName, 'properties'])) {
+				window.requestMetadata(window.bslMetadata[groupKey].name + '.' + itemName);
+			}
+
+			return true;
+
+		}
+		catch (e) {
+			return { errorDescription: e.message };
+		}
+
+	}
+
+	/**
+	 * Clears the context of the object that was set earlier
+	 * through setObjectContext
+	 *
+	 * @returns {boolean} true if the context was cleared
+	 */
+	clearObjectContext() {
+
+		let cleared = window.objectContext !== null && window.objectContext !== undefined;
+		window.objectContext = null;
+		return cleared;
+
+	}
+
+	/**
 	 * Returns a function description from comment above
 	 *
 	 * @param {ITextModel} text model of module
@@ -6921,6 +8160,347 @@ class bslHelper {
 		return sig_params;
 
 	}
+
+	/**
+	 * Ищет закрывающую скобку объявления метода.
+	 * Учитывает вложенные скобки, строки и комментарии.
+	 *
+	 * @param {string} text текст модуля
+	 * @param {int} openingIndex позиция открывающей скобки
+	 *
+	 * @returns {int} позиция закрывающей скобки или -1
+	 */
+	static findMethodClosingParenthesis(text, openingIndex) {
+
+		let depth = 0;
+		let quote = '';
+		let lineComment = false;
+
+		for (let idx = openingIndex; idx < text.length; idx++) {
+
+			const char = text[idx];
+			const nextChar = idx + 1 < text.length ? text[idx + 1] : '';
+
+			if (lineComment) {
+				if (char == '\n')
+					lineComment = false;
+				continue;
+			}
+
+			if (quote) {
+				if (char == quote) {
+					if (nextChar == quote)
+						idx++;
+					else
+						quote = '';
+				}
+				continue;
+			}
+
+			if (char == '/' && nextChar == '/') {
+				lineComment = true;
+				idx++;
+				continue;
+			}
+
+			if (char == '"' || char == "'") {
+				quote = char;
+				continue;
+			}
+
+			if (char == '(')
+				depth++;
+			else if (char == ')') {
+				depth--;
+				if (depth == 0)
+					return idx;
+			}
+
+		}
+
+		return -1;
+
+	}
+
+	/**
+	 * Разделяет строку параметров по запятым верхнего уровня.
+	 *
+	 * @param {string} parametersText текст параметров
+	 *
+	 * @returns {array} части объявления параметров
+	 */
+	static splitMethodParameters(parametersText) {
+
+		let parameters = [];
+		let current = '';
+		let quote = '';
+		let lineComment = false;
+		let roundDepth = 0;
+		let squareDepth = 0;
+		let braceDepth = 0;
+
+		for (let idx = 0; idx < parametersText.length; idx++) {
+
+			const char = parametersText[idx];
+			const nextChar = idx + 1 < parametersText.length ? parametersText[idx + 1] : '';
+
+			if (lineComment) {
+				if (char == '\n') {
+					lineComment = false;
+					current += char;
+				}
+				continue;
+			}
+
+			if (quote) {
+				current += char;
+				if (char == quote) {
+					if (nextChar == quote) {
+						current += nextChar;
+						idx++;
+					}
+					else
+						quote = '';
+				}
+				continue;
+			}
+
+			if (char == '/' && nextChar == '/') {
+				lineComment = true;
+				idx++;
+				continue;
+			}
+
+			if (char == '"' || char == "'") {
+				quote = char;
+				current += char;
+				continue;
+			}
+
+			if (char == '(')
+				roundDepth++;
+			else if (char == ')' && 0 < roundDepth)
+				roundDepth--;
+			else if (char == '[')
+				squareDepth++;
+			else if (char == ']' && 0 < squareDepth)
+				squareDepth--;
+			else if (char == '{')
+				braceDepth++;
+			else if (char == '}' && 0 < braceDepth)
+				braceDepth--;
+
+			if (char == ',' && roundDepth == 0 && squareDepth == 0 && braceDepth == 0) {
+				parameters.push(current);
+				current = '';
+			}
+			else
+				current += char;
+
+		}
+
+		parameters.push(current);
+		return parameters;
+
+	}
+
+	/**
+	 * Ищет символ верхнего уровня вне строк и скобок.
+	 *
+	 * @param {string} text исходный текст
+	 * @param {string} target искомый символ
+	 *
+	 * @returns {int} позиция символа или -1
+	 */
+	static findTopLevelCharacter(text, target) {
+
+		let quote = '';
+		let roundDepth = 0;
+		let squareDepth = 0;
+		let braceDepth = 0;
+
+		for (let idx = 0; idx < text.length; idx++) {
+
+			const char = text[idx];
+			const nextChar = idx + 1 < text.length ? text[idx + 1] : '';
+
+			if (quote) {
+				if (char == quote) {
+					if (nextChar == quote)
+						idx++;
+					else
+						quote = '';
+				}
+				continue;
+			}
+
+			if (char == '"' || char == "'") {
+				quote = char;
+				continue;
+			}
+
+			if (char == '(')
+				roundDepth++;
+			else if (char == ')' && 0 < roundDepth)
+				roundDepth--;
+			else if (char == '[')
+				squareDepth++;
+			else if (char == ']' && 0 < squareDepth)
+				squareDepth--;
+			else if (char == '{')
+				braceDepth++;
+			else if (char == '}' && 0 < braceDepth)
+				braceDepth--;
+			else if (char == target && roundDepth == 0 && squareDepth == 0 && braceDepth == 0)
+				return idx;
+
+		}
+
+		return -1;
+
+	}
+
+	/**
+	 * Разбирает параметры объявления процедуры или функции.
+	 *
+	 * @param {string} parametersText текст параметров
+	 *
+	 * @returns {array} параметры метода
+	 */
+	static parseMethodParameters(parametersText) {
+
+		let result = [];
+		const parameters = this.splitMethodParameters(parametersText);
+		const namePattern = /^([a-zA-Z\u0410-\u044F\u0401\u0451_][a-zA-Z0-9\u0410-\u044F\u0401\u0451_]*)/i;
+
+		for (let idx = 0; idx < parameters.length; idx++) {
+
+			let declaration = parameters[idx].trim();
+			if (!declaration)
+				continue;
+
+			let byValue = /^(?:знач|val)\s+/i.test(declaration);
+			if (byValue)
+				declaration = declaration.replace(/^(?:знач|val)\s+/i, '');
+
+			const equalsIndex = this.findTopLevelCharacter(declaration, '=');
+			const namePart = (0 <= equalsIndex ? declaration.substring(0, equalsIndex) : declaration).trim();
+			const nameMatch = namePattern.exec(namePart);
+
+			if (!nameMatch)
+				continue;
+
+			result.push({
+				name: nameMatch[1],
+				byValue: byValue,
+				hasDefaultValue: 0 <= equalsIndex,
+				defaultValue: 0 <= equalsIndex ? declaration.substring(equalsIndex + 1).trim() : null
+			});
+
+		}
+
+		return result;
+
+	}
+
+	/**
+	 * Разбирает объявления процедур и функций модуля.
+	 *
+	 * @param {ITextModel} model модель Monaco
+	 *
+	 * @returns {array} методы с диапазонами объявлений
+	 */
+	static parseModuleMethods(model) {
+
+		let result = [];
+		const text = model.getValue();
+		const methodPattern = /^[\t ]*(процедура|procedure|функция|function)[\t ]+([a-zA-Z\u0410-\u044F\u0401\u0451_][a-zA-Z0-9\u0410-\u044F\u0401\u0451_]*)[\t ]*\(/gmi;
+		let match = null;
+
+		while ((match = methodPattern.exec(text)) !== null) {
+
+			const openingIndex = methodPattern.lastIndex - 1;
+			const closingIndex = this.findMethodClosingParenthesis(text, openingIndex);
+
+			if (closingIndex < 0)
+				continue;
+
+			const tail = text.substring(closingIndex + 1);
+			const exportMatch = /^[\t \r\n]*(экспорт|export)(?=[\t \r\n]|$)/i.exec(tail);
+			const isExport = Boolean(exportMatch);
+			const declarationEndIndex = closingIndex + 1 + (exportMatch ? exportMatch[0].length : 0);
+			const keywordIndex = match.index + match[0].indexOf(match[1]);
+			const nameIndex = match.index + match[0].lastIndexOf(match[2]);
+			const parameters = this.parseMethodParameters(text.substring(openingIndex + 1, closingIndex));
+			const keyword = match[1].toLowerCase();
+			const type = keyword == 'функция' || keyword == 'function' ? 'function' : 'procedure';
+			const startPosition = model.getPositionAt(keywordIndex);
+			const endPosition = model.getPositionAt(declarationEndIndex);
+			const namePosition = model.getPositionAt(nameIndex);
+
+			result.push({
+				name: match[2],
+				line: namePosition.lineNumber,
+				type: type,
+				isExport: isExport,
+				hasParameters: 0 < parameters.length,
+				parameters: parameters,
+				range: new monaco.Range(startPosition.lineNumber, startPosition.column, endPosition.lineNumber, endPosition.column),
+				selectionRange: new monaco.Range(namePosition.lineNumber, namePosition.column, namePosition.lineNumber, namePosition.column + match[2].length)
+			});
+
+			methodPattern.lastIndex = declarationEndIndex;
+
+		}
+
+		return result;
+
+	}
+
+	/**
+	 * Возвращает публичное описание процедур и функций модуля.
+	 *
+	 * @param {ITextModel} model модель Monaco
+	 *
+	 * @returns {array} методы модуля
+	 */
+	static getModuleMethods(model) {
+
+		return this.parseModuleMethods(model).map(function (method) {
+			return {
+				name: method.name,
+				line: method.line,
+				type: method.type,
+				isExport: method.isExport,
+				hasParameters: method.hasParameters,
+				parameters: method.parameters
+			};
+		});
+
+	}
+
+	/**
+	 * Возвращает символы процедур и функций для окна Monaco Quick Outline.
+	 *
+	 * @param {ITextModel} model модель Monaco
+	 *
+	 * @returns {array} DocumentSymbol[]
+	 */
+	static provideDocumentSymbols(model) {
+
+		return this.parseModuleMethods(model).map(function (method) {
+			return {
+				name: method.name,
+				detail: '',
+				kind: method.type == 'function' ? monaco.languages.SymbolKind.Function : monaco.languages.SymbolKind.Method,
+				tags: [],
+				range: method.range,
+				selectionRange: method.selectionRange
+			};
+		});
+
+	}
+
 
 	/**
 	 * Parsing a module text
@@ -7811,6 +9391,67 @@ class bslHelper {
 	}
 
 	/**
+	 * Возвращает структуру текущего запроса для Quick Outline.
+	 *
+	 * @param {ITextModel} model модель редактора
+	 * @param {CancellationToken} token токен отмены
+	 * @returns {Promise<DocumentSymbol[]>} символы документа
+	 */
+	static provideQueryDocumentSymbols(model, token) {
+
+		return queryModelService.getCurrent(model, token).then(result => {
+			if (!result || result.status != 'ready' || !result.document || token && token.isCancellationRequested)
+				return [];
+
+			return queryNavigation.provideDocumentSymbols(
+				result.document,
+				model.getValue(),
+				monaco.languages.SymbolKind
+			);
+		});
+
+	}
+
+	/**
+	 * Возвращает локальное определение сущности запроса.
+	 *
+	 * @param {ITextModel} model модель редактора
+	 * @param {Position} position позиция курсора
+	 * @param {CancellationToken} token токен отмены
+	 * @returns {Promise<LocationLink[]|Location[]|null>} ссылка на определение
+	 */
+	static provideQueryDefinition(model, position, token) {
+
+		return queryModelService.getCurrent(model, token).then(result => {
+			if (!result || token && token.isCancellationRequested)
+				return null;
+
+			if (result.status == 'ready' && result.document) {
+				let definition = queryNavigation.provideDefinition(
+					result.document,
+					model.getValue(),
+					position.lineNumber,
+					position.column
+				);
+
+				if (!definition)
+					return null;
+
+				definition.targetUri = model.uri;
+				return [definition];
+			}
+
+			if (result.status == 'unavailable') {
+				let helper = new bslHelper(model, position);
+				return helper.provideQueryDefinition();
+			}
+
+			return null;
+		});
+
+	}
+
+	/**
 	 * Escapes string for RegExp
 	 * 
 	 * @param {string} value raw string
@@ -8645,142 +10286,58 @@ class bslHelper {
 	}
 
 	/**
-	 * Returns array of words from string
-	 *  
-	 * @param {string} str string 
-	 * 
-	 * @returns {array} words 
+	 * Форматирует BSL-код.
+	 *
+	 * @param {ITextModel} model текущая модель редактора
+	 * @param {Range} range необязательный диапазон форматирования
+	 * @param {Object} options одноразовые опции форматирования
+	 *
+	 * @returns {TextEdit[]} правки для Monaco
 	 */
-	static getWordsFromFormatString(str) {
+	static formatCode(model, range, options) {
 
-		const comment = str.indexOf('//');
+		options = options || {};
 
-		if (0 <= comment)
-			str = str.substr(0, comment);
+		let formatRange = range || model.getFullModelRange();
+		let endLineNumber = formatRange.endLineNumber;
 
-		str = str.replace(/"([\s\S]+)?"/u, '');
-		str = str.replace(/"([\s\S]+)?$/u, '');
-		str = str.replace(/\|([\s\S]+)?"/u, '');
-		str = str.replace(/\|([\s\S]+)?$/u, '');
+		if (range && formatRange.endColumn == 1 && formatRange.startLineNumber < endLineNumber)
+			endLineNumber--;
 
-		const semi = str.indexOf(';');
-
-		if (0 <= semi)
-			str = str.substr(0, semi);
-
-		return str.trim().split(' ');
-
-	}
-
-	/**
-	 * Code formatter
-	 * 
-	 * @param {ITextModel} model current model of editor
-	 * 
-	 * @returns {string} formated text
-	 */
-	 static formatCode(model) {
-
-		let result = '';
-
-		const startWords = [
-			'если', '#если', 'для', 'пока', 'функция', 'процедура', 'попытка',
-			'if', '#if', 'for', 'while', 'function', 'procedure', 'try'
-		];
-
-		const stopWords = [
-			'конецесли', '#конецесли', 'конеццикла', 'конецфункции', 'конецпроцедуры', 'конецпопытки',
-			'endif', '#endif', 'enddo', 'endfunction', 'endprocedure', 'endtry'
-		];
-
-		const complexWords = [
-			'исключение', 'иначе', 'иначеесли', '#иначе', '#иначеесли',
-			'except', 'else', 'elseif', '#else', '#elseif'
-		];
-
-		let format_range = model.getFullModelRange();
-		const selection = window.editor.getSelection();
-		const selected_text = model.getValueInRange(selection).trim();
-		let offset = 0;
-
-		let strings = '';
-
-		if (selected_text) {
-
-			format_range = new monaco.Range(
-				selection.startLineNumber,
+		if (range) {
+			formatRange = new monaco.Range(
+				formatRange.startLineNumber,
 				1,
-				selection.endLineNumber,
-				model.getLineMaxColumn(selection.endLineNumber)
+				endLineNumber,
+				model.getLineMaxColumn(endLineNumber)
 			);
-			strings = model.getValueInRange(format_range).split('\n');
-
-			let line_number = selection.startLineNumber - 1;
-
-			while (0 < line_number && offset == 0) {
-
-				let str = model.getLineContent(line_number)
-				let words = bslHelper.getWordsFromFormatString(str);
-				let word_i = 0;
-
-				while (word_i < words.length && offset == 0) {
-					let word = words[word_i].toLowerCase();
-					if (startWords.includes(word)) {
-						str = model.normalizeIndentation(str);
-						offset = str.match(/^(\t*)/)[0].split('\t').length;
-					}
-					word_i++;
-				}
-
-				line_number--;
-
-			}
-
-
-		}
-		else {
-			strings = model.getValue().split('\n');
 		}
 
-		strings.forEach(function (str, index) {
+		const prefixRange = new monaco.Range(1, 1, formatRange.startLineNumber, 1);
+		const prefix = model.getValueInRange(prefixRange);
+		const text = model.getValueInRange(formatRange);
+		const formatCanonicalKeywords = Boolean(options.formatCanonicalKeywords);
+		const formatCanonicalPlatformNames = Boolean(options.formatCanonicalPlatformNames);
+		const keywords = window.languages && window.languages.bsl
+			? window.languages.bsl.languageDef.rules.keywords
+			: [];
 
-			let original = str;
-			const words = bslHelper.getWordsFromFormatString(str);
-			let word_i = 0;
-			let delta = offset;
-
-			while (word_i < words.length) {
-
-				let word = words[word_i].toLowerCase();
-
-				if (startWords.includes(word))
-					offset++;
-
-				if (stopWords.includes(word))
-					offset = Math.max(0, offset - 1);
-
-				if (complexWords.includes(word))
-					offset = Math.max(0, offset - 1);
-
-				word_i++;
-			}
-
-			delta = offset - delta;
-			let strOffset = 0 < delta ? offset - 1 : offset;
-			result = result + '\t'.repeat(strOffset) + original.trim();
-
-			if (index < strings.length - 1)
-				result += '\n';
-
-			if (words.length && complexWords.includes(words[0].toLowerCase()))
-				offset++;
-
+		return BslFormatter.format(text, formatRange, {
+			eol: model.getEOL(),
+			initialState: BslFormatter.getState(prefix),
+			initialIndent: BslFormatter.getIndentLevel(prefix),
+			keywords: keywords,
+			platformNames: formatCanonicalKeywords || formatCanonicalPlatformNames
+				? getFormatterPlatformNames()
+				: null,
+			formatCanonicalKeywords: formatCanonicalKeywords,
+			formatCanonicalPlatformNames: formatCanonicalPlatformNames,
+			formatSplitStatements: Boolean(options.formatSplitStatements),
+			formatSpaceAfterComma: Boolean(options.formatSpaceAfterComma),
+			formatAlignAssignments: Boolean(options.formatAlignAssignments),
+			formatJoinThen: Boolean(options.formatJoinThen),
+			formatBlankLinesAroundBlocks: Boolean(options.formatBlankLinesAroundBlocks)
 		});
-
-		return [{
-			text: result,
-			range: format_range
-		}];
 	}
 
 	/**
@@ -8791,11 +10348,11 @@ class bslHelper {
 
 		let fire_event = window.getOption('generateBeforeHoverEvent');
 
-		let word = this.model.getWordAtPosition(this.position);
-		if (word)
-			this.token = this.getLastToken(word);
-
 		if (fire_event) {
+			let word = this.model.getWordAtPosition(this.position);
+			if (word)
+				this.token = this.getLastToken(word);
+
 			let params = {
 				word: word,
 				token: this.token,
@@ -9083,12 +10640,18 @@ class bslHelper {
 
 				let pattern = pattern_word + '\\s*=\\s*.*';
 				let is_function = this.isItFunction()
-
-				if (is_function)
-					pattern = '(процедура|procedure|функция|function)\\s*' + pattern_word + '\\(';
-
 				let position = new monaco.Position(this.lineNumber, 1);
-				let match = Finder.findPreviousMatch(this.model, pattern, position, false);
+				let match = null;
+
+				if (is_function) {
+					pattern = '(процедура|procedure|функция|function)\\s*' + pattern_word + '\\(';
+					const matches = Finder.findMatches(this.model, pattern);
+					if (matches.length)
+						match = matches[0];
+				}
+				else {				
+					match = Finder.findPreviousMatch(this.model, pattern, position, false);
+				}
 
 				if (match && (is_function || match.range.startLineNumber < this.lineNumber)) {
 					definition = {
@@ -9340,5 +10903,17 @@ class bslHelper {
 	}
 
 }
+
+// Предел длины цепочки `А = Б; Б = В; ...` при выводе типа переменной.
+// Реальные цепочки короткие; ограничение защищает от зацикливания и от разбора,
+// растущего на больших модулях (см. specs/type-inference/plan.md, раздел «Риски»).
+bslHelper.INFER_DEPTH_LIMIT = 5;
+
+// Типы, у которых имена свойств задаются кодом, а не справочником (specs/type-inference/spec.md §3.4).
+// Соответствия здесь нет намеренно: к его ключам через точку не обращаются — только
+// `Получить("Ключ")` или `[...]`, поэтому в подсказке после точки им не место.
+bslHelper.KEYS_REFS = ['classes.Структура', 'classes.ФиксированнаяСтруктура'];
+bslHelper.COLUMNS_REFS = ['classes.ТаблицаЗначений', 'classes.ДеревоЗначений'];
+bslHelper.ROW_REFS = ['types.СтрокаТаблицыЗначений', 'types.СтрокаДереваЗначений'];
 
 export default bslHelper;

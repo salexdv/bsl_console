@@ -1,4 +1,5 @@
 import bslHelper from './bsl_helper';
+import registerFormatterBrowserTests from './test_formatter_browser';
 
 setTimeout(() => {
 
@@ -35,6 +36,224 @@ setTimeout(() => {
       let position = getPosition(model);
       return new bslHelper(model, position);
     }
+
+    it("пользовательские подсказки не токенизируют текст до курсора (issue #335)", function () {
+
+      const originalTokenize = monaco.editor.tokenize;
+      const originalCustomSuggestions = window.customSuggestions;
+      const originalPreviousCustomSuggestions = window.editor.previousCustomSuggestions;
+      const originalShowSnippets = window.editor.showSnippetsOnCustomSuggestions;
+      const model = getModel(new Array(301).join('ПроверяемоеЗначение = 1;\n') + 'ПроверяемоеЗначение');
+      const position = getPosition(model);
+      let tokenizeCalls = 0;
+
+      try {
+        monaco.editor.tokenize = function () {
+          tokenizeCalls++;
+          return originalTokenize.apply(this, arguments);
+        };
+
+        [false, true].forEach(function (showSnippets) {
+          window.editor.showSnippetsOnCustomSuggestions = showSnippets;
+          window.customSuggestions = [{
+            label: 'ПользовательскаяПодсказка',
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: 'ПользовательскаяПодсказка'
+          }];
+
+          const bsl = new bslHelper(model, position);
+          const completion = bsl.getCompletion({});
+
+          assert.equal(completion.suggestions[0].label, 'ПользовательскаяПодсказка');
+        });
+
+        assert.equal(tokenizeCalls, 0);
+      }
+      finally {
+        monaco.editor.tokenize = originalTokenize;
+        window.customSuggestions = originalCustomSuggestions;
+        window.editor.previousCustomSuggestions = originalPreviousCustomSuggestions;
+        window.editor.showSnippetsOnCustomSuggestions = originalShowSnippets;
+        model.dispose();
+      }
+
+    });
+
+    it("ленивый токен сохраняет распознавание строк и комментариев", function () {
+
+      const originalTokenize = monaco.editor.tokenize;
+      const stringModel = getModel('Сообщить("Незакрытая строка');
+      const commentModel = getModel('// Комментарий');
+      const stringHelper = new bslHelper(stringModel, getPosition(stringModel));
+      const commentHelper = new bslHelper(commentModel, getPosition(commentModel));
+      const originalCtrlPressed = window.ctrlPressed;
+      let tokenizeCalls = 0;
+
+      try {
+        window.ctrlPressed = false;
+        monaco.editor.tokenize = function () {
+          tokenizeCalls++;
+          return originalTokenize.apply(this, arguments);
+        };
+
+        assert.equal(tokenizeCalls, 0);
+        assert.equal(stringHelper.isItStringLiteral(), true);
+        assert.equal(commentHelper.completionIsAvailable(), false);
+        assert.equal(tokenizeCalls, 0);
+
+        stringHelper.isItStringLiteral();
+        commentHelper.completionIsAvailable();
+        assert.equal(tokenizeCalls, 0);
+      }
+      finally {
+        monaco.editor.tokenize = originalTokenize;
+        window.ctrlPressed = originalCtrlPressed;
+        stringModel.dispose();
+        commentModel.dispose();
+      }
+
+    });
+
+    it("hover без события и пользовательских данных не токенизирует текст", function () {
+
+      const originalTokenize = monaco.editor.tokenize;
+      const originalCustomHovers = window.customHovers;
+      const originalGenerateEvent = window.getOption('generateBeforeHoverEvent');
+      const originalDisableNativeHovers = window.editor.disableNativeHovers;
+      const model = getModel(new Array(301).join('ПроверяемоеЗначение = 1;\n') + 'НеизвестноеСлово');
+      const bsl = new bslHelper(model, getPosition(model));
+      let tokenizeCalls = 0;
+
+      try {
+        monaco.editor.tokenize = function () {
+          tokenizeCalls++;
+          return originalTokenize.apply(this, arguments);
+        };
+        window.customHovers = {};
+        window.setOption('generateBeforeHoverEvent', false);
+        window.editor.disableNativeHovers = true;
+
+        bsl.onProvideHover();
+        assert.equal(bsl.getHover(), null);
+        assert.equal(tokenizeCalls, 0);
+      }
+      finally {
+        monaco.editor.tokenize = originalTokenize;
+        window.customHovers = originalCustomHovers;
+        window.setOption('generateBeforeHoverEvent', originalGenerateEvent);
+        window.editor.disableNativeHovers = originalDisableNativeHovers;
+        model.dispose();
+      }
+
+    });
+
+    it("hover с событием вычисляет токен один раз и сохраняет payload", function () {
+
+      const originalTokenize = monaco.editor.tokenize;
+      const originalSendEvent = window.sendEvent;
+      const originalGenerateEvent = window.getOption('generateBeforeHoverEvent');
+      const originalAltPressed = window.altPressed;
+      const originalCtrlPressed = window.ctrlPressed;
+      const originalShiftPressed = window.shiftPressed;
+      const model = getModel('Переменная');
+      const bsl = new bslHelper(model, new monaco.Position(1, 5));
+      let tokenizeCalls = 0;
+      let capturedEvent = null;
+
+      try {
+        monaco.editor.tokenize = function () {
+          tokenizeCalls++;
+          return originalTokenize.apply(this, arguments);
+        };
+        window.sendEvent = function (event, params) {
+          capturedEvent = { event: event, params: params };
+        };
+        window.altPressed = true;
+        window.ctrlPressed = false;
+        window.shiftPressed = true;
+        window.setOption('generateBeforeHoverEvent', true);
+
+        bsl.onProvideHover();
+
+        assert.equal(tokenizeCalls, 0);
+        assert.equal(capturedEvent.event, 'EVENT_BEFORE_HOVER');
+        assert.deepEqual(Object.keys(capturedEvent.params).sort(), [
+          'altKey', 'column', 'ctrlKey', 'definition', 'line', 'shiftKey', 'token', 'word'
+        ].sort());
+        assert.deepEqual(capturedEvent.params.word, {
+          word: 'Переменная',
+          startColumn: 1,
+          endColumn: 11
+        });
+        assert.equal(capturedEvent.params.token, 'identifierbsl');
+        assert.equal(capturedEvent.params.line, 1);
+        assert.equal(capturedEvent.params.column, 5);
+        assert.equal(capturedEvent.params.altKey, true);
+        assert.equal(capturedEvent.params.ctrlKey, false);
+        assert.equal(capturedEvent.params.shiftKey, true);
+        assert.equal(capturedEvent.params.definition, null);
+
+        assert.equal(bsl.token, 'identifierbsl');
+        assert.equal(tokenizeCalls, 0);
+      }
+      finally {
+        monaco.editor.tokenize = originalTokenize;
+        window.sendEvent = originalSendEvent;
+        window.setOption('generateBeforeHoverEvent', originalGenerateEvent);
+        window.altPressed = originalAltPressed;
+        window.ctrlPressed = originalCtrlPressed;
+        window.shiftPressed = originalShiftPressed;
+        model.dispose();
+      }
+
+    });
+
+    it("пользовательский и query-hover лениво получают корректный токен", function () {
+
+      const originalTokenize = monaco.editor.tokenize;
+      const originalCustomHovers = window.customHovers;
+      const originalGenerateEvent = window.getOption('generateBeforeHoverEvent');
+      const customModel = getModel('ПользовательскоеПоле');
+      const queryModel = monaco.editor.createModel('ВЫБРАТЬ', 'bsl_query');
+      const customHelper = new bslHelper(customModel, getPosition(customModel));
+      const queryHelper = new bslHelper(queryModel, getPosition(queryModel));
+      let tokenizeCalls = 0;
+
+      try {
+        monaco.editor.tokenize = function () {
+          tokenizeCalls++;
+          return originalTokenize.apply(this, arguments);
+        };
+        window.setOption('generateBeforeHoverEvent', false);
+        window.customHovers = {
+          'ПользовательскоеПоле': 'Пользовательская подсказка'
+        };
+
+        customHelper.onProvideHover();
+        assert.equal(tokenizeCalls, 0);
+        assert.equal(customHelper.getHover().contents[0].value, 'Пользовательская подсказка');
+        assert.equal(customHelper.token, 'identifierbsl');
+        assert.equal(tokenizeCalls, 0);
+
+        window.customHovers = {};
+        queryHelper.getLangId = function () {
+          return 'bsl_query';
+        };
+        queryHelper.onProvideHover();
+        assert.equal(tokenizeCalls, 0);
+        queryHelper.getQueryHover();
+        assert.equal(queryHelper.token, 'query.keywordbsl');
+        assert.equal(tokenizeCalls, 0);
+      }
+      finally {
+        monaco.editor.tokenize = originalTokenize;
+        window.customHovers = originalCustomHovers;
+        window.setOption('generateBeforeHoverEvent', originalGenerateEvent);
+        customModel.dispose();
+        queryModel.dispose();
+      }
+
+    });
 
     function helperToConsole(helper) {
       
@@ -754,6 +973,555 @@ setTimeout(() => {
         window.contextData = new Map();
       });
 
+      describe("вывод типов переменных из текста (specs/type-inference, Этап 1)", function () {
+
+        it("тип из конструктора Новый", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('Таблица = Новый ТаблицаЗначений;\nТаблица.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.not.is.empty;
+          assert.equal(suggestions.some(suggest => suggest.label === "ВыгрузитьКолонку"), true);
+        });
+
+        it("тип из конструктора Новый на английском", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('Таблица = New ValueTable;\nТаблица.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.not.is.empty;
+          assert.equal(suggestions.some(suggest => suggest.label === "ВыгрузитьКолонку"), true);
+        });
+
+        it("проброс типа при присваивании переменной", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('Таблица = Новый ТаблицаЗначений;\nТЗ = Таблица;\nТЗ.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.not.is.empty;
+          assert.equal(suggestions.some(suggest => suggest.label === "ВыгрузитьКолонку"), true);
+        });
+
+        it("тип результата метода: строка таблицы значений", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('Таблица = Новый ТаблицаЗначений;\nСтр = Таблица.Добавить();\nСтр.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.not.is.empty;
+          assert.equal(suggestions.some(suggest => suggest.label === "Владелец"), true);
+        });
+
+        it("тип результата свойства: коллекция колонок", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('Таблица = Новый ТаблицаЗначений;\nКолонки = Таблица.Колонки;\nКолонки.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.not.is.empty;
+          assert.equal(suggestions.some(suggest => suggest.label === "Добавить"), true);
+        });
+
+        it("берётся последнее присваивание выше позиции", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('Значение = Новый Массив;\nЗначение = Новый ТаблицаЗначений;\nЗначение.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.not.is.empty;
+          assert.equal(suggestions.some(suggest => suggest.label === "ВыгрузитьКолонку"), true);
+        });
+
+        it("присваивание внутри строки или комментария не типизирует", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('Текст = "Таблица = Новый ТаблицаЗначений";\n// Таблица = Новый ТаблицаЗначений\nТаблица.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.is.empty;
+        });
+
+        it("сравнение не принимается за присваивание", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('Если Таблица == Неопределено Тогда\nКонецЕсли;\nТаблица.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.is.empty;
+        });
+
+        it("циклическое присваивание не вешает разбор", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('А = Б;\nБ = А;\nА.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.is.empty;
+        });
+
+        it("неизвестный тип не даёт подсказок и не бросает", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('Объект = Новый ЧегоТакогоНетВСправочнике;\nОбъект.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.is.empty;
+        });
+
+        it("тип переменной не подменяется типом из соседнего вызова (issue #305)", function () {
+          // Полевой отчёт: после `А.` предлагались свойства КОЛОНКИ (Заголовок, Имя, Ширина,
+          // ТипЗначения), потому что эвристика lookBehind переиспользовала тип из
+          // `А.Колонки.Добавить(...)`, сохранённый в contextData при выборе подсказки.
+          window.contextData = new Map([
+            [2, new Map([
+              ["колонки", { "ref": "types.КоллекцияКолонокТаблицыЗначений", "sig": null }],
+              ["добавить", { "ref": "types.КолонкаТаблицыЗначений", "sig": null }]
+            ])],
+            [5, new Map([["добавить", { "ref": "types.СтрокаТаблицыЗначений", "sig": null }]])]
+          ]);
+          let suggestions = [];
+          helper('А = Новый ТаблицаЗначений();\nА.Колонки.Добавить("Колонка1");\n\nСтр = А.Добавить();\n\nА.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.not.is.empty;
+          assert.equal(suggestions.some(suggest => suggest.label === "ВыгрузитьКолонку"), true);
+          assert.equal(suggestions.some(suggest => suggest.label === "ТипЗначения"), false);
+          window.contextData = new Map();
+        });
+
+        it("тип от 1С сильнее выведенного из текста", function () {
+          let suggestions = [];
+          window.contextData = new Map([
+            [2, new Map([["таблица", { "ref": "catalogs.Товары", "sig": null }]])]
+          ]);
+          helper('Таблица = Новый ТаблицаЗначений;\nТаблица.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.not.is.empty;
+          assert.equal(suggestions.some(suggest => suggest.label === "СтавкаНДС"), true);
+          assert.equal(suggestions.some(suggest => suggest.label === "ВыгрузитьКолонку"), false);
+          window.contextData = new Map();
+        });
+
+      });
+
+      describe("типизирующие комментарии (specs/type-inference, Этап 2)", function () {
+
+        it("форма `// Имя - Тип` без присваивания", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('// Таб - ТаблицаЗначений\nТаб.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.not.is.empty;
+          assert.equal(suggestions.some(suggest => suggest.label === "ВыгрузитьКолонку"), true);
+        });
+
+        it("форма `// Имя - Тип` над присваиванием", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('// Таб - ТаблицаЗначений\nТаб = ПолучитьТаблицу();\nТаб.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.not.is.empty;
+          assert.equal(suggestions.some(suggest => suggest.label === "ВыгрузитьКолонку"), true);
+        });
+
+        it("тип в конце строки присваивания", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('Таб = ПолучитьТаблицу(); // ТаблицаЗначений\nТаб.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.not.is.empty;
+          assert.equal(suggestions.some(suggest => suggest.label === "ВыгрузитьКолонку"), true);
+        });
+
+        it("блок `// Структура:` добавляет объявленные свойства", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('// Структура:\n//    * Свойство1 - Строка\n//    * Свойство2 - Число\nПарам = ПолучитьПараметры();\nПарам.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.not.is.empty;
+          assert.equal(suggestions.some(suggest => suggest.label === "Свойство1"), true);
+          assert.equal(suggestions.some(suggest => suggest.label === "Свойство2"), true);
+          assert.equal(suggestions.some(suggest => suggest.label === "Вставить"), true);
+        });
+
+        it("тип объявленного свойства работает по цепочке", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('// Структура:\n//    * Таблица - ТаблицаЗначений\nПарам = ПолучитьПараметры();\nТЗ = Парам.Таблица;\nТЗ.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.not.is.empty;
+          assert.equal(suggestions.some(suggest => suggest.label === "ВыгрузитьКолонку"), true);
+        });
+
+        it("комментарий сильнее вывода из кода", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('Знач = Новый Массив; // ТаблицаЗначений\nЗнач.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.not.is.empty;
+          assert.equal(suggestions.some(suggest => suggest.label === "ВыгрузитьКолонку"), true);
+        });
+
+        it("неизвестный тип в комментарии игнорируется", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('// Таб - ЧегоТакогоНетВСправочнике\nТаб.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.is.empty;
+        });
+
+        it("блок свойств рвётся строкой кода", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('// Структура:\n//    * Свойство1 - Строка\nВыполнить();\nПарам = ПолучитьПараметры();\nПарам.').getRefCompletion(suggestions);
+          expect(suggestions).to.be.an('array').that.is.empty;
+        });
+
+      });
+
+      describe("состояние коллекций: ключи и колонки (specs/type-inference, Этап 3)", function () {
+
+        function helperAt(string, lineNumber, column) {
+          let model = getModel(string);
+          return new bslHelper(model, new monaco.Position(lineNumber, column));
+        }
+
+        it("ключи из конструктора Новый Структура", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('С = Новый Структура("Ключ1, Ключ2");\nС.').getRefCompletion(suggestions);
+          assert.equal(suggestions.some(suggest => suggest.label === "Ключ1"), true);
+          assert.equal(suggestions.some(suggest => suggest.label === "Ключ2"), true);
+        });
+
+        it("Вставить добавляет ключ к типу из комментария", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('А = ПолучитьСтруктуру(); // Структура\nА.Вставить("Ключ1", "");\nА.').getRefCompletion(suggestions);
+          assert.equal(suggestions.some(suggest => suggest.label === "Ключ1"), true);
+          assert.equal(suggestions.some(suggest => suggest.label === "Вставить"), true);
+        });
+
+        it("Удалить снимает ключ", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('С = Новый Структура("Ключ1, Ключ2");\nС.Удалить("Ключ1");\nС.').getRefCompletion(suggestions);
+          assert.equal(suggestions.some(suggest => suggest.label === "Ключ2"), true);
+          assert.equal(suggestions.some(suggest => suggest.label === "Ключ1"), false);
+        });
+
+        it("Очистить снимает все ключи", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('С = Новый Структура("Ключ1, Ключ2");\nС.Очистить();\nС.').getRefCompletion(suggestions);
+          assert.equal(suggestions.some(suggest => suggest.label === "Ключ1"), false);
+          assert.equal(suggestions.some(suggest => suggest.label === "Ключ2"), false);
+        });
+
+        it("операции применяются по порядку: удалили и вставили снова", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('С = Новый Структура;\nС.Вставить("Ключ1", 1);\nС.Удалить("Ключ1");\nС.Вставить("Ключ1", 2);\nС.').getRefCompletion(suggestions);
+          assert.equal(suggestions.some(suggest => suggest.label === "Ключ1"), true);
+        });
+
+        it("учитываются только операции выше курсора", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helperAt('С = Новый Структура;\nС.Вставить("Ключ1", 1);\nС.\nС.Вставить("Ключ2", 2);', 3, 3).getRefCompletion(suggestions);
+          assert.equal(suggestions.some(suggest => suggest.label === "Ключ1"), true);
+          assert.equal(suggestions.some(suggest => suggest.label === "Ключ2"), false);
+        });
+
+        it("колонки таблицы значений добавляются и снимаются", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('ТЗ = Новый ТаблицаЗначений;\nТЗ.Колонки.Добавить("К1");\nТЗ.Колонки.Добавить("К2");\nТЗ.Колонки.Удалить("К1");\nТЗ.').getRefCompletion(suggestions);
+          assert.equal(suggestions.some(suggest => suggest.label === "К2"), true);
+          assert.equal(suggestions.some(suggest => suggest.label === "К1"), false);
+        });
+
+        it("Колонки.Вставить добавляет колонку: имя идёт вторым аргументом", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('ТЗ = Новый ТаблицаЗначений;\nТЗ.Колонки.Добавить("Имя1");\nТЗ.Колонки.Вставить(1, "Имя2");\nТЗ.').getRefCompletion(suggestions);
+          assert.equal(suggestions.some(suggest => suggest.label === "Имя1"), true);
+          assert.equal(suggestions.some(suggest => suggest.label === "Имя2"), true);
+        });
+
+        it("строка таблицы наследует её колонки", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('ТЗ = Новый ТаблицаЗначений;\nТЗ.Колонки.Добавить("К1");\nСтр = ТЗ.Добавить();\nСтр.').getRefCompletion(suggestions);
+          assert.equal(suggestions.some(suggest => suggest.label === "К1"), true);
+          assert.equal(suggestions.some(suggest => suggest.label === "Владелец"), true);
+        });
+
+        it("Удалить снимает и имя, объявленное комментарием", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('// Структура:\n//\t* Ключ1 - Строка\n//\t* Ключ2 - Число\nБ = Тест();\nБ.Удалить("Ключ2");\nБ.').getRefCompletion(suggestions);
+          assert.equal(suggestions.some(suggest => suggest.label === "Ключ1"), true);
+          assert.equal(suggestions.some(suggest => suggest.label === "Ключ2"), false);
+        });
+
+        it("Очистить снимает все имена, включая объявленные комментарием", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('// Структура:\n//\t* Ключ1 - Строка\nБ = Тест();\nБ.Очистить();\nБ.').getRefCompletion(suggestions);
+          assert.equal(suggestions.some(suggest => suggest.label === "Ключ1"), false);
+        });
+
+        it("тип объявленного свойства сохраняется после операций над набором", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('// Структура:\n//\t* Таблица - ТаблицаЗначений\n//\t* Лишний - Строка\nПарам = Тест();\nПарам.Удалить("Лишний");\nТЗ = Парам.Таблица;\nТЗ.').getRefCompletion(suggestions);
+          assert.equal(suggestions.some(suggest => suggest.label === "ВыгрузитьКолонку"), true);
+        });
+
+        it("ключи соответствия не подсказываются: точкой к ним не обращаются", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('М = Новый Соответствие;\nМ.Вставить("Ключ1", 1);\nМ.').getRefCompletion(suggestions);
+          assert.equal(suggestions.some(suggest => suggest.label === "Вставить"), true);
+          assert.equal(suggestions.some(suggest => suggest.label === "Ключ1"), false);
+        });
+
+        it("ключ из строкового литерала не принимается за код", function () {
+          window.contextData = new Map();
+          let suggestions = [];
+          helper('Текст = "С.Вставить(""Фейк"", 1)";\nС = Новый Структура;\nС.Вставить("Ключ1", 1);\nС.').getRefCompletion(suggestions);
+          assert.equal(suggestions.some(suggest => suggest.label === "Ключ1"), true);
+          assert.equal(suggestions.some(suggest => suggest.label === "Фейк"), false);
+        });
+
+      });
+
+      describe("подсказка ключей в первом параметре Свойство (issue #228)", function () {
+
+        let previousCustomObjects;
+
+        beforeEach(function () {
+          previousCustomObjects = window.bslMetadata.customObjects.items;
+          window.bslMetadata.customObjects.items = {
+            "Параметры": {
+              "ref": "classes.Структура",
+              "properties": {
+                "Номенклатура": {
+                  "name": "Номенклатура",
+                  "description": "Ссылка на справочник номенклатуры",
+                  "ref": "catalogs.Товары"
+                },
+                "Остаток": {
+                  "name": "Остаток"
+                },
+                "МассивТоваров": {
+                  "name": "МассивТоваров",
+                  "ref": "classes.Массив"
+                }
+              }
+            },
+            "ФиксированныеПараметры": {
+              "ref": "classes.ФиксированнаяСтруктура",
+              "properties": {
+                "Ключ": { "name": "Ключ" }
+              }
+            },
+            "НеструктурныйОбъект": {
+              "ref": "classes.Массив",
+              "properties": {
+                "ЛожноеСвойство": { "name": "ЛожноеСвойство" }
+              }
+            }
+          };
+          window.contextData = new Map();
+        });
+
+        afterEach(function () {
+          window.bslMetadata.customObjects.items = previousCustomObjects;
+          window.contextData = new Map();
+        });
+
+        function getPropertyCompletion(text) {
+          let bsl = helper(text);
+          let completion = bsl.getCompletion({ triggerCharacter: '"' });
+          return { bsl: bsl, suggestions: completion.suggestions };
+        }
+
+        it("предлагает свойства пользовательского объекта", function () {
+          let result = getPropertyCompletion('Параметры.Свойство("');
+          let labels = result.suggestions.map(suggestion => suggestion.label);
+
+          expect(labels).to.include.members(["Номенклатура", "Остаток", "МассивТоваров"]);
+          assert.equal(labels.includes("Вставить"), false);
+        });
+
+        it("поддерживает фиксированную структуру и английское имя Property", function () {
+          let suggestions = getPropertyCompletion('ФиксированныеПараметры.Property("').suggestions;
+          assert.equal(suggestions.some(suggestion => suggestion.label === "Ключ"), true);
+        });
+
+        it("фильтрует префикс и заменяет только текст внутри кавычек", function () {
+          let result = getPropertyCompletion('Параметры.Свойство("Но');
+          let suggestion = result.suggestions.find(item => item.label === "Номенклатура");
+
+          expect(result.suggestions).to.have.length(1);
+          expect(suggestion).to.not.equal(undefined);
+          assert.equal(suggestion.insertText, "Номенклатура");
+          assert.equal(result.bsl.model.getValueInRange(suggestion.range), "Но");
+        });
+
+        it("применяет операции кода поверх свойств customObjects", function () {
+          let suggestions = getPropertyCompletion(
+            'Параметры.Удалить("Остаток");\n'
+            + 'Параметры.Вставить("НовыйКлюч", 1);\n'
+            + 'Параметры.Свойство("'
+          ).suggestions;
+
+          assert.equal(suggestions.some(item => item.label === "Номенклатура"), true);
+          assert.equal(suggestions.some(item => item.label === "НовыйКлюч"), true);
+          assert.equal(suggestions.some(item => item.label === "Остаток"), false);
+        });
+
+        it("использует ключи локальной структуры из конструктора и операций", function () {
+          let suggestions = getPropertyCompletion(
+            'С = Новый Структура("Ключ1, Ключ2");\n'
+            + 'С.Удалить("Ключ1");\n'
+            + 'С.Вставить("Ключ3", 3);\n'
+            + 'С.Свойство("'
+          ).suggestions;
+
+          assert.equal(suggestions.some(item => item.label === "Ключ1"), false);
+          assert.equal(suggestions.some(item => item.label === "Ключ2"), true);
+          assert.equal(suggestions.some(item => item.label === "Ключ3"), true);
+        });
+
+        it("использует типизирующий комментарий и учитывает Очистить", function () {
+          let suggestions = getPropertyCompletion(
+            '// Структура:\n'
+            + '// * Объявленный - Строка\n'
+            + 'С = ПолучитьПараметры();\n'
+            + 'С.Очистить();\n'
+            + 'С.Вставить("ПослеОчистки", 1);\n'
+            + 'С.Свойство("'
+          ).suggestions;
+
+          assert.equal(suggestions.some(item => item.label === "Объявленный"), false);
+          assert.equal(suggestions.some(item => item.label === "ПослеОчистки"), true);
+        });
+
+        it("не срабатывает вне первого незакрытого строкового параметра", function () {
+          let texts = [
+            'Параметры.Свойство("Номенклатура")',
+            'Параметры.Свойство("Номенклатура", "',
+            'Параметры.Вставить("',
+            'Неизвестный.Свойство("',
+            'НеструктурныйОбъект.Свойство("'
+          ];
+
+          texts.forEach(text => {
+            let suggestions = getPropertyCompletion(text).suggestions;
+            assert.equal(suggestions.some(item => item.label === "Номенклатура" || item.label === "ЛожноеСвойство"), false, text);
+          });
+        });
+
+        it("не срабатывает в режиме запроса и СКД", function () {
+          let originalIsQueryMode = window.isQueryMode;
+          let originalIsDCSMode = window.isDCSMode;
+
+          try {
+            let bsl = helper('Параметры.Свойство("');
+            let suggestions = [];
+
+            window.isQueryMode = function () { return true; };
+            assert.equal(bsl.getStructurePropertyNameCompletion(suggestions), false);
+            expect(suggestions).to.be.empty;
+
+            window.isQueryMode = function () { return false; };
+            window.isDCSMode = function () { return true; };
+            assert.equal(bsl.getStructurePropertyNameCompletion(suggestions), false);
+            expect(suggestions).to.be.empty;
+          }
+          finally {
+            window.isQueryMode = originalIsQueryMode;
+            window.isDCSMode = originalIsDCSMode;
+          }
+        });
+
+      });
+
+      describe("setObjectContext: контекст текущего объекта", function () {
+
+        it("подсказки объекта по Ctrl+Space в пустом редакторе", function () {
+          try {
+            window.setObjectContext('Справочники.Товары');
+            let suggestions = [];
+            bsl = helper('');
+            bsl.getRefSuggestions(suggestions, { ref: window.objectContext, parent_ref: null, sig: null });
+            expect(suggestions).to.be.an('array').that.not.is.empty;
+            assert.equal(suggestions.some(suggest => suggest.label === "Записать"), true);
+            assert.equal(suggestions.some(suggest => suggest.label === "Заблокировать"), true);
+            assert.equal(suggestions.some(suggest => suggest.label === "ОбменДанными"), true);
+          }
+          finally {
+            window.clearObjectContext();
+          }
+        });
+
+        it("подсказки объекта при наборе префикса", function () {
+          try {
+            window.setObjectContext('Справочники.Товары');
+            bsl = helper('Запи');
+            let suggestions = bsl.getCodeCompletion({ triggerCharacter: '' });
+            expect(suggestions).to.be.an('array').that.not.is.empty;
+            assert.equal(suggestions.some(suggest => suggest.label === "Записать"), true);
+          }
+          finally {
+            window.clearObjectContext();
+          }
+        });
+
+        it("подсказка после точки для переменной ЭтотОбъект", function () {
+          try {
+            window.setObjectContext('Справочники.Товары');
+            bsl = helper('ЭтотОбъект.');
+            let suggestions = [];
+            bsl.getRefCompletion(suggestions);
+            expect(suggestions).to.be.an('array').that.not.is.empty;
+            assert.equal(suggestions.some(suggest => suggest.label === "Записать"), true);
+            assert.equal(suggestions.some(suggest => suggest.label === "ОбменДанными"), true);
+          }
+          finally {
+            window.clearObjectContext();
+          }
+        });
+
+        it("подсказка после точки для переменной ThisObject", function () {
+          try {
+            window.setObjectContext('Справочники.Товары');
+            bsl = helper('ThisObject.');
+            let suggestions = [];
+            bsl.getRefCompletion(suggestions);
+            expect(suggestions).to.be.an('array').that.not.is.empty;
+            assert.equal(suggestions.some(suggest => suggest.label === "Записать"), true);
+          }
+          finally {
+            window.clearObjectContext();
+          }
+        });
+
+        it("другие переменные после точки не получают объектный контекст", function () {
+          try {
+            window.setObjectContext('Справочники.Товары');
+            bsl = helper('СпрОбъект.');
+            let suggestions = [];
+            bsl.getRefCompletion(suggestions);
+            assert.equal(suggestions.some(suggest => suggest.label === "ОбменДанными"), false);
+            assert.equal(suggestions.some(suggest => suggest.label === "Записать"), false);
+          }
+          finally {
+            window.clearObjectContext();
+          }
+        });
+
+        it("переменная со своим контекстом работает как раньше", function () {
+          try {
+            window.setObjectContext('Справочники.Товары');
+            bsl = helper('СтавкаНДС = Справочники.СтавкиНДС.НайтиПоКоду(1);\nСтавкаНДС.');
+            let suggestions = [];
+            bsl.getMetadataCompletion(suggestions, window.bslMetadata)
+            expect(suggestions).to.be.an('array').that.not.is.empty;
+            assert.equal(suggestions.some(suggest => suggest.label === "Ставка"), true);
+          }
+          finally {
+            window.clearObjectContext();
+          }
+        });
+
+        it("clearObjectContext снимает установленный контекст объекта", function () {
+          window.setObjectContext('Справочники.Товары');
+          assert.equal(window.clearObjectContext(), true);
+          bsl = helper('ЭтотОбъект.');
+          let suggestions = [];
+          bsl.getRefCompletion(suggestions);
+          assert.equal(suggestions.some(suggest => suggest.label === "ОбменДанными"), false);
+        });
+
+      })
+
       it("проверка подсказки параметров для функции ВыгрузитьКолонку таблицы значений, полученной из другой таблицы", function () {
         bsl = helper('Таблица1 = Новый ТаблицаЗначений();\nТаблица2 = Таблица1.Скопировать();\nТаблица2.ВыгрузитьКолонку(');
         let suggestions = [];  
@@ -1316,7 +2084,8 @@ setTimeout(() => {
       });
 
       it("проверка поиска определения для функции, вызываемой внутри конструкции", function () {
-        const model = getModel('Функция СкопироватьРекурсивно(Источник)\n// Какой-то код\nКонецФункции\n\nСтруктура.Вставить(Обход.Ключ, СкопироватьРекурсивно(Обход.Значение));');
+        
+        let model = getModel('Функция СкопироватьРекурсивно(Источник)\n// Какой-то код\nКонецФункции\n\nСтруктура.Вставить(Обход.Ключ, СкопироватьРекурсивно(Обход.Значение));');
         let position = new monaco.Position(5, 33);
         bsl = new bslHelper(model, position);
         let locations = bsl.provideDefinition();
@@ -1325,10 +2094,170 @@ setTimeout(() => {
         bsl = new bslHelper(model, position);
         locations = bsl.provideDefinition();
         assert.equal(locations, null);
+
+        model = getModel('Структура.Вставить(Обход.Ключ, СкопироватьРекурсивно(Обход.Значение));\n\nФункция СкопироватьРекурсивно(Источник)\n// Какой-то код\nКонецФункции');
+        position =  new monaco.Position(1, 33);
+        bsl = new bslHelper(model, position);
+        locations = bsl.provideDefinition();
+        expect(locations).to.be.an('array').that.not.is.empty;
+
+      });
+
+      it("проверка списка процедур и функций модуля", function () {
+
+        const model = getModel([
+          '// Функция ЛожнаяФункция() Экспорт',
+          'Текст = "Процедура ЛожнаяПроцедура() Экспорт";',
+          '',
+          'Процедура БезПараметров()',
+          'КонецПроцедуры',
+          '',
+          'фУнКцИя ЭтоЧисло(',
+          '  Знач ПроверяемоеЗначение,',
+          '  Настройка = "a,b=c",',
+          '  ПустаяСтрока = "",',
+          '  Выражение = Обертка(1, 2)',
+          ') Экспорт',
+          'КонецФункции',
+          '',
+          'Procedure EnglishMethod(',
+          '  Val Value = Undefined,',
+          '  Reference',
+          ') Export',
+          'EndProcedure'
+        ].join('\n'));
+
+        const methods = bslHelper.getModuleMethods(model);
+
+        assert.equal(methods.length, 3);
+        assert.deepEqual(methods.map(method => method.name), ['БезПараметров', 'ЭтоЧисло', 'EnglishMethod']);
+
+        assert.deepInclude(methods[0], {
+          line: 4,
+          type: 'procedure',
+          isExport: false,
+          hasParameters: false
+        });
+        assert.deepEqual(methods[0].parameters, []);
+
+        assert.deepInclude(methods[1], {
+          line: 7,
+          type: 'function',
+          isExport: true,
+          hasParameters: true
+        });
+        assert.deepEqual(methods[1].parameters, [
+          { name: 'ПроверяемоеЗначение', byValue: true, hasDefaultValue: false, defaultValue: null },
+          { name: 'Настройка', byValue: false, hasDefaultValue: true, defaultValue: '"a,b=c"' },
+          { name: 'ПустаяСтрока', byValue: false, hasDefaultValue: true, defaultValue: '""' },
+          { name: 'Выражение', byValue: false, hasDefaultValue: true, defaultValue: 'Обертка(1, 2)' }
+        ]);
+
+        assert.deepInclude(methods[2], {
+          line: 15,
+          type: 'procedure',
+          isExport: true,
+          hasParameters: true
+        });
+        assert.deepEqual(methods[2].parameters, [
+          { name: 'Value', byValue: true, hasDefaultValue: true, defaultValue: 'Undefined' },
+          { name: 'Reference', byValue: false, hasDefaultValue: false, defaultValue: null }
+        ]);
+
+      });
+
+      it("проверка символов процедур и функций для Monaco", function () {
+
+        const model = getModel([
+          'Процедура ВыполнитьДействие()',
+          'КонецПроцедуры',
+          '',
+          'Функция ПолучитьЗначение() Экспорт',
+          'КонецФункции'
+        ].join('\n'));
+
+        const symbols = bslHelper.provideDocumentSymbols(model);
+
+        assert.equal(symbols.length, 2);
+        assert.equal(symbols[0].kind, monaco.languages.SymbolKind.Method);
+        assert.equal(symbols[1].kind, monaco.languages.SymbolKind.Function);
+        assert.equal(symbols[0].selectionRange.startLineNumber, 1);
+        assert.equal(symbols[1].selectionRange.startLineNumber, 4);
+        assert.equal(symbols[1].selectionRange.startColumn, 9);
+
+      });
+
+      it("проверка публичной функции getModuleMethods", function () {
+
+        const originalText = window.editor.getValue();
+
+        try {
+          window.editor.setValue('Функция Публичная(Знач Параметр = Ложь) Экспорт\nКонецФункции');
+          const methods = JSON.parse(window.getModuleMethods());
+
+          assert.equal(methods.length, 1);
+          assert.deepInclude(methods[0], {
+            name: 'Публичная',
+            line: 1,
+            type: 'function',
+            isExport: true,
+            hasParameters: true
+          });
+          assert.deepEqual(methods[0].parameters[0], {
+            name: 'Параметр',
+            byValue: true,
+            hasDefaultValue: true,
+            defaultValue: 'Ложь'
+          });
+        }
+        finally {
+          window.editor.setValue(originalText);
+        }
+
       });
 
     }
 
+    it("проверка доступности объектов в подсказках при смене контекста", function () {
+
+      window.setContextMode('Server');
+      bsl = helper('Товар = Справоч');
+      let completion = bsl.getCompletion({ triggerCharacter: undefined });
+      expect(completion).to.be.an('object');
+      expect(completion.suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(completion.suggestions.some(suggest => suggest.label === "Справочники"), true);
+
+      bsl = helper('Запрос = Новый ');
+      completion = bsl.getCompletion({ triggerCharacter: ' ' });
+      expect(completion).to.be.an('object');
+      expect(completion.suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(completion.suggestions.some(suggest => suggest.label === "Запрос"), true);
+      assert.equal(completion.suggestions.some(suggest => suggest.label === "ТаблицаЗначений"), true);
+      assert.equal(completion.suggestions.some(suggest => suggest.label === "Массив"), true);
+
+      window.setContextMode('Client');
+      bsl = helper('Товар = Справоч');
+      completion = bsl.getCompletion({ triggerCharacter: undefined });
+      expect(completion).to.be.an('object');
+      expect(completion.suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(completion.suggestions.some(suggest => suggest.label === "Справочники"), false);
+
+      bsl = helper('Запрос = Новый ');
+      completion = bsl.getCompletion({ triggerCharacter: ' ' });
+      console.log(completion);
+      expect(completion).to.be.an('object');
+      expect(completion.suggestions).to.be.an('array').that.not.is.empty;
+      assert.equal(completion.suggestions.some(suggest => suggest.label === "Запрос"), false);
+      assert.equal(completion.suggestions.some(suggest => suggest.label === "ТаблицаЗначений"), false);
+      assert.equal(completion.suggestions.some(suggest => suggest.label === "Массив"), true);
+
+    });
+
+    const testFormatter = false;
+
+    if (testFormatter)
+      registerFormatterBrowserTests(getModel);
+    
     // Адаптер результатов (Этап 3c): по завершении прогона кладём runner.stats в
     // window.mochaResults (headless-раннер их читает) и «кликаем» скрытую #AutotestResult
     // (механика T3-автотеста в поле 1С по образцу VAEditor — для будущего гейта в .epf).
