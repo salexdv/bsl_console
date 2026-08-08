@@ -1644,14 +1644,16 @@ window.enableKeyBinding = function (keybinding) {
 window.jumpToBracket = function () {
 
   if (!jumpToIfBracket())
-    window.editor.trigger('', 'editor.action.jumpToBracket');
+    if (!jumpToKeywordBracket())
+      window.editor.trigger('', 'editor.action.jumpToBracket');
 
 }
 
 window.selectToBracket = function () {
 
   if (!selectToIfBracket())
-    window.editor.trigger('', 'editor.action.selectToBracket');
+    if (!selectToKeywordBracket())
+      window.editor.trigger('', 'editor.action.selectToBracket');
 
 }
 
@@ -2592,7 +2594,7 @@ function initEditorEventListenersAndProperies() {
     updateStatusBar();
     onChangeSnippetSelection(e);
     updateSelectedQueryDelimiters(e);
-    updateIfHighlights();
+    updateBlockHighlights();
     
   });
 
@@ -2953,6 +2955,185 @@ function selectToIfBracket(active_editor = getActiveEditor()) {
 
 }
 
+function getKeywordBracketInfo(model, lineNumber) {
+
+  const lineContent = model.getLineContent(lineNumber);
+  const match = lineContent.match(languages.bsl.keywordBracketRegExp);
+
+  if (!match)
+    return null;
+
+  const word = match[1].toLowerCase();
+  const startColumn = match[0].length - match[1].length + 1;
+  const endColumn = startColumn + match[1].length;
+  const range = new monaco.Range(lineNumber, startColumn, lineNumber, endColumn);
+
+  for (const group of languages.bsl.keywordBracketGroups)
+    if (group.open.some(w => w === word))
+      return { type: group.type, isClose: false, range: range };
+
+  for (const group of languages.bsl.keywordBracketGroups)
+    if (group.close.some(w => w === word))
+      return { type: group.type, isClose: true, range: range };
+
+  return null;
+
+}
+
+function getKeywordBlock(model, activeRange) {
+
+  const stack = [];
+
+  for (let lineNumber = 1; lineNumber <= model.getLineCount(); lineNumber++) {
+    const info = getKeywordBracketInfo(model, lineNumber);
+
+    if (!info)
+      continue;
+
+    if (!info.isClose) {
+      stack.push({ type: info.type, start: info.range });
+      continue;
+    }
+
+    const openBlock = stack.pop();
+
+    if (!openBlock || openBlock.type != info.type)
+      continue;
+
+    if (openBlock.start.equalsRange(activeRange) || info.range.equalsRange(activeRange))
+      return { type: openBlock.type, start: openBlock.start, end: info.range };
+  }
+
+  return null;
+
+}
+
+function getContainingKeywordBlock(model, position) {
+
+  const stack = [];
+  let result = null;
+
+  for (let lineNumber = 1; lineNumber <= model.getLineCount(); lineNumber++) {
+    const info = getKeywordBracketInfo(model, lineNumber);
+
+    if (!info)
+      continue;
+
+    if (!info.isClose) {
+      stack.push({ type: info.type, start: info.range });
+      continue;
+    }
+
+    const openBlock = stack.pop();
+
+    if (!openBlock || openBlock.type != info.type)
+      continue;
+
+    const fullRange = new monaco.Range(
+      openBlock.start.startLineNumber,
+      openBlock.start.startColumn,
+      info.range.endLineNumber,
+      info.range.endColumn
+    );
+
+    if (rangeContainsPosition(fullRange, position))
+      result = { type: openBlock.type, start: openBlock.start, end: info.range };
+  }
+
+  return result;
+
+}
+
+function getKeywordBlockContext(active_editor = getActiveEditor()) {
+
+  if (!active_editor || !active_editor.getModel)
+    return null;
+
+  const model = active_editor.getModel();
+
+  if (!model || model.getLanguageId() != 'bsl')
+    return null;
+
+  const position = active_editor.getPosition();
+  const keywordInfo = getKeywordBracketInfo(model, position.lineNumber);
+
+  if (keywordInfo && keywordInfo.range.containsPosition(position)) {
+    const block = getKeywordBlock(model, keywordInfo.range);
+
+    if (block)
+      return {
+        editor: active_editor,
+        position: position,
+        keywordInfo: keywordInfo,
+        block: block,
+        fromKeyword: true
+      };
+  }
+
+  const containingBlock = getContainingKeywordBlock(model, position);
+
+  if (!containingBlock)
+    return null;
+
+  return {
+    editor: active_editor,
+    position: position,
+    keywordInfo: null,
+    block: containingBlock,
+    fromKeyword: false
+  };
+
+}
+
+function jumpToKeywordBracket(active_editor = getActiveEditor()) {
+
+  const context = getKeywordBlockContext(active_editor);
+
+  if (!context)
+    return false;
+
+  let target = null;
+
+  if (context.fromKeyword) {
+    target = context.keywordInfo.isClose
+      ? context.block.start.getStartPosition()
+      : context.block.end.getStartPosition();
+  }
+  else {
+    const position = context.position;
+    const start = context.block.start.getStartPosition();
+    const end = context.block.end.getStartPosition();
+    const startDistance = Math.abs(position.lineNumber - start.lineNumber) * 1000 + Math.abs(position.column - start.column);
+    const endDistance = Math.abs(position.lineNumber - end.lineNumber) * 1000 + Math.abs(position.column - end.column);
+    target = startDistance <= endDistance ? start : end;
+  }
+
+  context.editor.setPosition(target);
+  context.editor.revealPositionInCenterIfOutsideViewport(target);
+  return true;
+
+}
+
+function selectToKeywordBracket(active_editor = getActiveEditor()) {
+
+  const context = getKeywordBlockContext(active_editor);
+
+  if (!context)
+    return false;
+
+  const range = new monaco.Range(
+    context.block.start.startLineNumber,
+    context.block.start.startColumn,
+    context.block.end.endLineNumber,
+    context.block.end.endColumn
+  );
+
+  context.editor.setSelection(range);
+  context.editor.revealPositionInCenterIfOutsideViewport(range.getEndPosition());
+  return true;
+
+}
+
 function clearIfHighlights(active_editor = getActiveEditor()) {
 
   if (!active_editor)
@@ -2962,7 +3143,7 @@ function clearIfHighlights(active_editor = getActiveEditor()) {
 
 }
 
-function updateIfHighlights(active_editor = getActiveEditor()) {
+function updateBlockHighlights(active_editor = getActiveEditor()) {
 
   if (!active_editor || !active_editor.getModel)
     return;
@@ -2975,16 +3156,19 @@ function updateIfHighlights(active_editor = getActiveEditor()) {
     return;
   }
 
-  const context = getIfBlockContext(active_editor);
+  const ranges = [];
 
-  if (!context) {
-    clearIfHighlights(active_editor);
-    return;
-  }
+  const ifContext = getIfBlockContext(active_editor);
 
-  const ranges = context.ranges;
+  if (ifContext && ifContext.ranges && ifContext.ranges.length)
+    ranges.push(...ifContext.ranges);
 
-  if (!ranges || ranges.length == 0) {
+  const keywordContext = getKeywordBlockContext(active_editor);
+
+  if (keywordContext)
+    ranges.push(keywordContext.block.start, keywordContext.block.end);
+
+  if (ranges.length == 0) {
     clearIfHighlights(active_editor);
     return;
   }
@@ -3891,7 +4075,7 @@ function diffEditorOnDidChangeCursorPosition(e) {
       });
     }
 
-    updateIfHighlights(getActiveDiffEditor());
+    updateBlockHighlights(getActiveDiffEditor());
     updateStatusBar();
 
   }
