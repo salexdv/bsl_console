@@ -272,6 +272,80 @@ function activeTempTablesBefore(document, statement) {
     return active;
 }
 
+function completionFieldName(item) {
+    if (!item)
+        return '';
+
+    if (item.alias && item.alias.name)
+        return item.alias.name;
+
+    let references = item.references || item.expression && item.expression.references || [];
+
+    for (let index = references.length - 1; 0 <= index; index--) {
+        let reference = references[index];
+        if (reference && reference.kind == 'column')
+            return reference.fieldName || reference.name || '';
+    }
+
+    return '';
+}
+
+function completionSource(activeTempTables, source) {
+    if (!source || source.kind != 'table' || !source.name)
+        return null;
+
+    let tempTable = activeTempTables[normalizeName(source.name)];
+
+    if (tempTable) {
+        let firstBranch = tempTable.branches && tempTable.branches[0];
+        let items = firstBranch && firstBranch.select && firstBranch.select.items || [];
+        let fields = items.map(completionFieldName).filter(name => !!name);
+
+        return fields.length ? {
+            kind: 'temporary',
+            name: source.name,
+            fields: fields
+        } : null;
+    }
+
+    return 0 < source.name.indexOf('.') ? {
+        kind: 'metadata',
+        name: source.name,
+        fields: []
+    } : null;
+}
+
+function resolveFieldCompletionSources(document, lineNumber, column, sourceName) {
+    if (!document || !document.getContextAt)
+        return null;
+
+    let context = document.getContextAt(lineNumber, column);
+    if (!context || !context.statement || context.statement.kind != 'selectStatement' || !context.branch)
+        return null;
+
+    let sources = [];
+
+    if (sourceName) {
+        let source = context.branch.sourceIndex && context.branch.sourceIndex[normalizeName(sourceName)];
+        if (!source)
+            return null;
+        sources.push(source);
+    }
+    else
+        sources = getSourceAtoms(context.branch);
+
+    let activeTempTables = activeTempTablesBefore(document, context.statement);
+    let result = [];
+
+    sources.forEach(source => {
+        let resolved = completionSource(activeTempTables, source);
+        if (resolved)
+            result.push(resolved);
+    });
+
+    return result.length ? result : null;
+}
+
 function matchingSelectItems(statement, name) {
     let firstBranch = statement && statement.branches && statement.branches[0];
     let items = firstBranch && firstBranch.select && firstBranch.select.items || [];
@@ -471,7 +545,8 @@ function provideDefinition(document, text, lineNumber, column) {
 
 const queryNavigation = {
     provideDocumentSymbols: provideDocumentSymbols,
-    provideDefinition: provideDefinition
+    provideDefinition: provideDefinition,
+    resolveFieldCompletionSources: resolveFieldCompletionSources
 };
 
 export default queryNavigation;

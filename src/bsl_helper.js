@@ -6312,12 +6312,92 @@ class bslHelper {
 	}
 
 	/**
-	 * Fills array of completion for fields of querie's table
-	 * 
+	 * Заполняет подсказки полей по актуальной модели запроса.
+	 *
+	 * @param {array} suggestions array of suggestions for provideCompletionItems
+	 * @param {string} sourceName имя или псевдоним источника; пустая строка означает все источники ветки
+	 * @returns {boolean} модель смогла обработать хотя бы один источник
+	 */
+	getQueryFieldsCompletionFromModel(suggestions, sourceName) {
+
+		if (!queryModelService || !queryModelService.getCurrentSynchronously ||
+			!queryNavigation || !queryNavigation.resolveFieldCompletionSources)
+			return false;
+
+		let document = queryModelService.getCurrentSynchronously(this.model);
+
+		if (!document)
+			return false;
+
+		let sources = queryNavigation.resolveFieldCompletionSources(
+			document,
+			this.lineNumber,
+			this.column,
+			sourceName
+		);
+
+		if (!sources)
+			return false;
+
+		let handled = false;
+
+		sources.forEach(source => {
+			if (source.kind == 'metadata') {
+				handled = this.getQueryFieldsCompletionForMetadata(suggestions, source.name) || handled;
+			}
+			else if (source.kind == 'temporary' && source.fields && source.fields.length) {
+				source.fields.forEach(field => {
+					suggestions.push({
+						label: field,
+						kind: monaco.languages.CompletionItemKind.Enum,
+						insertText: field,
+						insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+					});
+				});
+
+				handled = true;
+			}
+		});
+
+		return handled;
+
+	}
+
+	/**
+	 * Fills array of completion for fields of querie's table. Uses parsed query model first.
+	 *
 	 * @param {array} suggestions array of suggestions for provideCompletionItems
 	 * @param {bool} allowChain allow or not call chain completion (to avoid looping)
 	 */
 	getQueryFieldsCompletion(suggestions, allowChain = true) {
+
+		let sourceName = '';
+
+		if (this.getLastCharacter() == '.' && this.lastRawExpression)
+			sourceName = this.lastRawExpression;
+		else if (this.lastRawExpression && this.getLastNExpression(1) == '.')
+			sourceName = this.getLastNExpression(2);
+		else {
+			let lastWord = this.getLastSeparatedWord();
+			if (this.isKeyword(lastWord) && !this.isFromTrigger(lastWord) &&
+				this.getQueryFieldsCompletionFromModel(suggestions, ''))
+				return;
+		}
+
+		if (sourceName && this.getQueryFieldsCompletionFromModel(suggestions, sourceName))
+			return;
+
+		this.getQueryFieldsCompletionLegacy(suggestions, allowChain);
+
+	}
+
+	/**
+	 * Прежний алгоритм подсказки полей на регулярных выражениях.
+	 *
+	 * @param {array} suggestions array of suggestions for provideCompletionItems
+	 * @param {bool} allowChain allow or not call chain completion (to avoid looping)
+	 */
+	getQueryFieldsCompletionLegacy(suggestions, allowChain = true) {
 
 		let position = null;
 		let last_expression = this.lastRawExpression;

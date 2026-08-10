@@ -1,4 +1,12 @@
 import bslHelper from './bsl_helper';
+import queryModelService from './query_model_service';
+
+function getQueryCompletion(model, position, context) {
+    let bsl = new bslHelper(model, position);
+    let completion = bsl.getQueryCompletion(context);
+    bsl.onProvideCompletion(context, completion);
+    return (completion && completion.suggestions && completion.suggestions.length) ? completion : undefined;
+}
 
 function getFormatOptions(model) {
     const context = window.editor && window.editor.bslFormattingContext;
@@ -867,12 +875,17 @@ export let languages = {
             triggerCharacters: ['.', '(', '&', ' '],
             provideCompletionItems: function (model, position, context, token) {
                 resetSuggestWidgetDisplay();
-                let bsl = new bslHelper(model, position);
-                let completion = bsl.getQueryCompletion(context);
-                bsl.onProvideCompletion(context, completion);
-                // 0.55: пусто → undefined, иначе на авто-триггере (пробел/точка/&) висит блок
-                // «No suggestions» (в 0.20 return [] его не показывал). Ctrl+Space monaco обработает сам.
-                return (completion && completion.suggestions && completion.suggestions.length) ? completion : undefined;
+
+                if (context && context.triggerCharacter == '.') {
+                    return queryModelService.getCurrent(model, token).then(result => {
+                        if (result.status == 'stale' || result.status == 'cancelled' || result.status == 'closed')
+                            return { suggestions: [] };
+
+                        return getQueryCompletion(model, position, context);
+                    });
+                }
+
+                return getQueryCompletion(model, position, context);
             }
         },
         foldingProvider: {

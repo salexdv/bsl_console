@@ -888,21 +888,35 @@ const KEYWORDS = new Set([
             let sourceIndex = {};
             let selectIndex = {};
 
+            let addSourceToIndex = source => {
+                if (!source)
+                    return;
+
+                let names = [];
+
+                if (source.alias && source.alias.name)
+                    names.push(source.alias.name);
+                else if (source.name) {
+                    names.push(source.name);
+
+                    let sourceParts = source.name.split('.');
+                    if (1 < sourceParts.length)
+                        names.push(sourceParts[sourceParts.length - 1]);
+                }
+
+                names.forEach(name => {
+                    if (name)
+                        sourceIndex[name.toLowerCase()] = source;
+                });
+            };
+
             if (branch.from && branch.from.sources) {
                 branch.from.sources.forEach(source => {
-                    if (source.base) {
-                        let sourceName = source.base.alias ? source.base.alias.name : source.base.name;
-                        if (sourceName)
-                            sourceIndex[sourceName.toLowerCase()] = source.base;
-                    }
+                    addSourceToIndex(source.base);
 
                     if (source.joins) {
                         source.joins.forEach(join => {
-                            if (join.source) {
-                                let joinName = join.source.alias ? join.source.alias.name : join.source.name;
-                                if (joinName)
-                                    sourceIndex[joinName.toLowerCase()] = join.source;
-                            }
+                            addSourceToIndex(join.source);
                         });
                     }
                 });
