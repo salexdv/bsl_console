@@ -323,6 +323,30 @@ function get(model, parseIfMissing) {
     return parseForModel(model);
 }
 
+function getCurrentSynchronously(model) {
+    if (!isModelAvailable(model) || !canParse())
+        return null;
+
+    let version = getVersion(model);
+    if (model._queryModelCache && model._queryModelCache.version == version)
+        return queryModel.attachRuntime(model._queryModelCache.document);
+
+    let textLength = model.getValueLength ? model.getValueLength() : (model.getValue ? model.getValue().length : 0);
+    if (workerAvailable && QUERY_MODEL_SYNC_PARSE_LIMIT < textLength) {
+        schedule(model);
+        return null;
+    }
+
+    try {
+        return parseForModel(model);
+    }
+    catch (error) {
+        if (typeof console != 'undefined' && console.warn)
+            console.warn('query_model synchronous parse failed', error);
+        return null;
+    }
+}
+
 function isCancelled(token) {
     return !!(token && token.isCancellationRequested);
 }
@@ -364,6 +388,15 @@ function getCurrent(model, token) {
     let text = model.getValue();
     if (text.length <= QUERY_MODEL_SYNC_PARSE_LIMIT || !workerAvailable || typeof Worker == 'undefined')
         return Promise.resolve(parseCurrentSynchronously(model, token));
+
+    // Запрос актуальной модели не должен ждать отложенный фоновый разбор
+    // и создавать вслед за ним вторую worker-задачу той же версии.
+    let state = model._queryModelParseState || {};
+    if (state.timer) {
+        clearTimeout(state.timer);
+        state.timer = null;
+        model._queryModelParseState = state;
+    }
 
     return new Promise(resolve => {
         let request = {
@@ -413,6 +446,7 @@ const queryModelService = {
         return get(model, false);
     },
 
+    getCurrentSynchronously: getCurrentSynchronously,
     getCurrent: getCurrent,
     schedule: schedule,
     parseForModel: parseForModel

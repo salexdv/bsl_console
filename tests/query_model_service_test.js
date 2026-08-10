@@ -153,12 +153,34 @@ async function testSynchronousCurrentDocument() {
     assert.equal(FakeWorker.instances.length, 0);
 }
 
+function testCurrentDocumentSynchronouslyForCompletion() {
+    let service = loadService();
+    let model = new FakeModel('ВЫБРАТЬ 1 КАК Первое');
+    let first = service.getCurrentSynchronously(model);
+    assert(first);
+    assert.equal(first.statements[0].branches[0].select.items[0].name, 'Первое');
+
+    model.setValue('ВЫБРАТЬ 2 КАК Второе');
+    let second = service.getCurrentSynchronously(model);
+    assert(second);
+    assert.equal(second.statements[0].branches[0].select.items[0].name, 'Второе');
+    assert.equal(model._queryModelCache.version, model.version, 'устаревшая модель не должна возвращаться для подсказки');
+
+    let largeModel = new FakeModel(largeQuery());
+    assert.equal(service.getCurrentSynchronously(largeModel), null, 'большой запрос должен ждать актуальную модель worker');
+}
+
 async function testWorkerCurrentDocument() {
     let service = loadService();
     let model = new FakeModel(largeQuery());
+    service.schedule(model);
+    assert(model._queryModelParseState.timer, 'должен быть запланирован фоновый разбор');
+
     let pending = service.getCurrent(model, new FakeCancellationToken());
     assert.equal(FakeWorker.instances.length, 1);
     assert.equal(FakeWorker.instances[0].jobs.length, 1);
+    assert.equal(model._queryModelParseState.timer, null, 'актуальный запрос должен отменить отложенный разбор');
+
     FakeWorker.instances[0].completeNext();
     let result = await pending;
     assert.equal(result.status, 'ready');
@@ -205,6 +227,7 @@ async function testClosedModelAndWorkerError() {
 
 async function main() {
     await testSynchronousCurrentDocument();
+    testCurrentDocumentSynchronouslyForCompletion();
     await testWorkerCurrentDocument();
     await testStaleAndCancelledRequests();
     await testClosedModelAndWorkerError();

@@ -1,5 +1,6 @@
 import bslHelper from './bsl_helper';
 import queryModel from './query_model';
+import { languages } from './bsl_language';
 
 setTimeout(() => {
 
@@ -345,6 +346,33 @@ setTimeout(() => {
       expect(suggestions).to.be.an('object');
       expect(suggestions.suggestions).to.be.an('array').that.not.is.empty;
       assert.equal(suggestions.suggestions.some(suggest => suggest.label === "ВЫРАЗИТЬ"), true);
+    });
+
+    it("ожидание актуальной модели для подсказки по точке в большом запросе", async function () {
+      let query = '// ' + 'д'.repeat(21000) + '\n' +
+        'ВЫБРАТЬ\n' +
+        '\tТовары.Ссылка КАК Ссылка,\n' +
+        '\tТовары.Код КАК Код\n' +
+        'ПОМЕСТИТЬ втТовары\n' +
+        'ИЗ\n' +
+        '\tСправочник.Товары КАК Товары;\n\n' +
+        'ВЫБРАТЬ\n' +
+        '\tТовары.\n' +
+        'ИЗ\n' +
+        '\tвтТовары КАК Товары;';
+      let model = monaco.editor.createModel(query, 'bsl_query');
+      let position = getPosition(10, 9);
+      let completion = await languages.query.completionProvider.provideCompletionItems(
+        model,
+        position,
+        { triggerCharacter: '.' },
+        { isCancellationRequested: false }
+      );
+
+      expect(completion.suggestions).to.be.an('array').that.is.not.empty;
+      assert.equal(completion.suggestions.some(suggest => suggest.label === 'Ссылка'), true);
+      assert.equal(completion.suggestions.some(suggest => suggest.label === 'Код'), true);
+      model.dispose();
     });
 
     it("проверка подсказки параметров для функции запроса", function () {
@@ -827,7 +855,14 @@ setTimeout(() => {
 
     window.setLanguageMode('bsl_query');
         
-    mocha.run();
+    let runner = mocha.run();
+    runner.on('end', function () {
+      window.queryTestsComplete = {
+        failures: runner.failures,
+        tests: runner.stats.tests,
+        passes: runner.stats.passes
+      };
+    });
 
   })
 

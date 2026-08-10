@@ -11,6 +11,7 @@ const ROOT = path.resolve(__dirname, '..');
 const DIST = path.join(ROOT, 'dist');
 const HTTP_PORT = 9013;
 const DEBUG_PORT = 9014;
+const QUERY_TEST_MODE = process.env.BSL_HEADLESS_QUERY_TEST == '1';
 
 function findBrowser() {
   const candidates = [
@@ -39,7 +40,10 @@ function contentType(file) {
     '.png': 'image/png',
     '.ttf': 'font/ttf'
   };
-  return types[path.extname(file)] || 'application/octet-stream';
+  const extension = path.extname(file);
+  if (!extension)
+    return 'text/html; charset=utf-8';
+  return types[extension] || 'application/octet-stream';
 }
 
 function startServer() {
@@ -334,11 +338,24 @@ const uiScenario = String.raw`(async function () {
   let client;
   try {
     await waitForDebugEndpoint(15000);
-    const target = await createTarget('http://127.0.0.1:' + HTTP_PORT + '/index.html');
+    const targetPath = QUERY_TEST_MODE ? '/test_query' : '/index.html';
+    const target = await createTarget('http://127.0.0.1:' + HTTP_PORT + targetPath);
     client = new CdpClient(target.webSocketDebuggerUrl);
     await client.connect();
     await client.send('Runtime.enable');
     await client.send('Network.enable');
+
+    if (QUERY_TEST_MODE) {
+      await client.waitFor('window.queryTestsComplete', 30000);
+      const result = await client.evaluate('window.queryTestsComplete');
+      console.log('[headless] query tests:', JSON.stringify(result));
+      if (result.failures)
+        process.exitCode = 1;
+      else
+        console.log('[headless] OK: браузерные тесты языка запросов проверены.');
+      return;
+    }
+
     try {
       await client.waitFor(
         'window.editor && typeof window.saveSearchHistory == "function" && typeof window.restoreSearchHistory == "function"',

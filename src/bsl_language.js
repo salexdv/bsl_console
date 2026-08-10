@@ -1,4 +1,12 @@
 import bslHelper from './bsl_helper';
+import queryModelService from './query_model_service';
+
+function getQueryCompletion(model, position, context) {
+    let bsl = new bslHelper(model, position);
+    let completion = bsl.getQueryCompletion(context);
+    bsl.onProvideCompletion(context, completion);
+    return completion;
+}
 
 function getFormatOptions(model) {
     const context = window.editor && window.editor.bslFormattingContext;
@@ -834,10 +842,17 @@ export let languages = {
             triggerCharacters: ['.', '(', '&', ' '],
             provideCompletionItems: function (model, position, context, token) {
                 resetSuggestWidgetDisplay();
-                let bsl = new bslHelper(model, position);
-                let completion = bsl.getQueryCompletion(context);
-                bsl.onProvideCompletion(context, completion);
-                return completion;
+
+                if (context && context.triggerCharacter == '.') {
+                    return queryModelService.getCurrent(model, token).then(result => {
+                        if (result.status == 'stale' || result.status == 'cancelled' || result.status == 'closed')
+                            return { suggestions: [] };
+
+                        return getQueryCompletion(model, position, context);
+                    });
+                }
+
+                return getQueryCompletion(model, position, context);
             }
         },
         foldingProvider: {
