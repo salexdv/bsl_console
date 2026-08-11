@@ -1,3 +1,13 @@
+## 0.3.7 (11.08.2026)
+
+### Новое:
+
+* Загрузка [синтаксис-помощника](https://raw.githubusercontent.com/salexdv/git_images/refs/heads/master/bslconsole_syntax_help.png) и вызов [справки](docs/help_browser.md) по `CTRL+F1`
+
+### Улучшения:
+
+* Подсказка полей таблиц с использованием модели запроса
+
 ## 0.3.6 (08.08.2026)
 
 ### Новое:
