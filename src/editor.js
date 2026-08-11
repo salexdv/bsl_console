@@ -359,30 +359,7 @@ window.getFormatString = function () {
 window.updateMetadata = function (metadata, path = '') {
 
   let bsl = new bslHelper(window.editor.getModel(), window.editor.getPosition());
-  let result = bsl.updateMetadata(metadata, path);
-
-  // Запрос метаданных асинхронный (EVENT_GET_METADATA): провайдер отдаёт список ДО ответа 1С,
-  // поэтому ПЕРВЫЙ показ блока автодополнения неполон — только уже загруженные имена (в поле,
-  // например, лишь менеджерное «ТипВсеСсылки» без объектов конфигурации). Когда данные пришли —
-  // если блок ещё открыт, обновляем его. ВАЖНО: один editor.action.triggerSuggest при уже
-  // открытом блоке НЕ опрашивает провайдер заново, а перефильтровывает уже показанный набор →
-  // список остаётся неполным (в этом и был баг «дозаполняется только по повторному вызову»).
-  // Поэтому сначала ПРЯЧЕМ блок (сброс сессии — hideSuggestWidget), затем через setTimeout
-  // триггерим заново — это чистый повторный опрос провайдера с уже загруженными метаданными.
-  // Тот же приём, что в checkEmptySuggestions. setTimeout — чтобы отработало в «живом» кадре
-  // после ввода (поле 1С красит ~1с после ввода); дедуп metadataRequests исключает повторное
-  // событие и петлю. Гейт по isSuggestWidgetVisible() (читает _ctxSuggestWidgetVisible, который
-  // monaco 0.55 ставит СИНХРОННО при показе; класс .visible вешается лишь через +100мс, т.е. к
-  // моменту ответа 1С его ещё нет — по нему гейтить нельзя) — чтобы suggest не выскакивал на
-  // bulk-загрузке метаданных при инициализации, когда блок не открыт.
-  try {
-    if (result === true && window.isSuggestWidgetVisible()) {
-      window.hideSuggestionsList();
-      setTimeout(function () { window.triggerSuggestions(); }, 10);
-    }
-  } catch (e) { /* best-effort */ }
-
-  return result;
+  return bsl.updateMetadata(metadata, path);
 
 }
 
@@ -1109,6 +1086,7 @@ window.compare = function (text="", sideBySide=true, highlight=true, markLines =
 
 window.triggerSuggestions = function() {
 
+  window.hideSuggestionsList();
   window.editor.trigger('', 'editor.action.triggerSuggest', {});
 
   setTimeout(() => {
