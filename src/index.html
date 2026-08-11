@@ -11,15 +11,41 @@
       height: 100%;
       margin: 0px;
     }
+    body {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    #editor-workspace {
+      min-height: 0;
+      flex: 1 1 auto;
+      display: flex;
+      min-width: 0;
+      overflow: hidden;
+    }
     #container {
-      height: 100%;
+      min-height: 0;
+      min-width: 0;
+      flex: 1 1 auto;
     }
   </style>
 </head>
 
 <body>
 
-  <div id="container"></div>  
+  <div id="help-file-loader" class="bsl-help-file-loader" hidden>
+    <span class="bsl-help-file-caption">Справка 1С</span>
+    <input id="help-file-input" class="bsl-help-file-input" type="file" accept=".hbk" multiple
+      title="Выберите shcntx_*.hbk и/или shlang_*.hbk">
+    <button id="help-file-load" class="bsl-help-file-button" type="button" disabled>Загрузить</button>
+    <button id="help-file-show" class="bsl-help-file-button" type="button">Открыть справку</button>
+    <span id="help-file-status" class="bsl-help-file-result" role="status" aria-live="polite">
+      Выберите shcntx_*.hbk и/или shlang_*.hbk
+    </span>
+  </div>
+  <div id="editor-workspace">
+    <div id="container"></div>
+  </div>
   <div id="display">
     <div id="display-header">
       <div id="display-title"></div>

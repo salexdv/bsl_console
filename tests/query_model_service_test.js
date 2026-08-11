@@ -119,12 +119,12 @@ function loadService() {
     let file = path.join(ROOT, 'src', 'query_model_service.js');
     let source = fs.readFileSync(file, 'utf8')
         .replace("import queryModel from './query_model';", 'const queryModel = globalThis.__queryModel;')
-        .replace(/const QueryModelWorker = require\([^\n]+\);/, 'const QueryModelWorker = globalThis.__QueryModelWorker;');
+        .replace(/const queryModelWorkerUrl = require\([^\n]+\);/, "const queryModelWorkerUrl = 'fake';");
     let transformed = esbuild.transformSync(source, { loader: 'js', target: 'node22', format: 'cjs' }).code;
     let sandbox = {
         __queryModel: queryModel,
         __QueryModelWorker: FakeWorker,
-        Worker: function () {},
+        Worker: FakeWorker,
         Promise: Promise,
         Date: Date,
         setTimeout: setTimeout,
