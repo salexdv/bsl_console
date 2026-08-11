@@ -1,5 +1,5 @@
 import { readHbk, normalizePath, decodeUtf8 } from './hbk-reader';
-import { buildSearchDocument, searchDocuments } from './search';
+import { buildSearchDocument, preparePrefixIndex, searchDocuments } from './search';
 import { decodeBase64 } from '../base64';
 import { decorateContextNavigation, resolvePage } from './navigation';
 
@@ -156,10 +156,10 @@ function buildPackage(parsed) {
     });
   }
 
-  const index = Object.keys(pages).map(function (key) {
+  const index = preparePrefixIndex(Object.keys(pages).map(function (key) {
     const page = pages[key];
     return { id: page.id, title: page.title, path: page.path, kind: page.kind, context: page.context || '' };
-  }).sort(function (a, b) { return a.title.localeCompare(b.title); });
+  }));
 
   return {
     kind: parsed.kind,

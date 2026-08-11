@@ -45,13 +45,65 @@ function searchDocuments(documents, query, limit) {
   return { total: matches.length, items: matches.slice(0, max), terms: terms };
 }
 
+function comparePrefixEntries(a, b) {
+  if (a.key < b.key) return -1;
+  if (b.key < a.key) return 1;
+  return 0;
+}
+
+function preparePrefixIndex(items) {
+  return (items || []).map(function (item, order) {
+    return { key: normalize(item.title), item: item, order: order };
+  }).sort(function (a, b) {
+    return comparePrefixEntries(a, b) || a.order - b.order;
+  }).map(function (entry) {
+    return { key: entry.key, item: entry.item };
+  });
+}
+
+function mergePrefixIndexes(left, right) {
+  const first = left || [];
+  const second = right || [];
+  const result = [];
+  let leftAt = 0;
+  let rightAt = 0;
+  while (leftAt < first.length && rightAt < second.length) {
+    if (comparePrefixEntries(first[leftAt], second[rightAt]) <= 0)
+      result.push(first[leftAt++]);
+    else
+      result.push(second[rightAt++]);
+  }
+  while (leftAt < first.length) result.push(first[leftAt++]);
+  while (rightAt < second.length) result.push(second[rightAt++]);
+  return result;
+}
+
+function lowerPrefixBound(entries, value) {
+  let low = 0;
+  let high = entries.length;
+  while (low < high) {
+    const middle = low + Math.floor((high - low) / 2);
+    if (entries[middle].key < value) low = middle + 1;
+    else high = middle;
+  }
+  return low;
+}
+
 function prefixSearch(items, query, limit) {
   const prefix = normalize(query);
   const max = limit === undefined ? 1000 : limit;
-  if (!prefix)
-    return { total: items.length, items: items.slice(0, max) };
-  const found = items.filter(function (item) { return normalize(item.title).indexOf(prefix) == 0; });
-  return { total: found.length, items: found.slice(0, max) };
+  const entries = items && items.length && typeof items[0].key == 'string' && items[0].item
+    ? items : preparePrefixIndex(items);
+  let first = 0;
+  let last = entries.length;
+  if (prefix) {
+    first = lowerPrefixBound(entries, prefix);
+    last = lowerPrefixBound(entries, prefix + '\uffff');
+  }
+  const visible = Math.min(last, first + max);
+  const result = [];
+  for (let i = first; i < visible; i++) result.push(entries[i].item);
+  return { total: prefix ? last - first : entries.length, items: result };
 }
 
-export { normalize, words, buildSearchDocument, searchDocuments, prefixSearch };
+export { normalize, words, buildSearchDocument, searchDocuments, preparePrefixIndex, mergePrefixIndexes, prefixSearch };

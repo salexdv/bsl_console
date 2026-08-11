@@ -381,6 +381,9 @@ function serve() {
 
     await page.evaluate(function () {
       window.__capturedHelpEvents.length = 0;
+      window.__indexMetaMutations = 0;
+      window.__indexMetaObserver = new MutationObserver(function (records) { window.__indexMetaMutations += records.length; });
+      window.__indexMetaObserver.observe(document.querySelector('.bsl-help-panel[data-tab=index] .bsl-help-meta'), { childList: true, characterData: true, subtree: true });
       window.editor.setValue('Выполнить()');
       window.editor.setPosition({ lineNumber: 1, column: 3 });
       window.editor.focus();
@@ -391,6 +394,7 @@ function serve() {
       + ' && document.querySelector(".bsl-help-article").textContent.indexOf("Первая синтетическая статья") >= 0',
       { timeout: 5000 }).catch(function () {});
     const multipleLookup = await page.evaluate(function () {
+      window.__indexMetaObserver.disconnect();
       return {
         active: document.querySelector('.bsl-help-panel[data-tab=index]').classList.contains('active'),
         input: document.querySelector('.bsl-help-panel[data-tab=index] .bsl-help-input').value,
@@ -399,12 +403,13 @@ function serve() {
           return node.textContent;
         }),
         article: document.querySelector('.bsl-help-article').textContent,
-        events: window.__capturedHelpEvents.slice()
+        events: window.__capturedHelpEvents.slice(), indexRenders: window.__indexMetaMutations
       };
     });
     if (!multipleLookup.active || multipleLookup.input != 'Выполнить' || multipleLookup.titles.length < 2
       || multipleLookup.titles[0] != 'Выполнить'
       || multipleLookup.titles[1] != 'ВыполнитьПакет' || multipleLookup.article.indexOf('ВыполнитьПакет') >= 0
+      || multipleLookup.indexRenders != 1
       || multipleLookup.events.length != 1 || multipleLookup.events[0].event != 'EVENT_ON_GET_HELP'
       || multipleLookup.events[0].params.word != 'выполнить')
       errors.push('Ctrl+F1 first prefix result: ' + JSON.stringify(multipleLookup));
@@ -438,17 +443,32 @@ function serve() {
 
     await page.click('.bsl-help-tab[data-tab="index"]');
     await page.$eval('.bsl-help-panel[data-tab="index"] .bsl-help-input', function (input) {
-      input.value = '';
-      input.dispatchEvent(new Event('input', { bubbles: true }));
+      window.__indexMetaMutations = 0;
+      window.__indexMetaObserver = new MutationObserver(function (records) { window.__indexMetaMutations += records.length; });
+      window.__indexMetaObserver.observe(document.querySelector('.bsl-help-panel[data-tab=index] .bsl-help-meta'), { childList: true, characterData: true, subtree: true });
+      ['С', 'СТ', 'СТР'].forEach(function (value) {
+        input.value = value;
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      });
     });
-    await page.type('.bsl-help-panel[data-tab="index"] .bsl-help-input', 'СТР');
-    await page.waitForFunction('document.querySelectorAll(".bsl-help-panel[data-tab=index] .bsl-help-list-row").length > 0');
-    const indexContext = await page.$eval('.bsl-help-panel[data-tab="index"] .bsl-help-list-row', function (row) {
+    await page.waitForFunction('document.querySelector(".bsl-help-panel[data-tab=index] .bsl-help-input").value == "СТР" && document.querySelectorAll(".bsl-help-panel[data-tab=index] .bsl-help-list-row").length > 0');
+    const indexTyping = await page.evaluate(function () {
+      window.__indexMetaObserver.disconnect();
+      const row = document.querySelector('.bsl-help-panel[data-tab="index"] .bsl-help-list-row');
       const context = row.querySelector('.bsl-help-list-context');
-      return { text: context && context.textContent, title: row.title, color: context && getComputedStyle(context).color };
+      return { context: { text: context && context.textContent, title: row.title, color: context && getComputedStyle(context).color }, renders: window.__indexMetaMutations };
     });
-    if (!indexContext.text || indexContext.text.indexOf('(Встроенный язык/') < 0 || !indexContext.title)
-      errors.push('index context: ' + JSON.stringify(indexContext));
+    if (indexTyping.renders != 1 || !indexTyping.context.text || indexTyping.context.text.indexOf('(Встроенный язык/') < 0 || !indexTyping.context.title)
+      errors.push('index input/context: ' + JSON.stringify(indexTyping));
+    await page.$eval('.bsl-help-panel[data-tab="index"] .bsl-help-input', function (input) {
+      input.value = 'ЧИ'; input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.value = 'Ч'; input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await page.waitForFunction('document.querySelector(".bsl-help-panel[data-tab=index] .bsl-help-input").value == "Ч" && document.querySelector(".bsl-help-panel[data-tab=index] .bsl-help-list-title").textContent == "Число"');
+    await page.$eval('.bsl-help-panel[data-tab="index"] .bsl-help-input', function (input) {
+      input.value = 'СТР'; input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await page.waitForFunction('document.querySelector(".bsl-help-panel[data-tab=index] .bsl-help-list-title").textContent.indexOf("Строка") == 0');
     await page.click('.bsl-help-panel[data-tab="index"] .bsl-help-list-row');
     await page.waitForFunction('document.querySelector(".bsl-help-article").textContent.indexOf("Unicode") >= 0');
 

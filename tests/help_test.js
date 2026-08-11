@@ -204,6 +204,29 @@ function testSearch() {
     result = search.searchDocuments(many, 'слово', 1000);
     assert.equal(result.total, 1005); assert.equal(result.items.length, 1000);
     assert.equal(search.prefixSearch([{ title: 'Строка' }, { title: 'Число' }], 'СТР', 10).total, 1);
+    const prefixItems = [
+        { id: 'first', title: 'Ёлка' }, { id: 'second', title: 'елка большая' },
+        { id: 'third', title: 'Работа-со строкой' }, { id: 'fourth', title: 'Число' },
+        { id: 'duplicate-1', title: 'СТРОКА' }, { id: 'duplicate-2', title: 'строка' }
+    ];
+    const prefixIndex = search.preparePrefixIndex(prefixItems);
+    result = search.prefixSearch(prefixIndex, 'ЕЛ', 1000);
+    assert.deepEqual(result.items.map(item => item.id), ['first', 'second']);
+    result = search.prefixSearch(prefixIndex, 'работа со', 1000);
+    assert.deepEqual(result.items.map(item => item.id), ['third']);
+    result = search.prefixSearch(prefixIndex, 'строка', 1);
+    assert.equal(result.total, 2); assert.deepEqual(result.items.map(item => item.id), ['duplicate-1']);
+    result = search.prefixSearch(prefixIndex, '', 3);
+    assert.equal(result.total, prefixItems.length); assert.equal(result.items.length, 3);
+    const left = search.preparePrefixIndex([{ id: 'l1', title: 'Альфа' }, { id: 'l2', title: 'Строка' }]);
+    const right = search.preparePrefixIndex([{ id: 'r1', title: 'Бета' }, { id: 'r2', title: 'Строка' }]);
+    assert.deepEqual(search.prefixSearch(search.mergePrefixIndexes(left, right), 'строка', 10).items.map(item => item.id), ['l2', 'r2']);
+    let titleConversions = 0;
+    const largePrefixItems = Array.from({ length: 20000 }, (_, i) => ({ id: String(i), title: { toString() { titleConversions++; return (i % 2 ? 'Строка ' : 'Число ') + i; } } }));
+    const largePrefixIndex = search.preparePrefixIndex(largePrefixItems);
+    assert.equal(titleConversions, largePrefixItems.length);
+    search.prefixSearch(largePrefixIndex, 'с', 1000); search.prefixSearch(largePrefixIndex, 'стр', 1000); search.prefixSearch(largePrefixIndex, 'число 199', 1000);
+    assert.equal(titleConversions, largePrefixItems.length);
     assert.deepEqual(Array.from(search.words('Ёлка СТРОКА')), ['елка', 'строка']);
 }
 
@@ -290,7 +313,7 @@ class FakeWorker {
                 const kind = typeof source === 'string' ? 'language' : source.kind;
                 return this.onmessage({ data: { id: message.id, type: 'parsed', payload: {
                     kind, pages: typeof source === 'string' ? 3 : source.pages, navigation: [{ kind, title: kind, children: [] }],
-                    index: [{ kind, title: kind, path: kind }], stats: {}
+                    index: [{ key: kind, item: { kind, title: kind, path: kind } }], stats: {}
                 } } });
             }
             this.onmessage({ data: { id: message.id, type: message.type, payload: { total: 0, items: [] } } });
@@ -331,6 +354,7 @@ async function testService() {
     assert.equal(fromBase64.kind, 'language');
     const invalid = await service.parse({});
     assert.deepEqual(Object.keys(invalid).sort(), ['error', 'kind', 'ok', 'pages']);
+    assert.equal(service.prefix('LANG', 1000).total, 1);
 }
 
 function testUnknownHbk() {

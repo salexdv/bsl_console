@@ -1,4 +1,4 @@
-import { prefixSearch } from './search';
+import { mergePrefixIndexes, prefixSearch } from './search';
 
 const workerUrl = require('blob-url-loader?type=application/javascript!compile-loader?target=worker&emit=false!./help_worker');
 
@@ -8,6 +8,8 @@ function createHelpService(workerFactory) {
   let sequence = 0;
   let pending = {};
   let loading = 0;
+  let prefixIndex = [];
+  let visibleIndex = [];
   const listeners = [];
   const state = {
     status: 'empty',
@@ -78,6 +80,13 @@ function createHelpService(workerFactory) {
     });
   }
 
+  function rebuildIndex() {
+    const context = state.packages.context ? state.packages.context.index : [];
+    const language = state.packages.language ? state.packages.language.index : [];
+    prefixIndex = mergePrefixIndexes(context, language);
+    visibleIndex = prefixIndex.map(function (entry) { return entry.item; });
+  }
+
   function parse(source) {
     loading++;
     state.lastError = null;
@@ -96,6 +105,7 @@ function createHelpService(workerFactory) {
         index: result.index,
         stats: result.stats
       };
+      rebuildIndex();
       state.lastError = null;
       return { ok: true, kind: result.kind, pages: result.pages, error: null };
     }).catch(function (error) {
@@ -127,12 +137,9 @@ function createHelpService(workerFactory) {
       return result;
     },
     getIndex: function () {
-      let result = [];
-      if (state.packages.context) result = result.concat(state.packages.context.index);
-      if (state.packages.language) result = result.concat(state.packages.language.index);
-      return result.sort(function (a, b) { return a.title.localeCompare(b.title); });
+      return visibleIndex;
     },
-    prefix: function (query) { return prefixSearch(this.getIndex(), query, 1000); },
+    prefix: function (query) { return prefixSearch(prefixIndex, query, 1000); },
     search: function (query) { return request('search', { query: query }).then(function (response) { return response.payload; }); },
     article: function (item, terms) {
       return request('article', {

@@ -173,6 +173,10 @@ function createHelpUi(service, editorProvider) {
   let searchTimer = null;
   let dockWidth = null;
   let navigationHeight = null;
+  let indexRenderHandle = null;
+  let indexRenderAnimationFrame = false;
+  let renderedContextPackage = null;
+  let renderedLanguagePackage = null;
 
   function currentEditor() {
     return editorProvider();
@@ -238,6 +242,11 @@ function createHelpUi(service, editorProvider) {
       status.textContent = 'Выберите статью';
       status.classList.add('visible');
     }
+    const packages = value.packages || {};
+    if (packages.context == renderedContextPackage && packages.language == renderedLanguagePackage)
+      return;
+    renderedContextPackage = packages.context;
+    renderedLanguagePackage = packages.language;
     renderTree();
     renderIndex();
   }
@@ -277,6 +286,25 @@ function createHelpUi(service, editorProvider) {
     indexMeta.textContent = 'Найдено: ' + result.total;
     indexList.setItems(result.items);
     return result;
+  }
+
+  function cancelIndexRender() {
+    if (indexRenderHandle === null) return;
+    if (indexRenderAnimationFrame && typeof cancelAnimationFrame == 'function')
+      cancelAnimationFrame(indexRenderHandle);
+    else
+      clearTimeout(indexRenderHandle);
+    indexRenderHandle = null;
+  }
+
+  function scheduleIndexRender() {
+    if (indexRenderHandle !== null) return;
+    indexRenderAnimationFrame = typeof requestAnimationFrame == 'function';
+    const callback = function () {
+      indexRenderHandle = null;
+      renderIndex();
+    };
+    indexRenderHandle = indexRenderAnimationFrame ? requestAnimationFrame(callback) : setTimeout(callback, 0);
   }
 
   function openArticle(item, terms, addHistory) {
@@ -345,9 +373,10 @@ function createHelpUi(service, editorProvider) {
   }
 
   function showIndex(query, preferredEditor) {
-    show(preferredEditor);
+    cancelIndexRender();
     indexInput.value = query;
-    setTab('index');
+    activeTab = 'index';
+    show(preferredEditor);
     const result = renderIndex();
     if (result.items.length)
       return openArticle(result.items[0], [], true);
@@ -368,7 +397,7 @@ function createHelpUi(service, editorProvider) {
   tabNames.forEach(function (tab) { tabButtons[tab.id].addEventListener('click', function () { setTab(tab.id); }); });
   close.addEventListener('click', hide);
   overlay.addEventListener('keydown', function (event) { if (event.key == 'Escape' || event.keyCode == 27) { event.preventDefault(); hide(); } });
-  indexInput.addEventListener('input', renderIndex);
+  indexInput.addEventListener('input', scheduleIndexRender);
   searchInput.addEventListener('input', function () {
     clearTimeout(searchTimer);
     searchTimer = setTimeout(function () {
