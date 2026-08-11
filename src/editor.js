@@ -25,11 +25,16 @@ import Finder from "./finder";
 import SnippetsParser from "./parsers";
 import { patchWebKit1C } from './1c-webkit-patch';
 import SearchHistoryController from './search_history';
+import bslHelper from './bsl_helper';
+import { createHelpBrowser } from './help';
+import { createBase64TransferManager } from './base64_transfer';
 
 const hiddenBlocksController = new HiddenBlocksController(monaco, function () {
   return window.engLang;
 });
 const searchHistoryController = new SearchHistoryController(monaco);
+const helpBrowser = createHelpBrowser(function () { return window.editor; });
+const base64Transfer = createBase64TransferManager();
 
 // Иконки дерева переменных инлайнятся в бандл (data:-URI) через require.context, а не тянутся
 // отдельными файлами — это нужно для single-file сборки. В обычной сборке результат тот же:
@@ -102,6 +107,61 @@ window.objectContext = null;
 // #endregion
 
 // #region public API
+/** @param {string} name диагностическое имя передаваемых данных */
+window.beginBase64Transfer = function (name) {
+  base64Transfer.begin(name);
+}
+
+/** @param {string} chunk фрагмент Base64 или отдельно закодированная бинарная порция */
+window.pushBase64Chunk = function (chunk) {
+  base64Transfer.push(chunk);
+}
+
+/** Завершает передачу и атомарно публикует собранный Blob. */
+window.endBase64Transfer = function () {
+  base64Transfer.end();
+}
+
+/**
+ * Загружает пакет синтакс-помощника 1С в текущую сессию.
+ * Promise всегда разрешается объектом результата после готовности дерева и обоих индексов.
+ * Успешно загруженный ранее пакет при ошибке не изменяется.
+ * @param {Blob|File|string} [source] файл shcntx_*.hbk/shlang_*.hbk или его Base64-представление;
+ * без аргумента используется последняя завершённая порционная передача
+ * @returns {Promise<{ok:boolean,kind:string|null,pages:number,error:string|null}>}
+ */
+window.parseHelp = function (source) {
+  if (!arguments.length) {
+    if (base64Transfer.hasActive())
+      return helpBrowser.fail('Передача Base64 ещё не завершена');
+    const transferred = base64Transfer.getReady();
+    if (!transferred)
+      return helpBrowser.fail('Нет завершённой передачи Base64');
+    source = transferred.blob;
+  }
+  return helpBrowser.parse(source).then(function (result) {
+    if (result.ok && result.kind == 'context')
+      window.sendEvent('EVENT_ON_HELP_READY');
+    return result;
+  });
+}
+
+/**
+ * Немедленно открывает закреплённую справа панель синтакс-помощника.
+ * @returns {void}
+ */
+window.showHelp = function () {
+  helpBrowser.show();
+}
+
+/**
+ * Показывает скрытую по умолчанию панель ручного выбора файлов справки.
+ * @returns {void}
+ */
+window.showHelpLoader = function () {
+  helpBrowser.showLoader();
+}
+
 window.wordWrap = function (enabled) {
 
   if (window.editor.navi) {
@@ -372,9 +432,10 @@ window.updateCustomFunctions = function (data) {
 }
 
 window.setTheme = function (theme) {
-      
+
   monaco.editor.setTheme(theme);
   setThemeVariablesDisplay(theme);
+  helpBrowser.setTheme(theme);
 
 }
 
@@ -2402,6 +2463,30 @@ for (const [key, lang] of Object.entries(window.languages)) {
 };
 
 const commandOnlyActions = ['saveref', 'requestMetadata'];
+
+monaco.editor.addEditorAction({
+  id: 'bsl.showHelp',
+  label: 'Синтакс-помощник 1С',
+  keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.F1],
+  run: function (activeEditor) {
+    if (window.editor && window.editor.navi && activeEditor && activeEditor.hasTextFocus
+      && !activeEditor.hasTextFocus())
+      return;
+    const model = activeEditor && activeEditor.getModel();
+    const position = activeEditor && activeEditor.getPosition();
+    const word = model && position ? model.getWordAtPosition(position) : null;
+    if (word && word.word && window.getOption('generateGetHelpEvent')) {
+      const helper = new bslHelper(model, position);
+      window.sendEvent('EVENT_ON_GET_HELP', helper.getNavigationEventParams());
+    }
+    if (!helpBrowser.isReady())
+      return;
+    if (word && word.word)
+      helpBrowser.showIndex(word.word, activeEditor);
+    else
+      window.showHelp();
+  }
+});
 
 for (const [action_id, action] of Object.entries(permanentActions)) {
 

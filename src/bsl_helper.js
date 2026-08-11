@@ -10621,75 +10621,75 @@ class bslHelper {
 	}
 
 	/**
- 	 * Definition event generator
- 	 * 
- 	 */
-	 generateDefinitionEvent() {
+	 * Returns context for navigation events
+	 *
+	 * @returns {object} event parameters
+	 */
+	getNavigationEventParams() {
 
-		if (window.editor.generateDefinitionEvent) {
+		let expression = this.lastExpression;
+		let last_exp_arr = expression.split('.');
+		let full_exp_array = this.getRawExpressioArray();
+		let module_name = '';
+		let class_name = '';
+		const common_modules = window.bslMetadata && window.bslMetadata.commonModules
+			&& window.bslMetadata.commonModules.items
+			? window.bslMetadata.commonModules.items : {};
 
-			let expression = this.lastExpression;
-			let last_exp_arr = expression.split('.');
-			let full_exp_array = this.getRawExpressioArray();
+		if (2 < full_exp_array.length && full_exp_array[full_exp_array.length - 2] == '.')
+			class_name = full_exp_array[full_exp_array.length - 3];
 
-			let module_name = '';
-			let class_name = '';			
+		full_exp_array[full_exp_array.length - 1] = this.word;
 
-			if (2 < full_exp_array.length && full_exp_array[full_exp_array.length - 2] == '.')
-				class_name = full_exp_array[full_exp_array.length - 3];
+		if (1 < last_exp_arr.length) {
+			last_exp_arr[last_exp_arr.length - 1] = this.word;
+			expression = last_exp_arr.join('.');
+			let first_exp = last_exp_arr[0].toLocaleLowerCase();
 
-			full_exp_array[full_exp_array.length - 1] = this.word;
-
-			if (1 < last_exp_arr.length) {
-				
-				last_exp_arr[last_exp_arr.length - 1] = this.word;
-				expression = last_exp_arr.join('.');
-				let first_exp = last_exp_arr[0].toLocaleLowerCase();
-
-				for (const [key, value] of Object.entries(window.bslMetadata.commonModules.items)) {
-
-					if (key.toLowerCase() == first_exp) {
-						module_name = key;
-						break;
-					}
-
+			for (const [key, value] of Object.entries(common_modules)) {
+				if (key.toLowerCase() == first_exp) {
+					module_name = key;
+					break;
 				}
-
 			}
-			else {
-
-				for (const [key, value] of Object.entries(window.bslMetadata.commonModules.items)) {
-
-					if (key.toLowerCase() == this.word) {
-						module_name = this.word;
-						break;
-					}
-
-					if (key.toLowerCase() == class_name) {
-						module_name = class_name;
-						break;
-					}
-
-				}
-
-			}
-
-			if (module_name.toLowerCase() == class_name.toLowerCase())
-				class_name = '';
-
-			let event_params = {
-				word: this.word,
-				expression: expression,
-				module: module_name,
-				class: class_name,
-				line: this.lineNumber,
-				column: this.column,
-				expression_array: full_exp_array,
-			}
-
-			window.sendEvent('EVENT_GET_DEFINITION', event_params);
-
 		}
+		else {
+			for (const [key, value] of Object.entries(common_modules)) {
+				if (key.toLowerCase() == this.word) {
+					module_name = this.word;
+					break;
+				}
+
+				if (key.toLowerCase() == class_name) {
+					module_name = class_name;
+					break;
+				}
+			}
+		}
+
+		if (module_name.toLowerCase() == class_name.toLowerCase())
+			class_name = '';
+
+		return {
+			word: this.word,
+			expression: expression,
+			module: module_name,
+			class: class_name,
+			line: this.lineNumber,
+			column: this.column,
+			expression_array: full_exp_array,
+		};
+
+	}
+
+	/**
+	 * Definition event generator
+	 *
+	 */
+	generateDefinitionEvent() {
+
+		if (window.editor.generateDefinitionEvent)
+			window.sendEvent('EVENT_GET_DEFINITION', this.getNavigationEventParams());
 
 	}
 
