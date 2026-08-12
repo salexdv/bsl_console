@@ -322,6 +322,35 @@ function serve() {
     if (!result.repeated.ok || result.repeated.kind != 'language' || result.repeated.pages != 3)
       errors.push('repeated staged parseHelp: ' + JSON.stringify(result.repeated));
 
+    const deferredError = await page.evaluate(async function () {
+      let thrown = null;
+      window.beginBase64Transfer('broken');
+      try { window.pushBase64Chunk('AQ$D'); }
+      catch (error) { thrown = error && error.message || String(error); }
+      window.endBase64Transfer();
+      const first = await window.parseHelp();
+      const repeated = await window.parseHelp();
+      return { thrown: thrown, first: first, repeated: repeated };
+    });
+    if (deferredError.thrown || deferredError.first.ok
+      || deferredError.first.error.indexOf('Некорректная') < 0
+      || deferredError.repeated.error != deferredError.first.error)
+      errors.push('deferred Base64 error: ' + JSON.stringify(deferredError));
+
+    const heartbeat = await page.evaluate(async function () {
+      let ticks = 0;
+      const timer = setInterval(function () { ticks++; }, 0);
+      window.beginBase64Transfer('large-invalid-hbk');
+      window.pushBase64Chunk('A'.repeat(8 * 1024 * 1024));
+      window.endBase64Transfer();
+      const before = ticks;
+      const parsed = await window.parseHelp();
+      clearInterval(timer);
+      return { before: before, after: ticks, parsed: parsed };
+    });
+    if (heartbeat.parsed.ok || heartbeat.after <= heartbeat.before)
+      errors.push('Base64 worker heartbeat: ' + JSON.stringify(heartbeat));
+
     const dual = await page.evaluate(async function (contextBase64, languageBase64) {
       function bytes(value) {
         const raw = atob(value);

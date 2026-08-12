@@ -1,9 +1,12 @@
 import { readHbk, normalizePath, decodeUtf8 } from './hbk-reader';
 import { buildSearchDocument, preparePrefixIndex, searchDocuments } from './search';
 import { decodeBase64 } from '../base64';
+import { createBase64TransferManager } from '../base64_transfer';
 import { decorateContextNavigation, resolvePage } from './navigation';
 
 const packages = { context: null, language: null };
+const base64Transfer = createBase64TransferManager();
+const transferState = { ended: false, error: null };
 let parseQueue = Promise.resolve();
 
 function readBlob(blob) {
@@ -209,8 +212,72 @@ function parseMessage(message) {
   });
 }
 
+function errorMessage(error) {
+  return error && error.message ? error.message : String(error);
+}
+
+function beginTransfer(message) {
+  try {
+    base64Transfer.begin(message.name);
+    transferState.ended = false;
+    transferState.error = null;
+  }
+  catch (error) {
+    transferState.ended = false;
+    transferState.error = errorMessage(error);
+  }
+}
+
+function pushTransfer(message) {
+  if (transferState.error) return;
+  try { base64Transfer.push(message.chunk); }
+  catch (error) { transferState.error = errorMessage(error); }
+}
+
+function endTransfer() {
+  if (!transferState.error) {
+    try { base64Transfer.end(); }
+    catch (error) { transferState.error = errorMessage(error); }
+  }
+  transferState.ended = true;
+}
+
+function captureTransferredBlob() {
+  if (!transferState.ended)
+    throw new Error('Нет завершённой передачи Base64');
+  if (transferState.error)
+    throw new Error(transferState.error);
+  const transferred = base64Transfer.getReady();
+  if (!transferred)
+    throw new Error('Нет завершённой передачи Base64');
+  return transferred.blob;
+}
+
 self.onmessage = function (event) {
   const message = event.data || {};
+  if (message.type == 'transfer-begin') {
+    beginTransfer(message);
+    return;
+  }
+  if (message.type == 'transfer-push') {
+    pushTransfer(message);
+    return;
+  }
+  if (message.type == 'transfer-end') {
+    endTransfer();
+    return;
+  }
+  if (message.type == 'parse-transferred') {
+    let source;
+    try { source = captureTransferredBlob(); }
+    catch (error) {
+      send(message.id, 'error', { message: errorMessage(error) });
+      return;
+    }
+    const captured = { id: message.id, source: source };
+    parseQueue = parseQueue.then(function () { return parseMessage(captured); });
+    return;
+  }
   if (message.type == 'parse') {
     parseQueue = parseQueue.then(function () { return parseMessage(message); });
     return;
