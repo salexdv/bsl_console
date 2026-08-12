@@ -10,6 +10,9 @@ function createHelpService(workerFactory) {
   let loading = 0;
   let prefixIndex = [];
   let visibleIndex = [];
+  let transferActive = false;
+  let transferEnded = false;
+  let transferWorkerError = null;
   const listeners = [];
   const state = {
     status: 'empty',
@@ -58,7 +61,13 @@ function createHelpService(workerFactory) {
       else request.resolve({ type: data.type, payload: data.payload });
     };
     worker.onerror = function (event) {
-      completeAll(event && event.message || 'Worker справки завершился с ошибкой');
+      const message = event && event.message || 'Worker справки завершился с ошибкой';
+      completeAll(message);
+      if (transferActive || transferEnded) {
+        transferActive = false;
+        transferEnded = true;
+        transferWorkerError = message;
+      }
       try { worker.terminate(); } catch (ignore) { /* noop */ }
       worker = null;
     };
@@ -80,6 +89,11 @@ function createHelpService(workerFactory) {
     });
   }
 
+  function post(type, payload) {
+    const message = Object.assign({ type: type }, payload || {});
+    ensureWorker().postMessage(message);
+  }
+
   function rebuildIndex() {
     const context = state.packages.context ? state.packages.context.index : [];
     const language = state.packages.language ? state.packages.language.index : [];
@@ -87,16 +101,11 @@ function createHelpService(workerFactory) {
     visibleIndex = prefixIndex.map(function (entry) { return entry.item; });
   }
 
-  function parse(source) {
+  function parseRequest(type, payload) {
     loading++;
     state.lastError = null;
     notify();
-    const isBlob = source && typeof source.size == 'number' && typeof source.slice == 'function';
-    if (!isBlob && typeof source != 'string') {
-      loading--;
-      return fail('parseHelp принимает Blob, File или строку Base64');
-    }
-    return request('parse', { source: source }).then(function (response) {
+    return request(type, payload).then(function (response) {
       const result = response.payload;
       state.packages[result.kind] = {
         kind: result.kind,
@@ -118,8 +127,54 @@ function createHelpService(workerFactory) {
     });
   }
 
+  function parse(source) {
+    const isBlob = source && typeof source.size == 'number' && typeof source.slice == 'function';
+    if (!isBlob && typeof source != 'string')
+      return fail('parseHelp принимает Blob, File или строку Base64');
+    return parseRequest('parse', { source: source });
+  }
+
+  function beginTransfer(name) {
+    if (typeof name != 'string' || !name.trim())
+      throw new Error('beginBase64Transfer принимает непустое имя данных');
+    post('transfer-begin', { name: name.trim() });
+    transferActive = true;
+    transferEnded = false;
+    transferWorkerError = null;
+  }
+
+  function pushTransfer(chunk) {
+    if (!transferActive)
+      throw new Error('Сначала вызовите beginBase64Transfer');
+    if (typeof chunk != 'string')
+      throw new Error('pushBase64Chunk принимает строку Base64');
+    post('transfer-push', { chunk: chunk });
+  }
+
+  function endTransfer() {
+    if (!transferActive)
+      throw new Error('Нет активной передачи Base64');
+    post('transfer-end');
+    transferActive = false;
+    transferEnded = true;
+  }
+
+  function parseTransferred() {
+    if (transferActive)
+      return fail('Передача Base64 ещё не завершена');
+    if (transferWorkerError)
+      return fail(transferWorkerError);
+    if (!transferEnded)
+      return fail('Нет завершённой передачи Base64');
+    return parseRequest('parse-transferred');
+  }
+
   return {
     parse: parse,
+    parseTransferred: parseTransferred,
+    beginTransfer: beginTransfer,
+    pushTransfer: pushTransfer,
+    endTransfer: endTransfer,
     fail: fail,
     getState: snapshot,
     isReady: function () { return snapshot().status == 'ready'; },
@@ -149,6 +204,9 @@ function createHelpService(workerFactory) {
     dispose: function () {
       if (worker) worker.terminate();
       worker = null;
+      transferActive = false;
+      transferEnded = false;
+      transferWorkerError = null;
       completeAll('Сервис справки остановлен');
     }
   };

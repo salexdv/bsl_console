@@ -27,14 +27,12 @@ import { patchWebKit1C } from './1c-webkit-patch';
 import SearchHistoryController from './search_history';
 import bslHelper from './bsl_helper';
 import { createHelpBrowser } from './help';
-import { createBase64TransferManager } from './base64_transfer';
 
 const hiddenBlocksController = new HiddenBlocksController(monaco, function () {
   return window.engLang;
 });
 const searchHistoryController = new SearchHistoryController(monaco);
 const helpBrowser = createHelpBrowser(function () { return window.editor; });
-const base64Transfer = createBase64TransferManager();
 
 // Иконки дерева переменных инлайнятся в бандл (data:-URI) через require.context, а не тянутся
 // отдельными файлами — это нужно для single-file сборки. В обычной сборке результат тот же:
@@ -109,17 +107,17 @@ window.objectContext = null;
 // #region public API
 /** @param {string} name диагностическое имя передаваемых данных */
 window.beginBase64Transfer = function (name) {
-  base64Transfer.begin(name);
+  helpBrowser.beginTransfer(name);
 }
 
 /** @param {string} chunk фрагмент Base64 или отдельно закодированная бинарная порция */
 window.pushBase64Chunk = function (chunk) {
-  base64Transfer.push(chunk);
+  helpBrowser.pushTransfer(chunk);
 }
 
-/** Завершает передачу и атомарно публикует собранный Blob. */
+/** Завершает постановку порций в очередь worker. */
 window.endBase64Transfer = function () {
-  base64Transfer.end();
+  helpBrowser.endTransfer();
 }
 
 /**
@@ -131,15 +129,8 @@ window.endBase64Transfer = function () {
  * @returns {Promise<{ok:boolean,kind:string|null,pages:number,error:string|null}>}
  */
 window.parseHelp = function (source) {
-  if (!arguments.length) {
-    if (base64Transfer.hasActive())
-      return helpBrowser.fail('Передача Base64 ещё не завершена');
-    const transferred = base64Transfer.getReady();
-    if (!transferred)
-      return helpBrowser.fail('Нет завершённой передачи Base64');
-    source = transferred.blob;
-  }
-  return helpBrowser.parse(source).then(function (result) {
+  const resultPromise = arguments.length ? helpBrowser.parse(source) : helpBrowser.parseTransferred();
+  return resultPromise.then(function (result) {
     if (result.ok && result.kind == 'context')
       window.sendEvent('EVENT_ON_HELP_READY');
     return result;

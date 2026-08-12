@@ -305,7 +305,46 @@ async function testBase64Transfer() {
 }
 
 class FakeWorker {
+    constructor() {
+        this.messages = [];
+        this.activeTransfer = null;
+        this.readyTransfer = null;
+        this.transferEnded = false;
+        this.transferError = null;
+    }
+
     postMessage(message) {
+        this.messages.push(message);
+        if (message.type === 'transfer-begin') {
+            this.activeTransfer = { name: message.name, chunks: [] };
+            this.transferEnded = false;
+            this.transferError = null;
+            return;
+        }
+        if (message.type === 'transfer-push') {
+            if (message.chunk.indexOf('$') >= 0) this.transferError = 'Некорректная строка Base64';
+            else this.activeTransfer.chunks.push(message.chunk);
+            return;
+        }
+        if (message.type === 'transfer-end') {
+            if (!this.transferError) this.readyTransfer = this.activeTransfer;
+            this.activeTransfer = null;
+            this.transferEnded = true;
+            return;
+        }
+        if (message.type === 'parse-transferred') {
+            const captured = this.readyTransfer;
+            const error = this.transferError;
+            return setImmediate(() => {
+                if (!this.transferEnded || !captured || error)
+                    return this.onmessage({ data: { id: message.id, type: 'error', payload: { message: error || 'Нет завершённой передачи Base64' } } });
+                const kind = captured.name === 'shcntx' ? 'context' : 'language';
+                this.onmessage({ data: { id: message.id, type: 'parsed', payload: {
+                    kind, pages: captured.chunks.length, navigation: [{ kind, title: kind, children: [] }],
+                    index: [{ key: kind, item: { kind, title: kind, path: kind } }], stats: {}
+                } } });
+            });
+        }
         setImmediate(() => {
             if (message.type === 'parse') {
                 const source = message.source;
@@ -355,6 +394,50 @@ async function testService() {
     const invalid = await service.parse({});
     assert.deepEqual(Object.keys(invalid).sort(), ['error', 'kind', 'ok', 'pages']);
     assert.equal(service.prefix('LANG', 1000).total, 1);
+
+    const transferWorker = new FakeWorker();
+    const transfers = serviceModule.createHelpService(() => transferWorker);
+    assert.throws(() => transfers.beginTransfer(' '), /непустое имя/);
+    assert.throws(() => transfers.pushTransfer('AQID'), /beginBase64Transfer/);
+    assert.throws(() => transfers.endTransfer(), /Нет активной/);
+    assert.equal((await transfers.parseTransferred()).error, 'Нет завершённой передачи Base64');
+
+    transfers.beginTransfer('shlang');
+    assert.throws(() => transfers.pushTransfer(1), /строку Base64/);
+    transfers.pushTransfer('AQ$D'); // содержимое проверяется worker, а не основным потоком
+    assert.equal((await transfers.parseTransferred()).error, 'Передача Base64 ещё не завершена');
+    transfers.endTransfer();
+    const malformed = await transfers.parseTransferred();
+    assert.equal(malformed.ok, false);
+    assert.match(malformed.error, /Некорректная/);
+    assert.equal((await transfers.parseTransferred()).error, malformed.error, 'ошибка завершённой попытки повторяется');
+
+    transfers.beginTransfer('abandoned');
+    transfers.pushTransfer('AAAA');
+    transfers.beginTransfer('shcntx'); // новая передача отменяет только незавершённую
+    transfers.pushTransfer('AQID');
+    transfers.pushTransfer('BAUG');
+    transfers.endTransfer();
+    const transferred = await transfers.parseTransferred();
+    assert.equal(transferred.ok, true);
+    assert.equal(transferred.kind, 'context');
+    assert.equal(transferred.pages, 2);
+    assert.equal((await transfers.parseTransferred()).pages, 2, 'успешная передача читается повторно');
+    assert.deepEqual(transferWorker.messages.slice(-8).map(message => message.type), [
+        'transfer-begin', 'transfer-push', 'transfer-begin', 'transfer-push',
+        'transfer-push', 'transfer-end', 'parse-transferred', 'parse-transferred'
+    ]);
+
+    const crashWorker = new FakeWorker();
+    const crashedTransfers = serviceModule.createHelpService(() => crashWorker);
+    await crashedTransfers.parse(blob('context', 7));
+    crashedTransfers.beginTransfer('shlang');
+    crashedTransfers.pushTransfer('AQID');
+    crashWorker.onerror({ message: 'worker упал' });
+    const crashed = await crashedTransfers.parseTransferred();
+    assert.equal(crashed.ok, false);
+    assert.equal(crashed.error, 'worker упал');
+    assert.equal(crashedTransfers.getState().packages.context.pages, 7, 'сбой worker сохраняет загруженный пакет');
 }
 
 function testUnknownHbk() {
