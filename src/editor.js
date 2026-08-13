@@ -1472,18 +1472,18 @@ window.getBreakpoints = function () {
 }
 
 window.setCurrentDebugLine = function (line) {
-  
+
   window.editor.currentDebugLine.clear();
 
-  debugLine = {
+  const debugLine = {
       range: new monaco.Range(line, 1, line),
       options: {
           isWholeLine: true,
           className: 'debug-line',
         }
   }
-  
-  pointer = {
+
+  const pointer = {
     range: new monaco.Range(line, 1, line),
     options: {
         isWholeLine: true,
@@ -1494,7 +1494,7 @@ window.setCurrentDebugLine = function (line) {
     }
   }
 
-  DebugLineSet = {
+  const DebugLineSet = {
     line: debugLine,
     pointer: pointer
   }
