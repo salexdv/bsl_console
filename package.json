@@ -14,10 +14,10 @@
     "test:query-navigation": "node tests/query_navigation_test.js",
     "test:query-model-service": "node tests/query_model_service_test.js",
     "debug": "webpack-dev-server --mode development --progress",
-    "build": "webpack --mode production --progress",
-    "escheck": "es-check es2015 \"dist/*.js\"",
-    "build:single": "webpack --mode production --env single --progress && node tools/check_single.js",
-    "build:pack": "webpack --mode production --env single --env pack --progress && node tools/make_pack.js && node tools/check_single.js",
+    "build": "webpack --mode production --progress && node tools/check_blob_workers.js",
+    "escheck": "es-check es2015 \"dist/*.js\" && node tools/check_blob_workers.js",
+    "build:single": "webpack --mode production --env single --progress && node tools/check_single.js && node tools/check_blob_workers.js",
+    "build:pack": "webpack --mode production --env single --env pack --progress && node tools/check_blob_workers.js && node tools/make_pack.js && node tools/check_single.js",
     "test:help": "node tests/help_test.js",
     "test:help:headless": "node tools/run_help_headless.js",
     "smoke:help": "node tools/smoke_help_hbk.js",
@@ -66,8 +66,7 @@
     "style-loader": "^4.0.0",
     "webpack": "^5.109.2",
     "webpack-cli": "^7.2.2",
-    "webpack-dev-server": "^6.0.0",
-    "worker-loader": "^3.0.8"
+    "webpack-dev-server": "^6.0.0"
   },
   "dependencies": {
     "core-js": "^3.49.0",

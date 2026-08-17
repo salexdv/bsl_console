@@ -545,8 +545,8 @@ function testIndexBatching() {
 
 async function testPoolOrderingAndGenerations() {
     const serviceModule = loadModule('src/help/service.js', source => source
-        .replace(/const HelpWorker = require\([^\n]+\);/, 'const HelpWorker = null;')
-        .replace(/const IndexWorker = require\([^\n]+\);/, 'const IndexWorker = null;'));
+        .replace(/const workerUrl = require\([^\n]+\);/, "const workerUrl = 'fake';")
+        .replace(/const indexWorkerUrl = require\([^\n]+\);/, "const indexWorkerUrl = 'fake';"));
     let workerNumber = 0;
     class SearchWorker {
         constructor() { this.number = workerNumber++; }
@@ -755,8 +755,8 @@ function blob(kind, pages, fail, staged, failAfter) { return { kind, pages, fail
 
 async function testService() {
     const serviceModule = loadModule('src/help/service.js', source => source
-        .replace(/const HelpWorker = require\([^\n]+\);/, 'const HelpWorker = null;')
-        .replace(/const IndexWorker = require\([^\n]+\);/, 'const IndexWorker = null;'));
+        .replace(/const workerUrl = require\([^\n]+\);/, "const workerUrl = 'fake';")
+        .replace(/const indexWorkerUrl = require\([^\n]+\);/, "const indexWorkerUrl = 'fake';"));
     async function order(first, second) {
         const service = serviceModule.createHelpService(() => new FakeWorker());
         assert.equal((await service.parse(blob(first, 1))).ok, true);
@@ -892,10 +892,10 @@ function testBlobWorkerCheck() {
     const checker = require('../tools/check_blob_workers');
     const good = 'const worker = new Blob([\'self.onmessage = function () {};\'], {type: \'application/javascript\'});';
     assert.equal(checker.checkBlobWorkers(good, 'good.js'), 1);
-    const workerLoader = 'x.exports=function(){return B(`self.onmessage = function () {};`,"Worker",void 0,void 0)}';
-    assert.equal(checker.checkBlobWorkers(workerLoader, 'worker-loader.js'), 1);
+    const templateWorker = 'const worker = new Blob([`self.onmessage = function () {};`], {type: \'application/javascript\'});';
+    assert.equal(checker.checkBlobWorkers(templateWorker, 'template-worker.js'), 1);
     const bad = 'const worker = new Blob([\'class Broken { field; }\'], {type: \'application/javascript\'});';
-    assert.throws(() => checker.checkBlobWorkers(bad, 'bad.js'), /ES2018/);
+    assert.throws(() => checker.checkBlobWorkers(bad, 'bad.js'), /ES2015/);
 }
 
 async function main() {

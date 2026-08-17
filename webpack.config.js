@@ -159,8 +159,16 @@ module.exports = (env = {}, args = {}) => {
       assetModuleFilename: '[name][ext]',
       clean: true
     },
+    resolveLoader: {
+      alias: {
+        'blob-url-loader': path.resolve(__dirname, 'tools/loaders/blobUrl.js'),
+        'compile-loader': path.resolve(__dirname, 'tools/loaders/compile.js')
+      }
+    },
     devtool: production ? false : 'inline-source-map',
     module: {
+      // Worker собираются только локальными blobUrl+compile loaders.
+      parser: { javascript: { worker: false } },
       // Mocha поставляет готовый browser UMD bundle. Его динамический require
       // используется только для подключаемых reporter-ов и не должен анализироваться Webpack.
       noParse: /node_modules[\\/]mocha[\\/]mocha\.js$/,

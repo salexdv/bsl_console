@@ -1,7 +1,7 @@
 import { mergePrefixIndexes, prefixSearch } from './search';
 
-const HelpWorker = require('worker-loader?inline=no-fallback&esModule=false!./help_worker');
-const IndexWorker = require('worker-loader?inline=no-fallback&esModule=false!./index_worker');
+const workerUrl = require('blob-url-loader!compile-loader!./help_worker');
+const indexWorkerUrl = require('blob-url-loader!compile-loader!./index_worker');
 
 const PRODUCTION_INDEX_WORKERS = 1;
 const PACKAGE_KINDS = ['context', 'language', 'query', 'dcs'];
@@ -21,8 +21,8 @@ function kindFromName(name) {
 }
 
 function createHelpService(workerFactory, indexWorkerFactory, indexWorkerCount) {
-  const factory = workerFactory || function () { return new HelpWorker(); };
-  const indexFactory = indexWorkerFactory || function () { return new IndexWorker(); };
+  const factory = workerFactory || function () { return new Worker(workerUrl); };
+  const indexFactory = indexWorkerFactory || function () { return new Worker(indexWorkerUrl); };
   const defaultPool = workerFactory ? 0 : Math.min(PRODUCTION_INDEX_WORKERS,
     Math.max(1, ((typeof navigator != 'undefined' && navigator.hardwareConcurrency) || 3) - 1));
   const requestedIndexWorkers = indexWorkerCount === undefined ? defaultPool : Math.max(0, indexWorkerCount);

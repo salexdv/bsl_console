@@ -1,5 +1,5 @@
 import queryModel from './query_model';
-const QueryModelWorker = require('worker-loader?inline=no-fallback&esModule=false!./query_model_worker');
+const queryModelWorkerUrl = require('blob-url-loader!compile-loader!./query_model_worker');
 
 const QUERY_MODEL_PARSE_DELAY_MS = 250;
 const QUERY_MODEL_SYNC_PARSE_LIMIT = 20000;
@@ -138,7 +138,7 @@ function createWorker() {
     workerInitializing = true;
 
     try {
-        worker = new QueryModelWorker();
+        worker = new Worker(queryModelWorkerUrl);
         worker.onmessage = onWorkerMessage;
         worker.onerror = disableWorker;
     }

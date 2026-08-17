@@ -1,13 +1,13 @@
 const { setLocaleData } = require('monaco-editor-nls');
 const ruLocale = require('monaco-editor-nls/locale/ru');
-const EditorWorker = require('worker-loader?inline=no-fallback&esModule=false!monaco-editor/esm/vs/editor/editor.worker');
+const editorWorkerUrl = require('blob-url-loader!compile-loader!monaco-editor/esm/vs/editor/editor.worker');
 
 setLocaleData(ruLocale);
 
 if (typeof window !== 'undefined') {
   window.MonacoEnvironment = {
     getWorker: function () {
-      return new EditorWorker();
+      return new Worker(editorWorkerUrl);
     }
   };
 }
