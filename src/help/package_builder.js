@@ -2,8 +2,14 @@ import { normalizePath, decodeUtf8 } from './hbk-reader';
 import { decorateContextNavigation, inferGroupTitle, findNavigationNode } from './navigation';
 import { buildSearchDocument, preparePrefixIndex } from './search';
 import { parseSerialized } from './serialized';
+import { parseNativeIndex, nativePrefixItems } from './native_index';
 
 const STRATEGY_TOC_LAZY = 'toc-lazy';
+const TOC_KINDS = { context: true, query: true, dcs: true };
+
+function isTocPackage(kind) {
+  return !!TOC_KINDS[kind];
+}
 
 function htmlText(html) {
   return html
@@ -26,6 +32,13 @@ function isPage(kind, path) {
   if (kind == 'context') return /\.html$/i.test(path);
   return !/\.st$/i.test(path) && path != '__categories__'
     && !/^IndexPackLookup(?:Temp)?$/i.test(path);
+}
+
+function tocNavigation(parsed) {
+  let roots = cloneNavigation(parsed.toc.roots);
+  if (roots.length == 1 && !roots[0].title && !roots[0].path && roots[0].children.length)
+    roots = roots[0].children;
+  return roots;
 }
 
 function fallbackTitle(path) {
@@ -83,9 +96,9 @@ function cloneNavigation(nodes) {
 }
 
 function decorate(candidate) {
-  if (candidate.kind == 'context') {
-    candidate.navigation = cloneNavigation(candidate.parsed.toc.roots);
-    decorateContextNavigation(candidate.navigation, candidate.pages);
+  if (isTocPackage(candidate.kind)) {
+    candidate.navigation = tocNavigation(candidate.parsed);
+    decorateContextNavigation(candidate.navigation, candidate.pages, candidate.kind);
   }
   else {
     candidate.navigation = buildLanguageNavigation(candidate.parsed.categoriesText, candidate.pages);
@@ -97,11 +110,11 @@ function decorate(candidate) {
 }
 
 function hydrateNavigationLevel(candidate, nodes) {
-  if (candidate.kind != 'context') return nodes || [];
+  if (!isTocPackage(candidate.kind)) return nodes || [];
   (nodes || []).forEach(function (node) {
     if (node.titleHydrated) return;
     const path = normalizePath(node.path);
-    const page = path ? candidate.pages['context:' + path] : null;
+    const page = path ? candidate.pages[candidate.kind + ':' + path] : null;
     let resolved = node.tocTitle || '';
     if (!resolved && page) {
       const html = decodeUtf8(candidate.storage.extract(page.entry));
@@ -116,7 +129,7 @@ function hydrateNavigationLevel(candidate, nodes) {
     node.title = resolved;
     node.titleHydrated = true;
   });
-  decorateContextNavigation(nodes, candidate.pages);
+  decorateContextNavigation(nodes, candidate.pages, candidate.kind);
   return nodes || [];
 }
 
@@ -141,7 +154,7 @@ function visibleItems(candidate) {
 function rebuildPrefix(candidate) {
   let items = visibleItems(candidate);
   if (candidate.nativeIndex)
-    items = items.concat(candidate.nativePrefixItems(candidate.nativeIndex, candidate.pages));
+    items = items.concat(candidate.nativePrefixItems(candidate.nativeIndex, candidate.pages, candidate.kind));
   candidate.index = preparePrefixIndex(items);
 }
 
@@ -159,8 +172,12 @@ function baseCandidate(parsed, strategy, pages, generation) {
 /** Единственная стратегия, импортируемая production-worker. */
 function createTocLazyCandidate(parsed, generation) {
   const candidate = baseCandidate(parsed, STRATEGY_TOC_LAZY, catalogPages(parsed), generation);
-  if (candidate.kind == 'context') {
-    candidate.navigation = cloneNavigation(candidate.parsed.toc.roots);
+  if (candidate.kind == 'dcs' && parsed.entities && parsed.entities.IndexPackBlock) {
+    candidate.nativeIndex = parseNativeIndex(parsed.entities, false);
+    candidate.nativePrefixItems = nativePrefixItems;
+  }
+  if (isTocPackage(candidate.kind)) {
+    candidate.navigation = tocNavigation(candidate.parsed);
     hydrateNavigationLevel(candidate, candidate.navigation);
   }
   else decorate(candidate);

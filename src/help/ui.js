@@ -115,12 +115,12 @@ function highlight(root, terms) {
 
 function createHelpUi(service, editorProvider) {
   const overlay = element('section', 'bsl-help-overlay');
-  overlay.setAttribute('aria-label', 'Синтакс-помощник 1С');
+  overlay.setAttribute('aria-label', 'Справка 1С');
   overlay.setAttribute('aria-hidden', 'true');
   const toolbar = element('header', 'bsl-help-toolbar');
   const back = element('button', 'bsl-help-icon', '←'); back.title = 'Назад';
   const forward = element('button', 'bsl-help-icon', '→'); forward.title = 'Вперёд';
-  const caption = element('div', 'bsl-help-caption', 'Синтакс-помощник 1С');
+  const caption = element('div', 'bsl-help-caption', 'Справка 1С');
   const close = element('button', 'bsl-help-close', '×'); close.title = 'Закрыть';
   toolbar.appendChild(back); toolbar.appendChild(forward); toolbar.appendChild(caption); toolbar.appendChild(close);
   const body = element('div', 'bsl-help-body');
@@ -177,8 +177,17 @@ function createHelpUi(service, editorProvider) {
   let indexRenderAnimationFrame = false;
   const expandedNodes = {};
   const initialState = service.getState();
-  let renderedContextPackage = initialState.packages.context;
-  let renderedLanguagePackage = initialState.packages.language;
+  let renderedScope = initialState.scope;
+  let renderedPackages = '';
+  let viewSequence = 0;
+
+  function packageSignature(value) {
+    const packages = value.packages || {};
+    return (value.kinds || []).map(function (kind) {
+      const pack = packages[kind];
+      return kind + ':' + (pack ? String(pack.generation) + ':' + String(pack.provisional) : '');
+    }).join('|');
+  }
 
   function currentEditor() {
     return editorProvider();
@@ -234,7 +243,7 @@ function createHelpUi(service, editorProvider) {
     forward.disabled = historyAt < 0 || historyAt >= history.length - 1;
   }
 
-  function renderState(value) {
+  function renderStatus(value) {
     message.classList.toggle('visible', value.status != 'ready');
     if (value.status == 'loading') message.textContent = 'Загрузка справки…';
     else if (value.status == 'error') message.textContent = value.lastError || 'Ошибка загрузки справки';
@@ -244,11 +253,18 @@ function createHelpUi(service, editorProvider) {
       status.textContent = 'Выберите статью';
       status.classList.add('visible');
     }
-    const packages = value.packages || {};
-    if (packages.context == renderedContextPackage && packages.language == renderedLanguagePackage)
+  }
+
+  function renderState(value) {
+    if (value.scope != renderedScope) {
+      renderedScope = value.scope;
+      resetScope();
+    }
+    renderStatus(value);
+    const signature = packageSignature(value);
+    if (signature == renderedPackages)
       return;
-    renderedContextPackage = packages.context;
-    renderedLanguagePackage = packages.language;
+    renderedPackages = signature;
     renderTree();
     renderIndex();
   }
@@ -316,6 +332,29 @@ function createHelpUi(service, editorProvider) {
 
   const indexList = createVirtualList(indexListNode, function (item) { openArticle(item, [], true); });
   const searchList = createVirtualList(searchListNode, function (item) { openArticle(item, activeTerms, true); });
+
+  function resetScope() {
+    viewSequence++;
+    clearTimeout(searchTimer);
+    searchTimer = null;
+    cancelIndexRender();
+    selected = null;
+    activeTerms = [];
+    history = [];
+    historyAt = -1;
+    Object.keys(expandedNodes).forEach(function (key) { delete expandedNodes[key]; });
+    indexInput.value = '';
+    searchInput.value = '';
+    indexMeta.textContent = 'Найдено: 0';
+    searchMeta.textContent = 'Найдено: 0';
+    indexList.setItems([]);
+    searchList.setItems([]);
+    articleContent.textContent = '';
+    status.textContent = 'Выберите статью';
+    status.classList.remove('error');
+    updateHistoryButtons();
+  }
+
   function renderIndex() {
     const result = service.prefix(indexInput.value);
     indexMeta.textContent = 'Найдено: ' + result.total;
@@ -344,10 +383,13 @@ function createHelpUi(service, editorProvider) {
 
   function openArticle(item, terms, addHistory) {
     if (!item || !item.kind || !item.path) return Promise.resolve();
+    if (!service.isKindActive(item.kind)) return Promise.resolve();
+    const requestView = viewSequence;
     status.textContent = 'Загрузка статьи…';
     status.classList.remove('error');
     status.classList.add('visible');
     return service.article(item, terms).then(function (result) {
+      if (requestView != viewSequence) return;
       selected = { id: result.id, kind: result.kind, path: result.path, title: result.title, anchor: item.anchor || '' };
       activeTerms = terms || [];
       if (addHistory) {
@@ -356,7 +398,9 @@ function createHelpUi(service, editorProvider) {
         historyAt = history.length - 1;
       }
       articleContent.textContent = '';
-      const safe = sanitizeArticle(result.html, function (target) { openArticle(target, [], true); }, selected);
+      const safe = sanitizeArticle(result.html, function (target) {
+        if (service.isKindActive(target.kind)) openArticle(target, [], true);
+      }, selected);
       while (safe.firstChild) articleContent.appendChild(safe.firstChild);
       status.classList.remove('visible', 'error');
       highlight(articleContent, activeTerms);
@@ -381,6 +425,7 @@ function createHelpUi(service, editorProvider) {
       }
       updateHistoryButtons();
     }).catch(function (error) {
+      if (requestView != viewSequence) return;
       status.textContent = 'Ошибка открытия: ' + (error.message || String(error));
       status.classList.add('visible', 'error');
     });
@@ -436,13 +481,17 @@ function createHelpUi(service, editorProvider) {
   searchInput.addEventListener('input', function () {
     clearTimeout(searchTimer);
     searchTimer = setTimeout(function () {
+      const requestView = viewSequence;
       if (service.getState().indexing)
         searchMeta.textContent = 'Индексируется…';
       service.search(searchInput.value).then(function (result) {
+        if (requestView != viewSequence) return;
         activeTerms = result.terms;
         searchMeta.textContent = 'Найдено: ' + result.total + (result.total > result.items.length ? ', показано: ' + result.items.length : '');
         searchList.setItems(result.items);
-      }).catch(function (error) { searchMeta.textContent = error.message || String(error); });
+      }).catch(function (error) {
+        if (requestView == viewSequence) searchMeta.textContent = error.message || String(error);
+      });
     }, 150);
   });
   back.addEventListener('click', function () { if (0 < historyAt) { historyAt--; const h = history[historyAt]; openArticle(h.item, h.terms, false); updateHistoryButtons(); } });

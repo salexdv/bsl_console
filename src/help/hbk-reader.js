@@ -1,5 +1,6 @@
 import { bytes, readZip, scanLocalRecords, readLocalRecords, u16, u32 } from './zip';
 import { parseToc } from './toc';
+import { parseSerialized } from './serialized';
 
 function asciiHex(data, offset) {
   if (offset + 9 > data.length)
@@ -132,7 +133,7 @@ function normalizePath(path) {
   return String(path || '').replace(/\\/g, '/').replace(/^\/+/, '');
 }
 
-function readContext(data, entities) {
+function readTocPackage(entities, kind, requireObjects) {
   if (!entities.FileStorage || !entities.PackBlock)
     return null;
   const fileStorage = entities.FileStorage;
@@ -142,13 +143,14 @@ function readContext(data, entities) {
   let firstName = '';
   for (let i = 0; i < firstNameLength && 30 + i < fileStorage.length; i++)
     firstName += String.fromCharCode(fileStorage[30 + i]);
-  if (!/^objects\//i.test(firstName))
+  if (requireObjects && !/^objects\//i.test(firstName))
     return null;
   const storage = readZip(fileStorage);
-  const looksContext = storage.entries.some(function (entry) {
-    return /^objects\//i.test(normalizePath(entry.name));
+  const hasPages = storage.entries.some(function (entry) {
+    const path = normalizePath(entry.name);
+    return requireObjects ? /^objects\//i.test(path) : path != '__categories__';
   });
-  if (!looksContext)
+  if (!hasPages)
     return null;
   let pack;
   try { pack = readLocalRecords(entities.PackBlock); }
@@ -156,8 +158,22 @@ function readContext(data, entities) {
   if (!pack.entries.length)
     throw new Error('HBK: PackBlock не содержит оглавление');
   const tocEntry = pack.byName['0'] || pack.entries[0];
-  const toc = parseToc(decodeUtf8(pack.extract(tocEntry)));
-  return { kind: 'context', storage: storage, toc: toc, entities: entities, pageCountHint: toc.count };
+  const toc = parseToc(decodeUtf8(pack.extract(tocEntry)), kind);
+  return { kind: kind, storage: storage, toc: toc, entities: entities, pageCountHint: toc.count };
+}
+
+function readContext(data, entities) {
+  return readTocPackage(entities, 'context', true);
+}
+
+function readBookPackage(entities) {
+  if (!entities.Book)
+    return null;
+  const book = parseSerialized(decodeUtf8(entities.Book), 'Book');
+  const bookName = String(book[1] || '').toLowerCase();
+  const kind = bookName == 'syntaxhelperqueries' ? 'query'
+    : (bookName == 'dcsui' ? 'dcs' : null);
+  return kind ? readTocPackage(entities, kind, false) : null;
 }
 
 function readLanguage(data) {
@@ -186,7 +202,10 @@ function readHbk(value) {
   const language = readLanguage(data);
   if (language)
     return language;
-  throw new Error('HBK: неизвестный пакет (ожидался shcntx или shlang)');
+  const book = readBookPackage(entities);
+  if (book)
+    return book;
+  throw new Error('HBK: неизвестный пакет (ожидался shcntx, shlang, shquery или dcsui)');
 }
 
 export { readHbk, extractEntities, readBlockDocument, normalizePath, decodeUtf8, MISSING_ADDRESS };

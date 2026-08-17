@@ -121,10 +121,11 @@ window.endBase64Transfer = function () {
 }
 
 /**
- * Загружает пакет синтакс-помощника 1С в текущую сессию.
+ * Загружает пакет справки 1С в текущую сессию.
  * Promise всегда разрешается объектом результата после готовности дерева и обоих индексов.
  * Успешно загруженный ранее пакет при ошибке не изменяется.
- * @param {Blob|File|string} [source] файл shcntx_*.hbk/shlang_*.hbk или его Base64-представление;
+ * @param {Blob|File|string} [source] файл shcntx_*.hbk/shlang_*.hbk/shquery_*.hbk/dcsui_*.hbk
+ * или его Base64-представление;
  * без аргумента используется последняя завершённая порционная передача
  * @returns {Promise<{ok:boolean,kind:string|null,pages:number,error:string|null}>}
  */
@@ -138,7 +139,7 @@ window.parseHelp = function (source) {
 }
 
 /**
- * Немедленно открывает закреплённую справа панель синтакс-помощника.
+ * Немедленно открывает закреплённую справа панель справки текущего режима.
  * @returns {void}
  */
 window.showHelp = function () {
@@ -566,6 +567,8 @@ window.setLanguageMode = function(mode) {
   else {
     monaco.editor.setModelLanguage(window.editor.getModel(), mode);
   }
+
+  helpBrowser.setLanguageMode(mode);
 
   let currentTheme = getCurrentThemeName();
   window.setTheme(currentTheme);
@@ -2435,7 +2438,7 @@ const commandOnlyActions = ['saveref', 'requestMetadata'];
 
 monaco.editor.addEditorAction({
   id: 'bsl.showHelp',
-  label: 'Синтакс-помощник 1С',
+  label: 'Справка 1С',
   keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.F1],
   run: function (activeEditor) {
     if (window.editor && window.editor.navi && activeEditor && activeEditor.hasTextFocus

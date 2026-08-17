@@ -23,7 +23,7 @@ const transferMode = process.argv[2] == '--base64-chunks' ? 'base64-chunks'
 const chunked = transferMode != 'binary';
 const paths = process.argv.slice(chunked ? 3 : 2);
 if (!paths.length) {
-  console.error('Usage: node tools/smoke_help_hbk.js [--base64-chunks|--base64-binary-chunks] <shcntx.hbk> [shlang.hbk]');
+  console.error('Usage: node tools/smoke_help_hbk.js [--base64-chunks|--base64-binary-chunks] <file.hbk> [...]');
   process.exit(2);
 }
 

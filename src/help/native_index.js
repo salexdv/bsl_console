@@ -39,9 +39,10 @@ function parseIndexRecord(record) {
   return { id: Number(record[0]), names: names, paths: paths };
 }
 
-function parseNativeIndex(entities) {
+function parseNativeIndex(entities, includeLookup) {
+  const lookup = includeLookup === false ? [] : parsePackLookup(entities);
   if (!entities.IndexPackBlock)
-    return { records: [], lookup: parsePackLookup(entities) };
+    return { records: [], lookup: lookup };
   const archive = readLocalRecords(entities.IndexPackBlock);
   const records = [];
   archive.entries.forEach(function (entry) {
@@ -54,14 +55,15 @@ function parseNativeIndex(entities) {
     for (let index = 1; index < value.length; index++)
       records.push(parseIndexRecord(value[index]));
   });
-  return { records: records, lookup: parsePackLookup(entities) };
+  return { records: records, lookup: lookup };
 }
 
-function nativePrefixItems(nativeIndex, pages) {
+function nativePrefixItems(nativeIndex, pages, packageKind) {
+  const kind = packageKind || 'context';
   const result = [];
   const seen = {};
   nativeIndex.records.forEach(function (record) {
-    const page = record.paths.map(function (path) { return pages['context:' + path]; }).filter(Boolean)[0];
+    const page = record.paths.map(function (path) { return pages[kind + ':' + path]; }).filter(Boolean)[0];
     if (!page) return;
     record.names.forEach(function (name) {
       const key = page.id + '\n' + name.language + '\n' + name.value;

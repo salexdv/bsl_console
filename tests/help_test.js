@@ -74,6 +74,35 @@ function makeZip(files, options) {
     return Buffer.concat([Buffer.from(options.prefix || ''), localData, centralData, eocd, Buffer.from(options.tail || '')]);
 }
 
+function writeHexField(buffer, offset, value) {
+    buffer.write(value.toString(16).padStart(8, '0') + ' ', offset, 'ascii');
+}
+
+function makeContainer(entities) {
+    const records = [];
+    let bodyAddress = 1024;
+    entities.forEach((entity, index) => {
+        const data = Buffer.isBuffer(entity.data) ? entity.data : Buffer.from(entity.data);
+        records.push({ name: entity.name, data, headerAddress: 512 + index * 128, bodyAddress });
+        bodyAddress += 31 + data.length + 64;
+    });
+    const result = Buffer.alloc(bodyAddress);
+    writeHexField(result, 18, records.length * 12);
+    writeHexField(result, 27, 512);
+    records.forEach((record, index) => {
+        const table = 47 + index * 12;
+        result.writeUInt32LE(record.headerAddress, table);
+        result.writeUInt32LE(record.bodyAddress, table + 4);
+        result.writeUInt32LE(0x7fffffff, table + 8);
+        const name = Buffer.from(record.name, 'utf16le');
+        writeHexField(result, record.headerAddress + 2, name.length + 24);
+        name.copy(result, record.headerAddress + 51);
+        writeHexField(result, record.bodyAddress + 2, record.data.length);
+        record.data.copy(result, record.bodyAddress + 31);
+    });
+    return result;
+}
+
 function testZip() {
     const zip = loadModule('src/help/zip.js');
     const inner = makeZip([{ name: 'stored.txt', data: 'store', method: 0 }, { name: 'deflated.txt', data: 'deflate' }]);
@@ -119,6 +148,40 @@ function testHbkBlocks() {
     assert.deepEqual(reader.extractEntities(missing), {}, 'отсутствующая сущность пропускается');
 }
 
+function makeBookHbk(bookName, pageName, pageTitle) {
+    const toc = tocSource([
+        tocNodeNoNames(1, 0, [2], ''),
+        tocNode(2, 1, [], pageTitle, pageTitle, pageName)
+    ]);
+    return makeContainer([
+        { name: 'Book', data: Buffer.from(`\ufeff{2,"${bookName}"}`) },
+        { name: 'FileStorage', data: makeZip([
+            { name: pageName, data: `<html><h1 class="V8SH_pagetitle">${pageTitle}</h1><p>Профильная статья</p></html>` },
+            { name: '__categories__', data: '{0}' }
+        ]) },
+        { name: 'PackBlock', data: makeZip([{ name: '1', data: toc }]) }
+    ]);
+}
+
+function testBookHbk() {
+    const reader = loadModule('src/help/hbk-reader.js');
+    const builder = loadModule('src/help/package_builder.js');
+    [
+        { book: 'SyntaxHelperQueries', kind: 'query', page: 'SELECT', title: 'ВЫБРАТЬ' },
+        { book: 'dcsui', kind: 'dcs', page: 'SKD_Lang', title: 'Язык выражений СКД' }
+    ].forEach(item => {
+        const parsed = reader.readHbk(makeBookHbk(item.book, item.page, item.title));
+        assert.equal(parsed.kind, item.kind);
+        assert.equal(parsed.toc.roots[0].kind, item.kind);
+        const candidate = builder.createTocLazyCandidate(parsed, 1);
+        assert.equal(candidate.navigation.length, 1, 'технический корень книги скрывается');
+        assert.equal(candidate.navigation[0].title, item.title);
+        builder.indexPackage(candidate);
+        assert(candidate.pages[`${item.kind}:${item.page}`], 'страница без расширения индексируется');
+        assert.equal(candidate.pageCount, 1, '__categories__ не считается страницей');
+    });
+}
+
 function testNativeIndex() {
     const native = loadModule('src/help/native_index.js');
     const text = '{1,{1,1,1,"#",0,0,"ru",0,0,"ru","Строка",0,1,0,1,"/page.html"}}';
@@ -130,6 +193,10 @@ function testNativeIndex() {
     assert.deepEqual(parsed.records[0].names, [{ language: 'ru', value: 'Строка' }]);
     assert.deepEqual(parsed.records[0].paths, ['page.html']);
     assert.deepEqual(parsed.lookup, [7]);
+    const dcsPage = { id: 'dcs:page.html', kind: 'dcs', path: 'page.html', title: 'Страница' };
+    assert.deepEqual(native.nativePrefixItems(parsed, { 'dcs:page.html': dcsPage }, 'dcs')[0], {
+        id: dcsPage.id, kind: 'dcs', path: 'page.html', title: 'Строка', context: '', alias: 'ru'
+    });
 }
 
 function testLoadingStrategies() {
@@ -200,6 +267,10 @@ function testToc() {
     assert.equal(result.roots[0].alias, 'Root');
     assert.equal(result.roots[0].children[0].path, '');
     assert.equal(result.roots[0].children[0].children[0].path, 'page.html');
+    assert.equal(parseToc(source, 'query').roots[0].id, 'query:1');
+    assert.equal(parseToc(source, 'query').roots[0].kind, 'query');
+    const hashTitle = parseToc('{1,{1,0,0,{1,1,{1,1,{"#","Заголовок"}},"page"}}}', 'query');
+    assert.equal(hashTitle.roots[0].title, 'Заголовок', 'общие книги используют язык # в TOC');
     assert.throws(() => parseToc(tocSource([tocNode(1, 0, [99], 'X', 'X', '')])), /неверная ссылка/);
     assert.throws(() => parseToc(tocSource([tocNode(1, 2, [2], 'A', 'A', ''), tocNode(2, 1, [1], 'B', 'B', '')])), /цикл/);
     assert.throws(() => parseToc('{2,' + tocNode(1, 0, [], 'X', 'X', '') + '}'), /количество/);
@@ -265,6 +336,12 @@ function testLinks() {
     });
     assert.deepEqual(links.resolveHelpLink('v8help://SyntaxHelperLanguage/def_String#attribute', current), {
         type: 'internal', kind: 'language', path: 'def_String', anchor: 'attribute'
+    });
+    assert.deepEqual(links.resolveHelpLink('v8help://SyntaxHelperQueries/SELECTSection#fields', current), {
+        type: 'internal', kind: 'query', path: 'SELECTSection', anchor: 'fields'
+    });
+    assert.deepEqual(links.resolveHelpLink('v8help://dcsui/SKD_Lang', current), {
+        type: 'internal', kind: 'dcs', path: 'SKD_Lang', anchor: ''
     });
     assert.deepEqual(links.resolveHelpLink('https://example.com/help', current), {
         type: 'external', href: 'https://example.com/help'
@@ -592,7 +669,9 @@ class FakeWorker {
         setImmediate(() => {
             if (message.type === 'parse') {
                 const source = message.source;
-                if (source.fail) return this.onmessage({ data: { id: message.id, type: 'error', payload: { message: 'broken' } } });
+                if (source.fail) return this.onmessage({ data: {
+                    id: message.id, type: 'error', payload: { message: 'broken', kind: source.kind }
+                } });
                 const kind = typeof source === 'string' ? 'language' : source.kind;
                 const payload = {
                     kind, pages: typeof source === 'string' ? 3 : source.pages,
@@ -635,6 +714,22 @@ async function testService() {
     }
     await order('context', 'language');
     await order('language', 'context');
+    const allKinds = serviceModule.createHelpService(() => new FakeWorker());
+    for (const kind of ['context', 'language', 'query', 'dcs'])
+        assert.equal((await allKinds.parse(blob(kind, 1))).kind, kind);
+    allKinds.setKinds(['query']);
+    assert.equal(allKinds.prefix('', 1000).items[0].kind, 'query');
+    assert.deepEqual(allKinds.getNavigation().map(item => item.kind), ['query']);
+    allKinds.setKinds(['dcs']);
+    assert.equal(allKinds.isReady(), true);
+    const failedQuery = await allKinds.parse(blob('query', 1, true));
+    assert.equal(failedQuery.ok, false);
+    assert.equal(allKinds.isReady(), true, 'ошибка query не блокирует активный dcs');
+    allKinds.setKinds(['query']);
+    assert.equal(allKinds.isReady(), false, 'ошибка блокирует только свой режим');
+    allKinds.setKinds(['context', 'language']);
+    assert.equal(allKinds.isReady(), true, 'базовая справка остаётся готовой');
+    allKinds.dispose();
     let poolAttempts = 0;
     let fallbackCoordinator = null;
     const fallbackService = serviceModule.createHelpService(() => (fallbackCoordinator = new FakeWorker()), () => {
@@ -754,6 +849,7 @@ function testBlobWorkerCheck() {
 async function main() {
     testZip();
     testHbkBlocks();
+    testBookHbk();
     testNativeIndex();
     testLoadingStrategies();
     testToc();

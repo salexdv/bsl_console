@@ -51,7 +51,8 @@ function compactContext(ancestors, node) {
   return parts.join('/');
 }
 
-function decorateContextNavigation(nodes, pages) {
+function decorateContextNavigation(nodes, pages, packageKind) {
+  const kind = packageKind || 'context';
   function visit(node, ancestors) {
     node.path = normalizePath(node.path);
     node.tocId = node.tocId || node.id;
@@ -61,7 +62,7 @@ function decorateContextNavigation(nodes, pages) {
       node.systemGroup = true;
     }
     if (node.path) {
-      const page = pages['context:' + node.path];
+      const page = pages[kind + ':' + node.path];
       if (page) {
         node.pageId = page.id;
         node.id = page.id;

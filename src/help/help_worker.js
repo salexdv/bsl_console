@@ -8,8 +8,8 @@ import {
   indexPackageBatch, packageSummary
 } from './package_builder';
 
-const packages = { context: null, language: null };
-const candidates = { context: null, language: null };
+const packages = { context: null, language: null, query: null, dcs: null };
+const candidates = { context: null, language: null, query: null, dcs: null };
 const base64Transfer = createBase64TransferManager();
 const transferState = { ended: false, error: null };
 let parseQueue = Promise.resolve();
@@ -48,10 +48,11 @@ function readSource(source) {
   return readBlob(source).then(function (buffer) { return { buffer: buffer, blob: source }; });
 }
 
-function allDocuments() {
+function allDocuments(kinds) {
   let result = [];
-  if (packages.context) result = result.concat(packages.context.documents);
-  if (packages.language) result = result.concat(packages.language.documents);
+  (kinds || Object.keys(packages)).forEach(function (kind) {
+    if (packages[kind]) result = result.concat(packages[kind].documents);
+  });
   return result;
 }
 
@@ -186,8 +187,10 @@ function pooledIndex(id, candidate, workers, resolve) {
 }
 
 function parseMessage(message) {
+  let parsedKind = null;
   return readSource(message.source).then(function (input) {
     const parsed = readHbk(input.buffer);
+    parsedKind = parsed.kind;
     const candidate = createTocLazyCandidate(parsed, ++generationSequence);
     candidate.blob = input.blob;
     candidates[candidate.kind] = candidate;
@@ -198,7 +201,9 @@ function parseMessage(message) {
       else localIndex(message.id, candidate, resolve);
     });
   }).catch(function (error) {
-    send(message.id, 'error', { message: error && error.message ? error.message : String(error) });
+    send(message.id, 'error', {
+      message: error && error.message ? error.message : String(error), kind: parsedKind
+    });
   });
 }
 
@@ -309,10 +314,8 @@ self.onmessage = function (event) {
     return;
   }
   if (message.type == 'search') {
-    parseQueue.then(function () {
-      try { send(message.id, 'search', searchDocuments(allDocuments(), message.query, 1000)); }
-      catch (error) { send(message.id, 'error', { message: error.message }); }
-    });
+    try { send(message.id, 'search', searchDocuments(allDocuments(message.kinds), message.query, 1000)); }
+    catch (error) { send(message.id, 'error', { message: error.message }); }
     return;
   }
   if (message.type == 'article') {
