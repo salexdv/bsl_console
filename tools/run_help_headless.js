@@ -462,6 +462,7 @@ function serve() {
         eventsAfterRepeat: eventsAfterRepeat,
         eventsAfterFailure: eventsAfterFailure,
         readyEvents: ready.map(function (item) { return { event: item.event, hasParams: item.params !== undefined }; }),
+        locateDisabled: document.querySelector('.bsl-help-locate').disabled,
         titles: Array.prototype.map.call(document.querySelectorAll('.bsl-help-tree-title'), function (node) {
           return node.textContent;
         })
@@ -477,7 +478,7 @@ function serve() {
       || dual.eventsAfterFailure != 2 || dual.failedContext.ok || !dual.repeatedLanguage.ok
       || dual.readyEvents.length != 2 || dual.readyEvents.some(function (event) { return event.hasParams; }))
       errors.push('EVENT_ON_HELP_READY: ' + JSON.stringify(dual));
-    if (dual.titles.indexOf('Выполнить') < 0 || dual.titles.indexOf('Общее описание') < 0)
+    if (!dual.locateDisabled || dual.titles.indexOf('Выполнить') < 0 || dual.titles.indexOf('Общее описание') < 0)
       errors.push('two package navigation: ' + JSON.stringify(dual.titles));
 
     await page.evaluate(function () {
@@ -573,6 +574,36 @@ function serve() {
     await page.click('.bsl-help-panel[data-tab="index"] .bsl-help-list-row');
     await page.waitForFunction('document.querySelector(".bsl-help-article").textContent.indexOf("Unicode") >= 0');
 
+    await page.$eval('.bsl-help-tree', function (tree) {
+      tree.style.height = '35px';
+      tree.style.flex = '0 0 35px';
+    });
+    if (await page.$eval('.bsl-help-locate', function (button) { return button.disabled; }))
+      errors.push('locate current article is disabled');
+    await page.click('.bsl-help-locate');
+    await page.waitForFunction('document.querySelector(".bsl-help-panel[data-tab=contents].active")'
+      + ' && document.querySelectorAll(".bsl-help-tree-title.current[aria-current=true]").length == 1'
+      + ' && document.activeElement == document.querySelector(".bsl-help-tree-title.current")');
+    const located = await page.evaluate(function () {
+      const tree = document.querySelector('.bsl-help-tree');
+      const current = document.querySelector('.bsl-help-tree-title.current');
+      const viewport = tree.getBoundingClientRect();
+      const row = current.getBoundingClientRect();
+      const result = {
+        title: current.textContent,
+        expanded: document.querySelectorAll('.bsl-help-tree-children.open').length,
+        scrollTop: tree.scrollTop,
+        visible: row.top >= viewport.top - 1 && row.bottom <= viewport.bottom + 1,
+        article: document.querySelector('.bsl-help-article-content').textContent
+      };
+      tree.style.height = '';
+      tree.style.flex = '';
+      return result;
+    });
+    if (located.title.indexOf('Строка') != 0 || located.expanded < 1 || located.scrollTop <= 0
+      || !located.visible || located.article.indexOf('Unicode') < 0)
+      errors.push('locate current article: ' + JSON.stringify(located));
+
     await page.click('.bsl-help-tab[data-tab="search"]');
     await page.type('.bsl-help-panel[data-tab="search"] .bsl-help-input', 'ЕЛКА строка');
     await page.waitForFunction('document.querySelector(".bsl-help-panel[data-tab=search] .bsl-help-meta").textContent.indexOf("1") >= 0');
@@ -637,6 +668,8 @@ function serve() {
           }),
           article: document.querySelector('.bsl-help-article-content').textContent,
           backDisabled: document.querySelector('.bsl-help-icon').disabled,
+          locateDisabled: document.querySelector('.bsl-help-locate').disabled,
+          currentTreeItems: document.querySelectorAll('.bsl-help-tree-title.current').length,
           index: document.querySelector('.bsl-help-panel[data-tab=index] .bsl-help-input').value,
           search: document.querySelector('.bsl-help-panel[data-tab=search] .bsl-help-input').value
         };
@@ -650,9 +683,11 @@ function serve() {
     });
     if (!switchedPanel.query.visible || switchedPanel.query.titles.indexOf('ВЫБРАТЬ') < 0
       || switchedPanel.query.titles.indexOf('Строка (String)') >= 0 || switchedPanel.query.article
-      || !switchedPanel.query.backDisabled || switchedPanel.query.index || switchedPanel.query.search
+      || !switchedPanel.query.backDisabled || !switchedPanel.query.locateDisabled || switchedPanel.query.currentTreeItems
+      || switchedPanel.query.index || switchedPanel.query.search
       || switchedPanel.dcs.titles.indexOf('СКДФункция') < 0
-      || switchedPanel.dcs.titles.indexOf('ВЫБРАТЬ') >= 0 || switchedPanel.dcs.article)
+      || switchedPanel.dcs.titles.indexOf('ВЫБРАТЬ') >= 0 || switchedPanel.dcs.article
+      || !switchedPanel.dcs.locateDisabled || switchedPanel.dcs.currentTreeItems)
       errors.push('open panel mode switch: ' + JSON.stringify(switchedPanel));
 
     async function shortcutFor(mode, diffSide) {
@@ -767,5 +802,5 @@ function serve() {
     console.error('[help-headless] ОШИБКИ:'); errors.forEach(function (error) { console.error('  • ' + error); });
     process.exit(1);
   }
-  console.log('[help-headless] file loader, Base64 chunks, help-ready event, docked UI, index/search, links, history, sanitizer and Ctrl+F1 word lookup: OK');
+  console.log('[help-headless] file loader, Base64 chunks, help-ready event, docked UI, index/search, tree locating, links, history, sanitizer and Ctrl+F1 word lookup: OK');
 }()).catch(function (error) { console.error('[help-headless] fatal:', error && error.stack || error); process.exit(2); });

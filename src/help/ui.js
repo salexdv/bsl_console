@@ -1,4 +1,5 @@
 import { resolveHelpLink } from './links';
+import { findNavigationPath } from './navigation';
 
 function element(tag, className, text) {
   const node = document.createElement(tag);
@@ -120,9 +121,15 @@ function createHelpUi(service, editorProvider) {
   const toolbar = element('header', 'bsl-help-toolbar');
   const back = element('button', 'bsl-help-icon', '←'); back.title = 'Назад';
   const forward = element('button', 'bsl-help-icon', '→'); forward.title = 'Вперёд';
+  const locate = element('button', 'bsl-help-icon bsl-help-locate');
+  locate.type = 'button';
+  locate.title = 'Найти текущий элемент в дереве';
+  locate.setAttribute('aria-label', locate.title);
+  locate.appendChild(element('span', 'codicon codicon-list-tree'));
   const caption = element('div', 'bsl-help-caption', 'Справка 1С');
   const close = element('button', 'bsl-help-close', '×'); close.title = 'Закрыть';
-  toolbar.appendChild(back); toolbar.appendChild(forward); toolbar.appendChild(caption); toolbar.appendChild(close);
+  toolbar.appendChild(back); toolbar.appendChild(forward); toolbar.appendChild(locate);
+  toolbar.appendChild(caption); toolbar.appendChild(close);
   const body = element('div', 'bsl-help-body');
   const message = element('div', 'bsl-help-message');
   const navigation = element('aside', 'bsl-help-navigation');
@@ -180,6 +187,10 @@ function createHelpUi(service, editorProvider) {
   let renderedScope = initialState.scope;
   let renderedPackages = '';
   let viewSequence = 0;
+  let articleSequence = 0;
+  let locateSequence = 0;
+  let locating = false;
+  let treeRows = {};
 
   function packageSignature(value) {
     const packages = value.packages || {};
@@ -238,9 +249,28 @@ function createHelpUi(service, editorProvider) {
     if (name == 'search') searchInput.focus();
   }
 
-  function updateHistoryButtons() {
+  function selectedPath() {
+    return selected ? findNavigationPath(service.getNavigation(), selected) : null;
+  }
+
+  function updateToolbarButtons() {
     back.disabled = historyAt <= 0;
     forward.disabled = historyAt < 0 || historyAt >= history.length - 1;
+    locate.disabled = locating || !selectedPath();
+  }
+
+  function updateTreeSelection() {
+    Object.keys(treeRows).forEach(function (key) {
+      treeRows[key].classList.remove('current');
+      treeRows[key].removeAttribute('aria-current');
+    });
+    const path = selectedPath();
+    if (!path || !path.length) return;
+    const current = path[path.length - 1];
+    const title = treeRows[current.tocId || current.id];
+    if (!title) return;
+    title.classList.add('current');
+    title.setAttribute('aria-current', 'true');
   }
 
   function renderStatus(value) {
@@ -267,6 +297,7 @@ function createHelpUi(service, editorProvider) {
     renderedPackages = signature;
     renderTree();
     renderIndex();
+    updateToolbarButtons();
   }
 
   function treeNode(node) {
@@ -278,6 +309,7 @@ function createHelpUi(service, editorProvider) {
     let children = null;
     let opening = false;
     const nodeKey = node.tocId || node.id;
+    treeRows[nodeKey] = title;
     function appendChildren() {
       if (children) return;
       children = element('div', 'bsl-help-tree-children');
@@ -326,8 +358,10 @@ function createHelpUi(service, editorProvider) {
   function renderTree() {
     const scrollTop = contents.scrollTop;
     contents.textContent = '';
+    treeRows = {};
     service.getNavigation().forEach(function (node) { contents.appendChild(treeNode(node)); });
     contents.scrollTop = scrollTop;
+    updateTreeSelection();
   }
 
   const indexList = createVirtualList(indexListNode, function (item) { openArticle(item, [], true); });
@@ -335,6 +369,9 @@ function createHelpUi(service, editorProvider) {
 
   function resetScope() {
     viewSequence++;
+    articleSequence++;
+    locateSequence++;
+    locating = false;
     clearTimeout(searchTimer);
     searchTimer = null;
     cancelIndexRender();
@@ -352,7 +389,7 @@ function createHelpUi(service, editorProvider) {
     articleContent.textContent = '';
     status.textContent = 'Выберите статью';
     status.classList.remove('error');
-    updateHistoryButtons();
+    updateToolbarButtons();
   }
 
   function renderIndex() {
@@ -391,6 +428,9 @@ function createHelpUi(service, editorProvider) {
     return service.article(item, terms).then(function (result) {
       if (requestView != viewSequence) return;
       selected = { id: result.id, kind: result.kind, path: result.path, title: result.title, anchor: item.anchor || '' };
+      articleSequence++;
+      locateSequence++;
+      locating = false;
       activeTerms = terms || [];
       if (addHistory) {
         history = history.slice(0, historyAt + 1);
@@ -423,11 +463,74 @@ function createHelpUi(service, editorProvider) {
           article.scrollTop = Math.max(0, top - 8);
         }
       }
-      updateHistoryButtons();
+      updateTreeSelection();
+      updateToolbarButtons();
     }).catch(function (error) {
       if (requestView != viewSequence) return;
       status.textContent = 'Ошибка открытия: ' + (error.message || String(error));
       status.classList.add('visible', 'error');
+    });
+  }
+
+  function sameArticle(item) {
+    return selected && item && selected.id == item.id && selected.kind == item.kind && selected.path == item.path;
+  }
+
+  function scrollTreeTitleIntoView(title) {
+    const viewport = contents.getBoundingClientRect();
+    const row = title.getBoundingClientRect();
+    if (row.top < viewport.top)
+      contents.scrollTop -= viewport.top - row.top;
+    else if (row.bottom > viewport.bottom)
+      contents.scrollTop += row.bottom - viewport.bottom;
+  }
+
+  function locateSelected() {
+    const requested = selected && { id: selected.id, kind: selected.kind, path: selected.path };
+    const requestView = viewSequence;
+    const requestArticle = articleSequence;
+    if (!requested || !selectedPath()) {
+      updateToolbarButtons();
+      return Promise.resolve();
+    }
+    const requestLocate = ++locateSequence;
+    locating = true;
+    updateToolbarButtons();
+    setTab('contents');
+
+    function isCurrent() {
+      return requestLocate == locateSequence && requestView == viewSequence
+        && requestArticle == articleSequence && sameArticle(requested);
+    }
+
+    function hydratePath() {
+      if (!isCurrent()) return Promise.resolve(null);
+      const path = findNavigationPath(service.getNavigation(), requested);
+      if (!path) return Promise.resolve(null);
+      for (let index = 0; index + 1 < path.length; index++) {
+        const node = path[index];
+        if (node.children && node.children.length && !node.childrenHydrated)
+          return service.hydrate(node).then(hydratePath);
+      }
+      return Promise.resolve(path);
+    }
+
+    return hydratePath().then(function (path) {
+      if (!isCurrent() || !path) return;
+      for (let index = 0; index + 1 < path.length; index++)
+        expandedNodes[path[index].tocId || path[index].id] = true;
+      renderTree();
+      const current = path[path.length - 1];
+      const title = treeRows[current.tocId || current.id];
+      if (!title) return;
+      title.focus();
+      scrollTreeTitleIntoView(title);
+    }).catch(function () {
+      // Ошибка ленивой гидратации не должна менять статью или историю.
+    }).then(function () {
+      if (requestLocate != locateSequence) return;
+      locating = false;
+      updateToolbarButtons();
     });
   }
 
@@ -494,8 +597,9 @@ function createHelpUi(service, editorProvider) {
       });
     }, 150);
   });
-  back.addEventListener('click', function () { if (0 < historyAt) { historyAt--; const h = history[historyAt]; openArticle(h.item, h.terms, false); updateHistoryButtons(); } });
-  forward.addEventListener('click', function () { if (historyAt + 1 < history.length) { historyAt++; const h = history[historyAt]; openArticle(h.item, h.terms, false); updateHistoryButtons(); } });
+  back.addEventListener('click', function () { if (0 < historyAt) { historyAt--; const h = history[historyAt]; openArticle(h.item, h.terms, false); updateToolbarButtons(); } });
+  forward.addEventListener('click', function () { if (historyAt + 1 < history.length) { historyAt++; const h = history[historyAt]; openArticle(h.item, h.terms, false); updateToolbarButtons(); } });
+  locate.addEventListener('click', locateSelected);
 
   let dragging = '';
   separator.addEventListener('mousedown', function (event) { dragging = 'navigation'; event.preventDefault(); });
@@ -520,7 +624,7 @@ function createHelpUi(service, editorProvider) {
     layoutEditor();
   });
   service.subscribe(renderState);
-  setTab(activeTab); updateHistoryButtons();
+  setTab(activeTab); updateToolbarButtons();
 
   return {
     show: show,
