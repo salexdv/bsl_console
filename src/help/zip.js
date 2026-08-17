@@ -87,6 +87,11 @@ function validateFlags(flags) {
 
 function inflateEntry(archive, entry) {
   const source = archive.data.subarray(entry.dataOffset, entry.dataOffset + entry.compressedSize);
+  return inflatePayload(source, entry);
+}
+
+function inflatePayload(value, entry) {
+  const source = bytes(value);
   let result;
   if (entry.method == 0)
     result = new Uint8Array(source);
@@ -297,4 +302,4 @@ function readLocalRecords(value) {
   };
 }
 
-export { crc32, readZip, scanLocalRecords, readLocalRecords, bytes, u16, u32 };
+export { crc32, inflatePayload, readZip, scanLocalRecords, readLocalRecords, bytes, u16, u32 };

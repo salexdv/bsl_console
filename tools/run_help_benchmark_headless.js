@@ -8,6 +8,7 @@ const puppeteer = require('puppeteer-core');
 const DIST = path.resolve(__dirname, '..', 'dist');
 const PORT = 9012;
 const STRATEGIES = ['eager-html', 'toc-lazy', 'native-index-lazy'];
+const WORKER_MODES = [0, 1, 2, 3];
 
 function browserPath() {
   return [process.env.CHROME_PATH,
@@ -29,6 +30,8 @@ function filesFromArguments() {
     const at = process.argv.indexOf(name);
     if (0 <= at) { optionPositions.add(at); optionPositions.add(at + 1); }
   });
+  const workersOnlyAt = process.argv.indexOf('--workers-only');
+  if (0 <= workersOnlyAt) optionPositions.add(workersOnlyAt);
   return process.argv.slice(2).filter((value, index) => !optionPositions.has(index + 2)).map(file => path.resolve(file));
 }
 
@@ -87,26 +90,71 @@ function chooseWinner(files) {
   return { winner, navigationScoreMs: score, eligible: winner == 'eager-html' || winnerP95 <= eagerP95 * 1.2 };
 }
 
+function geometric(values) {
+  return Math.exp(values.reduce((sum, value) => sum + Math.log(value), 0) / values.length);
+}
+
+function chooseWorkerWinner(files) {
+  const score = {};
+  WORKER_MODES.forEach(workers => {
+    score[workers] = geometric(files.map(file => file.workers.find(item => item.workers == workers).summary.fullReadyMs.median));
+  });
+  const baseline = score[0];
+  const eligible = WORKER_MODES.filter(workers => workers > 0).filter(workers => {
+    if (score[workers] > baseline * .9) return false;
+    return files.every(file => {
+      const base = file.workers.find(item => item.workers == 0);
+      const item = file.workers.find(value => value.workers == workers);
+      const same = ['pages', 'navigationSignature', 'prefixSignature', 'searchSignature', 'searchMatches']
+        .every(field => item.sample[field] == base.sample[field]);
+      return same
+        && item.summary.fullReadyMs.p95 <= base.summary.fullReadyMs.p95 * 1.05
+        && item.summary.navigationReadyMs.p95 <= base.summary.navigationReadyMs.p95 * 1.10
+        && item.summary.firstArticleMs.p95 <= base.summary.firstArticleMs.p95 * 1.20;
+    });
+  }).sort((a, b) => score[a] - score[b]);
+  let winner = eligible.length ? eligible[0] : 0;
+  eligible.forEach(workers => {
+    if (workers < winner && score[workers] <= score[winner] * 1.05) winner = workers;
+  });
+  return { winner, fullReadyScoreMs: score, eligible: eligible };
+}
+
 function markdown(output) {
-  const eagerScore = output.selection.navigationScoreMs['eager-html'];
-  const winnerScore = output.selection.navigationScoreMs[output.selection.winner];
-  const speedup = eagerScore / winnerScore;
-  const lines = ['# Замеры стратегий загрузки HBK', '',
-    `Chrome/Edge: ${output.browser}; прогревов: ${output.warmup}; запусков: ${output.runs}.`, '',
-    `Выбрана стратегия **${output.selection.winner}**: геометрическое среднее навигационной готовности ${winnerScore.toFixed(1)} мс против ${eagerScore.toFixed(1)} мс у \`eager-html\`, ускорение **${speedup.toFixed(2)}×**. `
+  const lines = [output.selection ? '# Замеры стратегий загрузки HBK' : '# Замеры параллельной индексации HBK', '',
+    `Chrome/Edge: ${output.browser}; прогревов: ${output.warmup}; запусков: ${output.runs}.`];
+  const fmt = value => value.toFixed(1) + ' мс';
+  if (output.selection) {
+    const eagerScore = output.selection.navigationScoreMs['eager-html'];
+    const winnerScore = output.selection.navigationScoreMs[output.selection.winner];
+    const speedup = eagerScore / winnerScore;
+    lines.push('', `Выбрана стратегия **${output.selection.winner}**: геометрическое среднее навигационной готовности ${winnerScore.toFixed(1)} мс против ${eagerScore.toFixed(1)} мс у \`eager-html\`, ускорение **${speedup.toFixed(2)}×**. `
       + (output.selection.eligible ? 'Ограничение p95 полной готовности +20% соблюдено.' : 'Ограничение p95 полной готовности +20% не соблюдено.'), '',
     '| Пакет | Стратегия | Контейнер median / p95 | Навигация median / p95 | Первая статья median / p95 | Полная готовность median / p95 | Prefix-поиск median / p95 | Полнотекстовый поиск median / p95 |',
-    '| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |'];
-  const fmt = value => value.toFixed(1) + ' мс';
-  output.files.forEach(file => file.strategies.forEach(item => {
-    const s = item.summary;
-    lines.push(`| ${file.label} | ${item.strategy} | ${fmt(s.parseMs.median)} / ${fmt(s.parseMs.p95)} | ${fmt(s.navigationReadyMs.median)} / ${fmt(s.navigationReadyMs.p95)} | ${fmt(s.firstArticleMs.median)} / ${fmt(s.firstArticleMs.p95)} | ${fmt(s.fullReadyMs.median)} / ${fmt(s.fullReadyMs.p95)} | ${fmt(s.prefixSearchMs.median)} / ${fmt(s.prefixSearchMs.p95)} | ${fmt(s.fullTextSearchMs.median)} / ${fmt(s.fullTextSearchMs.p95)} |`);
-  }));
+    '| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |');
+    output.files.forEach(file => file.strategies.forEach(item => {
+      const s = item.summary;
+      lines.push(`| ${file.label} | ${item.strategy} | ${fmt(s.parseMs.median)} / ${fmt(s.parseMs.p95)} | ${fmt(s.navigationReadyMs.median)} / ${fmt(s.navigationReadyMs.p95)} | ${fmt(s.firstArticleMs.median)} / ${fmt(s.firstArticleMs.p95)} | ${fmt(s.fullReadyMs.median)} / ${fmt(s.fullReadyMs.p95)} | ${fmt(s.prefixSearchMs.median)} / ${fmt(s.prefixSearchMs.p95)} | ${fmt(s.fullTextSearchMs.median)} / ${fmt(s.fullTextSearchMs.p95)} |`);
+    }));
+  }
   if (output.channels && output.channels.length) {
     lines.push('', '## Каналы передачи', '',
       'Измеряется браузерное преобразование уже полученных данных в бинарный буфер; стоимость вызовов моста 1С не включена.', '',
       '| Канал | median / p95 |', '| --- | ---: |');
     output.channels.forEach(item => lines.push(`| ${item.channel} | ${fmt(item.median)} / ${fmt(item.p95)} |`));
+  }
+  if (output.workerFiles && output.workerFiles.length) {
+    lines.push('', '## Параллельная индексация', '',
+      '| Пакет | Index-worker | Навигация median / p95 | Полная готовность median / p95 | Первая статья median / p95 |',
+      '| --- | ---: | ---: | ---: | ---: |');
+    output.workerFiles.forEach(file => file.workers.forEach(item => {
+      const s = item.summary;
+      lines.push(`| ${file.label} | ${item.workers} | ${fmt(s.navigationReadyMs.median)} / ${fmt(s.navigationReadyMs.p95)} | ${fmt(s.fullReadyMs.median)} / ${fmt(s.fullReadyMs.p95)} | ${fmt(s.firstArticleMs.median)} / ${fmt(s.firstArticleMs.p95)} |`);
+    }));
+    const baseline = output.workerSelection.fullReadyScoreMs[0];
+    const selected = output.workerSelection.fullReadyScoreMs[output.workerSelection.winner];
+    lines.push('', `Выбрано index-worker: **${output.workerSelection.winner}**. Геометрическое среднее медиан полной готовности — ${fmt(selected)} против ${fmt(baseline)} у координатора, ускорение **${(baseline / selected).toFixed(2)}×**.`, '',
+      `Все пороги прошли конфигурации: ${output.workerSelection.eligible.length ? output.workerSelection.eligible.join(', ') : 'нет'}. Режимы с меньшей медианой, но нарушившие ограничения p95, в production не включаются.`);
   }
   lines.push('', 'Пути к локальным HBK в отчёт не записываются; команда принимает их аргументами.');
   return lines.join('\n') + '\n';
@@ -120,6 +168,7 @@ function markdown(output) {
   const runsCount = Number(option('--runs', '7'));
   const warmup = Number(option('--warmup', '1'));
   const report = option('--report', '');
+  const workersOnly = process.argv.indexOf('--workers-only') >= 0;
   const server = await serve(files);
   const browser = await puppeteer.launch({ executablePath, headless: true, args: ['--no-sandbox'] });
   const output = { browser: '', warmup, runs: runsCount, files: [] };
@@ -128,39 +177,62 @@ function markdown(output) {
     await page.goto('http://127.0.0.1:' + PORT + '/help_benchmark.html', { waitUntil: 'load', timeout: 60000 });
     await page.waitForFunction('typeof window.runHelpHbkBenchmark == "function"');
     output.browser = await page.evaluate(() => navigator.userAgent);
+    if (!workersOnly) {
+      for (let fileIndex = 0; fileIndex < files.length; fileIndex++) {
+        await page.evaluate(async index => {
+          window.__hbkBenchmarkBuffer = await fetch('/hbk/' + index).then(response => response.arrayBuffer());
+        }, fileIndex);
+        const fileResult = {
+          label: path.basename(path.dirname(path.dirname(files[fileIndex]))) + '/' + path.basename(files[fileIndex]),
+          bytes: fs.statSync(files[fileIndex]).size, strategies: []
+        };
+        for (const strategy of STRATEGIES) {
+          const runs = [];
+          for (let index = 0; index < warmup + runsCount; index++) {
+            const value = await page.evaluate(selected => window.runHelpHbkBenchmark(window.__hbkBenchmarkBuffer, selected), strategy);
+            if (index >= warmup) runs.push(value);
+          }
+          fileResult.strategies.push({ strategy, sample: runs[0], summary: summarize(runs) });
+        }
+        output.files.push(fileResult);
+      }
+      const largestAt = output.files.reduce((best, file, index) => file.bytes > output.files[best].bytes ? index : best, 0);
+      await page.evaluate(async index => {
+        const buffer = await fetch('/hbk/' + index).then(response => response.arrayBuffer());
+        window.prepareHelpTransferBenchmark(buffer);
+      }, largestAt);
+      output.channels = [];
+      for (const channel of ['file-blob', 'whole-base64', 'base64-fragments', 'binary-base64-chunks']) {
+        const values = [];
+        for (let index = 0; index < warmup + runsCount; index++) {
+          const value = await page.evaluate(selected => window.runHelpTransferBenchmark(selected), channel);
+          if (index >= warmup) values.push(value);
+        }
+        output.channels.push({ channel, median: percentile(values, .5), p95: percentile(values, .95) });
+      }
+      output.selection = chooseWinner(output.files);
+    }
+    output.workerFiles = [];
     for (let fileIndex = 0; fileIndex < files.length; fileIndex++) {
+      if (fs.statSync(files[fileIndex]).size <= 10 * 1024 * 1024) continue;
       await page.evaluate(async index => {
         window.__hbkBenchmarkBuffer = await fetch('/hbk/' + index).then(response => response.arrayBuffer());
       }, fileIndex);
       const fileResult = {
         label: path.basename(path.dirname(path.dirname(files[fileIndex]))) + '/' + path.basename(files[fileIndex]),
-        bytes: fs.statSync(files[fileIndex]).size, strategies: []
+        bytes: fs.statSync(files[fileIndex]).size, workers: []
       };
-      for (const strategy of STRATEGIES) {
+      for (const workers of WORKER_MODES) {
         const runs = [];
         for (let index = 0; index < warmup + runsCount; index++) {
-          const value = await page.evaluate(selected => window.runHelpHbkBenchmark(window.__hbkBenchmarkBuffer, selected), strategy);
+          const value = await page.evaluate(count => window.runHelpWorkerBenchmark(window.__hbkBenchmarkBuffer, count), workers);
           if (index >= warmup) runs.push(value);
         }
-        fileResult.strategies.push({ strategy, sample: runs[0], summary: summarize(runs) });
+        fileResult.workers.push({ workers, sample: runs[0], summary: summarize(runs) });
       }
-      output.files.push(fileResult);
+      output.workerFiles.push(fileResult);
     }
-    const largestAt = output.files.reduce((best, file, index) => file.bytes > output.files[best].bytes ? index : best, 0);
-    await page.evaluate(async index => {
-      const buffer = await fetch('/hbk/' + index).then(response => response.arrayBuffer());
-      window.prepareHelpTransferBenchmark(buffer);
-    }, largestAt);
-    output.channels = [];
-    for (const channel of ['file-blob', 'whole-base64', 'base64-fragments', 'binary-base64-chunks']) {
-      const values = [];
-      for (let index = 0; index < warmup + runsCount; index++) {
-        const value = await page.evaluate(selected => window.runHelpTransferBenchmark(selected), channel);
-        if (index >= warmup) values.push(value);
-      }
-      output.channels.push({ channel, median: percentile(values, .5), p95: percentile(values, .95) });
-    }
-    output.selection = chooseWinner(output.files);
+    output.workerSelection = chooseWorkerWinner(output.workerFiles);
     console.log(JSON.stringify(output, null, 2));
     if (report) fs.writeFileSync(path.resolve(report), markdown(output));
   }

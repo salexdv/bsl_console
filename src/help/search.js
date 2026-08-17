@@ -13,6 +13,7 @@ function buildSearchDocument(page) {
     title: page.title,
     path: page.path,
     kind: page.kind,
+    ordinal: page.ordinal === undefined ? 0 : page.ordinal,
     titleText: normalize(page.title + ' ' + (page.alias || '')),
     bodyText: normalize(page.text || '')
   };
@@ -37,10 +38,11 @@ function searchDocuments(documents, query, limit) {
       if (0 <= bodyAt)
         score += 1000 - Math.min(bodyAt, 900);
     }
-    matches.push({ id: document.id, title: document.title, path: document.path, kind: document.kind, score: score });
+    matches.push({ id: document.id, title: document.title, path: document.path, kind: document.kind,
+      score: score, ordinal: document.ordinal });
   });
   matches.sort(function (a, b) {
-    return b.score - a.score || a.title.localeCompare(b.title);
+    return b.score - a.score || a.title.localeCompare(b.title) || a.ordinal - b.ordinal;
   });
   return { total: matches.length, items: matches.slice(0, max), terms: terms };
 }

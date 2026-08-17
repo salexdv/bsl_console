@@ -157,10 +157,32 @@ function testLoadingStrategies() {
     });
     assert.deepEqual(summaries[1], summaries[0]);
     assert.deepEqual(summaries[2], summaries[0]);
+
+    const technicalStorage = zip.readZip(makeZip([
+        { name: 'objects/catalog1.html', data: '<html><h1 class="V8SH_pagetitle">Корневой раздел</h1></html>' },
+        { name: 'objects/catalog1/catalog2.html', data: '<html><h1 class="V8SH_pagetitle">Дочерний раздел</h1></html>' }
+    ]));
+    const technicalTree = toc.parseToc(tocSource([
+        tocNodeNoNames(1, 0, [2], 'objects/catalog1.html'),
+        tocNodeNoNames(2, 1, [], 'objects/catalog1/catalog2.html')
+    ]));
+    const hydrated = builder.createTocLazyCandidate({
+        kind: 'context', storage: technicalStorage, toc: technicalTree, entities: {}
+    }, 17);
+    assert.equal(hydrated.navigation[0].title, 'Корневой раздел', 'корень гидратируется до prepared');
+    assert.equal(hydrated.navigation[0].children[0].title, 'catalog2', 'невидимый уровень остаётся ленивым');
+    const children = builder.hydrateNavigationChildren(hydrated, 'context:1');
+    assert.equal(children[0].title, 'Дочерний раздел', 'видимые дети гидратируются при раскрытии');
+    assert.strictEqual(builder.hydrateNavigationChildren(hydrated, 'context:1'), children,
+        'повторное раскрытие использует кэш поколения');
 }
 
 function tocNode(id, parent, children, ru, en, html) {
     return `{${id},${parent},${children.length}${children.map(x => ',' + x).join('')},{1,1,{1,2,{"ru","${ru}"},{"en","${en}"}},"${html}"}}`;
+}
+
+function tocNodeNoNames(id, parent, children, html) {
+    return `{${id},${parent},${children.length}${children.map(x => ',' + x).join('')},{1,1,{1,0},"${html}"}}`;
 }
 
 function tocSource(nodes) { return `{${nodes.length},${nodes.join(',')}}`; }
@@ -302,6 +324,164 @@ function testBase64() {
     assert.throws(() => base64.decodeBase64(''), /пуста/);
     assert.throws(() => base64.decodeBase64('abc'), /Некорректная/);
     assert.throws(() => base64.decodeBase64('data:text/plain,abc'), /data URL/);
+
+    const nativeAtob = global.atob;
+    global.atob = function () { throw new Error('atob недоступен'); };
+    try {
+        assert.deepEqual(Array.from(base64.decodeBase64('AAEC/f7/')), [0, 1, 2, 253, 254, 255], 'работает ручной fallback');
+    }
+    finally {
+        global.atob = nativeAtob;
+    }
+}
+
+function testIndexWorker() {
+    const originalSelf = global.self;
+    const messages = [];
+    global.self = { postMessage(message) { messages.push(message); } };
+    try {
+        loadModule('src/help/index_worker.js');
+        const html = Buffer.from('<html><h1 class="V8SH_pagetitle">Параллельная статья</h1><p>строка</p></html>');
+        const descriptor = {
+            offset: 0, length: html.length, compressedSize: html.length, uncompressedSize: html.length,
+            method: 0, crc: crc32(html), name: 'page.html', page: true,
+            id: 'context:page.html', kind: 'context', path: 'page.html',
+            title: 'page', fallbackTitle: 'page', alias: '', ordinal: 42
+        };
+        global.self.onmessage({ data: { type: 'index-begin', generation: 1, kind: 'context' } });
+        const buffer = Uint8Array.from(html).buffer;
+        global.self.onmessage({ data: {
+            type: 'index-batch', requestId: 7, generation: 1, kind: 'context', batchId: 3,
+            entries: [descriptor], buffer: buffer
+        } });
+        assert.equal(messages.pop().payload.pages[0].title, 'Параллельная статья');
+        global.self.onmessage({ data: { type: 'index-commit', requestId: 7, generation: 1, kind: 'context' } });
+        assert.equal(messages.pop().type, 'index-commit-result');
+        global.self.onmessage({ data: { type: 'search', searchId: 9, query: 'строка', limit: 1000 } });
+        const search = messages.pop().payload.result;
+        assert.equal(search.total, 1);
+        assert.equal(search.items[0].ordinal, 42, 'ordinal передаётся для стабильного слияния');
+        global.self.onmessage({ data: { type: 'index-finalize', generation: 1 } });
+
+        const replacement = Buffer.from('<html><h1 class="V8SH_pagetitle">Замена</h1><p>другое</p></html>');
+        global.self.onmessage({ data: { type: 'index-begin', generation: 3, kind: 'context' } });
+        global.self.onmessage({ data: {
+            type: 'index-batch', requestId: 10, generation: 3, kind: 'context', batchId: 5,
+            entries: [Object.assign({}, descriptor, {
+                length: replacement.length, compressedSize: replacement.length,
+                uncompressedSize: replacement.length, crc: crc32(replacement)
+            })], buffer: Uint8Array.from(replacement).buffer
+        } });
+        messages.pop();
+        global.self.onmessage({ data: { type: 'index-commit', requestId: 10, generation: 3, kind: 'context' } });
+        messages.pop();
+        global.self.onmessage({ data: { type: 'index-cancel', generation: 3 } });
+        global.self.onmessage({ data: { type: 'search', searchId: 11, query: 'строка', limit: 1000 } });
+        assert.equal(messages.pop().payload.result.total, 1, 'отмена staged-поколения восстанавливает прежний корпус');
+
+        global.self.onmessage({ data: { type: 'index-begin', generation: 2, kind: 'context' } });
+        global.self.onmessage({ data: {
+            type: 'index-batch', requestId: 8, generation: 2, kind: 'context', batchId: 4,
+            entries: [Object.assign({}, descriptor, { crc: 0 })], buffer: Uint8Array.from(html).buffer
+        } });
+        assert.equal(messages.pop().type, 'index-error', 'CRC-ошибка отменяет пакет worker');
+    }
+    finally {
+        global.self = originalSelf;
+    }
+}
+
+function testIndexBatching() {
+    const originalSelf = global.self;
+    global.self = { postMessage() {} };
+    try {
+        const worker = loadModule('src/help/help_worker.js');
+        const entrySize = 4 * 1024;
+        const entries = Array.from({ length: 130 }, (_, index) => ({
+            name: 'page' + index + '.html', dataOffset: index * entrySize,
+            compressedSize: entrySize, uncompressedSize: entrySize,
+            method: 0, crc: 0
+        }));
+        const candidate = {
+            kind: 'context', cursor: 0, pages: {},
+            storage: { entries, data: new Uint8Array(entries.length * entrySize) }
+        };
+        const first = worker.buildIndexBatch(candidate);
+        assert.equal(first.entries.length, 128, 'пакет ограничен 128 ZIP-записями');
+        assert.equal(first.buffer.byteLength, 512 * 1024, 'пакет не превышает 512 КиБ');
+        const second = worker.buildIndexBatch(candidate);
+        assert.equal(second.entries.length, 2);
+        assert(second.buffer.byteLength <= 512 * 1024);
+
+        const sizes = [400 * 1024, 100 * 1024, 20 * 1024];
+        let offset = 0;
+        const byteEntries = sizes.map((size, index) => {
+            const entry = { name: 'size' + index, dataOffset: offset, compressedSize: size,
+                uncompressedSize: size, method: 0, crc: 0 };
+            offset += size;
+            return entry;
+        });
+        const byteCandidate = { kind: 'context', cursor: 0, pages: {},
+            storage: { entries: byteEntries, data: new Uint8Array(offset) } };
+        assert.equal(worker.buildIndexBatch(byteCandidate).buffer.byteLength, 500 * 1024,
+            'лимит байтов завершает пакет до переполнения');
+        assert.equal(worker.buildIndexBatch(byteCandidate).buffer.byteLength, 20 * 1024);
+    }
+    finally {
+        global.self = originalSelf;
+    }
+}
+
+async function testPoolOrderingAndGenerations() {
+    const serviceModule = loadModule('src/help/service.js', source => source
+        .replace(/const workerUrl = require\([^\n]+\);/, "const workerUrl = 'fake';")
+        .replace(/const indexWorkerUrl = require\([^\n]+\);/, "const indexWorkerUrl = 'fake';"));
+    let workerNumber = 0;
+    class SearchWorker {
+        constructor() { this.number = workerNumber++; }
+        postMessage(message) {
+            if (message.type != 'search') return;
+            const number = this.number;
+            setTimeout(() => this.onmessage({ data: { type: 'search-result', payload: {
+                searchId: message.searchId,
+                result: { total: 1, terms: ['x'], items: [{
+                    id: 'page' + number, title: 'Одинаковый заголовок', path: 'page' + number,
+                    kind: 'context', score: 100, ordinal: number ? 1 : 2
+                }] }
+            } } }), number ? 0 : 5);
+        }
+        terminate() {}
+    }
+    const orderedService = serviceModule.createHelpService(() => ({
+        postMessage() {}, terminate() {}
+    }), () => new SearchWorker(), 2);
+    const search = await orderedService.search('x');
+    assert.deepEqual(search.items.map(item => item.ordinal), [1, 2],
+        'ответы workers вне порядка объединяются по стабильному ordinal');
+    orderedService.dispose();
+
+    class GenerationWorker {
+        postMessage(message) {
+            if (message.type == 'parse') setImmediate(() => this.onmessage({ data: {
+                id: message.id, type: 'parsed', payload: {
+                    kind: 'context', generation: 2, pages: 1,
+                    navigation: [{ id: 'context:root', tocId: 'context:root', kind: 'context',
+                        title: 'Корень', children: [{}] }], index: [], stats: {}
+                }
+            } }));
+            else if (message.type == 'navigation-children') setImmediate(() => this.onmessage({ data: {
+                id: message.id, type: 'navigation-children', payload: {
+                    kind: 'context', generation: 1, tocId: message.tocId, children: []
+                }
+            } }));
+        }
+        terminate() {}
+    }
+    const generationService = serviceModule.createHelpService(() => new GenerationWorker());
+    assert.equal((await generationService.parse(blob('context', 1))).ok, true);
+    await assert.rejects(generationService.hydrate(generationService.getNavigation()[0]), /Поколение справки изменилось/,
+        'ответ гидратации прошлого поколения игнорируется');
+    generationService.dispose();
 }
 
 async function testBase64Transfer() {
@@ -443,9 +623,9 @@ class FakeWorker {
 function blob(kind, pages, fail, staged, failAfter) { return { kind, pages, fail, staged, failAfter, size: 1, slice() {} }; }
 
 async function testService() {
-    const serviceModule = loadModule('src/help/service.js', source => source.replace(
-        /const workerUrl = require\([^\n]+\);/, "const workerUrl = 'fake';"
-    ));
+    const serviceModule = loadModule('src/help/service.js', source => source
+        .replace(/const workerUrl = require\([^\n]+\);/, "const workerUrl = 'fake';")
+        .replace(/const indexWorkerUrl = require\([^\n]+\);/, "const indexWorkerUrl = 'fake';"));
     async function order(first, second) {
         const service = serviceModule.createHelpService(() => new FakeWorker());
         assert.equal((await service.parse(blob(first, 1))).ok, true);
@@ -455,6 +635,21 @@ async function testService() {
     }
     await order('context', 'language');
     await order('language', 'context');
+    let poolAttempts = 0;
+    let fallbackCoordinator = null;
+    const fallbackService = serviceModule.createHelpService(() => (fallbackCoordinator = new FakeWorker()), () => {
+        poolAttempts++;
+        throw new Error('worker недоступен');
+    }, 2);
+    const fallbackParse = fallbackService.parse(blob('context', 1, false, true));
+    await new Promise(resolve => setImmediate(resolve));
+    fallbackCoordinator.onmessage({ data: {
+        type: 'index-begin', payload: { requestId: 1, generation: 1 }
+    } });
+    assert.equal((await fallbackParse).ok, true,
+        'ошибка создания пула оставляет однопоточный fallback');
+    assert.equal(poolAttempts, 1);
+    fallbackService.dispose();
     const service = serviceModule.createHelpService(() => new FakeWorker());
     assert.equal(service.isReady(), false);
     const loading = service.parse(blob('context', 10));
@@ -566,6 +761,9 @@ async function main() {
     testLinks();
     testSearch();
     testBase64();
+    testIndexWorker();
+    testIndexBatching();
+    await testPoolOrderingAndGenerations();
     await testBase64Transfer();
     await testService();
     testUnknownHbk();

@@ -1,5 +1,5 @@
 import { normalizePath, decodeUtf8 } from './hbk-reader';
-import { decorateContextNavigation } from './navigation';
+import { decorateContextNavigation, inferGroupTitle, findNavigationNode } from './navigation';
 import { buildSearchDocument, preparePrefixIndex } from './search';
 import { parseSerialized } from './serialized';
 
@@ -32,20 +32,21 @@ function fallbackTitle(path) {
   return path.split('/').pop().replace(/\.html$/i, '');
 }
 
-function pageFromEntry(kind, entry) {
+function pageFromEntry(kind, entry, ordinal) {
   const path = normalizePath(entry.name);
   return {
     id: kind + ':' + path, kind: kind, path: path,
-    title: fallbackTitle(path), alias: '', context: '', entry: entry
+    title: fallbackTitle(path), titleResolved: false, alias: '', context: '', entry: entry,
+    ordinal: ordinal === undefined ? 0 : ordinal
   };
 }
 
 function catalogPages(parsed) {
   const pages = {};
-  parsed.storage.entries.forEach(function (entry) {
+  parsed.storage.entries.forEach(function (entry, ordinal) {
     const path = normalizePath(entry.name);
     if (!isPage(parsed.kind, path)) return;
-    const page = pageFromEntry(parsed.kind, entry);
+    const page = pageFromEntry(parsed.kind, entry, ordinal);
     pages[page.id] = page;
   });
   return pages;
@@ -95,6 +96,41 @@ function decorate(candidate) {
   }
 }
 
+function hydrateNavigationLevel(candidate, nodes) {
+  if (candidate.kind != 'context') return nodes || [];
+  (nodes || []).forEach(function (node) {
+    if (node.titleHydrated) return;
+    const path = normalizePath(node.path);
+    const page = path ? candidate.pages['context:' + path] : null;
+    let resolved = node.tocTitle || '';
+    if (!resolved && page) {
+      const html = decodeUtf8(candidate.storage.extract(page.entry));
+      resolved = htmlTitle(html, '');
+      if (resolved) {
+        page.title = resolved;
+        page.titleResolved = true;
+      }
+    }
+    resolved = resolved || node.tocAlias || inferGroupTitle(node)
+      || (page && page.title) || fallbackTitle(path);
+    node.title = resolved;
+    node.titleHydrated = true;
+  });
+  decorateContextNavigation(nodes, candidate.pages);
+  return nodes || [];
+}
+
+function hydrateNavigationChildren(candidate, tocId) {
+  const node = findNavigationNode(candidate.navigation, tocId);
+  if (!node)
+    throw new Error('HBK: узел оглавления не найден');
+  if (!node.childrenHydrated) {
+    hydrateNavigationLevel(candidate, node.children);
+    node.childrenHydrated = true;
+  }
+  return node.children;
+}
+
 function visibleItems(candidate) {
   return Object.keys(candidate.pages).map(function (key) {
     const page = candidate.pages[key];
@@ -109,20 +145,25 @@ function rebuildPrefix(candidate) {
   candidate.index = preparePrefixIndex(items);
 }
 
-function baseCandidate(parsed, strategy, pages) {
+function baseCandidate(parsed, strategy, pages, generation) {
   return {
     strategy: strategy, kind: parsed.kind, parsed: parsed, storage: parsed.storage,
     pages: pages, documents: [], navigation: [], index: [], cursor: 0, complete: false,
     nativeIndex: null, nativePrefixItems: null, pageCount: 0,
+    generation: generation || 0,
     zipEntries: parsed.storage.entries.length,
     tocNodes: parsed.toc ? parsed.toc.count : 0
   };
 }
 
 /** Единственная стратегия, импортируемая production-worker. */
-function createTocLazyCandidate(parsed) {
-  const candidate = baseCandidate(parsed, STRATEGY_TOC_LAZY, catalogPages(parsed));
-  decorate(candidate);
+function createTocLazyCandidate(parsed, generation) {
+  const candidate = baseCandidate(parsed, STRATEGY_TOC_LAZY, catalogPages(parsed), generation);
+  if (candidate.kind == 'context') {
+    candidate.navigation = cloneNavigation(candidate.parsed.toc.roots);
+    hydrateNavigationLevel(candidate, candidate.navigation);
+  }
+  else decorate(candidate);
   rebuildPrefix(candidate);
   candidate.pageCount = Object.keys(candidate.pages).length;
   return candidate;
@@ -137,19 +178,28 @@ function indexOne(candidate, entry) {
   const id = candidate.kind + ':' + path;
   let page = candidate.pages[id];
   if (!page) {
-    page = pageFromEntry(candidate.kind, entry);
+    page = pageFromEntry(candidate.kind, entry, candidate.cursor - 1);
     candidate.pages[id] = page;
   }
   page.title = htmlTitle(html, page.title || fallbackTitle(path));
+  page.titleResolved = true;
   const searchPage = {
     id: page.id, kind: page.kind, path: page.path,
-    title: page.title, alias: page.alias || '', text: htmlText(html)
+    title: page.title, alias: page.alias || '', text: htmlText(html), ordinal: page.ordinal
   };
   candidate.documents.push(buildSearchDocument(searchPage));
 }
 
 function finishPackage(candidate) {
   decorate(candidate);
+  function markComplete(nodes) {
+    (nodes || []).forEach(function (node) {
+      node.titleHydrated = true;
+      node.childrenHydrated = true;
+      markComplete(node.children);
+    });
+  }
+  markComplete(candidate.navigation);
   rebuildPrefix(candidate);
   candidate.pageCount = Object.keys(candidate.pages).length;
   candidate.tocNodes = candidate.parsed.toc ? candidate.parsed.toc.count
@@ -177,7 +227,7 @@ function indexPackage(candidate) {
 
 function packageSummary(candidate) {
   return {
-    kind: candidate.kind, pages: candidate.pageCount,
+    kind: candidate.kind, pages: candidate.pageCount, generation: candidate.generation,
     navigation: candidate.navigation, index: candidate.index,
     stats: {
       strategy: candidate.strategy, zipEntries: candidate.zipEntries,
@@ -189,5 +239,6 @@ function packageSummary(candidate) {
 export {
   STRATEGY_TOC_LAZY, htmlText, htmlTitle,
   catalogPages, baseCandidate, decorate, rebuildPrefix, createTocLazyCandidate,
+  hydrateNavigationLevel, hydrateNavigationChildren, finishPackage,
   indexPackageBatch, indexPackage, packageSummary
 };
