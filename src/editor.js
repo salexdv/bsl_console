@@ -32,8 +32,9 @@ const hiddenBlocksController = new HiddenBlocksController(monaco, function () {
   return window.engLang;
 });
 const searchHistoryController = new SearchHistoryController(monaco);
-const helpBrowser = createHelpBrowser(function () { return window.editor; });
-
+const helpBrowser = createHelpBrowser(function () { return window.editor; }, function (params) {
+  window.sendEvent('EVENT_ON_LINK_CLICK', params);
+});
 // Иконки дерева переменных инлайнятся в бандл (data:-URI) через require.context, а не тянутся
 // отдельными файлами — это нужно для single-file сборки. В обычной сборке результат тот же:
 // url-loader инлайнит эти PNG (< 8 КБ), а копия в dist/tree/icons остаётся невостребованной.

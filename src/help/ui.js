@@ -40,7 +40,7 @@ function createVirtualList(container, onOpen) {
   };
 }
 
-function sanitizeArticle(rawHtml, onInternal, currentArticle) {
+function sanitizeArticle(rawHtml, onInternal, onExternal, currentArticle) {
   const parsed = new DOMParser().parseFromString(rawHtml || '', 'text/html');
   const forbidden = 'script,style,iframe,object,embed,form,input,button,textarea,select,option,link,meta,base,applet,frame,frameset';
   Array.prototype.slice.call(parsed.querySelectorAll(forbidden)).forEach(function (node) { node.remove(); });
@@ -72,8 +72,12 @@ function sanitizeArticle(rawHtml, onInternal, currentArticle) {
     }
     else if (target && target.type == 'external') {
       link.setAttribute('href', target.href);
-      link.setAttribute('target', '_blank');
-      link.setAttribute('rel', 'noopener noreferrer');
+      link.removeAttribute('target');
+      link.removeAttribute('rel');
+      link.addEventListener('click', function (event) {
+        event.preventDefault();
+        onExternal({ label: link.innerText || link.textContent || '', href: target.href });
+      });
     }
     else {
       link.removeAttribute('href');
@@ -114,7 +118,7 @@ function highlight(root, terms) {
   });
 }
 
-function createHelpUi(service, editorProvider) {
+function createHelpUi(service, editorProvider, onExternalLink) {
   const overlay = element('section', 'bsl-help-overlay');
   overlay.setAttribute('aria-label', 'Справка 1С');
   overlay.setAttribute('aria-hidden', 'true');
@@ -440,7 +444,7 @@ function createHelpUi(service, editorProvider) {
       articleContent.textContent = '';
       const safe = sanitizeArticle(result.html, function (target) {
         if (service.isKindActive(target.kind)) openArticle(target, [], true);
-      }, selected);
+      }, onExternalLink, selected);
       while (safe.firstChild) articleContent.appendChild(safe.firstChild);
       status.classList.remove('visible', 'error');
       highlight(articleContent, activeTerms);
