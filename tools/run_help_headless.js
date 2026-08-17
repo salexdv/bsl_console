@@ -113,9 +113,12 @@ function makeContextHbk() {
 
 function makePendingContextHbk() {
   const pagePath = 'objects/TestObject/methods/DeferredMethod.html';
+  const childPath = 'objects/TestObject/methods/DeferredChild.html';
   const html = '<html><body><h1 class="V8SH_pagetitle">ОтложенныйМетод</h1><p>Статья загружена после команды.</p></body></html>';
-  const toc = '{1,{1,0,0,{1,1,{1,2,{"ru","ОтложенныйМетод"},{"en","DeferredMethod"}},"' + pagePath + '"}}}';
-  const files = [{ name: pagePath, data: html }];
+  const childHtml = '<html><body><h1 class="V8SH_pagetitle">Дочерний раздел</h1><p>Гидратация при раскрытии.</p></body></html>';
+  const toc = '{2,{1,0,1,2,{1,1,{1,0},"' + pagePath + '"}}'
+    + ',{2,1,0,{1,1,{1,0},"' + childPath + '"}}}';
+  const files = [{ name: pagePath, data: html }, { name: childPath, data: childHtml }];
   // Достаточно большой хвост удерживает Promise полной CRC-проверки незавершённым,
   // пока предварительное дерево и первая статья уже доступны.
   for (let index = 0; index < 3000; index++)
@@ -670,6 +673,13 @@ function serve() {
     await page.waitForFunction('!window.__pendingHelpResolved'
       + ' && Array.prototype.some.call(document.querySelectorAll(".bsl-help-tree-title"), function (node) {'
       + ' return node.textContent.indexOf("ОтложенныйМетод") >= 0; })', { timeout: 30000 });
+    await page.evaluate(function () { window.showHelp(); });
+    await page.evaluate(function () { document.querySelector('.bsl-help-tree-toggle').click(); });
+    await page.waitForFunction('!window.__pendingHelpResolved'
+      + ' && Array.prototype.some.call(document.querySelectorAll(".bsl-help-tree-title"), function (node) {'
+      + ' return node.textContent == "Дочерний раздел"; })'
+      + ' && !Array.prototype.some.call(document.querySelectorAll(".bsl-help-tree-title"), function (node) {'
+      + ' return /^catalog\\d+$/i.test(node.textContent); })', { timeout: 30000 });
     await page.evaluate(function () { window.editor.trigger('headless', 'bsl.showHelp'); });
     await page.waitForFunction('document.querySelector(".bsl-help-overlay.visible")'
       + ' && document.querySelector(".bsl-help-article").textContent.indexOf("Статья загружена после команды") >= 0');

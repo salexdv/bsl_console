@@ -1,10 +1,77 @@
 import { benchmarkBuffer } from './benchmark_api';
 import { decodeBase64 } from '../base64';
 import { createBase64TransferManager } from '../base64_transfer';
+import { createHelpService } from './service';
 
 // Отдельная development-страница; в production и публичный мост редактора не входит.
 window.runHelpHbkBenchmark = function (buffer, strategy) {
   return benchmarkBuffer(buffer, strategy);
+};
+
+function signature(items) {
+  let hash = 2166136261;
+  (items || []).forEach(function (item) {
+    const value = (item.id || '') + ':' + (item.title || '');
+    for (let index = 0; index < value.length; index++) {
+      hash ^= value.charCodeAt(index);
+      hash = Math.imul(hash, 16777619);
+    }
+  });
+  return (hash >>> 0).toString(16);
+}
+
+function flattenNavigation(nodes, result) {
+  (nodes || []).forEach(function (node) {
+    result.push(node);
+    flattenNavigation(node.children, result);
+  });
+  return result;
+}
+
+window.runHelpWorkerBenchmark = function (buffer, workers) {
+  const service = createHelpService(undefined, undefined, workers);
+  const started = performance.now();
+  let navigationAt = 0;
+  let navigationResolve;
+  const navigationReady = new Promise(function (resolve) { navigationResolve = resolve; });
+  const unsubscribe = service.subscribe(function (state) {
+    if (!navigationAt && state.indexing && state.packages.context) {
+      navigationAt = performance.now();
+      navigationResolve();
+    }
+  });
+  const parsed = service.parse(new Blob([buffer]));
+  let articleMs = 0;
+  return navigationReady.then(function () {
+    const navigation = service.getNavigation();
+    const first = flattenNavigation(navigation, []).filter(function (item) { return item.path; })[0];
+    const articleAt = performance.now();
+    return service.article(first, []).then(function () { articleMs = performance.now() - articleAt; });
+  }).then(function () {
+    return parsed;
+  }).then(function (result) {
+    const fullAt = performance.now();
+    const prefixAt = performance.now();
+    const prefix = service.prefix('стр');
+    const prefixMs = performance.now() - prefixAt;
+    const searchAt = performance.now();
+    return service.search('строка').then(function (search) {
+      const navigation = flattenNavigation(service.getNavigation(), []);
+      return {
+        workers: workers, parseMs: navigationAt - started,
+        navigationReadyMs: navigationAt - started,
+        firstArticleMs: articleMs, fullReadyMs: fullAt - started,
+        prefixSearchMs: prefixMs, fullTextSearchMs: performance.now() - searchAt,
+        pages: result.pages, navigationSignature: signature(navigation),
+        prefixSignature: signature(prefix.items), searchSignature: signature(search.items),
+        searchMatches: search.total
+      };
+    });
+  }).then(function (result) {
+    unsubscribe(); service.dispose(); return result;
+  }, function (error) {
+    unsubscribe(); service.dispose(); throw error;
+  });
 };
 
 function bytesBase64(bytes) {

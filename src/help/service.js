@@ -1,10 +1,19 @@
 import { mergePrefixIndexes, prefixSearch } from './search';
 
 const HelpWorker = require('worker-loader?inline=no-fallback&esModule=false!./help_worker');
+const IndexWorker = require('worker-loader?inline=no-fallback&esModule=false!./index_worker');
 
-function createHelpService(workerFactory) {
+const PRODUCTION_INDEX_WORKERS = 1;
+
+function createHelpService(workerFactory, indexWorkerFactory, indexWorkerCount) {
   const factory = workerFactory || function () { return new HelpWorker(); };
+  const indexFactory = indexWorkerFactory || function () { return new IndexWorker(); };
+  const defaultPool = workerFactory ? 0 : Math.min(PRODUCTION_INDEX_WORKERS,
+    Math.max(1, ((typeof navigator != 'undefined' && navigator.hardwareConcurrency) || 3) - 1));
+  const requestedIndexWorkers = indexWorkerCount === undefined ? defaultPool : Math.max(0, indexWorkerCount);
   let worker = null;
+  let indexPool = null;
+  let indexPoolBroken = false;
   let sequence = 0;
   let pending = {};
   let loading = 0;
@@ -14,6 +23,11 @@ function createHelpService(workerFactory) {
   let transferActive = false;
   let transferEnded = false;
   let transferWorkerError = null;
+  let parseBarrier = Promise.resolve();
+  let poolSearchSequence = 0;
+  const poolSearches = {};
+  const poolCommits = {};
+  const activeIndexRequests = {};
   const listeners = [];
   const state = {
     status: 'empty',
@@ -52,12 +66,158 @@ function createHelpService(workerFactory) {
     });
   }
 
+  function forwardToCoordinator(message) {
+    ensureWorker().postMessage(message);
+  }
+
+  function failIndexPool(message) {
+    const failed = indexPool || [];
+    indexPool = null;
+    indexPoolBroken = true;
+    failed.forEach(function (item) {
+      try { item.terminate(); } catch (ignore) { /* noop */ }
+    });
+    Object.keys(poolSearches).forEach(function (id) {
+      const search = poolSearches[id];
+      delete poolSearches[id];
+      search.reject(new Error(message));
+    });
+    Object.keys(activeIndexRequests).forEach(function (id) {
+      forwardToCoordinator({ type: 'index-pool-error', requestId: Number(id), message: message });
+    });
+    if (!Object.keys(activeIndexRequests).length)
+      forwardToCoordinator({ type: 'index-pool-error', requestId: 0, message: message });
+  }
+
+  function indexWorkerMessage(workerIndex, data) {
+    const payload = data.payload || {};
+    if (data.type == 'index-result') {
+      forwardToCoordinator(Object.assign({ type: 'index-result', workerIndex: workerIndex }, payload));
+    }
+    else if (data.type == 'index-error') {
+      forwardToCoordinator(Object.assign({ type: 'index-error', workerIndex: workerIndex }, payload));
+    }
+    else if (data.type == 'index-commit-result') {
+      const commit = poolCommits[payload.generation];
+      if (commit && --commit.remaining == 0) {
+        delete poolCommits[payload.generation];
+        delete activeIndexRequests[commit.requestId];
+        (indexPool || []).forEach(function (item) {
+          item.postMessage({ type: 'index-finalize', generation: payload.generation });
+        });
+        forwardToCoordinator({
+          type: 'index-committed', requestId: commit.requestId, generation: payload.generation
+        });
+      }
+    }
+    else if (data.type == 'search-result') {
+      const search = poolSearches[payload.searchId];
+      if (!search) return;
+      search.results.push(payload.result);
+      if (--search.remaining == 0) {
+        delete poolSearches[payload.searchId];
+        const items = [];
+        let total = 0;
+        let terms = [];
+        search.results.forEach(function (result) {
+          total += result.total;
+          if (!terms.length) terms = result.terms || [];
+          Array.prototype.push.apply(items, result.items || []);
+        });
+        items.sort(function (a, b) {
+          return b.score - a.score || a.title.localeCompare(b.title)
+            || (a.ordinal || 0) - (b.ordinal || 0);
+        });
+        search.resolve({ total: total, items: items.slice(0, search.limit), terms: terms });
+      }
+    }
+  }
+
+  function ensureIndexPool() {
+    if (indexPool) return indexPool;
+    if (!requestedIndexWorkers || indexPoolBroken) return [];
+    const created = [];
+    try {
+      for (let index = 0; index < requestedIndexWorkers; index++) {
+        const instance = indexFactory();
+        (function (workerIndex, indexWorker) {
+          indexWorker.onmessage = function (event) { indexWorkerMessage(workerIndex, event.data || {}); };
+          indexWorker.onerror = function (event) {
+            failIndexPool(event && event.message || 'Index-worker справки завершился с ошибкой');
+          };
+        }(index, instance));
+        created.push(instance);
+      }
+      indexPool = created;
+      return indexPool;
+    }
+    catch (error) {
+      indexPool = created;
+      failIndexPool(error && error.message || String(error));
+      return [];
+    }
+  }
+
+  function handleIndexCoordinatorMessage(data) {
+    if (data.type != 'index-begin' && data.type != 'index-batch'
+      && data.type != 'index-cancel' && data.type != 'index-commit') return false;
+    const payload = data.payload || {};
+    const pool = ensureIndexPool();
+    if (!pool.length) {
+      forwardToCoordinator({
+        type: 'index-pool-error', requestId: payload.requestId || data.id,
+        message: 'Пул index-worker недоступен'
+      });
+      return true;
+    }
+    if (data.type == 'index-begin') {
+      activeIndexRequests[payload.requestId] = true;
+      pool.forEach(function (item) {
+        item.postMessage(Object.assign({ type: 'index-begin' }, payload));
+      });
+    }
+    else if (data.type == 'index-batch') {
+      const at = Math.max(0, Math.min(pool.length - 1, payload.workerIndex || 0));
+      pool[at].postMessage(Object.assign({ type: 'index-batch' }, payload), [payload.buffer]);
+    }
+    else if (data.type == 'index-cancel') {
+      delete activeIndexRequests[payload.requestId];
+      pool.forEach(function (item) {
+        item.postMessage(Object.assign({ type: 'index-cancel' }, payload));
+      });
+    }
+    else if (data.type == 'index-commit') {
+      poolCommits[payload.generation] = { requestId: payload.requestId, remaining: pool.length };
+      pool.forEach(function (item) {
+        item.postMessage(Object.assign({ type: 'index-commit' }, payload));
+      });
+    }
+    return true;
+  }
+
+  function searchIndexPool(query, limit) {
+    const pool = ensureIndexPool();
+    if (!pool.length)
+      return request('search', { query: query }).then(function (response) { return response.payload; });
+    return new Promise(function (resolve, reject) {
+      const searchId = ++poolSearchSequence;
+      poolSearches[searchId] = {
+        resolve: resolve, reject: reject, remaining: pool.length,
+        results: [], limit: limit || 1000
+      };
+      pool.forEach(function (item) {
+        item.postMessage({ type: 'search', searchId: searchId, query: query, limit: limit || 1000 });
+      });
+    });
+  }
+
   function ensureWorker() {
     if (worker)
       return worker;
     worker = factory();
     worker.onmessage = function (event) {
       const data = event.data || {};
+      if (handleIndexCoordinatorMessage(data)) return;
       const request = pending[data.id];
       if (!request) return;
       if (data.type == 'prepared' || data.type == 'rollback') {
@@ -119,6 +279,7 @@ function createHelpService(workerFactory) {
     function assignPackage(result, provisional) {
       state.packages[result.kind] = {
         kind: result.kind,
+        generation: result.generation,
         pages: result.pages,
         navigation: result.navigation,
         index: result.index,
@@ -144,7 +305,11 @@ function createHelpService(workerFactory) {
         notify();
       }
     }
-    return request(type, payload, progress).then(function (response) {
+    // Пул создаётся только после prepared по сообщению index-begin, чтобы его
+    // запуск не конкурировал с разбором контейнера и публикацией дерева.
+    const workers = indexPoolBroken ? 0 : requestedIndexWorkers;
+    const requestPayload = Object.assign({}, payload || {}, { indexWorkers: workers });
+    return request(type, requestPayload, progress).then(function (response) {
       const result = response.payload;
       assignPackage(result, false);
       provisionalReady = Math.max(0, provisionalReady - 1);
@@ -169,7 +334,9 @@ function createHelpService(workerFactory) {
     const isBlob = source && typeof source.size == 'number' && typeof source.slice == 'function';
     if (!isBlob && typeof source != 'string')
       return fail('parseHelp принимает Blob, File или строку Base64');
-    return parseRequest('parse', { source: source });
+    const result = parseRequest('parse', { source: source });
+    parseBarrier = result.then(function () { return undefined; });
+    return result;
   }
 
   function beginTransfer(name) {
@@ -204,7 +371,9 @@ function createHelpService(workerFactory) {
       return fail(transferWorkerError);
     if (!transferEnded)
       return fail('Нет завершённой передачи Base64');
-    return parseRequest('parse-transferred');
+    const result = parseRequest('parse-transferred');
+    parseBarrier = result.then(function () { return undefined; });
+    return result;
   }
 
   return {
@@ -233,7 +402,38 @@ function createHelpService(workerFactory) {
       return visibleIndex;
     },
     prefix: function (query) { return prefixSearch(prefixIndex, query, 1000); },
-    search: function (query) { return request('search', { query: query }).then(function (response) { return response.payload; }); },
+    search: function (query) {
+      return parseBarrier.then(function () { return searchIndexPool(query, 1000); });
+    },
+    hydrate: function (item) {
+      const kind = item && item.kind;
+      const pack = kind && state.packages[kind];
+      if (!pack || !item)
+        return Promise.reject(new Error('Узел оглавления недоступен'));
+      const tocId = item.tocId || item.id;
+      return request('navigation-children', {
+        kind: kind, generation: pack.generation, tocId: tocId
+      }).then(function (response) {
+        const result = response.payload;
+        const current = state.packages[result.kind];
+        if (!current || current.generation != result.generation)
+          throw new Error('Поколение справки изменилось');
+        function replace(nodes) {
+          for (let index = 0; index < nodes.length; index++) {
+            const node = nodes[index];
+            if (node.tocId == result.tocId || node.id == result.tocId) {
+              node.children = result.children;
+              node.childrenHydrated = true;
+              return true;
+            }
+            if (replace(node.children || [])) return true;
+          }
+          return false;
+        }
+        replace(current.navigation || []);
+        return result.children;
+      });
+    },
     article: function (item, terms) {
       return request('article', {
         pageId: item.id || null, kind: item.kind, path: item.path, terms: terms || []
@@ -242,6 +442,10 @@ function createHelpService(workerFactory) {
     dispose: function () {
       if (worker) worker.terminate();
       worker = null;
+      (indexPool || []).forEach(function (item) {
+        try { item.terminate(); } catch (ignore) { /* noop */ }
+      });
+      indexPool = null;
       transferActive = false;
       transferEnded = false;
       transferWorkerError = null;

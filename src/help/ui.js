@@ -175,6 +175,7 @@ function createHelpUi(service, editorProvider) {
   let indexRenderAnimationFrame = false;
   let dockWidth = null;
   let navigationHeight = null;
+  const expandedNodes = {};
   const initialState = service.getState();
   let renderedContextPackage = initialState.packages.context;
   let renderedLanguagePackage = initialState.packages.language;
@@ -263,25 +264,58 @@ function createHelpUi(service, editorProvider) {
     const title = element('button', 'bsl-help-tree-title', node.title || node.path || 'Без названия');
     line.appendChild(toggle); line.appendChild(title); row.appendChild(line);
     let children = null;
+    let opening = false;
+    const nodeKey = node.tocId || node.id;
+    function appendChildren() {
+      if (children) return;
+      children = element('div', 'bsl-help-tree-children');
+      node.children.forEach(function (child) { children.appendChild(treeNode(child)); });
+      row.appendChild(children);
+    }
+    function setOpened(opened) {
+      appendChildren();
+      children.classList.toggle('open', opened);
+      toggle.textContent = opened ? '▾' : '▸';
+      if (opened) expandedNodes[nodeKey] = true;
+      else delete expandedNodes[nodeKey];
+    }
     toggle.addEventListener('click', function () {
       if (!node.children || !node.children.length) return;
-      if (!children) {
-        children = element('div', 'bsl-help-tree-children');
-        node.children.forEach(function (child) { children.appendChild(treeNode(child)); });
-        row.appendChild(children);
+      if (children) {
+        setOpened(!children.classList.contains('open'));
+        return;
       }
-      const opened = children.classList.toggle('open'); toggle.textContent = opened ? '▾' : '▸';
+      if (node.childrenHydrated) {
+        setOpened(true);
+        return;
+      }
+      if (opening) return;
+      opening = true;
+      toggle.textContent = '…';
+      service.hydrate(node).then(function (hydrated) {
+        node.children = hydrated;
+        node.childrenHydrated = true;
+        opening = false;
+        setOpened(true);
+      }).catch(function () {
+        opening = false;
+        toggle.textContent = '▸';
+      });
     });
     title.addEventListener('click', function () {
       if (node.path) openArticle(node, [], true);
       else toggle.click();
     });
+    if (expandedNodes[nodeKey] && node.childrenHydrated)
+      setOpened(true);
     return row;
   }
 
   function renderTree() {
+    const scrollTop = contents.scrollTop;
     contents.textContent = '';
     service.getNavigation().forEach(function (node) { contents.appendChild(treeNode(node)); });
+    contents.scrollTop = scrollTop;
   }
 
   const indexList = createVirtualList(indexListNode, function (item) { openArticle(item, [], true); });

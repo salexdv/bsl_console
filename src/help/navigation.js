@@ -65,7 +65,9 @@ function decorateContextNavigation(nodes, pages) {
       if (page) {
         node.pageId = page.id;
         node.id = page.id;
-        node.title = node.title || page.title;
+        node.title = node.tocTitle
+          || (page.titleResolved ? page.title : '')
+          || node.tocAlias || node.title || page.title;
         page.title = node.title || page.title;
         page.alias = node.alias || '';
         page.context = compactContext(ancestors, node);
@@ -79,10 +81,22 @@ function decorateContextNavigation(nodes, pages) {
   return nodes;
 }
 
+function findNavigationNode(nodes, tocId) {
+  const list = nodes || [];
+  for (let index = 0; index < list.length; index++) {
+    const node = list[index];
+    if (node.tocId == tocId || node.id == tocId)
+      return node;
+    const nested = findNavigationNode(node.children, tocId);
+    if (nested) return nested;
+  }
+  return null;
+}
+
 function resolvePage(pages, kind, path, id) {
   if (!pages) return null;
   if (id && pages[id]) return pages[id];
   return pages[kind + ':' + normalizePath(path)] || null;
 }
 
-export { GROUP_TITLES, inferGroupTitle, compactContext, decorateContextNavigation, resolvePage };
+export { GROUP_TITLES, inferGroupTitle, compactContext, decorateContextNavigation, findNavigationNode, resolvePage };

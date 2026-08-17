@@ -130,6 +130,8 @@ function parseToc(source) {
       id: 'context:' + record.id,
       title: record.names.ru || record.names.en || '',
       alias: record.names.en || '',
+      tocTitle: record.names.ru || '',
+      tocAlias: record.names.en || '',
       path: record.path,
       kind: 'context',
       children: record.children.map(publicNode)
