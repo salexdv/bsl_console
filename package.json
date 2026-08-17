@@ -21,6 +21,8 @@
     "test:help": "node tests/help_test.js",
     "test:help:headless": "node tools/run_help_headless.js",
     "smoke:help": "node tools/smoke_help_hbk.js",
+    "benchmark:help": "node tools/benchmark_help_hbk.js",
+    "benchmark:help:chrome": "node tools/run_help_benchmark_headless.js",
     "build:test": "webpack --mode development --env test --progress",
     "test:mocha": "node tools/run_mocha_headless.js",
     "check:workers": "node tools/check_blob_workers.js",

@@ -149,7 +149,8 @@ module.exports = (env = {}, args = {}) => {
         : {
             test: './test_bootstrap',
             test_query: './test_query_bootstrap',
-            test_query_model: './test_query_model'
+            test_query_model: './test_query_model',
+            help_benchmark: './help/benchmark_browser'
           }
     ),
     output: {
@@ -219,6 +220,15 @@ module.exports = (env = {}, args = {}) => {
             chunks: ['console', 'test'],
             template: './test.html',
             filename: 'test',
+            cache: false
+          }),
+      production
+        ? false
+        : new HtmlWebpackPlugin({
+            inject: 'body',
+            chunks: ['help_benchmark'],
+            template: './help/benchmark.html',
+            filename: 'help_benchmark.html',
             cache: false
           }),
       production

@@ -406,6 +406,8 @@ function createHelpUi(service, editorProvider) {
   searchInput.addEventListener('input', function () {
     clearTimeout(searchTimer);
     searchTimer = setTimeout(function () {
+      if (service.getState().indexing)
+        searchMeta.textContent = 'Индексируется…';
       service.search(searchInput.value).then(function (result) {
         activeTerms = result.terms;
         searchMeta.textContent = 'Найдено: ' + result.total + (result.total > result.items.length ? ', показано: ' + result.items.length : '');

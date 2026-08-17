@@ -262,4 +262,39 @@ function scanLocalRecords(value) {
   };
 }
 
-export { crc32, readZip, scanLocalRecords, bytes, u16, u32 };
+/** Читает плотную последовательность local ZIP records без побайтового поиска сигнатур. */
+function readLocalRecords(value) {
+  const data = bytes(value);
+  const entries = [];
+  const byName = {};
+  const archive = { data: data };
+  let pos = 0;
+  while (pos + 30 <= data.length) {
+    if (u32(data, pos) != 0x04034b50)
+      break;
+    const entry = readLocalHeader(data, pos);
+    const next = entry.dataOffset + entry.compressedSize;
+    if (next <= pos)
+      fail('ZIP: local record не продвигает позицию');
+    entries.push(entry);
+    if (!Object.prototype.hasOwnProperty.call(byName, entry.name))
+      byName[entry.name] = entry;
+    pos = next;
+  }
+  if (!entries.length)
+    fail('ZIP: не найдена последовательность local records');
+  return {
+    data: data,
+    entries: entries,
+    byName: byName,
+    trailingSize: data.length - pos,
+    extract: function (entryOrName) {
+      const entry = typeof entryOrName == 'string' ? byName[entryOrName] : entryOrName;
+      if (!entry)
+        fail('ZIP: запись не найдена');
+      return inflateEntry(this, entry);
+    }
+  };
+}
+
+export { crc32, readZip, scanLocalRecords, readLocalRecords, bytes, u16, u32 };
