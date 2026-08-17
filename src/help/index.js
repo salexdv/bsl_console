@@ -3,9 +3,9 @@ import { createHelpUi } from './ui';
 import { createHelpFileLoader } from './file_loader';
 import './help.css';
 
-function createHelpBrowser(editorProvider) {
+function createHelpBrowser(editorProvider, onExternalLink) {
   const service = createHelpService();
-  const ui = createHelpUi(service, editorProvider);
+  const ui = createHelpUi(service, editorProvider, onExternalLink);
   const fileLoader = createHelpFileLoader(function (file) {
     return typeof window.parseHelp == 'function' ? window.parseHelp(file) : service.parse(file);
   }, function () { ui.show(); });

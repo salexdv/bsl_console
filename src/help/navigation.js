@@ -20,7 +20,7 @@ function groupFromPath(path) {
 }
 
 function inferGroupTitle(node) {
-  if (!node || node.title || !node.children || !node.children.length) return '';
+  if (!node || !node.children || !node.children.length) return '';
   const groups = {};
   node.children.forEach(function (child) {
     if (!child.path) return;
@@ -58,7 +58,7 @@ function decorateContextNavigation(nodes, pages, packageKind) {
     node.tocId = node.tocId || node.id;
     const inferred = inferGroupTitle(node);
     if (inferred) {
-      node.title = inferred;
+      if (!node.title) node.title = inferred;
       node.systemGroup = true;
     }
     if (node.path) {

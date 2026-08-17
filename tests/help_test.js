@@ -286,6 +286,9 @@ function testNavigation() {
         const node = { title: '', children: [{ path: 'objects/Owner/' + segment + '/Item.html' }] };
         assert.equal(navigation.inferGroupTitle(node), known[segment], segment);
     });
+    assert.equal(navigation.inferGroupTitle({ title: 'Методы', children: [
+        { path: 'objects/Owner/methods/Call.html' }
+    ] }), 'Методы', 'заданный TOC-заголовок не мешает распознать группу');
     assert.equal(navigation.inferGroupTitle({ title: '', children: [
         { path: 'objects/Owner/methods/Call.html' }, { path: 'objects/Owner/events/Event.html' }
     ] }), '', 'смешанный узел не переименовывается');
@@ -297,7 +300,7 @@ function testNavigation() {
     const pages = {}; pages[page.id] = page;
     const roots = [{ id: 'context:1', title: 'Прикладные объекты', path: '', children: [{
         id: 'context:2', title: 'СправочникМенеджер.<Имя справочника>', path: '', children: [{
-            id: 'context:3', title: '', path: '', children: [{
+            id: 'context:3', title: 'Методы', path: '', children: [{
                 id: 'context:4', title: 'Выбрать', path: page.path, kind: 'context', children: []
             }]
         }]
@@ -306,6 +309,7 @@ function testNavigation() {
     const group = roots[0].children[0].children[0];
     const leaf = group.children[0];
     assert.equal(group.title, 'Методы');
+    assert.equal(group.systemGroup, true, 'группа из TOC отделяется от владельца');
     assert.equal(page.context, 'СправочникМенеджер.<Имя справочника>/Методы/Выбрать');
     assert.equal(leaf.tocId, 'context:4');
     assert.equal(leaf.id, page.id, 'TOC id заменяется идентификатором статьи');

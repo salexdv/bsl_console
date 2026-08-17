@@ -273,7 +273,8 @@ function serve() {
       const originalSendEvent = window.sendEvent;
       window.__capturedHelpEvents = [];
       window.sendEvent = function (name, params) {
-        if (name == 'EVENT_ON_GET_HELP') window.__capturedHelpEvents.push({ event: name, params: params });
+        if (name == 'EVENT_ON_GET_HELP' || name == 'EVENT_ON_LINK_CLICK')
+          window.__capturedHelpEvents.push({ event: name, params: params });
         return originalSendEvent(name, params);
       };
       window.editor.setValue('ОбщийМодуль.Метод()');
@@ -641,12 +642,28 @@ function serve() {
         scripts: document.querySelectorAll('.bsl-help-article script').length,
         handlers: document.querySelectorAll('.bsl-help-article [onerror]').length,
         imageSource: document.querySelector('.bsl-help-article img') && document.querySelector('.bsl-help-article img').getAttribute('src'),
+        href: document.querySelector('.bsl-help-article #external').getAttribute('href'),
         target: document.querySelector('.bsl-help-article #external').getAttribute('target'),
         rel: document.querySelector('.bsl-help-article #external').getAttribute('rel')
       };
     });
-    if (security.scripts || security.handlers || security.imageSource || security.target != '_blank' || security.rel.indexOf('noopener') < 0)
+    if (security.scripts || security.handlers || security.imageSource
+      || security.href != 'https://example.com/help' || security.target || security.rel)
       errors.push('sanitizer: ' + JSON.stringify(security));
+    await page.evaluate(function () { window.__capturedHelpEvents.length = 0; });
+    const externalUrlBefore = page.url();
+    const externalPagesBefore = (await browser.pages()).length;
+    await page.click('.bsl-help-article #external');
+    await page.waitForFunction('window.__capturedHelpEvents.length == 1');
+    await new Promise(function (resolve) { setTimeout(resolve, 100); });
+    const externalLink = await page.evaluate(function () {
+      return { url: location.href, events: window.__capturedHelpEvents.slice() };
+    });
+    const externalEvent = externalLink.events[0];
+    if (externalLink.url != externalUrlBefore || (await browser.pages()).length != externalPagesBefore
+      || !externalEvent || externalEvent.event != 'EVENT_ON_LINK_CLICK'
+      || externalEvent.params.label != 'Сайт' || externalEvent.params.href != 'https://example.com/help')
+      errors.push('external help link: ' + JSON.stringify(externalLink));
     await page.click('.bsl-help-article #internal');
     await page.waitForFunction('document.querySelector(".bsl-help-article").textContent.indexOf("Unicode") >= 0');
     if (await page.$eval('.bsl-help-icon', function (button) { return button.disabled; })) errors.push('history back disabled');
