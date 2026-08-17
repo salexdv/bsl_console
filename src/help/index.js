@@ -19,6 +19,11 @@ function createHelpBrowser(editorProvider) {
     show: function () { ui.show(); },
     showIndex: function (query, editor) { return ui.showIndex(query, editor); },
     isReady: function () { return service.isReady(); },
+    setLanguageMode: function (mode) {
+      if (mode == 'bsl_query') service.setKinds(['query']);
+      else if (mode == 'dcs_query') service.setKinds(['dcs']);
+      else service.setKinds(['context', 'language']);
+    },
     showLoader: function () { fileLoader.show(); },
     setTheme: function (theme) { ui.setTheme(theme); fileLoader.setTheme(theme); },
     service: service,

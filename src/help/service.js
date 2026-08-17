@@ -4,6 +4,21 @@ const HelpWorker = require('worker-loader?inline=no-fallback&esModule=false!./he
 const IndexWorker = require('worker-loader?inline=no-fallback&esModule=false!./index_worker');
 
 const PRODUCTION_INDEX_WORKERS = 1;
+const PACKAGE_KINDS = ['context', 'language', 'query', 'dcs'];
+
+function normalizedKinds(value) {
+  const source = Array.isArray(value) ? value : ['context', 'language'];
+  return PACKAGE_KINDS.filter(function (kind) { return source.indexOf(kind) >= 0; });
+}
+
+function kindFromName(name) {
+  const value = String(name || '').toLowerCase();
+  if (/shcntx/.test(value)) return 'context';
+  if (/shlang/.test(value)) return 'language';
+  if (/shquery/.test(value)) return 'query';
+  if (/dcsui/.test(value)) return 'dcs';
+  return null;
+}
 
 function createHelpService(workerFactory, indexWorkerFactory, indexWorkerCount) {
   const factory = workerFactory || function () { return new HelpWorker(); };
@@ -16,34 +31,45 @@ function createHelpService(workerFactory, indexWorkerFactory, indexWorkerCount) 
   let indexPoolBroken = false;
   let sequence = 0;
   let pending = {};
-  let loading = 0;
-  let provisionalReady = 0;
+  const loadingByKind = { context: 0, language: 0, query: 0, dcs: 0 };
+  const provisionalByKind = { context: 0, language: 0, query: 0, dcs: 0 };
+  const errorsByKind = { context: null, language: null, query: null, dcs: null };
+  const parseBarriers = {};
+  let activeKinds = ['context', 'language'];
+  let scopeSequence = 0;
   let prefixIndex = [];
   let visibleIndex = [];
   let transferActive = false;
   let transferEnded = false;
   let transferWorkerError = null;
-  let parseBarrier = Promise.resolve();
+  let transferKind = null;
   let poolSearchSequence = 0;
   const poolSearches = {};
   const poolCommits = {};
   const activeIndexRequests = {};
   const listeners = [];
   const state = {
-    status: 'empty',
-    lastError: null,
-    packages: { context: null, language: null }
+    packages: { context: null, language: null, query: null, dcs: null }
   };
 
   function snapshot() {
-    const hasPackage = state.packages.context || state.packages.language;
+    const hasPackage = activeKinds.some(function (kind) { return !!state.packages[kind]; });
+    const loading = activeKinds.reduce(function (sum, kind) { return sum + loadingByKind[kind]; }, 0);
+    const provisionalReady = activeKinds.reduce(function (sum, kind) { return sum + provisionalByKind[kind]; }, 0);
+    let lastError = null;
+    activeKinds.some(function (kind) {
+      lastError = errorsByKind[kind];
+      return !!lastError;
+    });
     return {
       status: loading ? (provisionalReady ? 'ready' : 'loading')
-        : (state.lastError ? 'error' : (hasPackage ? 'ready' : 'empty')),
+        : (lastError ? 'error' : (hasPackage ? 'ready' : 'empty')),
       loading: loading,
       indexing: provisionalReady > 0,
-      lastError: state.lastError,
-      packages: state.packages
+      lastError: lastError,
+      packages: state.packages,
+      kinds: activeKinds.slice(),
+      scope: scopeSequence
     };
   }
 
@@ -53,8 +79,6 @@ function createHelpService(workerFactory, indexWorkerFactory, indexWorkerCount) 
   }
 
   function fail(message) {
-    state.lastError = message;
-    notify();
     return Promise.resolve({ ok: false, kind: null, pages: 0, error: message });
   }
 
@@ -195,10 +219,10 @@ function createHelpService(workerFactory, indexWorkerFactory, indexWorkerCount) 
     return true;
   }
 
-  function searchIndexPool(query, limit) {
+  function searchIndexPool(query, limit, kinds) {
     const pool = ensureIndexPool();
     if (!pool.length)
-      return request('search', { query: query }).then(function (response) { return response.payload; });
+      return request('search', { query: query, kinds: kinds }).then(function (response) { return response.payload; });
     return new Promise(function (resolve, reject) {
       const searchId = ++poolSearchSequence;
       poolSearches[searchId] = {
@@ -206,7 +230,10 @@ function createHelpService(workerFactory, indexWorkerFactory, indexWorkerCount) 
         results: [], limit: limit || 1000
       };
       pool.forEach(function (item) {
-        item.postMessage({ type: 'search', searchId: searchId, query: query, limit: limit || 1000 });
+        item.postMessage({
+          type: 'search', searchId: searchId, query: query,
+          limit: limit || 1000, kinds: kinds
+        });
       });
     });
   }
@@ -225,7 +252,11 @@ function createHelpService(workerFactory, indexWorkerFactory, indexWorkerCount) 
         return;
       }
       delete pending[data.id];
-      if (data.type == 'error') request.reject(new Error(data.payload && data.payload.message || 'Ошибка worker'));
+      if (data.type == 'error') {
+        const error = new Error(data.payload && data.payload.message || 'Ошибка worker');
+        error.kind = data.payload && data.payload.kind || null;
+        request.reject(error);
+      }
       else request.resolve({ type: data.type, payload: data.payload });
     };
     worker.onerror = function (event) {
@@ -263,19 +294,36 @@ function createHelpService(workerFactory, indexWorkerFactory, indexWorkerCount) 
   }
 
   function rebuildIndex() {
-    const context = state.packages.context ? state.packages.context.index : [];
-    const language = state.packages.language ? state.packages.language.index : [];
-    prefixIndex = mergePrefixIndexes(context, language);
+    prefixIndex = activeKinds.reduce(function (result, kind) {
+      const index = state.packages[kind] ? state.packages[kind].index : [];
+      return mergePrefixIndexes(result, index);
+    }, []);
     visibleIndex = prefixIndex.map(function (entry) { return entry.item; });
   }
 
-  function parseRequest(type, payload) {
-    loading++;
-    state.lastError = null;
-    notify();
+  function parseRequest(type, payload, expectedKinds) {
     let candidateKind = null;
     let previousPackage = null;
     let rolledBack = false;
+    let candidatePrepared = false;
+    let operation = null;
+    const trackedLoading = {};
+
+    function trackLoading(kind) {
+      if (!kind || trackedLoading[kind]) return;
+      trackedLoading[kind] = true;
+      loadingByKind[kind]++;
+      errorsByKind[kind] = null;
+    }
+
+    function releaseLoading(kind) {
+      if (!trackedLoading[kind]) return;
+      delete trackedLoading[kind];
+      loadingByKind[kind] = Math.max(0, loadingByKind[kind] - 1);
+    }
+
+    normalizedKinds(expectedKinds).forEach(trackLoading);
+    notify();
     function assignPackage(result, provisional) {
       state.packages[result.kind] = {
         kind: result.kind,
@@ -292,15 +340,23 @@ function createHelpService(workerFactory, indexWorkerFactory, indexWorkerCount) 
       if (response.type == 'prepared') {
         const result = response.payload;
         candidateKind = result.kind;
+        candidatePrepared = true;
+        Object.keys(trackedLoading).forEach(function (kind) {
+          if (kind != candidateKind) releaseLoading(kind);
+        });
+        trackLoading(candidateKind);
+        errorsByKind[candidateKind] = null;
         previousPackage = state.packages[candidateKind];
         assignPackage(result, true);
-        provisionalReady++;
+        provisionalByKind[candidateKind]++;
+        parseBarriers[candidateKind] = Promise.resolve().then(function () { return operation; })
+          .then(function () { return undefined; });
         notify();
       }
       else if (response.type == 'rollback' && candidateKind) {
         state.packages[candidateKind] = previousPackage;
         rolledBack = true;
-        provisionalReady = Math.max(0, provisionalReady - 1);
+        provisionalByKind[candidateKind] = Math.max(0, provisionalByKind[candidateKind] - 1);
         rebuildIndex();
         notify();
       }
@@ -309,40 +365,47 @@ function createHelpService(workerFactory, indexWorkerFactory, indexWorkerCount) 
     // запуск не конкурировал с разбором контейнера и публикацией дерева.
     const workers = indexPoolBroken ? 0 : requestedIndexWorkers;
     const requestPayload = Object.assign({}, payload || {}, { indexWorkers: workers });
-    return request(type, requestPayload, progress).then(function (response) {
+    operation = request(type, requestPayload, progress).then(function (response) {
       const result = response.payload;
       assignPackage(result, false);
-      provisionalReady = Math.max(0, provisionalReady - 1);
-      state.lastError = null;
+      provisionalByKind[result.kind] = Math.max(0, provisionalByKind[result.kind] - 1);
+      releaseLoading(result.kind);
+      Object.keys(trackedLoading).forEach(releaseLoading);
+      errorsByKind[result.kind] = null;
       return { ok: true, kind: result.kind, pages: result.pages, error: null };
     }).catch(function (error) {
-      if (candidateKind && !rolledBack) {
+      if (!candidateKind && PACKAGE_KINDS.indexOf(error && error.kind) >= 0)
+        candidateKind = error.kind;
+      if (candidatePrepared && candidateKind && !rolledBack) {
         state.packages[candidateKind] = previousPackage;
         rebuildIndex();
-        provisionalReady = Math.max(0, provisionalReady - 1);
+        provisionalByKind[candidateKind] = Math.max(0, provisionalByKind[candidateKind] - 1);
       }
-      state.lastError = error && error.message ? error.message : String(error);
-      return { ok: false, kind: null, pages: 0, error: state.lastError };
+      const message = error && error.message ? error.message : String(error);
+      const errorKinds = candidateKind ? [candidateKind] : Object.keys(trackedLoading);
+      Object.keys(trackedLoading).forEach(releaseLoading);
+      errorKinds.forEach(function (kind) { errorsByKind[kind] = message; });
+      return { ok: false, kind: null, pages: 0, error: message };
     }).then(function (result) {
-      loading--;
       notify();
       return result;
     });
+    return operation;
   }
 
   function parse(source) {
     const isBlob = source && typeof source.size == 'number' && typeof source.slice == 'function';
     if (!isBlob && typeof source != 'string')
       return fail('parseHelp принимает Blob, File или строку Base64');
-    const result = parseRequest('parse', { source: source });
-    parseBarrier = result.then(function () { return undefined; });
-    return result;
+    const namedKind = kindFromName(source && source.name);
+    return parseRequest('parse', { source: source }, namedKind ? [namedKind] : activeKinds.slice());
   }
 
   function beginTransfer(name) {
     if (typeof name != 'string' || !name.trim())
       throw new Error('beginBase64Transfer принимает непустое имя данных');
     post('transfer-begin', { name: name.trim() });
+    transferKind = kindFromName(name);
     transferActive = true;
     transferEnded = false;
     transferWorkerError = null;
@@ -367,13 +430,29 @@ function createHelpService(workerFactory, indexWorkerFactory, indexWorkerCount) 
   function parseTransferred() {
     if (transferActive)
       return fail('Передача Base64 ещё не завершена');
-    if (transferWorkerError)
+    if (transferWorkerError) {
+      if (transferKind) {
+        errorsByKind[transferKind] = transferWorkerError;
+        notify();
+      }
       return fail(transferWorkerError);
+    }
     if (!transferEnded)
       return fail('Нет завершённой передачи Base64');
-    const result = parseRequest('parse-transferred');
-    parseBarrier = result.then(function () { return undefined; });
-    return result;
+    return parseRequest('parse-transferred', null, transferKind ? [transferKind] : activeKinds.slice());
+  }
+
+  function setKinds(kinds) {
+    const next = normalizedKinds(kinds);
+    if (next.join('|') == activeKinds.join('|')) return;
+    activeKinds = next;
+    scopeSequence++;
+    rebuildIndex();
+    notify();
+  }
+
+  function isActive(kind) {
+    return activeKinds.indexOf(kind) >= 0;
   }
 
   return {
@@ -383,8 +462,10 @@ function createHelpService(workerFactory, indexWorkerFactory, indexWorkerCount) 
     pushTransfer: pushTransfer,
     endTransfer: endTransfer,
     fail: fail,
+    setKinds: setKinds,
     getState: snapshot,
     isReady: function () { return snapshot().status == 'ready'; },
+    isKindActive: isActive,
     subscribe: function (listener) {
       listeners.push(listener);
       return function () {
@@ -394,8 +475,9 @@ function createHelpService(workerFactory, indexWorkerFactory, indexWorkerCount) 
     },
     getNavigation: function () {
       let result = [];
-      if (state.packages.context) result = result.concat(state.packages.context.navigation);
-      if (state.packages.language) result = result.concat(state.packages.language.navigation);
+      activeKinds.forEach(function (kind) {
+        if (state.packages[kind]) result = result.concat(state.packages[kind].navigation);
+      });
       return result;
     },
     getIndex: function () {
@@ -403,18 +485,30 @@ function createHelpService(workerFactory, indexWorkerFactory, indexWorkerCount) 
     },
     prefix: function (query) { return prefixSearch(prefixIndex, query, 1000); },
     search: function (query) {
-      return parseBarrier.then(function () { return searchIndexPool(query, 1000); });
+      const kinds = activeKinds.slice();
+      const scope = scopeSequence;
+      const barriers = kinds.map(function (kind) { return parseBarriers[kind] || Promise.resolve(); });
+      return Promise.all(barriers).then(function () {
+        if (scope != scopeSequence) throw new Error('Режим справки изменился');
+        return searchIndexPool(query, 1000, kinds);
+      }).then(function (result) {
+        if (scope != scopeSequence) throw new Error('Режим справки изменился');
+        return result;
+      });
     },
     hydrate: function (item) {
       const kind = item && item.kind;
       const pack = kind && state.packages[kind];
-      if (!pack || !item)
+      const scope = scopeSequence;
+      if (!pack || !item || !isActive(kind))
         return Promise.reject(new Error('Узел оглавления недоступен'));
       const tocId = item.tocId || item.id;
       return request('navigation-children', {
         kind: kind, generation: pack.generation, tocId: tocId
       }).then(function (response) {
         const result = response.payload;
+        if (scope != scopeSequence || !isActive(result.kind))
+          throw new Error('Режим справки изменился');
         const current = state.packages[result.kind];
         if (!current || current.generation != result.generation)
           throw new Error('Поколение справки изменилось');
@@ -435,9 +529,16 @@ function createHelpService(workerFactory, indexWorkerFactory, indexWorkerCount) 
       });
     },
     article: function (item, terms) {
+      const scope = scopeSequence;
+      if (!item || !isActive(item.kind))
+        return Promise.reject(new Error('Статья недоступна в текущем режиме'));
       return request('article', {
         pageId: item.id || null, kind: item.kind, path: item.path, terms: terms || []
-      }).then(function (response) { return response.payload; });
+      }).then(function (response) {
+        if (scope != scopeSequence || !isActive(response.payload.kind))
+          throw new Error('Режим справки изменился');
+        return response.payload;
+      });
     },
     dispose: function () {
       if (worker) worker.terminate();
@@ -449,6 +550,7 @@ function createHelpService(workerFactory, indexWorkerFactory, indexWorkerCount) 
       transferActive = false;
       transferEnded = false;
       transferWorkerError = null;
+      transferKind = null;
       completeAll('Сервис справки остановлен');
     }
   };

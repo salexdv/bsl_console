@@ -3,7 +3,7 @@ import { decodeUtf8 } from './hbk-reader';
 import { htmlText, htmlTitle } from './package_builder';
 import { buildSearchDocument, searchDocuments } from './search';
 
-const committed = { context: [], language: [] };
+const committed = { context: [], language: [], query: [], dcs: [] };
 const candidates = {};
 const staged = {};
 
@@ -76,7 +76,10 @@ self.onmessage = function (event) {
     else if (message.type == 'index-cancel') cancel(message);
     else if (message.type == 'index-finalize') finalize(message);
     else if (message.type == 'search') {
-      const documents = committed.context.concat(committed.language);
+      let documents = [];
+      (message.kinds || Object.keys(committed)).forEach(function (kind) {
+        if (committed[kind]) documents = documents.concat(committed[kind]);
+      });
       send('search-result', {
         searchId: message.searchId,
         result: searchDocuments(documents, message.query, message.limit)

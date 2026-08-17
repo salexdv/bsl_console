@@ -50,15 +50,19 @@ function resolveHelpLink(href, current) {
   if (/^https?:\/\//i.test(value))
     return { type: 'external', href: value };
 
-  const v8 = /^v8help:\/\/(SyntaxHelperContext|SyntaxHelperLanguage)\/(.*)$/i.exec(value);
+  const v8 = /^v8help:\/\/(SyntaxHelperContext|SyntaxHelperLanguage|SyntaxHelperQueries|dcsui)\/(.*)$/i.exec(value);
   if (v8) {
     const reference = splitReference(v8[2]);
     if (!reference) return null;
     const path = normalizeInternalPath(reference.path, '');
     if (!path) return null;
+    const books = {
+      syntaxhelpercontext: 'context', syntaxhelperlanguage: 'language',
+      syntaxhelperqueries: 'query', dcsui: 'dcs'
+    };
     return {
       type: 'internal',
-      kind: v8[1].toLowerCase() == 'syntaxhelpercontext' ? 'context' : 'language',
+      kind: books[v8[1].toLowerCase()],
       path: path,
       anchor: reference.anchor
     };

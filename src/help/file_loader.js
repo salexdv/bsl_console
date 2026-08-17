@@ -28,7 +28,7 @@ function createHelpFileLoader(parse, show) {
     loadButton.disabled = !files.length;
     setStatus(files.length
       ? 'Выбрано: ' + files.map(function (file) { return file.name; }).join(', ')
-      : 'Выберите shcntx_*.hbk и/или shlang_*.hbk');
+      : 'Выберите shcntx_*.hbk, shlang_*.hbk, shquery_*.hbk и/или dcsui_*.hbk');
   });
 
   loadButton.addEventListener('click', function () {

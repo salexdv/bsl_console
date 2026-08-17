@@ -159,6 +159,31 @@ function makeLanguageHbk() {
   return result;
 }
 
+function makeBookHbk(bookName, pageName, pageTitle, articleText, scheme) {
+  const html = '<html><body><h1 class="V8SH_pagetitle">' + pageTitle + '</h1><p>' + articleText + '</p>'
+    + '<a id="self-book-link" href="v8help://' + scheme + '/' + pageName + '#details">Эта статья</a>'
+    + '<h2 id="details">Подробности</h2></body></html>';
+  const toc = '{2,{1,0,1,2,{1,1,{1,0},""}}'
+    + ',{2,1,0,{1,1,{1,1,{"ru","' + pageTitle + '"}},"/' + pageName + '"}}}';
+  return makeContainer([
+    { name: 'Book', data: Buffer.from('\ufeff{2,"' + bookName + '"}', 'utf8') },
+    { name: 'FileStorage', data: makeZip([
+      { name: pageName, data: html }, { name: '__categories__', data: '{0}' }
+    ]) },
+    { name: 'PackBlock', data: localRecord('1', toc) }
+  ]);
+}
+
+function makeQueryHbk() {
+  return makeBookHbk('SyntaxHelperQueries', 'SELECTSection', 'ВЫБРАТЬ',
+    'Профильная справка языка запросов.', 'SyntaxHelperQueries');
+}
+
+function makeDcsHbk() {
+  return makeBookHbk('dcsui', 'SKD_Function', 'СКДФункция',
+    'Профильная справка системы компоновки данных.', 'dcsui');
+}
+
 function serve() {
   return new Promise(function (resolve) {
     const server = http.createServer(function (request, response) {
@@ -359,7 +384,35 @@ function serve() {
     if (heartbeat.parsed.ok || heartbeat.after <= heartbeat.before)
       errors.push('Base64 worker heartbeat: ' + JSON.stringify(heartbeat));
 
-    const dual = await page.evaluate(async function (contextBase64, languageBase64) {
+    const emptyProfile = await page.evaluate(function () {
+      const overlay = document.querySelector('.bsl-help-overlay');
+      if (overlay.classList.contains('visible')) document.querySelector('.bsl-help-close').click();
+      window.setLanguageMode('bsl_query');
+      window.showHelp();
+      const explicit = {
+        visible: overlay.classList.contains('visible'),
+        message: document.querySelector('.bsl-help-message').textContent
+      };
+      document.querySelector('.bsl-help-close').click();
+      window.__capturedHelpEvents.length = 0;
+      window.setOption('generateGetHelpEvent', true);
+      window.editor.setValue('ВЫБРАТЬ');
+      window.editor.setPosition({ lineNumber: 1, column: 3 });
+      window.editor.focus();
+      window.editor.trigger('headless', 'bsl.showHelp');
+      const shortcut = {
+        visible: overlay.classList.contains('visible'),
+        events: window.__capturedHelpEvents.slice()
+      };
+      window.setLanguageMode('bsl');
+      return { explicit: explicit, shortcut: shortcut };
+    });
+    if (!emptyProfile.explicit.visible || emptyProfile.explicit.message.indexOf('не загружена') < 0
+      || emptyProfile.shortcut.visible || emptyProfile.shortcut.events.length != 1
+      || emptyProfile.shortcut.events[0].params.word != 'выбрать')
+      errors.push('empty profile help: ' + JSON.stringify(emptyProfile));
+
+    const dual = await page.evaluate(async function (contextBase64, languageBase64, queryBase64, dcsBase64) {
       function bytes(value) {
         const raw = atob(value);
         const result = new Uint8Array(raw.length);
@@ -378,14 +431,21 @@ function serve() {
         window.endBase64Transfer();
         return window.parseHelp();
       }
-      function readyEvents() {
-        return window.events_queue.filter(function (item) { return item.event == 'EVENT_ON_HELP_READY'; });
-      }
+      const previousSendEvent = window.sendEvent;
+      window.__capturedReadyEvents = [];
+      window.sendEvent = function (name, params) {
+        if (name == 'EVENT_ON_HELP_READY')
+          window.__capturedReadyEvents.push({ event: name, params: params });
+        return previousSendEvent(name, params);
+      };
+      function readyEvents() { return window.__capturedReadyEvents; }
       window.events_queue.length = 0;
       const contextPromise = transfer('shcntx', bytes(contextBase64), 17);
       const languagePromise = transfer('shlang', bytes(languageBase64), 16);
+      const queryPromise = transfer('shquery', bytes(queryBase64), 15);
+      const dcsPromise = transfer('dcsui', bytes(dcsBase64), 14);
       window.showHelp();
-      const parsed = await Promise.all([contextPromise, languagePromise]);
+      const parsed = await Promise.all([contextPromise, languagePromise, queryPromise, dcsPromise]);
       const eventsAfterFirst = readyEvents().length;
       const repeatedContext = await window.parseHelp(contextBase64);
       const eventsAfterRepeat = readyEvents().length;
@@ -406,9 +466,13 @@ function serve() {
           return node.textContent;
         })
       };
-    }, makeContextHbk().toString('base64'), makeLanguageHbk().toString('base64'));
-    if (!dual.parsed[0].ok || dual.parsed[0].kind != 'context' || !dual.parsed[1].ok || dual.parsed[1].kind != 'language')
-      errors.push('two queued HBK: ' + JSON.stringify(dual));
+    }, makeContextHbk().toString('base64'), makeLanguageHbk().toString('base64'),
+      makeQueryHbk().toString('base64'), makeDcsHbk().toString('base64'));
+    if (!dual.parsed[0].ok || dual.parsed[0].kind != 'context'
+      || !dual.parsed[1].ok || dual.parsed[1].kind != 'language'
+      || !dual.parsed[2].ok || dual.parsed[2].kind != 'query'
+      || !dual.parsed[3].ok || dual.parsed[3].kind != 'dcs')
+      errors.push('four queued HBK: ' + JSON.stringify(dual));
     if (!dual.repeatedContext.ok || dual.eventsAfterFirst != 1 || dual.eventsAfterRepeat != 2
       || dual.eventsAfterFailure != 2 || dual.failedContext.ok || !dual.repeatedLanguage.ok
       || dual.readyEvents.length != 2 || dual.readyEvents.some(function (event) { return event.hasParams; }))
@@ -582,20 +646,53 @@ function serve() {
     await page.click('.bsl-help-icon');
     await page.waitForSelector('.bsl-help-article #relative-context');
 
+    const switchedPanel = await page.evaluate(function () {
+      function state() {
+        return {
+          visible: document.querySelector('.bsl-help-overlay').classList.contains('visible'),
+          titles: Array.prototype.map.call(document.querySelectorAll('.bsl-help-tree-title'), function (node) {
+            return node.textContent;
+          }),
+          article: document.querySelector('.bsl-help-article-content').textContent,
+          backDisabled: document.querySelector('.bsl-help-icon').disabled,
+          index: document.querySelector('.bsl-help-panel[data-tab=index] .bsl-help-input').value,
+          search: document.querySelector('.bsl-help-panel[data-tab=search] .bsl-help-input').value
+        };
+      }
+      window.setLanguageMode('bsl_query');
+      const query = state();
+      window.setLanguageMode('dcs_query');
+      const dcs = state();
+      window.setLanguageMode('bsl');
+      return { query: query, dcs: dcs };
+    });
+    if (!switchedPanel.query.visible || switchedPanel.query.titles.indexOf('ВЫБРАТЬ') < 0
+      || switchedPanel.query.titles.indexOf('Строка (String)') >= 0 || switchedPanel.query.article
+      || !switchedPanel.query.backDisabled || switchedPanel.query.index || switchedPanel.query.search
+      || switchedPanel.dcs.titles.indexOf('СКДФункция') < 0
+      || switchedPanel.dcs.titles.indexOf('ВЫБРАТЬ') >= 0 || switchedPanel.dcs.article)
+      errors.push('open panel mode switch: ' + JSON.stringify(switchedPanel));
+
     async function shortcutFor(mode, diffSide) {
-      await page.evaluate(function (requestedMode, requestedSide) {
+      const expected = mode == 'query'
+        ? { word: 'ВЫБРАТЬ', article: 'Профильная справка языка запросов.' }
+        : (mode == 'dcs'
+          ? { word: 'СКДФункция', article: 'Профильная справка системы компоновки данных.' }
+          : { word: 'Строка', article: 'Unicode' });
+      await page.evaluate(function (requestedMode, requestedSide, requestedWord) {
         document.querySelector('.bsl-help-close').click();
         window.__capturedHelpEvents.length = 0;
         if (window.editor.navi) window.compare();
-        window.setLanguageMode(requestedMode == 'query' ? 'bsl_query' : 'bsl');
-        window.editor.setValue('Строка()');
-        if (requestedMode == 'diff') window.compare('Строка()\n// diff');
+        window.setLanguageMode(requestedMode == 'query' ? 'bsl_query'
+          : (requestedMode == 'dcs' ? 'dcs_query' : 'bsl'));
+        window.editor.setValue(requestedWord + '()');
+        if (requestedMode == 'diff') window.compare(requestedWord + '()\n// diff');
         const target = window.editor.navi
           ? (requestedSide == 'original' ? window.editor.getOriginalEditor() : window.editor.getModifiedEditor())
           : window.editor;
         target.setPosition({ lineNumber: 1, column: 3 });
         target.focus();
-      }, mode, diffSide);
+      }, mode, diffSide, expected.word);
       if (mode == 'diff') {
         await new Promise(function (resolve) { setTimeout(resolve, 80); });
         // Monaco 0.20 после асинхронного расчёта diff восстанавливает свою позицию курсора.
@@ -609,10 +706,12 @@ function serve() {
         }, diffSide);
       }
       await page.keyboard.down('Control'); await page.keyboard.press('F1'); await page.keyboard.up('Control');
-      await page.waitForFunction('document.querySelector(".bsl-help-overlay.visible")'
-        + ' && document.querySelector(".bsl-help-panel[data-tab=index].active")'
-        + ' && document.querySelector(".bsl-help-panel[data-tab=index] .bsl-help-input").value == "Строка"'
-        + ' && document.querySelector(".bsl-help-article").textContent.indexOf("Unicode") >= 0');
+      await page.waitForFunction(function (word, article) {
+        return document.querySelector('.bsl-help-overlay.visible')
+          && document.querySelector('.bsl-help-panel[data-tab=index].active')
+          && document.querySelector('.bsl-help-panel[data-tab=index] .bsl-help-input').value == word
+          && document.querySelector('.bsl-help-article').textContent.indexOf(article) >= 0;
+      }, {}, expected.word, expected.article);
       const shortcutState = await page.evaluate(function () {
         function editorState(editor) {
           const position = editor.getPosition();
@@ -633,12 +732,13 @@ function serve() {
       });
       const shortcutEvents = shortcutState.events;
       if (shortcutEvents.length != 1 || shortcutEvents[0].event != 'EVENT_ON_GET_HELP'
-        || shortcutEvents[0].params.word != 'строка')
+        || shortcutEvents[0].params.word != expected.word.toLocaleLowerCase())
         errors.push('Ctrl+F1 event in ' + mode + '/' + (diffSide || '') + ': ' + JSON.stringify(shortcutState));
       await page.keyboard.press('Escape');
     }
     await shortcutFor('normal');
     await shortcutFor('query');
+    await shortcutFor('dcs');
     await shortcutFor('diff', 'modified');
     await shortcutFor('diff', 'original');
     const focusReturned = await page.evaluate(function () {

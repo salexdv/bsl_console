@@ -44,7 +44,8 @@ function tokenize(source) {
   return tokens;
 }
 
-function parseToc(source) {
+function parseToc(source, packageKind) {
+  const kind = packageKind || 'context';
   const tokens = tokenize(source);
   let pos = 0;
   function literal(value) {
@@ -126,14 +127,15 @@ function parseToc(source) {
   records.forEach(visit);
 
   function publicNode(record) {
+    const title = record.names.ru || record.names.en || record.names['#'] || '';
     return {
-      id: 'context:' + record.id,
-      title: record.names.ru || record.names.en || '',
+      id: kind + ':' + record.id,
+      title: title,
       alias: record.names.en || '',
-      tocTitle: record.names.ru || '',
+      tocTitle: title,
       tocAlias: record.names.en || '',
       path: record.path,
-      kind: 'context',
+      kind: kind,
       children: record.children.map(publicNode)
     };
   }

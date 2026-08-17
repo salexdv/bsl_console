@@ -191,8 +191,8 @@ npm run build  -- --customOptions "automaticLayout: true, someOption: false"
 | [`enableKeyBinding`](docs/disable_key_binding.md) | Включает обратно сочетание                                                 |
 | `saveViewState`                | Возвращает JSON-строку с текущими настройками (положение курсора и прокрутки, а также свернутые блоки) |
 | `restoreViewState`             | Восстанавливает настройки. В качестве аргумента принимает JSON-строку, полученную ранее через `saveViewState` |
-| [`parseHelp`](docs/help_browser.md) | Асинхронно загружает `Blob`/`File` или Base64 с `shcntx_*.hbk`/`shlang_*.hbk`            |
-| [`showHelp`](docs/help_browser.md) | Открывает закреплённую справа панель; `CTRL+F1` ищет слово только в готовой справке       |
+| [`parseHelp`](docs/help_browser.md) | Загружает Base64/`Blob`/`File` с `shcntx`, `shlang`, `shquery` или `dcsui`                 |
+| [`showHelp`](docs/help_browser.md) | Открывает справку текущего режима; `CTRL+F1` ищет слово только в готовом пакете           |
 | [`showHelpLoader`](docs/help_browser.md) | Показывает скрытую по умолчанию панель ручного выбора файлов справки                |
 | [`beginBase64Transfer`](docs/base64_transfer.md) | Начинает универсальную порционную передачу Base64                           |
 | [`pushBase64Chunk`](docs/base64_transfer.md) | Добавляет часть Base64 с произвольной границей                                  |
@@ -331,6 +331,9 @@ setLanguageMode('xml');
 // Переключение в режим встроенного языка
 setLanguageMode('bsl');
 ```
+
+Справка выбирается по режиму: `shcntx` + `shlang` используются в `bsl` и `xml`, `shquery` — только
+в `bsl_query`, `dcsui` — только в `dcs_query`.
 
 ## Горячие клавиши
 
