@@ -1,4 +1,4 @@
-import { bytes, readZip, scanLocalRecords, u16, u32 } from './zip';
+import { bytes, readZip, scanLocalRecords, readLocalRecords, u16, u32 } from './zip';
 import { parseToc } from './toc';
 
 function asciiHex(data, offset) {
@@ -28,6 +28,73 @@ function decodeUtf8(data) {
   return new TextDecoder('utf-8').decode(data).replace(/^\ufeff/, '');
 }
 
+const MISSING_ADDRESS = 0x7fffffff;
+
+function blockField(data, offset) {
+  try { return asciiHex(data, offset).value; }
+  catch (error) { return null; }
+}
+
+/**
+ * Читает логический документ контейнера 1С. Обычно сущность занимает один блок —
+ * тогда возвращается subarray без копирования. Для цепочки блоков результат собирается
+ * в новый Uint8Array.
+ */
+function readBlockDocument(data, address, title) {
+  if (address == MISSING_ADDRESS)
+    return null;
+  if (address < 0 || address + 31 > data.length)
+    throw new Error('HBK: адрес ' + title + ' выходит за границы');
+
+  const documentSize = blockField(data, address + 2);
+  if (documentSize === null)
+    throw new Error('HBK: повреждён заголовок ' + title);
+
+  const firstBlockSize = blockField(data, address + 11);
+  const firstNext = blockField(data, address + 20);
+  // Старые синтетические fixtures содержали только первое поле заголовка.
+  if (firstBlockSize === null || firstNext === null) {
+    if (address + 31 + documentSize > data.length)
+      throw new Error('HBK: ' + title + ' выходит за границы');
+    return data.subarray(address + 31, address + 31 + documentSize);
+  }
+
+  let cursor = address;
+  let remaining = documentSize;
+  const chunks = [];
+  const visited = {};
+  while (remaining) {
+    if (visited[cursor])
+      throw new Error('HBK: цикл блоков ' + title);
+    visited[cursor] = true;
+    if (cursor + 31 > data.length)
+      throw new Error('HBK: обрезан блок ' + title);
+    const size = blockField(data, cursor + 11);
+    const next = blockField(data, cursor + 20);
+    if (size === null || next === null || !size)
+      throw new Error('HBK: повреждён блок ' + title);
+    const used = Math.min(size, remaining);
+    if (cursor + 31 + used > data.length)
+      throw new Error('HBK: повреждён блок ' + title);
+    chunks.push(data.subarray(cursor + 31, cursor + 31 + used));
+    remaining -= used;
+    if (!remaining) {
+      if (next != MISSING_ADDRESS && next != 0)
+        throw new Error('HBK: лишний следующий блок ' + title);
+      break;
+    }
+    if (next == MISSING_ADDRESS || next == 0)
+      throw new Error('HBK: преждевременно завершена цепочка ' + title);
+    cursor = next;
+  }
+  if (chunks.length == 1)
+    return chunks[0];
+  const result = new Uint8Array(documentSize);
+  let at = 0;
+  chunks.forEach(function (chunk) { result.set(chunk, at); at += chunk.length; });
+  return result;
+}
+
 function extractEntities(value) {
   const data = bytes(value);
   if (data.length < 64)
@@ -43,21 +110,20 @@ function extractEntities(value) {
     const headerAddress = u32(data, pos + i);
     const bodyAddress = u32(data, pos + i + 4);
     const reserved = u32(data, pos + i + 8);
-    if (reserved != 0x7fffffff)
+    if (reserved != MISSING_ADDRESS)
       throw new Error('HBK: повреждена запись таблицы файлов');
-    if (headerAddress + 51 > data.length || bodyAddress + 31 > data.length)
-      throw new Error('HBK: адрес записи выходит за границы');
-    let cursor = headerAddress + 2;
-    const nameLength = asciiHex(data, cursor); cursor = nameLength.next + 40;
-    if (nameLength.value < 24 || cursor + nameLength.value - 24 > data.length)
+    if (headerAddress == MISSING_ADDRESS || bodyAddress == MISSING_ADDRESS)
+      continue;
+    const header = readBlockDocument(data, headerAddress, 'имени сущности');
+    if (!header || header.length < 20)
       throw new Error('HBK: повреждено имя сущности');
-    const name = decodeUtf16(data.subarray(cursor, cursor + nameLength.value - 24));
-    cursor = bodyAddress + 2;
-    const bodyLength = asciiHex(data, cursor); cursor = bodyLength.next + 20;
-    if (cursor + bodyLength.value > data.length)
-      throw new Error('HBK: тело сущности выходит за границы');
-    if (name == 'FileStorage' || name == 'PackBlock')
-      entities[name] = data.subarray(cursor, cursor + bodyLength.value);
+    // Первые 20 байт логического документа имени — служебные, последние четыре
+    // байта длины в старых контейнерах не относятся к UTF-16 имени.
+    const nameEnd = Math.max(20, header.length - 4);
+    const name = decodeUtf16(header.subarray(20, nameEnd)).replace(/\0+$/, '');
+    if (!name)
+      throw new Error('HBK: пустое имя сущности');
+    entities[name] = readBlockDocument(data, bodyAddress, 'тела сущности ' + name);
   }
   return entities;
 }
@@ -84,12 +150,14 @@ function readContext(data, entities) {
   });
   if (!looksContext)
     return null;
-  const pack = scanLocalRecords(entities.PackBlock);
+  let pack;
+  try { pack = readLocalRecords(entities.PackBlock); }
+  catch (error) { pack = scanLocalRecords(entities.PackBlock); }
   if (!pack.entries.length)
     throw new Error('HBK: PackBlock не содержит оглавление');
   const tocEntry = pack.byName['0'] || pack.entries[0];
   const toc = parseToc(decodeUtf8(pack.extract(tocEntry)));
-  return { kind: 'context', storage: storage, toc: toc, pageCountHint: toc.count };
+  return { kind: 'context', storage: storage, toc: toc, entities: entities, pageCountHint: toc.count };
 }
 
 function readLanguage(data) {
@@ -121,4 +189,4 @@ function readHbk(value) {
   throw new Error('HBK: неизвестный пакет (ожидался shcntx или shlang)');
 }
 
-export { readHbk, extractEntities, normalizePath, decodeUtf8 };
+export { readHbk, extractEntities, readBlockDocument, normalizePath, decodeUtf8, MISSING_ADDRESS };

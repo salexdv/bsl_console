@@ -115,8 +115,13 @@ function makePendingContextHbk() {
   const pagePath = 'objects/TestObject/methods/DeferredMethod.html';
   const html = '<html><body><h1 class="V8SH_pagetitle">ОтложенныйМетод</h1><p>Статья загружена после команды.</p></body></html>';
   const toc = '{1,{1,0,0,{1,1,{1,2,{"ru","ОтложенныйМетод"},{"en","DeferredMethod"}},"' + pagePath + '"}}}';
+  const files = [{ name: pagePath, data: html }];
+  // Достаточно большой хвост удерживает Promise полной CRC-проверки незавершённым,
+  // пока предварительное дерево и первая статья уже доступны.
+  for (let index = 0; index < 3000; index++)
+    files.push({ name: 'objects/Filler/Page' + index + '.html', data: '<html><h1>Страница ' + index + '</h1><p>Фоновая проверка</p></html>' });
   return makeContainer([
-    { name: 'FileStorage', data: makeZip([{ name: pagePath, data: html }]) },
+    { name: 'FileStorage', data: makeZip(files) },
     { name: 'PackBlock', data: localRecord('0', toc) }
   ]);
 }
@@ -603,7 +608,9 @@ function serve() {
       window.editor.setPosition({ lineNumber: 1, column: 3 });
       window.editor.focus();
       window.__capturedHelpEvents.length = 0;
+      window.__pendingHelpResolved = false;
       window.__pendingHelpParse = window.parseHelp(contextBase64);
+      window.__pendingHelpParse.then(function () { window.__pendingHelpResolved = true; });
       window.editor.trigger('headless', 'bsl.showHelp');
       return {
         visible: document.querySelector('.bsl-help-overlay').classList.contains('visible'),
@@ -613,14 +620,15 @@ function serve() {
     if (pendingStarted.visible || pendingStarted.events.length != 1
       || pendingStarted.events[0].params.word != 'отложенныйметод')
       errors.push('pending Ctrl+F1 start: ' + JSON.stringify(pendingStarted));
-    const pendingResult = await page.evaluate(function () { return window.__pendingHelpParse; });
-    if (!pendingResult.ok || pendingResult.kind != 'context')
-      errors.push('pending Ctrl+F1 result: ' + JSON.stringify(pendingResult));
-    if (await page.$eval('.bsl-help-overlay', function (node) { return node.classList.contains('visible'); }))
-      errors.push('pending Ctrl+F1 opened help after parse completion');
+    await page.waitForFunction('!window.__pendingHelpResolved'
+      + ' && Array.prototype.some.call(document.querySelectorAll(".bsl-help-tree-title"), function (node) {'
+      + ' return node.textContent.indexOf("ОтложенныйМетод") >= 0; })', { timeout: 30000 });
     await page.evaluate(function () { window.editor.trigger('headless', 'bsl.showHelp'); });
     await page.waitForFunction('document.querySelector(".bsl-help-overlay.visible")'
       + ' && document.querySelector(".bsl-help-article").textContent.indexOf("Статья загружена после команды") >= 0');
+    const pendingResult = await page.evaluate(function () { return window.__pendingHelpParse; });
+    if (!pendingResult.ok || pendingResult.kind != 'context')
+      errors.push('pending Ctrl+F1 result: ' + JSON.stringify(pendingResult));
   }
   finally {
     await browser.close();

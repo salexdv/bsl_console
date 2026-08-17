@@ -8,6 +8,7 @@ function createHelpService(workerFactory) {
   let sequence = 0;
   let pending = {};
   let loading = 0;
+  let provisionalReady = 0;
   let prefixIndex = [];
   let visibleIndex = [];
   let transferActive = false;
@@ -21,9 +22,12 @@ function createHelpService(workerFactory) {
   };
 
   function snapshot() {
+    const hasPackage = state.packages.context || state.packages.language;
     return {
-      status: loading ? 'loading' : (state.lastError ? 'error' : (state.packages.context || state.packages.language ? 'ready' : 'empty')),
+      status: loading ? (provisionalReady ? 'ready' : 'loading')
+        : (state.lastError ? 'error' : (hasPackage ? 'ready' : 'empty')),
       loading: loading,
+      indexing: provisionalReady > 0,
       lastError: state.lastError,
       packages: state.packages
     };
@@ -56,6 +60,10 @@ function createHelpService(workerFactory) {
       const data = event.data || {};
       const request = pending[data.id];
       if (!request) return;
+      if (data.type == 'prepared' || data.type == 'rollback') {
+        if (request.progress) request.progress(data);
+        return;
+      }
       delete pending[data.id];
       if (data.type == 'error') request.reject(new Error(data.payload && data.payload.message || 'Ошибка worker'));
       else request.resolve({ type: data.type, payload: data.payload });
@@ -74,10 +82,10 @@ function createHelpService(workerFactory) {
     return worker;
   }
 
-  function request(type, payload) {
+  function request(type, payload, progress) {
     return new Promise(function (resolve, reject) {
       const id = ++sequence;
-      pending[id] = { resolve: resolve, reject: reject };
+      pending[id] = { resolve: resolve, reject: reject, progress: progress };
       try {
         const message = Object.assign({ id: id, type: type }, payload || {});
         ensureWorker().postMessage(message);
@@ -105,19 +113,49 @@ function createHelpService(workerFactory) {
     loading++;
     state.lastError = null;
     notify();
-    return request(type, payload).then(function (response) {
-      const result = response.payload;
+    let candidateKind = null;
+    let previousPackage = null;
+    let rolledBack = false;
+    function assignPackage(result, provisional) {
       state.packages[result.kind] = {
         kind: result.kind,
         pages: result.pages,
         navigation: result.navigation,
         index: result.index,
-        stats: result.stats
+        stats: result.stats,
+        provisional: !!provisional
       };
       rebuildIndex();
+    }
+    function progress(response) {
+      if (response.type == 'prepared') {
+        const result = response.payload;
+        candidateKind = result.kind;
+        previousPackage = state.packages[candidateKind];
+        assignPackage(result, true);
+        provisionalReady++;
+        notify();
+      }
+      else if (response.type == 'rollback' && candidateKind) {
+        state.packages[candidateKind] = previousPackage;
+        rolledBack = true;
+        provisionalReady = Math.max(0, provisionalReady - 1);
+        rebuildIndex();
+        notify();
+      }
+    }
+    return request(type, payload, progress).then(function (response) {
+      const result = response.payload;
+      assignPackage(result, false);
+      provisionalReady = Math.max(0, provisionalReady - 1);
       state.lastError = null;
       return { ok: true, kind: result.kind, pages: result.pages, error: null };
     }).catch(function (error) {
+      if (candidateKind && !rolledBack) {
+        state.packages[candidateKind] = previousPackage;
+        rebuildIndex();
+        provisionalReady = Math.max(0, provisionalReady - 1);
+      }
       state.lastError = error && error.message ? error.message : String(error);
       return { ok: false, kind: null, pages: 0, error: state.lastError };
     }).then(function (result) {

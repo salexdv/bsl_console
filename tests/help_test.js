@@ -95,6 +95,70 @@ function testZip() {
     assert.throws(() => zip.readZip(badSignature), /local header/);
 }
 
+function writeBlockHeader(buffer, address, documentSize, blockSize, next) {
+    buffer.write('\r\n' + documentSize.toString(16).padStart(8, '0') + ' '
+        + blockSize.toString(16).padStart(8, '0') + ' '
+        + next.toString(16).padStart(8, '0') + '\r\n', address, 'ascii');
+}
+
+function testHbkBlocks() {
+    const reader = loadModule('src/help/hbk-reader.js');
+    const chained = Buffer.alloc(320);
+    writeBlockHeader(chained, 32, 10, 5, 192);
+    Buffer.from('hello').copy(chained, 63);
+    writeBlockHeader(chained, 192, 0, 16, 0x7fffffff);
+    Buffer.from('world').copy(chained, 223);
+    assert.equal(Buffer.from(reader.readBlockDocument(chained, 32, 'test')).toString(), 'helloworld');
+    writeBlockHeader(chained, 192, 0, 16, 32);
+    assert.throws(() => reader.readBlockDocument(chained, 32, 'cycle'), /лишний следующий блок|цикл/);
+
+    const missing = Buffer.alloc(96);
+    missing.write('0000000c ', 18, 'ascii'); missing.write('0000000c ', 27, 'ascii');
+    missing.writeUInt32LE(0x7fffffff, 47); missing.writeUInt32LE(0x7fffffff, 51);
+    missing.writeUInt32LE(0x7fffffff, 55);
+    assert.deepEqual(reader.extractEntities(missing), {}, 'отсутствующая сущность пропускается');
+}
+
+function testNativeIndex() {
+    const native = loadModule('src/help/native_index.js');
+    const text = '{1,{1,1,1,"#",0,0,"ru",0,0,"ru","Строка",0,1,0,1,"/page.html"}}';
+    const indexPack = makeZip([{ name: '0', data: Buffer.from('\ufeff' + text) }]);
+    const main = Buffer.alloc(8); main.writeUInt32LE(2, 0);
+    const lookup = Buffer.alloc(8); lookup.writeUInt32LE(7, 0);
+    const parsed = native.parseNativeIndex({ IndexPackBlock: indexPack, MainData: main, PackLookup: lookup });
+    assert.equal(parsed.records.length, 1);
+    assert.deepEqual(parsed.records[0].names, [{ language: 'ru', value: 'Строка' }]);
+    assert.deepEqual(parsed.records[0].paths, ['page.html']);
+    assert.deepEqual(parsed.lookup, [7]);
+}
+
+function testLoadingStrategies() {
+    const zip = loadModule('src/help/zip.js');
+    const toc = loadModule('src/help/toc.js');
+    const builder = loadModule('src/help/package_builder.js');
+    const strategies = loadModule('src/help/benchmark_strategies.js');
+    const storage = zip.readZip(makeZip([
+        { name: 'objects/String.html', data: '<html><h1 class="V8SH_pagetitle">Строка</h1><p>Unicode ёлка</p></html>' },
+        { name: 'objects/Number.html', data: '<html><h1 class="V8SH_pagetitle">Число</h1><p>Числовое значение</p></html>' }
+    ]));
+    const tree = toc.parseToc(tocSource([
+        tocNode(1, 0, [], 'Строка', 'String', 'objects/String.html'),
+        tocNode(2, 0, [], 'Число', 'Number', 'objects/Number.html')
+    ]));
+    const summaries = ['eager-html', 'toc-lazy', 'native-index-lazy'].map(strategy => {
+        const candidate = strategies.createBenchmarkCandidate({ kind: 'context', storage, toc: tree, entities: {} }, strategy);
+        if (strategy != 'eager-html') assert.equal(candidate.pageCount, 2, strategy + ' готовит каталог без HTML');
+        builder.indexPackage(candidate);
+        return {
+            pages: candidate.pageCount,
+            documents: candidate.documents.map(item => item.id).sort(),
+            index: candidate.index.map(item => item.item.id + ':' + item.item.title).sort()
+        };
+    });
+    assert.deepEqual(summaries[1], summaries[0]);
+    assert.deepEqual(summaries[2], summaries[0]);
+}
+
 function tocNode(id, parent, children, ru, en, html) {
     return `{${id},${parent},${children.length}${children.map(x => ',' + x).join('')},{1,1,{1,2,{"ru","${ru}"},{"en","${en}"}},"${html}"}}`;
 }
@@ -350,6 +414,21 @@ class FakeWorker {
                 const source = message.source;
                 if (source.fail) return this.onmessage({ data: { id: message.id, type: 'error', payload: { message: 'broken' } } });
                 const kind = typeof source === 'string' ? 'language' : source.kind;
+                const payload = {
+                    kind, pages: typeof source === 'string' ? 3 : source.pages,
+                    navigation: [{ kind, title: kind, children: [] }],
+                    index: [{ key: kind, item: { kind, title: kind, path: kind } }], stats: {}
+                };
+                if (source.staged) {
+                    this.onmessage({ data: { id: message.id, type: 'prepared', payload } });
+                    return setTimeout(() => {
+                        if (source.failAfter) {
+                            this.onmessage({ data: { id: message.id, type: 'rollback', payload: { kind } } });
+                            this.onmessage({ data: { id: message.id, type: 'error', payload: { message: 'late CRC' } } });
+                        }
+                        else this.onmessage({ data: { id: message.id, type: 'parsed', payload } });
+                    }, 10);
+                }
                 return this.onmessage({ data: { id: message.id, type: 'parsed', payload: {
                     kind, pages: typeof source === 'string' ? 3 : source.pages, navigation: [{ kind, title: kind, children: [] }],
                     index: [{ key: kind, item: { kind, title: kind, path: kind } }], stats: {}
@@ -361,7 +440,7 @@ class FakeWorker {
     terminate() {}
 }
 
-function blob(kind, pages, fail) { return { kind, pages, fail, size: 1, slice() {} }; }
+function blob(kind, pages, fail, staged, failAfter) { return { kind, pages, fail, staged, failAfter, size: 1, slice() {} }; }
 
 async function testService() {
     const serviceModule = loadModule('src/help/service.js', source => source.replace(
@@ -388,6 +467,18 @@ async function testService() {
     assert.equal(service.getState().packages.context.pages, 10, 'ошибка сохраняет старый пакет');
     await service.parse(blob('context', 20));
     assert.equal(service.getState().packages.context.pages, 20, 'успех атомарно заменяет пакет');
+    const staged = service.parse(blob('context', 30, false, true));
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(service.isReady(), true, 'предварительный пакет доступен до полной проверки');
+    assert.equal(service.getState().indexing, true);
+    assert.equal(service.getState().packages.context.pages, 30);
+    assert.equal((await staged).ok, true);
+    assert.equal(service.getState().indexing, false);
+    const lateFailure = service.parse(blob('context', 40, false, true, true));
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(service.getState().packages.context.pages, 40, 'кандидат виден во время проверки');
+    assert.equal((await lateFailure).ok, false);
+    assert.equal(service.getState().packages.context.pages, 30, 'поздняя CRC-ошибка откатывает кандидат');
     const fromBase64 = await service.parse('AQID');
     assert.equal(fromBase64.ok, true);
     assert.equal(fromBase64.kind, 'language');
@@ -459,12 +550,17 @@ function testBlobWorkerCheck() {
     const checker = require('../tools/check_blob_workers');
     const good = 'const worker = new Blob([\'self.onmessage = function () {};\'], {type: \'application/javascript\'});';
     assert.equal(checker.checkBlobWorkers(good, 'good.js'), 1);
+    const workerLoader = 'x.exports=function(){return B(`self.onmessage = function () {};`,"Worker",void 0,void 0)}';
+    assert.equal(checker.checkBlobWorkers(workerLoader, 'worker-loader.js'), 1);
     const bad = 'const worker = new Blob([\'class Broken { field; }\'], {type: \'application/javascript\'});';
     assert.throws(() => checker.checkBlobWorkers(bad, 'bad.js'), /ES2018/);
 }
 
 async function main() {
     testZip();
+    testHbkBlocks();
+    testNativeIndex();
+    testLoadingStrategies();
     testToc();
     testNavigation();
     testLinks();

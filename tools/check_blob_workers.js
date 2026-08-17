@@ -12,6 +12,23 @@ function propertyValue(node, name) {
   return property && property.value && property.value.value;
 }
 
+function checkWorkerSource(source, count) {
+  try {
+    acorn.parse(source, { ecmaVersion: 2018, sourceType: 'script' });
+  }
+  catch (error) {
+    throw new Error('Blob-worker #' + count + ' не совместим с ES2018: ' + error.message);
+  }
+}
+
+function literalValue(node) {
+  if (!node) return null;
+  if (typeof node.value == 'string') return node.value;
+  if (node.type == 'TemplateLiteral' && !node.expressions.length)
+    return node.quasis[0].value.cooked;
+  return null;
+}
+
 function checkBlobWorkers(source, fileName) {
   let position = 0;
   let count = 0;
@@ -30,17 +47,35 @@ function checkBlobWorkers(source, fileName) {
     if (first && typeof first.value == 'string'
       && propertyValue(options, 'type') == 'application/javascript') {
       count++;
-      try {
-        acorn.parse(first.value, { ecmaVersion: 2018, sourceType: 'script' });
-      }
-      catch (error) {
-        throw new Error('Blob-worker #' + count + ' не совместим с ES2018: ' + error.message);
-      }
+      checkWorkerSource(first.value, count);
     }
     position = Math.max(position + 9, expression.end);
   }
+
+  // worker-loader 3 в production передаёт исходник общему Blob-helper как
+  // template literal. Helper может находиться в соседнем чанке, поэтому здесь
+  // проверяется переданный ему исходник, а не только непосредственный new Blob.
+  const workerLoader = /exports=function\(\)\{return\s+[A-Za-z_$][\w$]*\(/g;
+  let match;
+  while ((match = workerLoader.exec(source))) {
+    const callPosition = match.index + match[0].lastIndexOf('return') + 6;
+    let expression;
+    try {
+      expression = acorn.parseExpressionAt(source, callPosition, { ecmaVersion: 'latest' });
+    }
+    catch (error) {
+      continue;
+    }
+    const workerSource = literalValue(expression.arguments && expression.arguments[0]);
+    const constructorName = literalValue(expression.arguments && expression.arguments[1]);
+    if (workerSource != null && constructorName == 'Worker') {
+      count++;
+      checkWorkerSource(workerSource, count);
+    }
+    workerLoader.lastIndex = Math.max(workerLoader.lastIndex, expression.end);
+  }
   if (!count)
-    throw new Error('В ' + fileName + ' не найдены application/javascript Blob-worker');
+    throw new Error('В ' + fileName + ' не найдены inline Blob-worker');
   return count;
 }
 

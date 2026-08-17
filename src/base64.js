@@ -12,9 +12,23 @@ function cleanBase64(value) {
   source = source.replace(/\s/g, '');
   if (!source.length)
     throw new Error('Строка Base64 пуста');
-  if (source.length % 4 != 0
-    || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(source))
+  if (source.length % 4 != 0)
     throw new Error('Некорректная строка Base64');
+  let contentLength = source.length;
+  if (source.charAt(contentLength - 1) == '=') contentLength--;
+  if (source.charAt(contentLength - 1) == '=') contentLength--;
+  if (contentLength % 4 == 1)
+    throw new Error('Некорректная строка Base64');
+  for (let index = 0; index < contentLength; index++) {
+    const code = source.charCodeAt(index);
+    if (!((65 <= code && code <= 90) || (97 <= code && code <= 122)
+      || (48 <= code && code <= 57) || code == 43 || code == 47))
+      throw new Error('Некорректная строка Base64');
+  }
+  for (let index = contentLength; index < source.length; index++) {
+    if (source.charAt(index) != '=')
+      throw new Error('Некорректная строка Base64');
+  }
   return source;
 }
 
