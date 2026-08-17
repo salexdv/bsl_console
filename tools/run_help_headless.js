@@ -134,7 +134,9 @@ function makeLanguageHbk() {
     + '<script>window.__helpUnsafe=1</script><img src="data:text/html,bad" onerror="window.__helpUnsafe=2">'
     + '<a id="internal" href="v8help://SyntaxHelperLanguage/topic">К строке</a>'
     + '<a id="external" href="https://example.com/help">Сайт</a></body></html>';
-  const topic = '<html><body><h1 class="V8SH_pagetitle">Строка (String)</h1><p>Unicode ёлка строка.</p>'
+  const topic = '<html><head><style>.V8SH_section { font-weight: bold; }</style></head><body>'
+    + '<h1 class="V8SH_pagetitle">Строка (String)</h1><p class="V8SH_section">Синтаксис:</p>'
+    + '<p>Unicode ёлка строка.</p><p class="V8SH_section">Параметры:</p><p>Обычный текст статьи.</p>'
     + '<a href="v8help://SyntaxHelperLanguage/other">Дальше</a></body></html>';
   const other = '<html><body><h1 class="V8SH_pagetitle">Число</h1><p>Числовое значение.</p></body></html>';
   const categories = '{2,"topic",0,{},"other",0,{}}';
@@ -516,6 +518,34 @@ function serve() {
       || multipleLookup.events.length != 1 || multipleLookup.events[0].event != 'EVENT_ON_GET_HELP'
       || multipleLookup.events[0].params.word != 'выполнить')
       errors.push('Ctrl+F1 first prefix result: ' + JSON.stringify(multipleLookup));
+
+    await page.$eval('.bsl-help-panel[data-tab=index] .bsl-help-input', function (input) {
+      input.value = 'Строка';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await page.waitForFunction('document.querySelector(".bsl-help-panel[data-tab=index] .bsl-help-list-title").textContent.indexOf("Строка") == 0');
+    await page.click('.bsl-help-panel[data-tab=index] .bsl-help-list-row');
+    await page.waitForFunction('document.querySelector(".bsl-help-article").textContent.indexOf("Обычный текст статьи") >= 0');
+    const sectionFormatting = await page.evaluate(function () {
+      const article = document.querySelector('.bsl-help-article');
+      const titles = Array.prototype.map.call(article.querySelectorAll('.bsl-help-section-title'), function (node) {
+        return { text: node.textContent, weight: getComputedStyle(node).fontWeight };
+      });
+      const ordinary = Array.prototype.filter.call(article.querySelectorAll('p'), function (node) {
+        return node.textContent == 'Обычный текст статьи.';
+      })[0];
+      return {
+        titles: titles,
+        ordinaryWeight: ordinary && getComputedStyle(ordinary).fontWeight,
+        styles: article.querySelectorAll('style').length
+      };
+    });
+    if (sectionFormatting.titles.length != 2
+      || sectionFormatting.titles.some(function (title) { return title.weight != '700'; })
+      || sectionFormatting.ordinaryWeight == '700' || sectionFormatting.styles)
+      errors.push('section title formatting: ' + JSON.stringify(sectionFormatting));
+    await page.click('.bsl-help-icon');
+    await page.waitForFunction('document.querySelector(".bsl-help-article").textContent.indexOf("Первая синтетическая статья") >= 0');
 
     await page.click('.bsl-help-tab[data-tab="search"]');
     await page.click('.bsl-help-close');
