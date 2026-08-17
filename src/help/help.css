@@ -107,6 +107,7 @@
 .bsl-help-article table { border-collapse: collapse; max-width: 100%; }
 .bsl-help-article td, .bsl-help-article th { border: 1px solid var(--help-border); padding: 4px 7px; }
 .bsl-help-article pre, .bsl-help-article .SourceCode { white-space: pre-wrap; font-family: Consolas, monospace; }
+.bsl-help-article .bsl-help-section-title { font-weight: 700; }
 .bsl-help-article a { color: #1683c4; }
 .bsl-help-article mark { background: #ffe066; color: #111; }
 .bsl-help-status { display: none; margin: 8px 0; padding: 10px; text-align: center; color: #777; background: var(--help-hover); }

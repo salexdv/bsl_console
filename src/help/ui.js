@@ -1,6 +1,20 @@
 import { resolveHelpLink } from './links';
 import { findNavigationPath } from './navigation';
 
+const HELP_SECTION_TITLES = {
+  'Использование:': true,
+  'Синтаксис:': true,
+  'Параметры:': true,
+  'Свойства:': true,
+  'Методы:': true,
+  'Конструкторы:': true,
+  'Описание:': true,
+  'Доступность:': true,
+  'Пример:': true,
+  'Возвращаемое значение:': true,
+  'Использование в версии:': true
+};
+
 function element(tag, className, text) {
   const node = document.createElement(tag);
   if (className) node.className = className;
@@ -82,6 +96,10 @@ function sanitizeArticle(rawHtml, onInternal, onExternal, currentArticle) {
     else {
       link.removeAttribute('href');
     }
+  });
+  Array.prototype.slice.call(parsed.body.querySelectorAll('*')).forEach(function (node) {
+    const text = (node.textContent || '').replace(/\s+/g, ' ').trim();
+    if (HELP_SECTION_TITLES[text]) node.classList.add('bsl-help-section-title');
   });
   return parsed.body;
 }
