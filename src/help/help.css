@@ -96,6 +96,7 @@
   color: inherit; background: transparent; border: 0; font: inherit; cursor: pointer;
 }
 .bsl-help-icon, .bsl-help-close { width: 34px; height: 32px; font-size: 20px; border-radius: 3px; }
+.bsl-help-locate .codicon { font-size: 16px; }
 .bsl-help-icon:hover:not(:disabled), .bsl-help-close:hover { background: var(--help-hover); }
 .bsl-help-icon:disabled { opacity: .35; cursor: default; }
 .bsl-help-close { font-size: 25px; }
@@ -122,6 +123,7 @@
 .bsl-help-tree-toggle { flex: 0 0 23px; height: 25px; }
 .bsl-help-tree-title { overflow: hidden; text-align: left; text-overflow: ellipsis; white-space: nowrap; padding: 4px; border-radius: 2px; }
 .bsl-help-tree-title:hover { background: var(--help-hover); }
+.bsl-help-tree-title.current, .bsl-help-tree-title.current:hover { color: #fff; background: var(--help-active); }
 .bsl-help-tree-children { display: none; padding-left: 18px; }
 .bsl-help-tree-children.open { display: block; }
 .bsl-help-input { box-sizing: border-box; margin: 8px; padding: 7px 9px; border: 1px solid var(--help-border); color: var(--help-fg); background: var(--help-bg); }

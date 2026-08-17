@@ -311,6 +311,22 @@ function testNavigation() {
     assert.equal(leaf.id, page.id, 'TOC id заменяется идентификатором статьи');
     assert.equal(navigation.resolvePage(pages, 'context', page.path, 'context:4'), page,
         'при неизвестном TOC id статья находится по kind + path');
+
+    const byId = navigation.findNavigationPath(roots, {
+        id: page.id, kind: 'context', path: 'objects/другой.html'
+    });
+    assert.deepEqual(byId.map(node => node.tocId || node.id),
+        ['context:1', 'context:2', 'context:3', 'context:4'], 'page id имеет приоритет над путём');
+    const byPath = navigation.findNavigationPath(roots, {
+        id: 'context:missing', kind: 'context', path: 'objects\\catalog\\object\\methods\\Select.html'
+    });
+    assert.equal(byPath[byPath.length - 1], leaf, 'fallback нормализует путь статьи');
+    assert.equal(navigation.findNavigationPath(roots, {
+        id: page.id, kind: 'query', path: page.path
+    }), null, 'пакеты разных видов не смешиваются');
+    assert.equal(navigation.findNavigationPath(roots, {
+        id: 'context:missing', kind: 'context', path: 'objects/missing.html'
+    }), null, 'отсутствующая статья не даёт ложного пути');
 }
 
 function testLinks() {
