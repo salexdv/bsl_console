@@ -130,12 +130,24 @@ window.endBase64Transfer = function () {};
 /** @param {string} [query] @returns {void} */
 window.showHelp = function (query) {};
 window.showHelpLoader = function () {};
+
+/** @returns {{ready:boolean, status:string, loading:number, indexing:boolean,
+ *   lastError:string|null, packages:Object, kinds:string[], scope:number}} */
+window.getHelpState = function () {};
 ```
 
 `kind` равен `context`, `language`, `query`, `dcs` либо `null`. Функция всегда разрешает Promise объектом результата
 и не отклоняет его наружу. После каждого успешного результата `context` вызывается
 `window.sendEvent('EVENT_ON_HELP_READY')` без параметров; остальные виды и ошибки событие не создают.
 Порционные функции сохраняют синхронную сигнатуру `void`; ожидать их Promise из 1С не требуется.
+
+`getHelpState()` возвращает объект состояния сервиса, дополненный полем `ready`, равным
+`status == 'ready'`. Поле `status` принимает `empty`, `loading`, `ready` или `error`; `loading` — число
+загружаемых пакетов активных видов; `indexing` — выполняется ли фоновая CRC/полнотекстовая проверка;
+`lastError` — текст последней ошибки или `null`; `packages` — загруженные пакеты по видам
+`context`/`language`/`query`/`dcs`; `kinds` — активные виды текущего режима; `scope` — номер поколения
+режима. Во время `loading` с опубликованным предварительным пакетом `ready` равно Истина, поскольку
+дерево и статьи уже доступны. Функция синхронная и не создаёт событий.
 
 Monaco action `bsl.showHelp` имеет сочетание `monaco.KeyMod.CtrlCmd | monaco.KeyCode.F1`. При наличии
 слова `model.getWordAtPosition(position)` и готовой справки действие открывает вкладку «Индекс»,
@@ -166,6 +178,7 @@ Blob-worker сохраняет ES2018 floor и избегает синтакси
 - [x] Без готовой справки Ctrl+F1 не открывает панель; `generateGetHelpEvent` независимо создаёт `EVENT_ON_GET_HELP`.
 - [x] Относительные ссылки и якоря статей разрешаются безопасно без предварительного раскрытия TOC.
 - [x] Успешный `shcntx` создаёт `EVENT_ON_HELP_READY` без параметров; остальные виды и ошибки — нет.
+- [ ] `getHelpState()` возвращает `ready` по состоянию текущего режима и полное состояние сервиса.
 - [x] ZIP/TOC/service/search покрыты unit-тестами, UI — headless-тестом.
 - [x] На стадии prepared корни имеют окончательные заголовки, а раскрытие не показывает `catalogNNN`.
 - [x] Пакетирование, CRC, поколения, отмена, ответы вне порядка и fallback index-worker покрыты тестами.
