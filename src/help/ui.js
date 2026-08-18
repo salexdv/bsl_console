@@ -54,6 +54,25 @@ function createVirtualList(container, onOpen) {
   };
 }
 
+function compactStyle(value) {
+  const parts = String(value || '').split(';');
+  const kept = [];
+  for (let index = 0; index < parts.length; index++) {
+    const part = parts[index].trim();
+    if (!part) continue;
+    const colon = part.indexOf(':');
+    const name = (colon >= 0 ? part.slice(0, colon) : part).trim().toLowerCase();
+    if (name == 'margin' || name == 'padding'
+      || name == 'margin-top' || name == 'margin-bottom'
+      || name == 'padding-top' || name == 'padding-bottom'
+      || name == 'margin-block' || name == 'margin-block-start' || name == 'margin-block-end'
+      || name == 'padding-block' || name == 'padding-block-start' || name == 'padding-block-end')
+      continue;
+    kept.push(part);
+  }
+  return kept.join('; ');
+}
+
 function sanitizeArticle(rawHtml, onInternal, onExternal, currentArticle) {
   const parsed = new DOMParser().parseFromString(rawHtml || '', 'text/html');
   const forbidden = 'script,style,iframe,object,embed,form,input,button,textarea,select,option,link,meta,base,applet,frame,frameset';
@@ -64,6 +83,8 @@ function sanitizeArticle(rawHtml, onInternal, onExternal, currentArticle) {
       if (name.indexOf('on') == 0 || name == 'srcdoc'
         || (name == 'style' && /(?:url\s*\(|expression\s*\()/i.test(attribute.value)))
         node.removeAttribute(attribute.name);
+      else if (name == 'style')
+        attribute.value = compactStyle(attribute.value);
     });
   });
   Array.prototype.slice.call(parsed.querySelectorAll('[src]')).forEach(function (node) { node.removeAttribute('src'); });

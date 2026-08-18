@@ -103,11 +103,21 @@
 .bsl-help-body { min-height: 0; flex: 1; display: flex; flex-direction: column; }
 .bsl-help-navigation { width: 100%; height: 45%; min-width: 0; min-height: 150px; display: flex; flex: 0 0 auto; flex-direction: column; overflow: hidden; }
 .bsl-help-separator { flex: 0 0 5px; height: 5px; border-top: 1px solid var(--help-border); border-bottom: 1px solid var(--help-border); cursor: row-resize; }
-.bsl-help-article { min-width: 0; min-height: 180px; flex: 1 1 auto; overflow: auto; padding: 18px 20px; line-height: 1.5; color: var(--help-fg); background: var(--help-bg); }
+.bsl-help-article { min-width: 0; min-height: 180px; flex: 1 1 auto; overflow: auto; padding: 10px 14px; line-height: 1.5; color: var(--help-fg); background: var(--help-bg); }
+.bsl-help-article-content > :first-child { margin-top: 0; }
+.bsl-help-article h1, .bsl-help-article h2, .bsl-help-article h3,
+.bsl-help-article h4, .bsl-help-article h5, .bsl-help-article h6 { margin: .4em 0 .25em; }
+.bsl-help-article h1 { font-size: 1.45em; }
+.bsl-help-article h2 { font-size: 1.25em; }
+.bsl-help-article h3 { font-size: 1.1em; }
+.bsl-help-article p, .bsl-help-article pre, .bsl-help-article blockquote,
+.bsl-help-article ul, .bsl-help-article ol, .bsl-help-article table { margin: .3em 0; }
+.bsl-help-article li { margin: .12em 0; }
 .bsl-help-article table { border-collapse: collapse; max-width: 100%; }
 .bsl-help-article td, .bsl-help-article th { border: 1px solid var(--help-border); padding: 4px 7px; }
 .bsl-help-article pre, .bsl-help-article .SourceCode { white-space: pre-wrap; font-family: Consolas, monospace; }
-.bsl-help-article .bsl-help-section-title { font-weight: 700; }
+.bsl-help-article .bsl-help-section-title { font-weight: 700; margin-top: .9em; }
+.bsl-help-article .bsl-help-section-title:first-child { margin-top: 0; }
 .bsl-help-article a { color: #1683c4; }
 .bsl-help-article mark { background: #ffe066; color: #111; }
 .bsl-help-status { display: none; margin: 8px 0; padding: 10px; text-align: center; color: #777; background: var(--help-hover); }
@@ -141,5 +151,5 @@
   .bsl-help-file-caption, .bsl-help-file-result { display: none; }
   .bsl-help-file-input { min-width: 120px; max-width: 42vw; }
   .bsl-help-overlay { min-width: 340px; }
-  .bsl-help-article { padding: 16px; }
+  .bsl-help-article { padding: 10px 12px; }
 }
