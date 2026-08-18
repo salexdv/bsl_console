@@ -141,10 +141,23 @@ window.parseHelp = function (source) {
 
 /**
  * Немедленно открывает закреплённую справа панель справки текущего режима.
+ * Если передана строка поиска, поведение совпадает с CTRL+F1: панель
+ * переключается на вкладку «Индекс», выполняется prefix-поиск по заголовкам
+ * и открывается первая найденная статья. Пока профильная справка текущего
+ * режима не готова, запрос игнорируется и панель не открывается.
+ * @param {string} [query] строка поиска по индексу заголовков;
+ * без аргумента панель открывается без изменения вкладки и статьи
  * @returns {void}
  */
-window.showHelp = function () {
-  helpBrowser.show();
+window.showHelp = function (query) {
+  if (arguments.length && query) {
+    if (!helpBrowser.isReady())
+      return;
+    helpBrowser.showIndex(String(query));
+  }
+  else {
+    helpBrowser.show();
+  }
 }
 
 /**
