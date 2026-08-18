@@ -642,6 +642,17 @@ function serve() {
     if (!indexTyping.context.text || indexTyping.context.text.indexOf('(Встроенный язык/') < 0 || !indexTyping.context.title)
       errors.push('index context: ' + JSON.stringify(indexTyping.context));
     await page.$eval('.bsl-help-panel[data-tab="index"] .bsl-help-input', function (input) {
+      input.value = 'Строка встроенный';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await page.waitForFunction('document.querySelector(".bsl-help-panel[data-tab=index] .bsl-help-meta").textContent == "Найдено: 1"'
+      + ' && document.querySelector(".bsl-help-panel[data-tab=index] .bsl-help-list-title").textContent.indexOf("Строка") == 0');
+    await page.$eval('.bsl-help-panel[data-tab="index"] .bsl-help-input', function (input) {
+      input.value = 'встроенный';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await page.waitForFunction('document.querySelector(".bsl-help-panel[data-tab=index] .bsl-help-meta").textContent == "Найдено: 0"');
+    await page.$eval('.bsl-help-panel[data-tab="index"] .bsl-help-input', function (input) {
       input.value = 'ЧИ';
       input.dispatchEvent(new Event('input', { bubbles: true }));
       input.value = 'Ч';
