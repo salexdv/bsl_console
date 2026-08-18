@@ -218,6 +218,7 @@ function serve() {
     await page.goto('http://127.0.0.1:' + PORT + '/index.html', { waitUntil: 'load', timeout: 60000 });
     await page.waitForFunction('window.editor && window.monaco && typeof window.parseHelp == "function"'
       + ' && typeof window.showHelp == "function" && typeof window.showHelpLoader == "function"'
+      + ' && typeof window.getHelpState == "function"'
       + ' && typeof window.beginBase64Transfer == "function"'
       + ' && typeof window.pushBase64Chunk == "function" && typeof window.endBase64Transfer == "function"'
       + ' && window.bslHelper && window.bslMetadata', { timeout: 30000 });
@@ -289,13 +290,16 @@ function serve() {
       window.editor.trigger('headless', 'bsl.showHelp');
       const emptyVisible = document.querySelector('.bsl-help-overlay').classList.contains('visible');
       const emptyEvents = window.__capturedHelpEvents.slice();
+      const stateEmpty = window.getHelpState();
       const failed = await window.parseHelp(new Blob([new Uint8Array([1, 2, 3])]));
       window.editor.trigger('headless', 'bsl.showHelp');
       return {
         disabled: disabled,
         emptyVisible: emptyVisible,
         emptyEvents: emptyEvents,
+        stateEmpty: stateEmpty,
         failed: failed,
+        state: window.getHelpState(),
         errorVisible: document.querySelector('.bsl-help-overlay').classList.contains('visible'),
         errorEvents: window.__capturedHelpEvents.slice()
       };
@@ -309,6 +313,10 @@ function serve() {
       errors.push('Ctrl+F1 empty/event: ' + JSON.stringify(unavailableShortcut));
     if (unavailableShortcut.failed.ok || unavailableShortcut.errorVisible || unavailableShortcut.errorEvents.length != 2)
       errors.push('Ctrl+F1 error/event: ' + JSON.stringify(unavailableShortcut));
+    if (unavailableShortcut.stateEmpty.ready || unavailableShortcut.stateEmpty.status != 'empty')
+      errors.push('getHelpState before load: ' + JSON.stringify(unavailableShortcut.stateEmpty));
+    if (unavailableShortcut.state.ready || unavailableShortcut.state.status != 'error')
+      errors.push('getHelpState after failed load: ' + JSON.stringify(unavailableShortcut.state));
 
     const fileInput = await page.$('#help-file-input');
     if (!fileInput) {
@@ -346,7 +354,7 @@ function serve() {
       const during = document.querySelector('.bsl-help-message').textContent;
       const parsed = await promise;
       const repeated = await window.parseHelp();
-      return { missing: missing, unfinished: unfinished, during: during, parsed: parsed, repeated: repeated };
+      return { missing: missing, unfinished: unfinished, during: during, parsed: parsed, repeated: repeated, state: window.getHelpState() };
     }, hbk);
     if (result.missing.ok || result.missing.error.indexOf('Нет завершённой') < 0)
       errors.push('missing staged transfer: ' + JSON.stringify(result.missing));
@@ -357,6 +365,8 @@ function serve() {
       errors.push('parseHelp result: ' + JSON.stringify(result.parsed));
     if (!result.repeated.ok || result.repeated.kind != 'language' || result.repeated.pages != 3)
       errors.push('repeated staged parseHelp: ' + JSON.stringify(result.repeated));
+    if (!result.state.ready || result.state.status != 'ready' || result.state.kinds.indexOf('language') < 0)
+      errors.push('getHelpState after load: ' + JSON.stringify(result.state));
 
     const queryHelp = await page.evaluate(function () {
       if (document.querySelector('.bsl-help-overlay').classList.contains('visible'))

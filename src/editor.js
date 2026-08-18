@@ -168,6 +168,11 @@ window.showHelpLoader = function () {
   helpBrowser.showLoader();
 }
 
+window.getHelpState = function () {
+  const state = helpBrowser.getState();
+  return Object.assign({ ready: state.status == 'ready' }, state);
+}
+
 window.wordWrap = function (enabled) {
 
   if (window.editor.navi) {
