@@ -127,8 +127,8 @@ window.beginBase64Transfer = function (name) {};
 window.pushBase64Chunk = function (chunk) {};
 window.endBase64Transfer = function () {};
 
-/** @returns {void} */
-window.showHelp = function () {};
+/** @param {string} [query] @returns {void} */
+window.showHelp = function (query) {};
 window.showHelpLoader = function () {};
 ```
 
@@ -143,6 +143,12 @@ Monaco action `bsl.showHelp` имеет сочетание `monaco.KeyMod.CtrlCm
 В состояниях `empty`, `loading` и `error` панель не открывается, запрос не откладывается. Опция
 `generateGetHelpEvent` отправляет `EVENT_ON_GET_HELP` с тем же контекстом, что `EVENT_GET_DEFINITION`,
 если под курсором есть слово; событие не зависит от готовности HBK. Обычный F1 не меняется.
+
+`showHelp(query)` повторяет логику действия с переданным словом: `query` открывает вкладку «Индекс»,
+выполняет prefix-поиск и открывает первый результат; `showHelp()` без аргумента (или с пустой строкой)
+открывает панель без изменения вкладки и статьи. Со строкой поиска панель открывается только при
+полной готовности профильной справки текущего режима; в `empty`, `loading` и `error` панель не
+открывается и запрос не откладывается.
 
 Worker и стили входят в обычный и single-file bundle; внешних файлов и реальных HBK в поставке нет.
 Для Deflate используется browser/inflate-сборка pako. Код основного бандла и каждого извлечённого

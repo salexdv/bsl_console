@@ -358,6 +358,25 @@ function serve() {
     if (!result.repeated.ok || result.repeated.kind != 'language' || result.repeated.pages != 3)
       errors.push('repeated staged parseHelp: ' + JSON.stringify(result.repeated));
 
+    const queryHelp = await page.evaluate(function () {
+      if (document.querySelector('.bsl-help-overlay').classList.contains('visible'))
+        document.querySelector('.bsl-help-close').click();
+      window.showHelp('Строка');
+      const active = document.querySelector('.bsl-help-tab.active');
+      return {
+        opened: document.querySelector('.bsl-help-overlay').classList.contains('visible'),
+        tab: active && active.dataset.tab,
+        indexValue: document.querySelector('.bsl-help-panel[data-tab="index"] input').value
+      };
+    });
+    await page.waitForFunction('document.querySelector(".bsl-help-article h1")'
+      + ' && document.querySelector(".bsl-help-article h1").textContent.indexOf("Строка") >= 0');
+    const queryTitle = await page.$eval('.bsl-help-article h1', function (node) { return node.textContent; });
+    if (!queryHelp.opened || queryHelp.tab != 'index' || queryHelp.indexValue != 'Строка'
+      || queryTitle.indexOf('Строка') < 0)
+      errors.push('showHelp(query): ' + JSON.stringify(queryHelp) + ', title: ' + queryTitle);
+    await page.evaluate(function () { document.querySelector('.bsl-help-close').click(); });
+
     const deferredError = await page.evaluate(async function () {
       let thrown = null;
       window.beginBase64Transfer('broken');
@@ -397,6 +416,9 @@ function serve() {
         message: document.querySelector('.bsl-help-message').textContent
       };
       document.querySelector('.bsl-help-close').click();
+      window.showHelp('ВЫБРАТЬ');
+      const queried = { visible: overlay.classList.contains('visible') };
+      if (queried.visible) document.querySelector('.bsl-help-close').click();
       window.__capturedHelpEvents.length = 0;
       window.setOption('generateGetHelpEvent', true);
       window.editor.setValue('ВЫБРАТЬ');
@@ -408,9 +430,10 @@ function serve() {
         events: window.__capturedHelpEvents.slice()
       };
       window.setLanguageMode('bsl');
-      return { explicit: explicit, shortcut: shortcut };
+      return { explicit: explicit, queried: queried, shortcut: shortcut };
     });
     if (!emptyProfile.explicit.visible || emptyProfile.explicit.message.indexOf('не загружена') < 0
+      || emptyProfile.queried.visible
       || emptyProfile.shortcut.visible || emptyProfile.shortcut.events.length != 1
       || emptyProfile.shortcut.events[0].params.word != 'выбрать')
       errors.push('empty profile help: ' + JSON.stringify(emptyProfile));
