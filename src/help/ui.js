@@ -187,7 +187,7 @@ function createHelpUi(service, editorProvider, onExternalLink) {
   });
   navigation.insertBefore(tabs, navigation.firstChild);
   const contents = element('div', 'bsl-help-tree'); panels.contents.appendChild(contents);
-  const indexInput = element('input', 'bsl-help-input'); indexInput.placeholder = 'Начало имени';
+  const indexInput = element('input', 'bsl-help-input'); indexInput.placeholder = 'Имя или слова пути';
   const indexMeta = element('div', 'bsl-help-meta');
   const indexListNode = element('div', 'bsl-help-list');
   panels.index.appendChild(indexInput); panels.index.appendChild(indexMeta); panels.index.appendChild(indexListNode);

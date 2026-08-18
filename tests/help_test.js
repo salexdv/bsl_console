@@ -401,6 +401,34 @@ function testSearch() {
     assert.equal(result.total, 2); assert.deepEqual(result.items.map(item => item.id), ['duplicate-1']);
     result = search.prefixSearch(prefixIndex, '', 3);
     assert.equal(result.total, prefixItems.length); assert.equal(result.items.length, 3);
+
+    const contextItems = [
+        { id: 'query-exec', title: 'Выполнить', context: 'Запрос/Методы/Выполнить' },
+        { id: 'http-exec', title: 'Выполнить', context: 'HTTPСоединение/Методы/Выполнить' },
+        { id: 'async-exec', title: 'ВыполнитьАсинх', context: 'Запрос/Методы/ВыполнитьАсинх' },
+        { id: 'plain', title: 'ВыполнитьОбработку' },
+        { id: 'query-object', title: 'Запрос', context: 'Встроенный язык/Работа с базой/Запрос' }
+    ];
+    const contextIndex = search.preparePrefixIndex(contextItems);
+    result = search.prefixSearch(contextIndex, 'Выполнить запрос', 1000);
+    assert.deepEqual(result.items.map(item => item.id), ['query-exec', 'async-exec'],
+        'слова после первого ищутся по пути в скобках');
+    result = search.prefixSearch(contextIndex, 'выполнить методы http', 1000);
+    assert.deepEqual(result.items.map(item => item.id), ['http-exec'],
+        'слова контекста ищутся в любом порядке и по префиксу');
+    result = search.prefixSearch(contextIndex, 'выполнить запрос', 1);
+    assert.equal(result.total, 2, 'total учитывает совпадения по контексту');
+    assert.equal(result.items.length, 1, 'limit соблюдается при поиске по контексту');
+    result = search.prefixSearch(contextIndex, 'выполнить', 1000);
+    assert.equal(result.total, 4, 'одиночное слово ищет только по заголовку');
+    result = search.prefixSearch(contextIndex, 'запрос', 1000);
+    assert.deepEqual(result.items.map(item => item.id), ['query-object'],
+        'одиночное слово не ищет по контексту');
+    result = search.prefixSearch(contextIndex, 'выполнить соединение', 1000);
+    assert.equal(result.total, 0, 'слово контекста ищется с начала слова, а не с середины');
+    result = search.prefixSearch(contextIndex, 'выполнитьобработку обработку', 1000);
+    assert.equal(result.total, 0, 'без контекста многословный запрос по-прежнему требует префикс заголовка');
+
     const left = search.preparePrefixIndex([{ id: 'l1', title: 'Альфа' }, { id: 'l2', title: 'Строка' }]);
     const right = search.preparePrefixIndex([{ id: 'r1', title: 'Бета' }, { id: 'r2', title: 'Строка' }]);
     assert.deepEqual(search.prefixSearch(search.mergePrefixIndexes(left, right), 'строка', 10).items.map(item => item.id), ['l2', 'r2']);

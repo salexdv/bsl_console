@@ -55,11 +55,11 @@ function comparePrefixEntries(a, b) {
 
 function preparePrefixIndex(items) {
   return (items || []).map(function (item, order) {
-    return { key: normalize(item.title), item: item, order: order };
+    return { key: normalize(item.title), ctx: normalize(item.context), item: item, order: order };
   }).sort(function (a, b) {
     return comparePrefixEntries(a, b) || a.order - b.order;
   }).map(function (entry) {
-    return { key: entry.key, item: entry.item };
+    return { key: entry.key, ctx: entry.ctx, item: entry.item };
   });
 }
 
@@ -91,6 +91,17 @@ function lowerPrefixBound(entries, value) {
   return low;
 }
 
+/** Каждое из слов должно быть префиксом слова нормализованного контекста. */
+function contextMatchesWords(ctx, terms) {
+  const value = ctx || '';
+  for (let i = 0; i < terms.length; i++) {
+    const term = terms[i];
+    if (value.indexOf(term) != 0 && value.indexOf(' ' + term) < 0)
+      return false;
+  }
+  return true;
+}
+
 function prefixSearch(items, query, limit) {
   const prefix = normalize(query);
   const max = limit === undefined ? 1000 : limit;
@@ -103,9 +114,31 @@ function prefixSearch(items, query, limit) {
     last = lowerPrefixBound(entries, prefix + '\uffff');
   }
   const visible = Math.min(last, first + max);
+  if (!prefix) {
+    const result = [];
+    for (let i = first; i < visible; i++) result.push(entries[i].item);
+    return { total: entries.length, items: result };
+  }
+  const terms = prefix.split(' ');
+  if (terms.length < 2) {
+    const result = [];
+    for (let i = first; i < visible; i++) result.push(entries[i].item);
+    return { total: last - first, items: result };
+  }
+  // Запрос из нескольких слов: первое слово — префикс заголовка,
+  // остальные — префиксы слов контекста; строки с полным префиксом
+  // заголовка включаются без проверки контекста.
+  const wordLast = lowerPrefixBound(entries, terms[0] + '\uffff');
+  const rest = terms.slice(1);
   const result = [];
-  for (let i = first; i < visible; i++) result.push(entries[i].item);
-  return { total: prefix ? last - first : entries.length, items: result };
+  let total = 0;
+  for (let i = lowerPrefixBound(entries, terms[0]); i < wordLast; i++) {
+    if ((i < first || i >= last) && !contextMatchesWords(entries[i].ctx, rest))
+      continue;
+    total++;
+    if (result.length < max) result.push(entries[i].item);
+  }
+  return { total: total, items: result };
 }
 
 export { normalize, words, buildSearchDocument, searchDocuments, preparePrefixIndex, mergePrefixIndexes, prefixSearch };
