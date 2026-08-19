@@ -164,8 +164,8 @@ window.showHelpLoader();
 [`EVENT_ON_GET_HELP`](get_help_event.md). Кнопка закрытия или `Esc` возвращает фокус в редактор и
 восстанавливает его размер.
 
-После успешной загрузки или замены `shcntx` редактор отправляет в 1С событие
-[`EVENT_ON_HELP_READY`](help_ready_event.md). Загрузка `shlang`, `shquery`, `dcsui` и ошибки разбора
+После успешной загрузки или замены `shcntx`, `shquery` или `dcsui` редактор отправляет в 1С событие
+[`EVENT_ON_HELP_READY`](help_ready_event.md) с параметром `{kind}`. Загрузка `shlang` и ошибки разбора
 это событие не создают.
 
 Вкладки панели:

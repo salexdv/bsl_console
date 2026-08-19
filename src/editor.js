@@ -125,6 +125,8 @@ window.endBase64Transfer = function () {
  * Загружает пакет справки 1С в текущую сессию.
  * Promise всегда разрешается объектом результата после готовности дерева и обоих индексов.
  * Успешно загруженный ранее пакет при ошибке не изменяется.
+ * При успешной загрузке пакета вида context/query/dcs отправляет событие
+ * EVENT_ON_HELP_READY с payload {kind}; shlang и ошибки событие не создают.
  * @param {Blob|File|string} [source] файл shcntx_*.hbk/shlang_*.hbk/shquery_*.hbk/dcsui_*.hbk
  * или его Base64-представление;
  * без аргумента используется последняя завершённая порционная передача
@@ -133,8 +135,8 @@ window.endBase64Transfer = function () {
 window.parseHelp = function (source) {
   const resultPromise = arguments.length ? helpBrowser.parse(source) : helpBrowser.parseTransferred();
   return resultPromise.then(function (result) {
-    if (result.ok && result.kind == 'context')
-      window.sendEvent('EVENT_ON_HELP_READY');
+    if (result.ok && (result.kind == 'context' || result.kind == 'query' || result.kind == 'dcs'))
+      window.sendEvent('EVENT_ON_HELP_READY', { kind: result.kind });
     return result;
   });
 }

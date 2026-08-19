@@ -139,9 +139,10 @@ window.getHelpState = function () {};
 ```
 
 `kind` равен `context`, `language`, `query`, `dcs` либо `null`. Функция всегда разрешает Promise объектом результата
-и не отклоняет его наружу. После каждого успешного результата `context` вызывается
-`window.sendEvent('EVENT_ON_HELP_READY')` без параметров; остальные виды и ошибки событие не создают.
-Порционные функции сохраняют синхронную сигнатуру `void`; ожидать их Promise из 1С не требуется.
+и не отклоняет его наружу. После каждого успешного результата `context`, `query` или `dcs` вызывается
+`window.sendEvent('EVENT_ON_HELP_READY', { kind: result.kind })`; `language` и ошибки событие не создают
+(см. `specs/help-ready-kinds/spec.md`). Порционные функции сохраняют синхронную сигнатуру `void`;
+ожидать их Promise из 1С не требуется.
 
 `getHelpState()` возвращает объект состояния сервиса, дополненный полем `ready`, равным
 `status == 'ready'`. Поле `status` принимает `empty`, `loading`, `ready` или `error`; `loading` — число
@@ -179,7 +180,7 @@ Blob-worker сохраняет ES2018 floor и избегает синтакси
 - [x] Ctrl+F1 ищет только в пакетах текущего режима: BSL/XML, query или DCS; Esc возвращает фокус и layout.
 - [x] Без готовой справки Ctrl+F1 не открывает панель; `generateGetHelpEvent` независимо создаёт `EVENT_ON_GET_HELP`.
 - [x] Относительные ссылки и якоря статей разрешаются безопасно без предварительного раскрытия TOC.
-- [x] Успешный `shcntx` создаёт `EVENT_ON_HELP_READY` без параметров; остальные виды и ошибки — нет.
+- [x] Успешный `shcntx`/`shquery`/`dcsui` создаёт `EVENT_ON_HELP_READY` с payload `{kind}`; `shlang` и ошибки — нет.
 - [ ] `getHelpState()` возвращает `ready` по состоянию текущего режима и полное состояние сервиса.
 - [x] ZIP/TOC/service/search покрыты unit-тестами, UI — headless-тестом.
 - [x] На стадии prepared корни имеют окончательные заголовки, а раскрытие не показывает `catalogNNN`.
