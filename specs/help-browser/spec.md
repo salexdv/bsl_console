@@ -4,7 +4,7 @@ title: Встроенный браузер синтакс-помощника 1С
 status: in-progress
 owner: Codex
 created: 2026-08-10
-updated: 2026-08-18
+updated: 2026-08-19
 area:
   - обвязка редактора
   - мост 1С
@@ -150,7 +150,9 @@ window.getHelpState = function () {};
 `lastError` — текст последней ошибки или `null`; `packages` — загруженные пакеты по видам
 `context`/`language`/`query`/`dcs`; `kinds` — активные виды текущего режима; `scope` — номер поколения
 режима. Во время `loading` с опубликованным предварительным пакетом `ready` равно Истина, поскольку
-дерево и статьи уже доступны. Функция синхронная и не создаёт событий.
+дерево и статьи уже доступны. Каждый вызов возвращает новый глубокий снимок: изменение `packages`,
+вложенных `navigation`/`index`/`stats` или `kinds` не влияет на сервис и последующие вызовы.
+Функция синхронная и не создаёт событий.
 
 Monaco action `bsl.showHelp` имеет сочетание `monaco.KeyMod.CtrlCmd | monaco.KeyCode.F1`. При наличии
 слова `model.getWordAtPosition(position)` и готовой справки действие открывает вкладку «Индекс»,
@@ -181,7 +183,7 @@ Blob-worker сохраняет ES2018 floor и избегает синтакси
 - [x] Без готовой справки Ctrl+F1 не открывает панель; `generateGetHelpEvent` независимо создаёт `EVENT_ON_GET_HELP`.
 - [x] Относительные ссылки и якоря статей разрешаются безопасно без предварительного раскрытия TOC.
 - [x] Успешный `shcntx`/`shquery`/`dcsui` создаёт `EVENT_ON_HELP_READY` с payload `{kind}`; `shlang` и ошибки — нет.
-- [ ] `getHelpState()` возвращает `ready` по состоянию текущего режима и полное состояние сервиса.
+- [x] `getHelpState()` возвращает `ready` и полностью независимый глубокий снимок состояния текущего режима.
 - [x] ZIP/TOC/service/search покрыты unit-тестами, UI — headless-тестом.
 - [x] На стадии prepared корни имеют окончательные заголовки, а раскрытие не показывает `catalogNNN`.
 - [x] Пакетирование, CRC, поколения, отмена, ответы вне порядка и fallback index-worker покрыты тестами.
@@ -190,7 +192,8 @@ Blob-worker сохраняет ES2018 floor и избегает синтакси
 - [x] Проверка и декодирование Base64-порций выполняются в worker; UI-поток остаётся отзывчивым.
 - [x] Все application/javascript Blob-worker проходят отдельную ES2018-проверку.
 - [x] Выполнены HBK unit/browser/headless, реальные smoke и benchmark, `build`, `build:single`, `escheck` и проверка Blob-worker.
-- [ ] Общий `npm test` не зелёный из-за существующих сбоев query corpus и прямого `worker-loader` require в `query-model-service`.
+- [ ] Общий `npm test` не зелёный из-за существующих сбоев query corpus; `npm run test:mocha`
+      не запускается из-за отсутствующего `tools/run_mocha_headless.js`. Оба долга вне этой работы.
 
 ## 6. Вне области
 

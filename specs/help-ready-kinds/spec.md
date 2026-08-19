@@ -1,7 +1,7 @@
 ---
 issue: -
 title: EVENT_ON_HELP_READY для shquery/dcsui с параметром kind
-status: draft
+status: in-progress
 owner: opencode
 created: 2026-08-19
 updated: 2026-08-19
@@ -110,15 +110,16 @@ window.parseHelp = function (source) { ... }
 
 ## 5. Критерии приёмки
 
-- [ ] `parseHelp` успешного `shcntx` шлёт `EVENT_ON_HELP_READY` с `{kind:'context'}`.
-- [ ] `parseHelp` успешного `shquery` шлёт `EVENT_ON_HELP_READY` с `{kind:'query'}`.
-- [ ] `parseHelp` успешного `dcsui` шлёт `EVENT_ON_HELP_READY` с `{kind:'dcs'}`.
-- [ ] `parseHelp` успешного `shlang` НЕ шлёт событие.
-- [ ] Повторная загрузка `shcntx`/`shquery`/`dcsui` шлёт событие каждый раз.
-- [ ] Ошибка разбора и откат provisional-кандидата НЕ шлют событие.
-- [ ] `tools/run_help_headless.js` проходит с обновлёнными счётчиками и проверкой `params.kind`.
-- [ ] `npm test`, `test:mocha`, `test:headless`, `escheck`, `build` — зелёные.
-- [ ] `docs/help_ready_event.md`, `docs/help_browser.md`, `README.md`,
+- [x] `parseHelp` успешного `shcntx` шлёт `EVENT_ON_HELP_READY` с точным payload `{kind:'context'}`.
+- [x] `parseHelp` успешного `shquery` шлёт `EVENT_ON_HELP_READY` с точным payload `{kind:'query'}`.
+- [x] `parseHelp` успешного `dcsui` шлёт `EVENT_ON_HELP_READY` с точным payload `{kind:'dcs'}`.
+- [x] `parseHelp` успешного `shlang` НЕ шлёт событие.
+- [x] Повторная загрузка `shcntx`/`shquery`/`dcsui` шлёт событие каждый раз.
+- [x] Ошибка разбора и откат provisional-кандидата НЕ шлют READY.
+- [x] `tools/run_help_headless.js` покрывает виды, повторы, ошибки, точный payload и порядок событий.
+- [ ] Общие `npm test` и `test:mocha` не являются гейтами: известные исходные долги зафиксированы
+      в `specs/help-browser/spec.md`.
+- [x] `docs/help_ready_event.md`, `docs/help_browser.md`, `README.md`,
       `specs/help-browser/spec.md`, `specs/help-browser/plan.md` обновлены.
 
 ## 6. Вне области

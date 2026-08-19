@@ -1,7 +1,7 @@
 ---
 issue: -
 title: EVENT_ON_HELP_PREPARED как ранний сигнал готовности справки
-status: draft
+status: in-progress
 owner: opencode
 created: 2026-08-19
 updated: 2026-08-19
@@ -123,17 +123,19 @@ window.parseHelp = function (source) { ... }
 
 ## 5. Критерии приёмки
 
-- [ ] `parseHelp` успешного `shcntx` шлёт `EVENT_ON_HELP_PREPARED` с `{kind:'context'}`.
-- [ ] `parseHelp` успешного `shquery` шлёт `EVENT_ON_HELP_PREPARED` с `{kind:'query'}`.
-- [ ] `parseHelp` успешного `dcsui` шлёт `EVENT_ON_HELP_PREPARED` с `{kind:'dcs'}`.
-- [ ] `parseHelp` успешного `shlang` НЕ шлёт событие.
-- [ ] Повторная загрузка `shcntx`/`shquery`/`dcsui` шлёт PREPARED каждый раз.
-- [ ] Для каждой операции PREPARED предшествует READY с тем же `kind` (если READY наступает).
-- [ ] Ошибка разбора до `prepared` НЕ шлёт PREPARED.
-- [ ] `EVENT_ON_HELP_READY` сохраняет прежние счётчики и поведение.
-- [ ] `tools/run_help_headless.js` проходит с обновлёнными проверками PREPARED.
-- [ ] `npm test`, `test:mocha`, `test:headless`, `escheck`, `build` — зелёные.
-- [ ] `docs/help_prepared_event.md`, `docs/help_browser.md`, `README.md` обновлены.
+- [x] `parseHelp` успешного `shcntx` шлёт `EVENT_ON_HELP_PREPARED` с точным payload `{kind:'context'}`.
+- [x] `parseHelp` успешного `shquery` шлёт `EVENT_ON_HELP_PREPARED` с точным payload `{kind:'query'}`.
+- [x] `parseHelp` успешного `dcsui` шлёт `EVENT_ON_HELP_PREPARED` с точным payload `{kind:'dcs'}`.
+- [x] `parseHelp` успешного `shlang` НЕ шлёт событие.
+- [x] Повторная загрузка `shcntx`/`shquery`/`dcsui` шлёт PREPARED каждый раз.
+- [x] Для каждой операции PREPARED предшествует READY с тем же `kind` (если READY наступает).
+- [x] Ошибка разбора до `prepared` НЕ шлёт PREPARED.
+- [x] Orphan-PREPARED при ошибке после `prepared` покрыт: READY не создаётся.
+- [x] `EVENT_ON_HELP_READY` сохраняет прежние счётчики и поведение.
+- [x] `tools/run_help_headless.js` покрывает точный payload, виды, повторы, ошибки и порядок.
+- [ ] Общие `npm test` и `test:mocha` не являются гейтами: известные исходные долги зафиксированы
+      в `specs/help-browser/spec.md`.
+- [x] `docs/help_prepared_event.md`, `docs/help_browser.md`, `README.md` обновлены.
 
 ## 6. Вне области
 

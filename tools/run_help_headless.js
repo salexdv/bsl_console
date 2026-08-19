@@ -111,6 +111,15 @@ function makeContextHbk() {
   ]);
 }
 
+function makeOrphanPreparedHbk() {
+  const result = makeContextHbk();
+  const marker = Buffer.from('Первая синтетическая статья.', 'utf8');
+  const offset = result.indexOf(marker);
+  if (offset < 0) throw new Error('Не найдено содержимое для повреждения CRC');
+  result[offset] ^= 1;
+  return result;
+}
+
 function makePendingContextHbk() {
   const pagePath = 'objects/TestObject/methods/DeferredMethod.html';
   const childPath = 'objects/TestObject/methods/DeferredChild.html';
@@ -354,7 +363,20 @@ function serve() {
       const during = document.querySelector('.bsl-help-message').textContent;
       const parsed = await promise;
       const repeated = await window.parseHelp();
-      return { missing: missing, unfinished: unfinished, during: during, parsed: parsed, repeated: repeated, state: window.getHelpState() };
+      const state = window.getHelpState();
+      const language = state.packages.language;
+      state.packages.context = null;
+      language.pages = -1;
+      language.navigation[0].title = 'испорченная навигация';
+      language.navigation[0].children.push({ title: 'лишний узел' });
+      language.index[0].key = 'испорченный индекс';
+      language.index[0].item.title = 'испорченная статья';
+      language.stats.strategy = 'испорченная статистика';
+      state.kinds.length = 0;
+      return {
+        missing: missing, unfinished: unfinished, during: during, parsed: parsed, repeated: repeated,
+        mutatedState: state, state: window.getHelpState()
+      };
     }, hbk);
     if (result.missing.ok || result.missing.error.indexOf('Нет завершённой') < 0)
       errors.push('missing staged transfer: ' + JSON.stringify(result.missing));
@@ -367,6 +389,17 @@ function serve() {
       errors.push('repeated staged parseHelp: ' + JSON.stringify(result.repeated));
     if (!result.state.ready || result.state.status != 'ready' || result.state.kinds.indexOf('language') < 0)
       errors.push('getHelpState after load: ' + JSON.stringify(result.state));
+    if (result.state.packages.context !== null
+      || result.state.packages.language.pages != 3
+      || result.state.packages.language.navigation[0].title != 'Общее описание'
+      || result.state.packages.language.navigation[0].children.some(function (item) {
+        return item.title == 'лишний узел';
+      })
+      || result.state.packages.language.index[0].key != 'общее описание'
+      || result.state.packages.language.index[0].item.title != 'Общее описание'
+      || result.state.packages.language.stats.strategy != 'toc-lazy'
+      || JSON.stringify(result.state.kinds) != JSON.stringify(['context', 'language']))
+      errors.push('getHelpState detached snapshot: ' + JSON.stringify(result));
 
     const queryHelp = await page.evaluate(function () {
       if (document.querySelector('.bsl-help-overlay').classList.contains('visible'))
@@ -525,13 +558,22 @@ function serve() {
         preparedAfterRepeatedLanguage: preparedAfterRepeatedLanguage,
         preparedAfterRepeatedQuery: preparedAfterRepeatedQuery,
         readyEvents: ready.map(function (item) {
-          return { event: item.event, kind: item.params && item.params.kind || null, seq: item.seq };
+          return {
+            event: item.event, kind: item.params && item.params.kind || null,
+            keys: item.params ? Object.keys(item.params).sort() : [], seq: item.seq
+          };
         }),
         preparedEvents: prepared.map(function (item) {
-          return { event: item.event, kind: item.params && item.params.kind || null, seq: item.seq };
+          return {
+            event: item.event, kind: item.params && item.params.kind || null,
+            keys: item.params ? Object.keys(item.params).sort() : [], seq: item.seq
+          };
         }),
         signals: window.__helpSignals.map(function (item) {
-          return { event: item.event, kind: item.params && item.params.kind || null, seq: item.seq };
+          return {
+            event: item.event, kind: item.params && item.params.kind || null,
+            keys: item.params ? Object.keys(item.params).sort() : [], seq: item.seq
+          };
         }),
         locateDisabled: document.querySelector('.bsl-help-locate').disabled,
         titles: Array.prototype.map.call(document.querySelectorAll('.bsl-help-tree-title'), function (node) {
@@ -562,7 +604,9 @@ function serve() {
       || dual.readyEvents.length != 5
       || JSON.stringify(actualKinds) != JSON.stringify(expectedKinds)
       || kindCounts.context != 2 || kindCounts.query != 2 || kindCounts.dcs != 1
-      || dual.readyEvents.some(function (event) { return !event.kind; }))
+      || dual.readyEvents.some(function (event) {
+        return !event.kind || JSON.stringify(event.keys) != JSON.stringify(['kind']);
+      }))
       errors.push('EVENT_ON_HELP_READY: ' + JSON.stringify(dual));
     const preparedKinds = dual.preparedEvents.map(function (event) { return event.kind; });
     const preparedKindCounts = { context: 0, query: 0, dcs: 0 };
@@ -572,7 +616,9 @@ function serve() {
     if (dual.preparedEvents.length != 5
       || JSON.stringify(preparedKinds) != JSON.stringify(expectedKinds)
       || preparedKindCounts.context != 2 || preparedKindCounts.query != 2 || preparedKindCounts.dcs != 1
-      || dual.preparedEvents.some(function (event) { return !event.kind; })
+      || dual.preparedEvents.some(function (event) {
+        return !event.kind || JSON.stringify(event.keys) != JSON.stringify(['kind']);
+      })
       || dual.preparedAfterFirst != 3
       || dual.preparedAfterRepeat != 4
       || dual.preparedAfterFailure != 4
@@ -1001,6 +1047,23 @@ function serve() {
     if (!repeatedDcsCheck.ok || repeatedDcsCheck.kind != 'dcs'
       || repeatedDcsCheck.kinds.length != 1 || repeatedDcsCheck.kinds[0] != 'dcs')
       errors.push('repeated dcs event: ' + JSON.stringify(repeatedDcsCheck));
+
+    const orphanPrepared = await page.evaluate(function (contextBase64) {
+      window.__capturedReadyEvents.length = 0;
+      window.__capturedPreparedEvents.length = 0;
+      return window.parseHelp(contextBase64).then(function (result) {
+        return {
+          result: result,
+          ready: window.__capturedReadyEvents.map(function (item) { return item.params; }),
+          prepared: window.__capturedPreparedEvents.map(function (item) { return item.params; })
+        };
+      });
+    }, makeOrphanPreparedHbk().toString('base64'));
+    if (orphanPrepared.result.ok
+      || orphanPrepared.ready.length != 0
+      || orphanPrepared.prepared.length != 1
+      || JSON.stringify(orphanPrepared.prepared[0]) != JSON.stringify({ kind: 'context' }))
+      errors.push('orphan EVENT_ON_HELP_PREPARED: ' + JSON.stringify(orphanPrepared));
   }
   finally {
     await browser.close();

@@ -19,7 +19,7 @@ function createHelpBrowser(editorProvider, onExternalLink) {
     show: function () { ui.show(); },
     showIndex: function (query, editor) { return ui.showIndex(query, editor); },
     isReady: function () { return service.isReady(); },
-    getState: function () { return service.getState(); },
+    getState: function () { return service.getPublicState(); },
     setLanguageMode: function (mode) {
       if (mode == 'bsl_query') service.setKinds(['query']);
       else if (mode == 'dcs_query') service.setKinds(['dcs']);
