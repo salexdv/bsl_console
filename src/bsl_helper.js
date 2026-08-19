@@ -5740,7 +5740,7 @@ class bslHelper {
 				values.push(keyword);
 			}
 
-			let expressions = this.getQueryExpressions(rules);			
+			let expressions = this.getQueryExpressions(rules);
 			for (const [key, keyword] of Object.entries(expressions)) {
 				values.push(keyword);
 			}
@@ -7141,9 +7141,9 @@ class bslHelper {
 					this.getQueryFieldsCompletion(suggestions);
 
 					if (this.lastExpression.indexOf('.') < 0) {
-						this.getQueryCommonCompletion(suggestions, monaco.languages.CompletionItemKind.Module);
 						if (functions)
 							this.getCommonCompletion(suggestions, functions, monaco.languages.CompletionItemKind.Function, true);
+						this.getQueryCommonCompletion(suggestions, monaco.languages.CompletionItemKind.Module);
 					}
 
 					this.getSnippets(suggestions, querySnippets, false);
