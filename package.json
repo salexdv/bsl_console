@@ -11,6 +11,7 @@
     "build:headless": "webpack --mode development --progress",
     "test:headless": "node tools/run_search_history_headless.js",
     "test:query-model-corpus": "node tests/query_model_corpus_test.js --strict-errors --strict-structure",
+    "test:query-model-corpus:loose": "node tests/query_model_corpus_test.js",
     "test:query-navigation": "node tests/query_navigation_test.js",
     "test:query-model-service": "node tests/query_model_service_test.js",
     "debug": "webpack-dev-server --mode development --progress",
