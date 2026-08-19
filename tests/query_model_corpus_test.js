@@ -30,6 +30,15 @@ const KNOWN_TEXT_EXTENSIONS = new Set([
     '.md'
 ]);
 
+// Файлы, имя которых (база без расширения) начинается на '_', — это намеренно
+// повреждённые/невалидные запросы (negative fixtures): дубли SELECT, обрезанные
+// строки, мусор из консоли, лишние скобки, UNION с разным числом полей и т.п.
+// Для них parse() не должен бросать исключение, но найденные ошибки и расхождения
+// структуры считаются ожидаемыми (warnings) даже в строгом режиме.
+function isNegativeFixture(file) {
+    return path.basename(file).startsWith('_');
+}
+
 function parseArgs(argv) {
     let args = {
         queriesDir: DEFAULT_QUERIES_DIR,
@@ -82,7 +91,12 @@ function printUsage() {
         '  - UNION branches have the same number of selected fields',
         '',
         'Structural discrepancies are warnings for the tolerant corpus.',
-        'Use --strict-structure to treat them as failures.'
+        'Use --strict-structure to treat them as failures.',
+        '',
+        'Files whose name starts with "_" are negative fixtures (intentionally invalid',
+        'queries): parse() must not throw, but their errors/structure mismatches are',
+        'always warnings, even in strict mode. If such a fixture stops producing any',
+        'problems at all, that is reported as a failure (regression).'
     ].join('\n'));
 }
 
@@ -523,6 +537,7 @@ function runFile(queryModel, file, options) {
     let document = null;
     let failures = [];
     let warnings = [];
+    let negativeFixture = isNegativeFixture(file);
 
     try {
         document = queryModel.parse(text);
@@ -540,7 +555,7 @@ function runFile(queryModel, file, options) {
     let structureMessages = compareCounts(file, expected, actual)
         .concat(checkUnionFieldCounts(document));
 
-    if (options.strictStructure)
+    if (options.strictStructure && !negativeFixture)
         failures = failures.concat(structureMessages);
     else
         warnings = warnings.concat(structureMessages);
@@ -551,10 +566,21 @@ function runFile(queryModel, file, options) {
     if (document.errors && document.errors.length) {
         let message = 'query_model errors: ' + document.errors.length;
 
-        if (options.strictErrors)
+        if (options.strictErrors && !negativeFixture)
             failures.push(message);
         else
             warnings.push(message);
+    }
+
+    // negative fixture должен оставаться проблемным: если он вдруг перестал
+    // давать ни ошибок, ни расхождений структуры — фикстура протухла, это регрессия.
+    if (negativeFixture && !failures.length) {
+        let hasProblems = (warnings.length > 0)
+            || (document.errors && document.errors.length > 0)
+            || structureMessages.length > 0;
+
+        if (!hasProblems)
+            failures.push('negative fixture no longer produces any problems (expected at least one error or structure mismatch)');
     }
 
     return {
@@ -584,6 +610,7 @@ function main() {
     let failed = [];
     let warned = [];
     let skipped = [];
+    let negativeFixtures = 0;
 
     for (let file of files) {
         let result = runFile(queryModel, file, options);
@@ -592,6 +619,9 @@ function main() {
             skipped.push(result);
             continue;
         }
+
+        if (isNegativeFixture(file))
+            negativeFixtures++;
 
         if (result.failures && result.failures.length)
             failed.push(result);
@@ -623,6 +653,9 @@ function main() {
 
     if (skipped.length)
         console.log('Skipped files: ' + skipped.length);
+
+    if (negativeFixtures)
+        console.log('Negative fixtures (_): ' + negativeFixtures + ' (expected to be problematic)');
 
     if (warned.length)
         console.log('Files with warnings: ' + warned.length);

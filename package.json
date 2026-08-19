@@ -23,6 +23,7 @@
     "build:test": "webpack --mode development --env test --progress",
     "test:mocha": "node tools/run_mocha_headless.js",
     "test:query-model-corpus": "node tests/query_model_corpus_test.js --strict-errors --strict-structure",
+    "test:query-model-corpus:loose": "node tests/query_model_corpus_test.js",
     "build:single": "webpack --mode production --progress && node tools/make_single.js && node tools/check_single.js && node tools/check_blob_workers.js",
     "build:pack": "webpack --mode production --progress && node tools/check_blob_workers.js && node tools/make_pack.js && node tools/check_single.js",
     "check:workers": "node tools/check_blob_workers.js",
