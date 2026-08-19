@@ -10,8 +10,8 @@ function createHelpBrowser(editorProvider, onExternalLink) {
     return typeof window.parseHelp == 'function' ? window.parseHelp(file) : service.parse(file);
   }, function () { ui.show(); });
   return {
-    parse: function (source) { return service.parse(source); },
-    parseTransferred: function () { return service.parseTransferred(); },
+    parse: function (source, onPrepared) { return service.parse(source, onPrepared); },
+    parseTransferred: function (onPrepared) { return service.parseTransferred(onPrepared); },
     beginTransfer: function (name) { service.beginTransfer(name); },
     pushTransfer: function (chunk) { service.pushTransfer(chunk); },
     endTransfer: function () { service.endTransfer(); },

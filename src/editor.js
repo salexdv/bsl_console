@@ -125,15 +125,23 @@ window.endBase64Transfer = function () {
  * Загружает пакет справки 1С в текущую сессию.
  * Promise всегда разрешается объектом результата после готовности дерева и обоих индексов.
  * Успешно загруженный ранее пакет при ошибке не изменяется.
- * При успешной загрузке пакета вида context/query/dcs отправляет событие
- * EVENT_ON_HELP_READY с payload {kind}; shlang и ошибки событие не создают.
+ * На фазе prepared (готовы оглавление и префиксный индекс заголовков, полнотекстовая
+ * индексация ещё идёт) отправляет EVENT_ON_HELP_PREPARED с payload {kind}.
+ * После успешной загрузки пакета вида context/query/dcs отправляет событие
+ * EVENT_ON_HELP_READY с payload {kind}; shlang и ошибки ни одного события не создают.
+ * PREPARED не гарантирует последующего READY: при откате provisional-кандидата или
+ * ошибке полнотекстовой индексации READY не приходит.
  * @param {Blob|File|string} [source] файл shcntx_*.hbk/shlang_*.hbk/shquery_*.hbk/dcsui_*.hbk
  * или его Base64-представление;
  * без аргумента используется последняя завершённая порционная передача
  * @returns {Promise<{ok:boolean,kind:string|null,pages:number,error:string|null}>}
  */
 window.parseHelp = function (source) {
-  const resultPromise = arguments.length ? helpBrowser.parse(source) : helpBrowser.parseTransferred();
+  function onPrepared(kind) {
+    if (kind == 'context' || kind == 'query' || kind == 'dcs')
+      window.sendEvent('EVENT_ON_HELP_PREPARED', { kind: kind });
+  }
+  const resultPromise = arguments.length ? helpBrowser.parse(source, onPrepared) : helpBrowser.parseTransferred(onPrepared);
   return resultPromise.then(function (result) {
     if (result.ok && (result.kind == 'context' || result.kind == 'query' || result.kind == 'dcs'))
       window.sendEvent('EVENT_ON_HELP_READY', { kind: result.kind });
