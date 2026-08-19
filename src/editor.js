@@ -780,6 +780,15 @@ window.getCurrentColumn = function() {
 
 }
 
+window.getCurrentWord = function() {
+
+  const activeEditor = getActiveEditor();
+  const model = activeEditor && activeEditor.getModel();
+  const position = activeEditor && activeEditor.getPosition();
+  return model && position ? model.getWordAtPosition(position) : null;
+
+}
+
 window.setLineContent = function(lineNumber, text) {
 
   if (lineNumber <= window.getLineCount()) {
