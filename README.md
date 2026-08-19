@@ -310,6 +310,7 @@ npm run build  -- --customOptions "automaticLayout: true, someOption: false"
 | `EVENT_REMOVE_ALL_BREAKPOINTS` | При интерактивном удалении всех точек останова в редакторе                                    |
 | `EVENT_COMPARE_COMPLETE`       | При завершении сравнения текстов [(подробнее)](docs/compare_complete_event.md)                |
 | [`EVENT_ON_HELP_READY`](docs/help_ready_event.md) | После успешной загрузки или замены пакетов `shcntx`/`shquery`/`dcsui`. Параметр `{kind}` |
+| [`EVENT_ON_HELP_PREPARED`](docs/help_prepared_event.md) | Ранний сигнал готовности справки (фаза `prepared`: оглавление и индекс заголовков готовы, полнотекстовая индексация ещё идёт). Параметр `{kind}` |
 
 *Перед началом работы с редактором из 1С Предприятия желательно вызвать функцию инициализации и передать в нее текущую версию платформы.*
 Пример:

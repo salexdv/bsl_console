@@ -301,7 +301,7 @@ function createHelpService(workerFactory, indexWorkerFactory, indexWorkerCount) 
     visibleIndex = prefixIndex.map(function (entry) { return entry.item; });
   }
 
-  function parseRequest(type, payload, expectedKinds) {
+  function parseRequest(type, payload, expectedKinds, onPrepared) {
     let candidateKind = null;
     let previousPackage = null;
     let rolledBack = false;
@@ -352,6 +352,7 @@ function createHelpService(workerFactory, indexWorkerFactory, indexWorkerCount) 
         parseBarriers[candidateKind] = Promise.resolve().then(function () { return operation; })
           .then(function () { return undefined; });
         notify();
+        if (onPrepared) onPrepared(result.kind);
       }
       else if (response.type == 'rollback' && candidateKind) {
         state.packages[candidateKind] = previousPackage;
@@ -393,12 +394,12 @@ function createHelpService(workerFactory, indexWorkerFactory, indexWorkerCount) 
     return operation;
   }
 
-  function parse(source) {
+  function parse(source, onPrepared) {
     const isBlob = source && typeof source.size == 'number' && typeof source.slice == 'function';
     if (!isBlob && typeof source != 'string')
       return fail('parseHelp принимает Blob, File или строку Base64');
     const namedKind = kindFromName(source && source.name);
-    return parseRequest('parse', { source: source }, namedKind ? [namedKind] : activeKinds.slice());
+    return parseRequest('parse', { source: source }, namedKind ? [namedKind] : activeKinds.slice(), onPrepared);
   }
 
   function beginTransfer(name) {
@@ -427,7 +428,7 @@ function createHelpService(workerFactory, indexWorkerFactory, indexWorkerCount) 
     transferEnded = true;
   }
 
-  function parseTransferred() {
+  function parseTransferred(onPrepared) {
     if (transferActive)
       return fail('Передача Base64 ещё не завершена');
     if (transferWorkerError) {
@@ -439,7 +440,7 @@ function createHelpService(workerFactory, indexWorkerFactory, indexWorkerCount) 
     }
     if (!transferEnded)
       return fail('Нет завершённой передачи Base64');
-    return parseRequest('parse-transferred', null, transferKind ? [transferKind] : activeKinds.slice());
+    return parseRequest('parse-transferred', null, transferKind ? [transferKind] : activeKinds.slice(), onPrepared);
   }
 
   function setKinds(kinds) {

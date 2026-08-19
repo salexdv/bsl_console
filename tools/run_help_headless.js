@@ -469,12 +469,22 @@ function serve() {
       }
       const previousSendEvent = window.sendEvent;
       window.__capturedReadyEvents = [];
+      window.__capturedPreparedEvents = [];
+      window.__helpSignalSeq = 0;
+      window.__helpSignals = [];
       window.sendEvent = function (name, params) {
-        if (name == 'EVENT_ON_HELP_READY')
-          window.__capturedReadyEvents.push({ event: name, params: params });
+        if (name == 'EVENT_ON_HELP_READY' || name == 'EVENT_ON_HELP_PREPARED') {
+          const record = { event: name, params: params, seq: ++window.__helpSignalSeq };
+          if (name == 'EVENT_ON_HELP_READY')
+            window.__capturedReadyEvents.push(record);
+          else
+            window.__capturedPreparedEvents.push(record);
+          window.__helpSignals.push(record);
+        }
         return previousSendEvent(name, params);
       };
       function readyEvents() { return window.__capturedReadyEvents; }
+      function preparedEvents() { return window.__capturedPreparedEvents; }
       window.events_queue.length = 0;
       const contextPromise = transfer('shcntx', bytes(contextBase64), 17);
       const languagePromise = transfer('shlang', bytes(languageBase64), 16);
@@ -483,15 +493,21 @@ function serve() {
       window.showHelp();
       const parsed = await Promise.all([contextPromise, languagePromise, queryPromise, dcsPromise]);
       const eventsAfterFirst = readyEvents().length;
+      const preparedAfterFirst = preparedEvents().length;
       const repeatedContext = await window.parseHelp(contextBase64);
       const eventsAfterRepeat = readyEvents().length;
+      const preparedAfterRepeat = preparedEvents().length;
       const failedContext = await window.parseHelp(new Blob([new Uint8Array([1, 2, 3])]));
       const eventsAfterFailure = readyEvents().length;
+      const preparedAfterFailure = preparedEvents().length;
       const repeatedLanguage = await window.parseHelp(languageBase64);
       const eventsAfterRepeatedLanguage = readyEvents().length;
+      const preparedAfterRepeatedLanguage = preparedEvents().length;
       const repeatedQuery = await window.parseHelp(new File([bytes(queryBase64)], 'shquery_test.hbk'));
       const eventsAfterRepeatedQuery = readyEvents().length;
+      const preparedAfterRepeatedQuery = preparedEvents().length;
       const ready = readyEvents();
+      const prepared = preparedEvents();
       return {
         parsed: parsed,
         repeatedContext: repeatedContext,
@@ -503,8 +519,19 @@ function serve() {
         eventsAfterFailure: eventsAfterFailure,
         eventsAfterRepeatedLanguage: eventsAfterRepeatedLanguage,
         eventsAfterRepeatedQuery: eventsAfterRepeatedQuery,
+        preparedAfterFirst: preparedAfterFirst,
+        preparedAfterRepeat: preparedAfterRepeat,
+        preparedAfterFailure: preparedAfterFailure,
+        preparedAfterRepeatedLanguage: preparedAfterRepeatedLanguage,
+        preparedAfterRepeatedQuery: preparedAfterRepeatedQuery,
         readyEvents: ready.map(function (item) {
-          return { event: item.event, kind: item.params && item.params.kind || null };
+          return { event: item.event, kind: item.params && item.params.kind || null, seq: item.seq };
+        }),
+        preparedEvents: prepared.map(function (item) {
+          return { event: item.event, kind: item.params && item.params.kind || null, seq: item.seq };
+        }),
+        signals: window.__helpSignals.map(function (item) {
+          return { event: item.event, kind: item.params && item.params.kind || null, seq: item.seq };
         }),
         locateDisabled: document.querySelector('.bsl-help-locate').disabled,
         titles: Array.prototype.map.call(document.querySelectorAll('.bsl-help-tree-title'), function (node) {
@@ -537,6 +564,29 @@ function serve() {
       || kindCounts.context != 2 || kindCounts.query != 2 || kindCounts.dcs != 1
       || dual.readyEvents.some(function (event) { return !event.kind; }))
       errors.push('EVENT_ON_HELP_READY: ' + JSON.stringify(dual));
+    const preparedKinds = dual.preparedEvents.map(function (event) { return event.kind; });
+    const preparedKindCounts = { context: 0, query: 0, dcs: 0 };
+    dual.preparedEvents.forEach(function (event) {
+      if (event.kind && preparedKindCounts.hasOwnProperty(event.kind)) preparedKindCounts[event.kind]++;
+    });
+    if (dual.preparedEvents.length != 5
+      || JSON.stringify(preparedKinds) != JSON.stringify(expectedKinds)
+      || preparedKindCounts.context != 2 || preparedKindCounts.query != 2 || preparedKindCounts.dcs != 1
+      || dual.preparedEvents.some(function (event) { return !event.kind; })
+      || dual.preparedAfterFirst != 3
+      || dual.preparedAfterRepeat != 4
+      || dual.preparedAfterFailure != 4
+      || dual.preparedAfterRepeatedLanguage != 4
+      || dual.preparedAfterRepeatedQuery != 5)
+      errors.push('EVENT_ON_HELP_PREPARED counts: ' + JSON.stringify(dual));
+    const preparedBeforeReady = dual.readyEvents.every(function (ready) {
+      const matched = dual.preparedEvents.filter(function (p) {
+        return p.kind == ready.kind && p.seq < ready.seq;
+      });
+      return matched.length >= 1;
+    });
+    if (!preparedBeforeReady)
+      errors.push('EVENT_ON_HELP_PREPARED before READY: ' + JSON.stringify(dual.signals));
     if (!dual.locateDisabled || dual.titles.indexOf('Выполнить') < 0 || dual.titles.indexOf('Общее описание') < 0)
       errors.push('two package navigation: ' + JSON.stringify(dual.titles));
 
