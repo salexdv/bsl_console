@@ -73,6 +73,23 @@ function createHelpService(workerFactory, indexWorkerFactory, indexWorkerCount) 
     };
   }
 
+  function copyJsonValue(value) {
+    if (Array.isArray(value)) {
+      return value.map(function (item) { return copyJsonValue(item); });
+    }
+    if (value && typeof value == 'object') {
+      return Object.keys(value).reduce(function (result, key) {
+        result[key] = copyJsonValue(value[key]);
+        return result;
+      }, {});
+    }
+    return value;
+  }
+
+  function getPublicState() {
+    return copyJsonValue(snapshot());
+  }
+
   function notify() {
     const value = snapshot();
     listeners.slice().forEach(function (listener) { listener(value); });
@@ -465,6 +482,7 @@ function createHelpService(workerFactory, indexWorkerFactory, indexWorkerCount) 
     fail: fail,
     setKinds: setKinds,
     getState: snapshot,
+    getPublicState: getPublicState,
     isReady: function () { return snapshot().status == 'ready'; },
     isKindActive: isActive,
     subscribe: function (listener) {

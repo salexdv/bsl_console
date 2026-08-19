@@ -8,7 +8,8 @@
 ### Этап 0. Спецификация
 
 - Шаги: создать `specs/help-prepared-event/spec.md` + `plan.md`.
-- Gate: согласование с мейнтейнером (salexdv) по контракту нового `EVENT_*` → статус `approved`.
+- Gate: контракт и orphan-PREPARED одобрены явным решением пользователя; спека переведена в
+  `in-progress` до merge.
 - Оценка: малая.
 
 ### Этап 1. Код
@@ -50,12 +51,14 @@
 
 ### Этап 4. Финальные проверки
 
-- `npm test`, `npm run escheck`, `npm run build` — все зелёные.
+- Целевые проверки этой работы: `npm test`, `test:query-model-service`, `test:help`, `build:test`,
+  `test:mocha`, `build`, `test:help:headless`, `test:headless`, `build:single`, `build:pack`, `escheck`
+  и `git diff --check`.
 
 ### Риски и снижение
 
-- **Новый `EVENT_*` в публичном контракте моста** — требует согласования с salexdv до `approved`
-  (`CLAUDE.md:120`). До согласования код не пишем.
+- **Новый `EVENT_*` в публичном контракте моста** — текущий контракт явно одобрен пользователем;
+  до merge статус остаётся `in-progress`.
 - **Orphan PREPARED** — 1С может получить PREPARED без READY. Снижение: явная фиксация в
   `docs/help_prepared_event.md` и `spec.md`; 1С-обработчик должен считать PREPARED «вероятной
   готовностью» и не полагаться на обязательный READY.
@@ -68,7 +71,7 @@
 
 ## 2. Открытые вопросы
 
-- Подтвердить у salexdv ввод нового события `EVENT_ON_HELP_PREPARED` и orphan-PREPARED семантику.
+Нет.
 
 ## 3. Решения
 
@@ -80,3 +83,4 @@
 | 2026-08-19 | Orphan PREPARED не отзывается | Отзыв усложнил бы контракт и 1С-обработчик; проще зафиксировать «PREPARED не гарантирует READY» |
 | 2026-08-19 | `EVENT_ON_HELP_READY` не трогается | Стабильный контракт `specs/help-ready-kinds/`; счётчики и порядок в headless-тесте остаются прежними |
 | 2026-08-19 | Воркеры не трогаются | Сообщение `prepared` уже отправляется `help_worker.js:197` |
+| 2026-08-19 | Контракт PREPARED и orphan-PREPARED одобрены пользователем | Подтверждены точный payload `{kind}`, набор видов и отсутствие отзыва раннего события при поздней ошибке |
