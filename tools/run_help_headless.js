@@ -488,16 +488,24 @@ function serve() {
       const failedContext = await window.parseHelp(new Blob([new Uint8Array([1, 2, 3])]));
       const eventsAfterFailure = readyEvents().length;
       const repeatedLanguage = await window.parseHelp(languageBase64);
+      const eventsAfterRepeatedLanguage = readyEvents().length;
+      const repeatedQuery = await window.parseHelp(new File([bytes(queryBase64)], 'shquery_test.hbk'));
+      const eventsAfterRepeatedQuery = readyEvents().length;
       const ready = readyEvents();
       return {
         parsed: parsed,
         repeatedContext: repeatedContext,
         failedContext: failedContext,
         repeatedLanguage: repeatedLanguage,
+        repeatedQuery: repeatedQuery,
         eventsAfterFirst: eventsAfterFirst,
         eventsAfterRepeat: eventsAfterRepeat,
         eventsAfterFailure: eventsAfterFailure,
-        readyEvents: ready.map(function (item) { return { event: item.event, hasParams: item.params !== undefined }; }),
+        eventsAfterRepeatedLanguage: eventsAfterRepeatedLanguage,
+        eventsAfterRepeatedQuery: eventsAfterRepeatedQuery,
+        readyEvents: ready.map(function (item) {
+          return { event: item.event, kind: item.params && item.params.kind || null };
+        }),
         locateDisabled: document.querySelector('.bsl-help-locate').disabled,
         titles: Array.prototype.map.call(document.querySelectorAll('.bsl-help-tree-title'), function (node) {
           return node.textContent;
@@ -510,9 +518,24 @@ function serve() {
       || !dual.parsed[2].ok || dual.parsed[2].kind != 'query'
       || !dual.parsed[3].ok || dual.parsed[3].kind != 'dcs')
       errors.push('four queued HBK: ' + JSON.stringify(dual));
-    if (!dual.repeatedContext.ok || dual.eventsAfterFirst != 1 || dual.eventsAfterRepeat != 2
-      || dual.eventsAfterFailure != 2 || dual.failedContext.ok || !dual.repeatedLanguage.ok
-      || dual.readyEvents.length != 2 || dual.readyEvents.some(function (event) { return event.hasParams; }))
+    const expectedKinds = ['context', 'query', 'dcs', 'context', 'query'];
+    const actualKinds = dual.readyEvents.map(function (event) { return event.kind; });
+    const kindCounts = { context: 0, query: 0, dcs: 0 };
+    dual.readyEvents.forEach(function (event) {
+      if (event.kind && kindCounts.hasOwnProperty(event.kind)) kindCounts[event.kind]++;
+    });
+    if (!dual.repeatedContext.ok
+      || dual.eventsAfterFirst != 3
+      || dual.eventsAfterRepeat != 4
+      || dual.eventsAfterFailure != 4
+      || dual.eventsAfterRepeatedLanguage != 4
+      || dual.eventsAfterRepeatedQuery != 5
+      || dual.failedContext.ok
+      || !dual.repeatedLanguage.ok || !dual.repeatedQuery.ok
+      || dual.readyEvents.length != 5
+      || JSON.stringify(actualKinds) != JSON.stringify(expectedKinds)
+      || kindCounts.context != 2 || kindCounts.query != 2 || kindCounts.dcs != 1
+      || dual.readyEvents.some(function (event) { return !event.kind; }))
       errors.push('EVENT_ON_HELP_READY: ' + JSON.stringify(dual));
     if (!dual.locateDisabled || dual.titles.indexOf('Выполнить') < 0 || dual.titles.indexOf('Общее описание') < 0)
       errors.push('two package navigation: ' + JSON.stringify(dual.titles));
@@ -912,6 +935,22 @@ function serve() {
     const pendingResult = await page.evaluate(function () { return window.__pendingHelpParse; });
     if (!pendingResult.ok || pendingResult.kind != 'context')
       errors.push('pending Ctrl+F1 result: ' + JSON.stringify(pendingResult));
+
+    const repeatedDcsCheck = await page.evaluate(function (dcsBase64) {
+      window.__capturedReadyEvents.length = 0;
+      var raw = atob(dcsBase64);
+      var buf = new Uint8Array(raw.length);
+      for (var i = 0; i < raw.length; i++) buf[i] = raw.charCodeAt(i);
+      return window.parseHelp(new File([buf], 'dcsui_test.hbk')).then(function (r) {
+        return {
+          ok: r.ok, kind: r.kind,
+          kinds: window.__capturedReadyEvents.map(function (e) { return e.params && e.params.kind; })
+        };
+      });
+    }, makeDcsHbk().toString('base64'));
+    if (!repeatedDcsCheck.ok || repeatedDcsCheck.kind != 'dcs'
+      || repeatedDcsCheck.kinds.length != 1 || repeatedDcsCheck.kinds[0] != 'dcs')
+      errors.push('repeated dcs event: ' + JSON.stringify(repeatedDcsCheck));
   }
   finally {
     await browser.close();
