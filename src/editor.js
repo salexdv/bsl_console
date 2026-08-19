@@ -25,12 +25,16 @@ import Finder from "./finder";
 import SnippetsParser from "./parsers";
 import { patchWebKit1C } from './1c-webkit-patch';
 import SearchHistoryController from './search_history';
+import bslHelper from './bsl_helper';
+import { createHelpBrowser } from './help';
 
 const hiddenBlocksController = new HiddenBlocksController(monaco, function () {
   return window.engLang;
 });
 const searchHistoryController = new SearchHistoryController(monaco);
-
+const helpBrowser = createHelpBrowser(function () { return window.editor; }, function (params) {
+  window.sendEvent('EVENT_ON_LINK_CLICK', params);
+});
 // Иконки дерева переменных инлайнятся в бандл (data:-URI) через require.context, а не тянутся
 // отдельными файлами — это нужно для single-file сборки. В обычной сборке результат тот же:
 // url-loader инлайнит эти PNG (< 8 КБ), а копия в dist/tree/icons остаётся невостребованной.
@@ -102,6 +106,73 @@ window.objectContext = null;
 // #endregion
 
 // #region public API
+/** @param {string} name диагностическое имя передаваемых данных */
+window.beginBase64Transfer = function (name) {
+  helpBrowser.beginTransfer(name);
+}
+
+/** @param {string} chunk фрагмент Base64 или отдельно закодированная бинарная порция */
+window.pushBase64Chunk = function (chunk) {
+  helpBrowser.pushTransfer(chunk);
+}
+
+/** Завершает постановку порций в очередь worker. */
+window.endBase64Transfer = function () {
+  helpBrowser.endTransfer();
+}
+
+/**
+ * Загружает пакет справки 1С в текущую сессию.
+ * Promise всегда разрешается объектом результата после готовности дерева и обоих индексов.
+ * Успешно загруженный ранее пакет при ошибке не изменяется.
+ * @param {Blob|File|string} [source] файл shcntx_*.hbk/shlang_*.hbk/shquery_*.hbk/dcsui_*.hbk
+ * или его Base64-представление;
+ * без аргумента используется последняя завершённая порционная передача
+ * @returns {Promise<{ok:boolean,kind:string|null,pages:number,error:string|null}>}
+ */
+window.parseHelp = function (source) {
+  const resultPromise = arguments.length ? helpBrowser.parse(source) : helpBrowser.parseTransferred();
+  return resultPromise.then(function (result) {
+    if (result.ok && result.kind == 'context')
+      window.sendEvent('EVENT_ON_HELP_READY');
+    return result;
+  });
+}
+
+/**
+ * Немедленно открывает закреплённую справа панель справки текущего режима.
+ * Если передана строка поиска, поведение совпадает с CTRL+F1: панель
+ * переключается на вкладку «Индекс», выполняется prefix-поиск по заголовкам
+ * и открывается первая найденная статья. Пока профильная справка текущего
+ * режима не готова, запрос игнорируется и панель не открывается.
+ * @param {string} [query] строка поиска по индексу заголовков;
+ * без аргумента панель открывается без изменения вкладки и статьи
+ * @returns {void}
+ */
+window.showHelp = function (query) {
+  if (arguments.length && query) {
+    if (!helpBrowser.isReady())
+      return;
+    helpBrowser.showIndex(String(query));
+  }
+  else {
+    helpBrowser.show();
+  }
+}
+
+/**
+ * Показывает скрытую по умолчанию панель ручного выбора файлов справки.
+ * @returns {void}
+ */
+window.showHelpLoader = function () {
+  helpBrowser.showLoader();
+}
+
+window.getHelpState = function () {
+  const state = helpBrowser.getState();
+  return Object.assign({ ready: state.status == 'ready' }, state);
+}
+
 window.wordWrap = function (enabled) {
 
   if (window.editor.navi) {
@@ -299,30 +370,7 @@ window.getFormatString = function () {
 window.updateMetadata = function (metadata, path = '') {
 
   let bsl = new bslHelper(window.editor.getModel(), window.editor.getPosition());
-  let result = bsl.updateMetadata(metadata, path);
-
-  // Запрос метаданных асинхронный (EVENT_GET_METADATA): провайдер отдаёт список ДО ответа 1С,
-  // поэтому ПЕРВЫЙ показ блока автодополнения неполон — только уже загруженные имена (в поле,
-  // например, лишь менеджерное «ТипВсеСсылки» без объектов конфигурации). Когда данные пришли —
-  // если блок ещё открыт, обновляем его. ВАЖНО: один editor.action.triggerSuggest при уже
-  // открытом блоке НЕ опрашивает провайдер заново, а перефильтровывает уже показанный набор →
-  // список остаётся неполным (в этом и был баг «дозаполняется только по повторному вызову»).
-  // Поэтому сначала ПРЯЧЕМ блок (сброс сессии — hideSuggestWidget), затем через setTimeout
-  // триггерим заново — это чистый повторный опрос провайдера с уже загруженными метаданными.
-  // Тот же приём, что в checkEmptySuggestions. setTimeout — чтобы отработало в «живом» кадре
-  // после ввода (поле 1С красит ~1с после ввода); дедуп metadataRequests исключает повторное
-  // событие и петлю. Гейт по isSuggestWidgetVisible() (читает _ctxSuggestWidgetVisible, который
-  // monaco 0.55 ставит СИНХРОННО при показе; класс .visible вешается лишь через +100мс, т.е. к
-  // моменту ответа 1С его ещё нет — по нему гейтить нельзя) — чтобы suggest не выскакивал на
-  // bulk-загрузке метаданных при инициализации, когда блок не открыт.
-  try {
-    if (result === true && window.isSuggestWidgetVisible()) {
-      window.hideSuggestionsList();
-      setTimeout(function () { window.triggerSuggestions(); }, 10);
-    }
-  } catch (e) { /* best-effort */ }
-
-  return result;
+  return bsl.updateMetadata(metadata, path);
 
 }
 
@@ -372,9 +420,10 @@ window.updateCustomFunctions = function (data) {
 }
 
 window.setTheme = function (theme) {
-      
+
   monaco.editor.setTheme(theme);
   setThemeVariablesDisplay(theme);
+  helpBrowser.setTheme(theme);
 
 }
 
@@ -537,6 +586,8 @@ window.setLanguageMode = function(mode) {
   else {
     monaco.editor.setModelLanguage(window.editor.getModel(), mode);
   }
+
+  helpBrowser.setLanguageMode(mode);
 
   let currentTheme = getCurrentThemeName();
   window.setTheme(currentTheme);
@@ -750,6 +801,15 @@ window.getCurrentLine = function() {
 window.getCurrentColumn = function() {
 
   return window.editor.getPosition().column;
+
+}
+
+window.getCurrentWord = function() {
+
+  const activeEditor = getActiveEditor();
+  const model = activeEditor && activeEditor.getModel();
+  const position = activeEditor && activeEditor.getPosition();
+  return model && position ? model.getWordAtPosition(position) : null;
 
 }
 
@@ -1048,6 +1108,7 @@ window.compare = function (text="", sideBySide=true, highlight=true, markLines =
 
 window.triggerSuggestions = function() {
 
+  window.hideSuggestionsList();
   window.editor.trigger('', 'editor.action.triggerSuggest', {});
 
   setTimeout(() => {
@@ -1442,18 +1503,18 @@ window.getBreakpoints = function () {
 }
 
 window.setCurrentDebugLine = function (line) {
-  
+
   window.editor.currentDebugLine.clear();
 
-  debugLine = {
+  const debugLine = {
       range: new monaco.Range(line, 1, line),
       options: {
           isWholeLine: true,
           className: 'debug-line',
         }
   }
-  
-  pointer = {
+
+  const pointer = {
     range: new monaco.Range(line, 1, line),
     options: {
         isWholeLine: true,
@@ -1464,7 +1525,7 @@ window.setCurrentDebugLine = function (line) {
     }
   }
 
-  DebugLineSet = {
+  const DebugLineSet = {
     line: debugLine,
     pointer: pointer
   }
@@ -2402,6 +2463,30 @@ for (const [key, lang] of Object.entries(window.languages)) {
 };
 
 const commandOnlyActions = ['saveref', 'requestMetadata'];
+
+monaco.editor.addEditorAction({
+  id: 'bsl.showHelp',
+  label: 'Справка 1С',
+  keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.F1],
+  run: function (activeEditor) {
+    if (window.editor && window.editor.navi && activeEditor && activeEditor.hasTextFocus
+      && !activeEditor.hasTextFocus())
+      return;
+    const model = activeEditor && activeEditor.getModel();
+    const position = activeEditor && activeEditor.getPosition();
+    const word = model && position ? model.getWordAtPosition(position) : null;
+    if (word && word.word && window.getOption('generateGetHelpEvent')) {
+      const helper = new bslHelper(model, position);
+      window.sendEvent('EVENT_ON_GET_HELP', helper.getNavigationEventParams());
+    }
+    if (!helpBrowser.isReady())
+      return;
+    if (word && word.word)
+      helpBrowser.showIndex(word.word, activeEditor);
+    else
+      window.showHelp();
+  }
+});
 
 for (const [action_id, action] of Object.entries(permanentActions)) {
 

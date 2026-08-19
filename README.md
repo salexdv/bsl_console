@@ -133,6 +133,7 @@ npm run build -- --env customOptions="automaticLayout: true, someOption: false"
 | `getCurrentLineContent`        | Возвращает содержимое текущей строки                                                          |
 | `getCurrentLine`               | Возвращает номер текущей строки                                                               |
 | `getCurrentColumn`             | Возвращает номер текущей колонки                                                              |
+| `getCurrentWord`               | Возвращает текущее слово и его позици                                                         |
 | [`getModuleMethods`](docs/get_module_methods.md) | Возвращает JSON-описание процедур и функций модуля; список перехода открывается по `CTRL+ALT+P` |
 | `getQuery`                     | Определяет текст запроса в текущей позиции и возвращает его вместе с областью текста          |
 | `getFormatString`              | Определяет текст форматной строки в текущей позиции                                           |
@@ -205,6 +206,13 @@ npm run build -- --env customOptions="automaticLayout: true, someOption: false"
 | [`enableKeyBinding`](docs/disable_key_binding.md) | Включает обратно сочетание                                                 |
 | `saveViewState`                | Возвращает JSON-строку с текущими настройками (положение курсора и прокрутки, а также свернутые блоки) |
 | `restoreViewState`             | Восстанавливает настройки. В качестве аргумента принимает JSON-строку, полученную ранее через `saveViewState` |
+| [`parseHelp`](docs/help_browser.md) | Загружает Base64/`Blob`/`File` с `shcntx`, `shlang`, `shquery` или `dcsui`                 |
+| [`getHelpState`](docs/help_browser.md) | Возвращает состояние справки: признак готовности `ready` и полное состояние сервиса   |
+| [`showHelp`](docs/help_browser.md) | Открывает справку текущего режима; с необязательной строкой поиска ищет, как `CTRL+F1`, только в готовом пакете |
+| [`showHelpLoader`](docs/help_browser.md) | Показывает скрытую по умолчанию панель ручного выбора файлов справки                |
+| [`beginBase64Transfer`](docs/base64_transfer.md) | Начинает универсальную порционную передачу Base64                           |
+| [`pushBase64Chunk`](docs/base64_transfer.md) | Добавляет часть Base64 с произвольной границей                                  |
+| [`endBase64Transfer`](docs/base64_transfer.md) | Завершает передачу и публикует собранный `Blob`                               |
 | [`setOriginalText`](docs/set_original_text.md) | Устанавливает или сбрасывает оригинальный текст, на основании которого строится подсветка изменений |
 | `getOriginalText`              | Возвращает текст, установленный ранее функцией `setOriginalText`                              |
 | `getCurrentLanguageId`         | Возвращает идентификатор текущего языка (`bsl`, `bsl_query`, `dcs_query`, `xml`)              |
@@ -305,6 +313,7 @@ npm run build -- --env customOptions="automaticLayout: true, someOption: false"
 | `EVENT_ON_LINK_CLICK`          | При клике по гиперссылке                                                                      |
 | `EVENT_KEY_BINDING_ХХХ`        | При нажатии отключенного сочетания клавиш [(подробнее)](docs/disable_key_binding.md)          |
 | `EVENT_GET_DEFINITION`         | При переходе к определению [(подробнее)](docs/get_definition_event.md)                        |
+| [`EVENT_ON_GET_HELP`](docs/get_help_event.md) | Опционально при запросе справки по слову через `CTRL+F1`                       |
 | `EVENT_ON_KEY_DOWN`            | При нажатии на клавиатуру [(подробнее)](docs/key_down_event.md)                               |
 | `EVENT_ON_INSERT_SNIPPET`      | При вставке сниппета (шаблона) [(подробнее)](docs/insert_snippet_event.md)                    |
 | `EVENT_GET_VARIABLE_DATA`      | При расшифровке значения переменной в табло [(подробнее)](docs/get_var_data_event.md)         |
@@ -312,6 +321,7 @@ npm run build -- --env customOptions="automaticLayout: true, someOption: false"
 | `EVENT_EVALUATE_EXPRESSION`    | При выборе пункта меню "Вычислить выражение". Возвращает выделенный в редакторе текст         |
 | `EVENT_UPDATE_BREAKPOINTS`     | При интерактивном добавлении/удалении точки останова в редакторе. Возвращает сериализованный в JSON массив номеров строк точек останова |
 | `EVENT_REMOVE_ALL_BREAKPOINTS` | При интерактивном удалении всех точек останова в редакторе                                    |
+| [`EVENT_ON_HELP_READY`](docs/help_ready_event.md) | После успешной загрузки или замены пакета `shcntx`                         |
 
 *Перед началом работы с редактором из 1С Предприятия желательно вызвать функцию инициализации и передать в нее текущую версию платформы.*
 Пример:
@@ -335,6 +345,9 @@ setLanguageMode('xml');
 // Переключение в режим встроенного языка
 setLanguageMode('bsl');
 ```
+
+Справка выбирается по режиму: `shcntx` + `shlang` используются в `bsl` и `xml`, `shquery` — только
+в `bsl_query`, `dcsui` — только в `dcs_query`.
 
 ## Горячие клавиши
 

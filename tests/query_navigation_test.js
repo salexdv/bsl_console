@@ -68,6 +68,21 @@ function definitionAt(text, fragment, occurrence, shift) {
     };
 }
 
+function completionAt(textWithMarker, sourceName) {
+    let markerOffset = textWithMarker.indexOf('|');
+    assert.notEqual(markerOffset, -1, 'В тексте подсказки должен быть маркер позиции');
+
+    let text = textWithMarker.slice(0, markerOffset) + textWithMarker.slice(markerOffset + 1);
+    let document = queryModel.parse(text);
+    let position = positionAt(document, markerOffset);
+    return queryNavigation.resolveFieldCompletionSources(
+        document,
+        position.lineNumber,
+        position.column,
+        sourceName || ''
+    );
+}
+
 function testDocumentSymbols() {
     let text = `ВЫБРАТЬ
     Источник.Ссылка КАК Ссылка,
@@ -194,9 +209,100 @@ function testAmbiguousAndExternalReferences() {
     assert.equal(rangeText(localAlias.document, external, localAlias.definition.targetSelectionRange), 'Товары');
 }
 
+function testMetadataCompletionSources() {
+    let explicit = completionAt(`ВЫБРАТЬ Источник.|
+ИЗ Справочник.Товары КАК Источник`, 'иСтОчНиК');
+    assert(explicit);
+    assert.equal(explicit.length, 1);
+    assert.equal(explicit[0].kind, 'metadata');
+    assert.equal(explicit[0].name, 'Справочник.Товары');
+
+    let implicit = completionAt(`ВЫБРАТЬ Товары.|
+ИЗ Справочник.Товары`, 'тОвАрЫ');
+    assert(implicit);
+    assert.equal(implicit.length, 1);
+    assert.equal(implicit[0].name, 'Справочник.Товары');
+
+    let joined = completionAt(`ВЫБРАТЬ |
+ИЗ Справочник.Товары КАК Товары
+ЛЕВОЕ СОЕДИНЕНИЕ Справочник.Группы КАК Группы
+ПО ИСТИНА`);
+    assert(joined);
+    assert.equal(joined.length, 2);
+    assert.equal(joined[0].name, 'Справочник.Товары');
+    assert.equal(joined[1].name, 'Справочник.Группы');
+}
+
+function testTempTableCompletionSources() {
+    let temporary = completionAt(`ВЫБРАТЬ
+    Товары.Код,
+    Товары.Ссылка КАК Ссылка,
+    1
+ПОМЕСТИТЬ ВТТовары
+ИЗ Справочник.Товары КАК Товары;
+
+ВЫБРАТЬ ВТ.|
+ИЗ вттовары КАК вт`, 'вТ');
+    assert(temporary);
+    assert.equal(temporary.length, 1);
+    assert.equal(temporary[0].kind, 'temporary');
+    assert.equal(temporary[0].fields.join(','), 'Код,Ссылка');
+
+    let unqualified = completionAt(`ВЫБРАТЬ 1 КАК Код ПОМЕСТИТЬ ВТ;
+ВЫБРАТЬ |
+ИЗ ВТ
+ЛЕВОЕ СОЕДИНЕНИЕ Справочник.Товары КАК Товары
+ПО ИСТИНА`);
+    assert(unqualified);
+    assert.equal(unqualified.length, 2);
+    assert.equal(unqualified[0].kind, 'temporary');
+    assert.equal(unqualified[0].fields.join(','), 'Код');
+    assert.equal(unqualified[1].kind, 'metadata');
+
+    let union = completionAt(`SELECT 1 AS FirstField
+INTO TempUnion
+UNION ALL
+SELECT 2 AS SecondField;
+SELECT Source.|
+FROM TempUnion AS Source`, 'source');
+    assert(union);
+    assert.equal(union[0].fields.join(','), 'FirstField');
+
+    let recreated = completionAt(`ВЫБРАТЬ 1 КАК Старое ПОМЕСТИТЬ ВТ;
+ВЫБРАТЬ 2 КАК Новое ПОМЕСТИТЬ вт;
+ВЫБРАТЬ ВТ.|
+ИЗ ВТ`, 'вт');
+    assert(recreated);
+    assert.equal(recreated[0].fields.join(','), 'Новое');
+
+    let destroyed = completionAt(`ВЫБРАТЬ 1 КАК Поле ПОМЕСТИТЬ ВТ;
+УНИЧТОЖИТЬ вт;
+ВЫБРАТЬ ВТ.|
+ИЗ ВТ`, 'вт');
+    assert.equal(destroyed, null);
+}
+
+function testUnresolvedCompletionSources() {
+    let unknownAlias = completionAt(`ВЫБРАТЬ Неизвестный.|
+ИЗ Справочник.Товары КАК Товары`, 'Неизвестный');
+    assert.equal(unknownAlias, null);
+
+    let subquery = completionAt(`ВЫБРАТЬ Подзапрос.|
+ИЗ (ВЫБРАТЬ 1 КАК Поле) КАК Подзапрос`, 'Подзапрос');
+    assert.equal(subquery, null);
+
+    let unnamedField = completionAt(`ВЫБРАТЬ 1 ПОМЕСТИТЬ ВТ;
+ВЫБРАТЬ ВТ.|
+ИЗ ВТ`, 'ВТ');
+    assert.equal(unnamedField, null);
+}
+
 testDocumentSymbols();
 testTempTableAndLocalDefinitions();
 testRecreateAndDestroy();
 testJoinAndFirstUnionBranch();
 testAmbiguousAndExternalReferences();
+testMetadataCompletionSources();
+testTempTableCompletionSources();
+testUnresolvedCompletionSources();
 console.log('All query navigation checks passed.');

@@ -6312,12 +6312,92 @@ class bslHelper {
 	}
 
 	/**
-	 * Fills array of completion for fields of querie's table
-	 * 
+	 * Заполняет подсказки полей по актуальной модели запроса.
+	 *
+	 * @param {array} suggestions array of suggestions for provideCompletionItems
+	 * @param {string} sourceName имя или псевдоним источника; пустая строка означает все источники ветки
+	 * @returns {boolean} модель смогла обработать хотя бы один источник
+	 */
+	getQueryFieldsCompletionFromModel(suggestions, sourceName) {
+
+		if (!queryModelService || !queryModelService.getCurrentSynchronously ||
+			!queryNavigation || !queryNavigation.resolveFieldCompletionSources)
+			return false;
+
+		let document = queryModelService.getCurrentSynchronously(this.model);
+
+		if (!document)
+			return false;
+
+		let sources = queryNavigation.resolveFieldCompletionSources(
+			document,
+			this.lineNumber,
+			this.column,
+			sourceName
+		);
+
+		if (!sources)
+			return false;
+
+		let handled = false;
+
+		sources.forEach(source => {
+			if (source.kind == 'metadata') {
+				handled = this.getQueryFieldsCompletionForMetadata(suggestions, source.name) || handled;
+			}
+			else if (source.kind == 'temporary' && source.fields && source.fields.length) {
+				source.fields.forEach(field => {
+					suggestions.push({
+						label: field,
+						kind: monaco.languages.CompletionItemKind.Enum,
+						insertText: field,
+						insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+					});
+				});
+
+				handled = true;
+			}
+		});
+
+		return handled;
+
+	}
+
+	/**
+	 * Fills array of completion for fields of querie's table. Uses parsed query model first.
+	 *
 	 * @param {array} suggestions array of suggestions for provideCompletionItems
 	 * @param {bool} allowChain allow or not call chain completion (to avoid looping)
 	 */
 	getQueryFieldsCompletion(suggestions, allowChain = true) {
+
+		let sourceName = '';
+
+		if (this.getLastCharacter() == '.' && this.lastRawExpression)
+			sourceName = this.lastRawExpression;
+		else if (this.lastRawExpression && this.getLastNExpression(1) == '.')
+			sourceName = this.getLastNExpression(2);
+		else {
+			let lastWord = this.getLastSeparatedWord();
+			if (this.isKeyword(lastWord) && !this.isFromTrigger(lastWord) &&
+				this.getQueryFieldsCompletionFromModel(suggestions, ''))
+				return;
+		}
+
+		if (sourceName && this.getQueryFieldsCompletionFromModel(suggestions, sourceName))
+			return;
+
+		this.getQueryFieldsCompletionLegacy(suggestions, allowChain);
+
+	}
+
+	/**
+	 * Прежний алгоритм подсказки полей на регулярных выражениях.
+	 *
+	 * @param {array} suggestions array of suggestions for provideCompletionItems
+	 * @param {bool} allowChain allow or not call chain completion (to avoid looping)
+	 */
+	getQueryFieldsCompletionLegacy(suggestions, allowChain = true) {
 
 		let position = null;
 		let last_expression = this.lastRawExpression;
@@ -7117,9 +7197,9 @@ class bslHelper {
 					this.getQueryFieldsCompletion(suggestions);
 
 					if (this.lastExpression.indexOf('.') < 0) {
-						this.getQueryCommonCompletion(suggestions, monaco.languages.CompletionItemKind.Module);
 						if (functions)
 							this.getCommonCompletion(suggestions, functions, monaco.languages.CompletionItemKind.Function, true);
+						this.getQueryCommonCompletion(suggestions, monaco.languages.CompletionItemKind.Module);
 					}
 
 					this.getSnippets(suggestions, querySnippets, false);
@@ -10541,75 +10621,75 @@ class bslHelper {
 	}
 
 	/**
- 	 * Definition event generator
- 	 * 
- 	 */
-	 generateDefinitionEvent() {
+	 * Returns context for navigation events
+	 *
+	 * @returns {object} event parameters
+	 */
+	getNavigationEventParams() {
 
-		if (window.editor.generateDefinitionEvent) {
+		let expression = this.lastExpression;
+		let last_exp_arr = expression.split('.');
+		let full_exp_array = this.getRawExpressioArray();
+		let module_name = '';
+		let class_name = '';
+		const common_modules = window.bslMetadata && window.bslMetadata.commonModules
+			&& window.bslMetadata.commonModules.items
+			? window.bslMetadata.commonModules.items : {};
 
-			let expression = this.lastExpression;
-			let last_exp_arr = expression.split('.');
-			let full_exp_array = this.getRawExpressioArray();
+		if (2 < full_exp_array.length && full_exp_array[full_exp_array.length - 2] == '.')
+			class_name = full_exp_array[full_exp_array.length - 3];
 
-			let module_name = '';
-			let class_name = '';			
+		full_exp_array[full_exp_array.length - 1] = this.word;
 
-			if (2 < full_exp_array.length && full_exp_array[full_exp_array.length - 2] == '.')
-				class_name = full_exp_array[full_exp_array.length - 3];
+		if (1 < last_exp_arr.length) {
+			last_exp_arr[last_exp_arr.length - 1] = this.word;
+			expression = last_exp_arr.join('.');
+			let first_exp = last_exp_arr[0].toLocaleLowerCase();
 
-			full_exp_array[full_exp_array.length - 1] = this.word;
-
-			if (1 < last_exp_arr.length) {
-				
-				last_exp_arr[last_exp_arr.length - 1] = this.word;
-				expression = last_exp_arr.join('.');
-				let first_exp = last_exp_arr[0].toLocaleLowerCase();
-
-				for (const [key, value] of Object.entries(window.bslMetadata.commonModules.items)) {
-
-					if (key.toLowerCase() == first_exp) {
-						module_name = key;
-						break;
-					}
-
+			for (const [key, value] of Object.entries(common_modules)) {
+				if (key.toLowerCase() == first_exp) {
+					module_name = key;
+					break;
 				}
-
 			}
-			else {
-
-				for (const [key, value] of Object.entries(window.bslMetadata.commonModules.items)) {
-
-					if (key.toLowerCase() == this.word) {
-						module_name = this.word;
-						break;
-					}
-
-					if (key.toLowerCase() == class_name) {
-						module_name = class_name;
-						break;
-					}
-
-				}
-
-			}
-
-			if (module_name.toLowerCase() == class_name.toLowerCase())
-				class_name = '';
-
-			let event_params = {
-				word: this.word,
-				expression: expression,
-				module: module_name,
-				class: class_name,
-				line: this.lineNumber,
-				column: this.column,
-				expression_array: full_exp_array,
-			}
-
-			window.sendEvent('EVENT_GET_DEFINITION', event_params);
-
 		}
+		else {
+			for (const [key, value] of Object.entries(common_modules)) {
+				if (key.toLowerCase() == this.word) {
+					module_name = this.word;
+					break;
+				}
+
+				if (key.toLowerCase() == class_name) {
+					module_name = class_name;
+					break;
+				}
+			}
+		}
+
+		if (module_name.toLowerCase() == class_name.toLowerCase())
+			class_name = '';
+
+		return {
+			word: this.word,
+			expression: expression,
+			module: module_name,
+			class: class_name,
+			line: this.lineNumber,
+			column: this.column,
+			expression_array: full_exp_array,
+		};
+
+	}
+
+	/**
+	 * Definition event generator
+	 *
+	 */
+	generateDefinitionEvent() {
+
+		if (window.editor.generateDefinitionEvent)
+			window.sendEvent('EVENT_GET_DEFINITION', this.getNavigationEventParams());
 
 	}
 

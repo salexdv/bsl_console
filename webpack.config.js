@@ -36,7 +36,8 @@ module.exports = (env, argv) => {
     entry: isTest ? {
       test: ['./editor', './test'],
       test_query: ['./editor', './test_query'],
-      test_query_model: ['./editor', './test_query_model']
+      test_query_model: ['./editor', './test_query_model'],
+      help_benchmark: './help/benchmark_browser'
     } : withTests ? {
       // Реальный редактор bsl_console (Этап 3+). Обёрнут теми же слоями совместимости, что и
       // смоук-каркас: polyfills → monaco-environment → product-service → expose-monaco.
@@ -45,7 +46,8 @@ module.exports = (env, argv) => {
       // + страницы тестов для dev-сервера (см. withTests).
       test: ['./editor', './test'],
       test_query: ['./editor', './test_query'],
-      test_query_model: ['./editor', './test_query_model']
+      test_query_model: ['./editor', './test_query_model'],
+      help_benchmark: './help/benchmark_browser'
     } : {
       console: './editor'
     },
@@ -206,7 +208,8 @@ module.exports = (env, argv) => {
         template: './index.html',
         filename: 'index.html',
         cache: false
-      })
+      }),
+      withTests ? new HtmlWebpackPlugin({ inject: 'body', chunks: ['help_benchmark'], template: './help/benchmark.html', filename: 'help_benchmark.html', cache: false }) : false
     ].filter(Boolean),
     optimization: {
       minimize: isProd,
