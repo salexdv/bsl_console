@@ -78,6 +78,198 @@ setTimeout(() => {
 
     }
 
+    function waitFor(check, timeout = 1500) {
+
+      let started = Date.now();
+
+      return new Promise(function (resolve, reject) {
+        function poll() {
+          if (check()) {
+            resolve();
+            return;
+          }
+
+          if (Date.now() - started >= timeout) {
+            reject(new Error('Истекло время ожидания условия'));
+            return;
+          }
+
+          setTimeout(poll, 10);
+        }
+
+        poll();
+      });
+
+    }
+
+    it("AI inline provider выключен по умолчанию", function () {
+      assert.equal(window.getOption('generateAIInlineCompletionEvent'), false);
+    });
+
+    it("AI inline options отклоняют невалидные значения", function () {
+      const originalDebounce = window.getOption('aiInlineCompletionDebounceMs');
+
+      try {
+        window.setOption('aiInlineCompletionDebounceMs', 321);
+        assert.equal(window.setOption('aiInlineCompletionDebounceMs', -1), false);
+        assert.equal(window.getOption('aiInlineCompletionDebounceMs'), 321);
+        assert.equal(window.setOption('generateAIInlineCompletionEvent', 1), false);
+        assert.equal(window.getOption('generateAIInlineCompletionEvent'), false);
+      }
+      finally {
+        window.setOption('aiInlineCompletionDebounceMs', originalDebounce);
+      }
+    });
+
+    it("AI inline option восстанавливается после пересоздания редактора", function () {
+      const originalEnabled = window.getOption('generateAIInlineCompletionEvent');
+      const originalText = window.getText();
+      const originalComparisonText = window.originalText;
+
+      try {
+        window.setOption('generateAIInlineCompletionEvent', true);
+        window.originalText = originalText;
+        window.compare();
+        window.editor.definitionBreadcrumbs = [];
+        assert.equal(window.getOption('generateAIInlineCompletionEvent'), true);
+        assert.equal(window.getText(), originalText);
+      }
+      finally {
+        window.setOption('generateAIInlineCompletionEvent', originalEnabled);
+        window.originalText = originalComparisonText;
+      }
+    });
+
+    it("AI inline provider выполняет цикл request-response и не реагирует на updateText", async function () {
+
+      const originalText = window.getText();
+      const originalSendEvent = window.sendEvent;
+      const originalEnabled = window.getOption('generateAIInlineCompletionEvent');
+      const originalDebounce = window.getOption('aiInlineCompletionDebounceMs');
+      const originalTimeout = window.getOption('aiInlineCompletionRequestTimeoutMs');
+      const capturedEvents = [];
+
+      try {
+        window.sendEvent = function (name, params) {
+          if (name.indexOf('EVENT_AI_INLINE_COMPLETION_') == 0)
+            capturedEvents.push({ name: name, params: params });
+          else
+            originalSendEvent(name, params);
+        };
+
+        window.setOption('aiInlineCompletionDebounceMs', 0);
+        window.setOption('aiInlineCompletionRequestTimeoutMs', 2000);
+        window.setOption('generateAIInlineCompletionEvent', true);
+
+        window.updateText('Запрос = Но');
+        window.editor.setPosition({ lineNumber: 1, column: 12 });
+        window.editor.focus();
+        await new Promise(resolve => setTimeout(resolve, 100));
+        assert.equal(capturedEvents.length, 0, 'программное обновление не должно запрашивать AI');
+
+        window.editor.executeEdits('ai-inline-test', [{
+          range: new monaco.Range(1, 12, 1, 12),
+          text: 'в',
+          forceMoveMarkers: true
+        }]);
+        window.editor.setPosition({ lineNumber: 1, column: 13 });
+
+        await waitFor(function () {
+          return capturedEvents.some(event => event.name == 'EVENT_AI_INLINE_COMPLETION_REQUEST');
+        });
+
+        let request = capturedEvents.find(event => event.name == 'EVENT_AI_INLINE_COMPLETION_REQUEST').params;
+        assert.equal(request.context.prefix, 'Запрос = Нов');
+        assert.equal(request.position.column, 13);
+        assert.equal(window.resolveAIInlineCompletion(request.requestId, ['ый Запрос()']), true);
+
+        await waitFor(function () { return window.isInlineSuggestionsVisible(); });
+        assert.equal(window.editor.inlineSuggestController.accept(), true);
+        assert.equal(window.getText(), 'Запрос = Новый Запрос()');
+      }
+      finally {
+        window.setOption('generateAIInlineCompletionEvent', false);
+        window.setOption('aiInlineCompletionDebounceMs', originalDebounce);
+        window.setOption('aiInlineCompletionRequestTimeoutMs', originalTimeout);
+        window.updateText(originalText);
+        window.sendEvent = originalSendEvent;
+        window.setOption('generateAIInlineCompletionEvent', originalEnabled);
+      }
+
+    });
+
+    it("AI inline provider отменяет запрос новой правкой, курсором и Esc", async function () {
+
+      const originalText = window.getText();
+      const originalSendEvent = window.sendEvent;
+      const originalEnabled = window.getOption('generateAIInlineCompletionEvent');
+      const originalDebounce = window.getOption('aiInlineCompletionDebounceMs');
+      const originalTimeout = window.getOption('aiInlineCompletionRequestTimeoutMs');
+      const capturedEvents = [];
+
+      function requests() {
+        return capturedEvents.filter(event => event.name == 'EVENT_AI_INLINE_COMPLETION_REQUEST');
+      }
+
+      function cancellations(reason) {
+        return capturedEvents.filter(event => event.name == 'EVENT_AI_INLINE_COMPLETION_CANCEL'
+          && event.params.reason == reason);
+      }
+
+      try {
+        window.sendEvent = function (name, params) {
+          if (name.indexOf('EVENT_AI_INLINE_COMPLETION_') == 0)
+            capturedEvents.push({ name: name, params: params });
+          else
+            originalSendEvent(name, params);
+        };
+
+        window.setOption('aiInlineCompletionDebounceMs', 0);
+        window.setOption('aiInlineCompletionRequestTimeoutMs', 2000);
+        window.setOption('generateAIInlineCompletionEvent', true);
+        window.updateText('А');
+        window.editor.setPosition({ lineNumber: 1, column: 2 });
+        window.editor.focus();
+
+        window.triggerInlineSuggestions();
+        await waitFor(function () { return requests().length == 1; });
+        window.editor.executeEdits('ai-inline-cancel-test', [{
+          range: new monaco.Range(1, 2, 1, 2),
+          text: 'Б',
+          forceMoveMarkers: true
+        }]);
+        await waitFor(function () { return cancellations('superseded').length == 1 && requests().length == 2; });
+        assert.equal(window.resolveAIInlineCompletion(requests()[1].params.requestId, []), true);
+
+        window.triggerInlineSuggestions();
+        await waitFor(function () { return requests().length == 3; });
+        window.editor.setPosition({ lineNumber: 1, column: 1 });
+        await waitFor(function () { return cancellations('cursorChanged').length == 1; });
+
+        window.triggerInlineSuggestions();
+        await waitFor(function () { return requests().length == 4; });
+        let inputArea = document.querySelector('.monaco-editor textarea.inputarea');
+        inputArea.dispatchEvent(new KeyboardEvent('keydown', {
+          key: 'Escape',
+          code: 'Escape',
+          keyCode: 27,
+          which: 27,
+          bubbles: true,
+          cancelable: true
+        }));
+        await waitFor(function () { return cancellations('hidden').length == 1; });
+      }
+      finally {
+        window.setOption('generateAIInlineCompletionEvent', false);
+        window.setOption('aiInlineCompletionDebounceMs', originalDebounce);
+        window.setOption('aiInlineCompletionRequestTimeoutMs', originalTimeout);
+        window.updateText(originalText);
+        window.sendEvent = originalSendEvent;
+        window.setOption('generateAIInlineCompletionEvent', originalEnabled);
+      }
+
+    });
+
     it("пользовательские подсказки не токенизируют текст до курсора (issue #335)", function () {
 
       const originalTokenize = monaco.editor.tokenize;
@@ -2491,7 +2683,7 @@ setTimeout(() => {
     if (testFormatter)
       registerFormatterBrowserTests(getModel);
 
-    mocha.run();
+    window.mochaRunner = mocha.run();
 
   })
 

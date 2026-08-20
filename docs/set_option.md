@@ -9,6 +9,9 @@
 ## Пример вызова
 ```javascript
 setOption("skipInsertSuggestionAcceptor", true);
+
+// Включение запросов AI inline-подсказок через события 1С
+setOption("generateAIInlineCompletionEvent", true);
 ```
 
 ## Список опциональных настроек
@@ -26,6 +29,7 @@ setOption("skipInsertSuggestionAcceptor", true);
 	* `onKeyDownFilter` - *string*, дополнительный фильтр по кодам клавиш
 * `generateSnippetEvent` - *boolean*, включает генерацию [события](insert_snippet_event.md) при вставке сниппета
 * `generateCompareCompleteEvent` - *boolean*, включает генерацию [события](compare_complete_event.md) при завершения сравнения
+* `generateAIInlineCompletionEvent` - *boolean*, включает запросы [AI inline-подсказок](ai_inline_completions.md) через события 1С. Значение по умолчанию — `false`. При отключении ожидающий запрос отменяется, а активная inline-подсказка скрывается
 
 ##### Управление подсказками
 Позволяет оставить только пользовательские подсказки
@@ -34,6 +38,12 @@ setOption("skipInsertSuggestionAcceptor", true);
 * `disableNativeHovers` - *boolean*, отключает стандартные всплывающие подсказки при наведении курсора мыши на слово
 * `disableNativeCodeAction` - *boolean*, отключает стандартные подсказки по форматированию кода
 * `showSnippetsOnCustomSuggestions` - *boolean*, включает показ стандартных сниппетов при выводе пользовательских подсказок через [`showCustomSuggestions`](custom_suggestions.md)
+* `aiInlineCompletionDebounceMs` - *number*, задержка автоматического AI-запроса после последней правки, мс. Значение по умолчанию — `400`
+* `aiInlineCompletionRequestTimeoutMs` - *number*, время ожидания ответа 1С, мс. Значение по умолчанию — `15000`
+* `aiInlineCompletionMaxPrefixChars` - *number*, максимальное число символов контекста перед курсором. Значение по умолчанию — `16000`
+* `aiInlineCompletionMaxSuffixChars` - *number*, максимальное число символов контекста после курсора. Значение по умолчанию — `4000`
+
+Числовые настройки должны быть целыми неотрицательными числами, а `aiInlineCompletionRequestTimeoutMs` — положительным числом. Невалидное значение не применяется.
 
 ##### Различные настройки редактора
 * `skipInsertSuggestionAcceptor` - *boolean*, позволяет пропустить вставку символа, заданного функцией *setActiveSuggestionAcceptors* и вызвавшего выбор активного пункта подсказки

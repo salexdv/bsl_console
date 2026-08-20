@@ -5,7 +5,7 @@
   "main": "editor.js",
   "homepage": "https://github.com/salexdv/bsl_console",
   "scripts": {
-    "test": "npm run test:formatter && npm run test:search-history && npm run test:query-model-corpus && npm run test:query-navigation && npm run test:query-model-service && npm run test:help",
+    "test": "npm run test:formatter && npm run test:search-history && npm run test:query-model-corpus && npm run test:query-navigation && npm run test:query-model-service && npm run test:ai-inline && npm run test:help",
     "test:formatter": "mocha tests/bsl_formatter_test.js",
     "test:search-history": "node tests/search_history_test.js",
     "build:headless": "webpack --mode development --progress",
@@ -14,6 +14,7 @@
     "test:query-model-corpus:loose": "node tests/query_model_corpus_test.js",
     "test:query-navigation": "node tests/query_navigation_test.js",
     "test:query-model-service": "node tests/query_model_service_test.js",
+    "test:ai-inline": "node tests/ai_inline_provider_test.js",
     "debug": "webpack-dev-server --mode development --progress",
     "build": "webpack --mode production --progress && node tools/check_blob_workers.js",
     "escheck": "es-check es2015 \"dist/*.js\" && node tools/check_blob_workers.js",

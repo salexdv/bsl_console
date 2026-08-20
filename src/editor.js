@@ -14,9 +14,20 @@ import SnippetsParser from "./parsers";
 import SearchHistoryController from './search_history';
 import bslHelper from './bsl_helper';
 import { createHelpBrowser } from './help';
+import { AI_INLINE_DEFAULT_OPTIONS, createAIInlineProvider, isAIInlineOption, isValidAIInlineOption } from './ai_inline_provider';
 
 const monaco = require('./monaco');
 const searchHistoryController = new SearchHistoryController(monaco);
+const aiInlineProvider = createAIInlineProvider({
+  getEditor: function () { return window.editor; },
+  getOption: function (name) {
+    if (window.editor && typeof window.editor[name] != 'undefined')
+      return window.editor[name];
+    return window.editor_options[name];
+  },
+  sendEvent: function (name, params) { return window.sendEvent(name, params); },
+  isInlineEnabled: function () { return window.inlineSuggestEnabled === true; }
+});
 const helpBrowser = createHelpBrowser(function () { return window.editor; }, function (params) {
   window.sendEvent('EVENT_ON_LINK_CLICK', params);
 });
@@ -75,6 +86,9 @@ window.inlineDiffWidget = null;
 window.events_queue = [];
 window.colors = {};
 window.editor_options = [];
+Object.keys(AI_INLINE_DEFAULT_OPTIONS).forEach(function (name) {
+  window.editor_options[name] = AI_INLINE_DEFAULT_OPTIONS[name];
+});
 window.snippets = {};
 window.bslSnippets = {};
 window.treeview = null;
@@ -85,6 +99,10 @@ window.currentIssue = -1;
 window.hiddenBlocks = new Map();
 window.inlineCompletionProviders = [];
 window.inlineSuggestEnabled = true;
+window.inlineCompletionProvidersInitialized = false;
+window.aiInlineProgrammaticChangeDepth = 0;
+window.aiInlineContentTriggerVersion = 0;
+window.aiInlineContentTriggerScheduled = false;
 window.objectContext = null;
 // #endregion
 
@@ -217,8 +235,15 @@ window.setText = function(txt, range, usePadding) {
   
   window.editor.checkBookmarks = false;
 
-  window.reserMark();    
-  bslHelper.setText(txt, range, usePadding);
+  window.reserMark();
+
+  beginAIInlineProgrammaticChange();
+  try {
+    bslHelper.setText(txt, range, usePadding);
+  }
+  finally {
+    endAIInlineProgrammaticChange();
+  }
   
   if (window.getText()) {
     checkBookmarksCount();
@@ -247,12 +272,18 @@ window.updateText = function(txt, clearUndoHistory = true) {
   if (mod_event)    
     window.setOption('generateModificationEvent', false);
 
-  eraseTextBeforeUpdate();
-  
-  if (clearUndoHistory)
-    window.editor.setValue(txt);
-  else
-    window.setText(txt);
+  beginAIInlineProgrammaticChange();
+  try {
+    eraseTextBeforeUpdate();
+
+    if (clearUndoHistory)
+      window.editor.setValue(txt);
+    else
+      window.setText(txt);
+  }
+  finally {
+    endAIInlineProgrammaticChange();
+  }
 
   if (window.getText()) {
     checkBookmarksCount();
@@ -284,7 +315,13 @@ window.setContent = function(text) {
   if (mod_event)    
     window.setOption('generateModificationEvent', false);
 
-  window.editor.setValue(text)
+  beginAIInlineProgrammaticChange();
+  try {
+    window.editor.setValue(text)
+  }
+  finally {
+    endAIInlineProgrammaticChange();
+  }
 
   if (mod_event)    
     window.setOption('generateModificationEvent', true);
@@ -1230,17 +1267,23 @@ window.showInlineSuggestion = function (suggestions) {
 
 }
 
+window.resolveAIInlineCompletion = function (requestId, suggestions) {
+  return aiInlineProvider.resolve(requestId, suggestions);
+}
+
 window.hideInlineSuggestions = function () {
 
+  cancelScheduledAIInlineContentTrigger();
   if (window.editor && window.editor.inlineSuggestController)
-    window.editor.inlineSuggestController.hide();
+    window.editor.inlineSuggestController.hide('hidden');
 
 }
 
 window.triggerInlineSuggestions = function () {
 
+  cancelScheduledAIInlineContentTrigger();
   if (window.editor && window.editor.inlineSuggestController)
-    window.editor.inlineSuggestController.trigger(true);
+    window.editor.inlineSuggestController.trigger(true, '', 'explicit', Date.now());
 
 }
 
@@ -1254,8 +1297,12 @@ window.enableInlineSuggestions = function (enabled) {
 
   window.inlineSuggestEnabled = enabled;
 
-  if (!enabled)
-    window.hideInlineSuggestions();
+  if (!enabled) {
+    cancelScheduledAIInlineContentTrigger();
+    aiInlineProvider.cancel('disabled');
+    if (window.editor && window.editor.inlineSuggestController)
+      window.editor.inlineSuggestController.hide('disabled');
+  }
   else
     window.triggerInlineSuggestions();
 
@@ -1636,8 +1683,21 @@ window.previousMatch = function () {
 
 window.setOption = function (optionName, optionValue) {
 
+  if (isAIInlineOption(optionName) && !isValidAIInlineOption(optionName, optionValue))
+    return false;
+
   window.editor[optionName] = optionValue;
   window.editor_options[optionName] = optionValue;
+
+  if (isAIInlineOption(optionName)) {
+    aiInlineProvider.optionChanged(optionName, optionValue);
+
+    if (optionName == 'generateAIInlineCompletionEvent' && optionValue !== true
+      && window.editor.inlineSuggestController) {
+      cancelScheduledAIInlineContentTrigger();
+      window.editor.inlineSuggestController.hide('disabled');
+    }
+  }
 
   if (optionName == 'generateBeforeSignatureEvent')
       startStopSignatureObserver();
@@ -1678,7 +1738,9 @@ window.setOption = function (optionName, optionValue) {
 
 window.getOption = function (optionName) {
 
-  return window.editor[optionName];
+  return typeof window.editor[optionName] == 'undefined'
+    ? window.editor_options[optionName]
+    : window.editor[optionName];
   
 }
 
@@ -2507,6 +2569,9 @@ function initEditorEventListenersAndProperies() {
   window.editor.onKeyDown(e => editorOnKeyDown(e));
 
   window.editor.onDidChangeModelContent(e => {
+
+    let aiTriggerSource = window.aiInlineProgrammaticChangeDepth > 0 ? 'programmatic' : 'content';
+    let aiTriggeredAt = Date.now();
     
     calculateDiff();
 
@@ -2519,7 +2584,17 @@ function initEditorEventListenersAndProperies() {
     window.updateBreakpoints(undefined);
 
     window.setOption('lastContentChanges', e);
-    window.editor.inlineSuggestController.trigger(false, getInlineTriggerCharacter(e));
+    let aiTriggerCharacter = getInlineTriggerCharacter(e);
+    let aiContentTriggerVersion = ++window.aiInlineContentTriggerVersion;
+    window.aiInlineContentTriggerScheduled = true;
+    setTimeout(function () {
+      if (aiContentTriggerVersion != window.aiInlineContentTriggerVersion)
+        return;
+
+      window.aiInlineContentTriggerScheduled = false;
+      if (window.editor && window.editor.inlineSuggestController)
+        window.editor.inlineSuggestController.trigger(false, aiTriggerCharacter, aiTriggerSource, aiTriggeredAt);
+    }, 0);
 
     if (window.getCurrentLanguageId() == 'bsl_query') {
       if (window.editor.navi) {
@@ -2613,10 +2688,13 @@ function initEditorEventListenersAndProperies() {
     updateSelectedQueryDelimiters(e);
     updateIfHighlights();
 
+    if (window.aiInlineContentTriggerScheduled)
+      return;
+
     if (e.selection.isEmpty())
-      window.editor.inlineSuggestController.trigger(false);
+      window.editor.inlineSuggestController.trigger(false, '', 'cursor', Date.now());
     else
-      window.editor.inlineSuggestController.hide();
+      window.editor.inlineSuggestController.hide('cursorChanged');
 
   });
 
@@ -2797,6 +2875,18 @@ function createDefaultInlineCompletionsProvider() {
     },
     freeInlineCompletions: function () { }
   }
+
+}
+
+function ensureInlineCompletionProviders() {
+
+  if (window.inlineCompletionProvidersInitialized)
+    return;
+
+  window.activateInlineCompletionsApi();
+  monaco.languages.registerInlineCompletionsProvider('*', createDefaultInlineCompletionsProvider());
+  monaco.languages.registerInlineCompletionsProvider(['bsl', 'bsl_query', 'dcs_query'], aiInlineProvider.provider);
+  window.inlineCompletionProvidersInitialized = true;
 
 }
 
@@ -3043,6 +3133,58 @@ function createInlineCompletionFromText(model, position, text) {
 
 }
 
+function beginAIInlineProgrammaticChange() {
+  window.aiInlineProgrammaticChangeDepth++;
+}
+
+function endAIInlineProgrammaticChange() {
+  window.aiInlineProgrammaticChangeDepth = Math.max(0, window.aiInlineProgrammaticChangeDepth - 1);
+}
+
+function cancelScheduledAIInlineContentTrigger() {
+  window.aiInlineContentTriggerVersion++;
+  window.aiInlineContentTriggerScheduled = false;
+}
+
+function createInlineCancellationTokenSource() {
+
+  let cancelled = false;
+  let reason = '';
+  let listeners = [];
+  let token = {
+    get isCancellationRequested() { return cancelled; },
+    get reason() { return reason; },
+    onCancellationRequested: function (listener) {
+      if (cancelled) {
+        listener();
+        return { dispose: function () { } };
+      }
+
+      listeners.push(listener);
+      return {
+        dispose: function () {
+          listeners = listeners.filter(function (item) { return item !== listener; });
+        }
+      };
+    }
+  };
+
+  return {
+    token: token,
+    cancel: function (cancelReason) {
+      if (cancelled)
+        return;
+
+      cancelled = true;
+      reason = cancelReason || 'superseded';
+      let callbacks = listeners.slice();
+      listeners = [];
+      callbacks.forEach(function (listener) { listener(); });
+    }
+  };
+
+}
+
 function createInlineSuggestController(codeEditor) {
 
   let renderer = createInlineGhostTextRenderer(codeEditor);
@@ -3050,13 +3192,32 @@ function createInlineSuggestController(codeEditor) {
   let visible = false;
   let timerId = 0;
   let requestId = 0;
+  let requestCancellation = null;
 
-  function hide() {
+  function clearPresentation() {
 
     activeCompletion = null;
     visible = false;
     renderer.hide();
 
+  }
+
+  function cancelRequest(reason) {
+
+    clearTimeout(timerId);
+    timerId = 0;
+    requestId++;
+
+    if (requestCancellation) {
+      requestCancellation.cancel(reason || 'superseded');
+      requestCancellation = null;
+    }
+
+  }
+
+  function hide(reason = 'hidden') {
+    cancelRequest(reason);
+    clearPresentation();
   }
 
   function isSelectionValid() {
@@ -3086,24 +3247,30 @@ function createInlineSuggestController(codeEditor) {
 
   }
 
-  function trigger(explicit = false, triggerCharacter = '') {
+  function trigger(explicit = false, triggerCharacter = '', triggerSource = '', triggeredAt = 0) {
 
-    clearTimeout(timerId);
+    let cancelReason = triggerSource == 'cursor' ? 'cursorChanged' : 'superseded';
+    cancelRequest(cancelReason);
 
     if (!monaco.languages.registerInlineCompletionsProvider)
       return;
 
     if (!canShowInlineSuggestions()) {
-      hide();
+      clearPresentation();
       return;
     }
 
     let currentRequestId = ++requestId;
+    let currentCancellation = createInlineCancellationTokenSource();
+    requestCancellation = currentCancellation;
 
     timerId = setTimeout(function () {
 
+      timerId = 0;
+
       if (!canShowInlineSuggestions()) {
-        hide();
+        cancelRequest(cancelReason);
+        clearPresentation();
         return;
       }
 
@@ -3112,19 +3279,24 @@ function createInlineSuggestController(codeEditor) {
       let providers = getInlineCompletionProviders(model.getLanguageIdentifier().language);
       let context = {
         triggerKind: explicit ? monaco.languages.InlineCompletionTriggerKind.Explicit : monaco.languages.InlineCompletionTriggerKind.Automatic,
-        triggerCharacter: triggerCharacter
+        triggerCharacter: triggerCharacter,
+        triggerSource: triggerSource || (explicit ? 'explicit' : 'content'),
+        triggeredAt: triggeredAt || Date.now()
       };
 
       Promise.resolve().then(function () {
 
         function findProvided(providerIndex) {
 
+          if (currentCancellation.token.isCancellationRequested)
+            return Promise.resolve(null);
+
           if (providers.length <= providerIndex)
             return Promise.resolve(null);
 
           let provider = providers[providerIndex];
 
-          return Promise.resolve(provider.provideInlineCompletions(model, position, context, null)).then(function (result) {
+          return Promise.resolve(provider.provideInlineCompletions(model, position, context, currentCancellation.token)).then(function (result) {
 
             let items = result && result.items ? result.items : [];
 
@@ -3145,16 +3317,22 @@ function createInlineSuggestController(codeEditor) {
           if (currentRequestId != requestId || !canShowInlineSuggestions())
             return;
 
+          if (requestCancellation === currentCancellation)
+            requestCancellation = null;
+
           if (provided)
             render(provided);
           else
-            hide();
+            clearPresentation();
 
         });
 
       }).catch(function () {
-        if (currentRequestId == requestId)
-          hide();
+        if (currentRequestId == requestId) {
+          if (requestCancellation === currentCancellation)
+            requestCancellation = null;
+          clearPresentation();
+        }
       });
 
     }, explicit ? 0 : 60);
@@ -3166,7 +3344,7 @@ function createInlineSuggestController(codeEditor) {
     hide: hide,
     showText: function (text) {
 
-      clearTimeout(timerId);
+      cancelRequest('superseded');
 
       if (!window.inlineSuggestEnabled || window.readOnlyMode || codeEditor.navi || !codeEditor.hasModel())
         return false;
@@ -3175,7 +3353,7 @@ function createInlineSuggestController(codeEditor) {
       let normalizedItem = createInlineCompletionFromText(codeEditor.getModel(), currentPosition, text);
 
       if (!normalizedItem) {
-        hide();
+        clearPresentation();
         return false;
       }
 
@@ -3192,17 +3370,17 @@ function createInlineSuggestController(codeEditor) {
       if (!activeCompletion)
         return false;
 
-      let accepted = applyInlineCompletion(activeCompletion);
-      hide();
-      return accepted;
+      let completionToAccept = activeCompletion;
+      hide('superseded');
+      return applyInlineCompletion(completionToAccept);
     },
     layout: function () {
       if (visible && activeCompletion)
         renderer.layout(codeEditor.getPosition(), getCurrentThemeName());
     },
     dispose: function () {
-      clearTimeout(timerId);
-      hide();
+      cancelRequest('disposed');
+      clearPresentation();
       renderer.dispose();
     }
   };
@@ -3885,6 +4063,8 @@ window.activateInlineCompletionsApi = function () {
   }
 
 }
+
+ensureInlineCompletionProviders();
 
 window.disposeEditor = function() {
 

@@ -238,6 +238,7 @@ npm run build  -- --customOptions "automaticLayout: true, someOption: false"
 | [`triggerSigHelp`](docs/trigger_signature_help.md) | Принудительный вызов подсказки по вызову процедуры/метода                 |
 | [`showCustomSuggestions`](docs/custom_suggestions.md) | Показ пользовательских подсказок                                       |
 | [`showInlineSuggestion`](docs/show_inline_suggestion.md) | Показ inline-подсказки в текущей позиции редактора                  |
+| [`resolveAIInlineCompletion`](docs/ai_inline_completions.md) | Передача результата AI inline-запроса из 1С                    |
 | `showPreviousCustomSuggestions`| Вывод списка пользовательских подсказок, ранее показанных через `showCustomSuggestions`       |
 | `hideSuggestionsList`          | Скрывает текущий список подсказок                                                             |
 | `hideHoverList`                | Скрывает активную всплывающую подсказку для слова                                             |
@@ -311,6 +312,8 @@ npm run build  -- --customOptions "automaticLayout: true, someOption: false"
 | `EVENT_COMPARE_COMPLETE`       | При завершении сравнения текстов [(подробнее)](docs/compare_complete_event.md)                |
 | [`EVENT_ON_HELP_READY`](docs/help_ready_event.md) | После успешной загрузки или замены пакетов `shcntx`/`shquery`/`dcsui`. Параметр `{kind}` |
 | [`EVENT_ON_HELP_PREPARED`](docs/help_prepared_event.md) | Ранний сигнал готовности справки (фаза `prepared`: оглавление и индекс заголовков готовы, полнотекстовая индексация ещё идёт). Параметр `{kind}` |
+| [`EVENT_AI_INLINE_COMPLETION_REQUEST`](docs/ai_inline_completions.md) | Запрос AI inline-подсказки у 1С |
+| [`EVENT_AI_INLINE_COMPLETION_CANCEL`](docs/ai_inline_completions.md) | Отмена ранее отправленного AI inline-запроса |
 
 *Перед началом работы с редактором из 1С Предприятия желательно вызвать функцию инициализации и передать в нее текущую версию платформы.*
 Пример:
