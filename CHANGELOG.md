@@ -1,3 +1,9 @@
+## 0.3.9 (20.08.2026)
+
+### Новое:
+
+* AI [inline-подсказки](https://raw.githubusercontent.com/salexdv/git_images/refs/heads/master/bslconsole_copilot.gif) на примере 1С:Напарник
+
 ## 0.3.8 (19.08.2026)
 
 ### Новое:
