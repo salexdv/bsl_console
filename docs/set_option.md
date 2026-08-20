@@ -25,6 +25,7 @@ setOption("skipInsertSuggestionAcceptor", true);
 * `generateOnKeyDownEvent` - *boolean*, включает генерацию [события](key_down_event.md) при нажатии на клавиатуру
 	* `onKeyDownFilter` - *string*, дополнительный фильтр по кодам клавиш
 * `generateSnippetEvent` - *boolean*, включает генерацию [события](insert_snippet_event.md) при вставке сниппета
+* `generateAIInlineCompletionEvent` - *boolean*, включает генерацию [AI inline-запросов](ai_inline_completions.md). Значение по умолчанию: `false`. При отключении ожидающий запрос отменяется, а активная штатная inline-подсказка скрывается
 
 ##### Управление подсказками
 Позволяет оставить только пользовательские подсказки
@@ -33,6 +34,12 @@ setOption("skipInsertSuggestionAcceptor", true);
 * `disableNativeHovers` - *boolean*, отключает стандартные всплывающие подсказки при наведении курсора мыши на слово
 * `disableNativeCodeAction` - *boolean*, отключает стандартные подсказки по форматированию кода
 * `showSnippetsOnCustomSuggestions` - *boolean*, включает показ стандартных сниппетов при выводе пользовательских подсказок через [`showCustomSuggestions`](custom_suggestions.md)
+* `aiInlineCompletionDebounceMs` - *number*, задержка автоматического AI inline-запроса. Значение по умолчанию: `400`
+* `aiInlineCompletionRequestTimeoutMs` - *number*, тайм-аут ответа 1С. Значение по умолчанию: `15000`
+* `aiInlineCompletionMaxPrefixChars` - *number*, максимальная длина контекста перед курсором. Значение по умолчанию: `16000`
+* `aiInlineCompletionMaxSuffixChars` - *number*, максимальная длина контекста после курсора. Значение по умолчанию: `4000`
+
+Числовые AI-настройки должны быть целыми неотрицательными числами, а `aiInlineCompletionRequestTimeoutMs` — положительным числом. Невалидное значение не применяется.
 
 ##### Управление режимом сравнения
 * `renderMarginRevertIcon` - *boolean*, включает/отключает отображение значка отмены изменений на полях редактора сравнения. Значение по умолчанию: `false`

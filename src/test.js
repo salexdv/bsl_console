@@ -37,6 +37,215 @@ setTimeout(() => {
       return new bslHelper(model, position);
     }
 
+    function waitFor(check, timeout = 2500, description = 'условия') {
+
+      let started = Date.now();
+
+      return new Promise(function (resolve, reject) {
+        function poll() {
+          if (check()) {
+            resolve();
+            return;
+          }
+
+          if (Date.now() - started >= timeout) {
+            let details = typeof description == 'function' ? description() : description;
+            reject(new Error('Истекло время ожидания: ' + details));
+            return;
+          }
+
+          setTimeout(poll, 10);
+        }
+
+        poll();
+      });
+
+    }
+
+    it("AI inline provider выключен по умолчанию и валидирует опции", function () {
+      const originalDebounce = window.getOption('aiInlineCompletionDebounceMs');
+
+      try {
+        assert.equal(window.getOption('generateAIInlineCompletionEvent'), false);
+        window.setOption('aiInlineCompletionDebounceMs', 321);
+        assert.equal(window.setOption('aiInlineCompletionDebounceMs', -1), false);
+        assert.equal(window.getOption('aiInlineCompletionDebounceMs'), 321);
+        assert.equal(window.setOption('generateAIInlineCompletionEvent', 1), false);
+        assert.equal(window.getOption('generateAIInlineCompletionEvent'), false);
+      }
+      finally {
+        window.setOption('aiInlineCompletionDebounceMs', originalDebounce);
+      }
+    });
+
+    it("AI inline provider использует нативный request-response lifecycle Monaco", async function () {
+      this.timeout(7000);
+
+      const originalText = window.getText();
+      const originalSendEvent = window.sendEvent;
+      const originalEnabled = window.getOption('generateAIInlineCompletionEvent');
+      const originalDebounce = window.getOption('aiInlineCompletionDebounceMs');
+      const originalTimeout = window.getOption('aiInlineCompletionRequestTimeoutMs');
+      const capturedEvents = [];
+
+      try {
+        window.sendEvent = function (name, params) {
+          if (name.indexOf('EVENT_AI_INLINE_COMPLETION_') == 0)
+            capturedEvents.push({ name: name, params: params });
+          else
+            originalSendEvent(name, params);
+        };
+        window.setOption('aiInlineCompletionDebounceMs', 0);
+        window.setOption('aiInlineCompletionRequestTimeoutMs', 3000);
+        window.setOption('generateAIInlineCompletionEvent', true);
+
+        window.updateText('Запрос = Но');
+        window.editor.setPosition({ lineNumber: 1, column: 12 });
+        window.editor.focus();
+        await new Promise(function (resolve) { setTimeout(resolve, 150); });
+        assert.equal(capturedEvents.length, 0, 'updateText не должен запрашивать AI');
+
+        window.editor.trigger('ai-inline-browser-test', 'type', { text: 'в' });
+        // Команда с explicit:false запускает тот же automatic fetch native-controller,
+        // который в реальном редакторе планируется клавиатурным вводом.
+        window.editor.trigger('ai-inline-browser-test', 'editor.action.inlineSuggest.trigger', { explicit: false });
+
+        await waitFor(function () {
+          return capturedEvents.some(function (event) {
+            return event.name == 'EVENT_AI_INLINE_COMPLETION_REQUEST';
+          });
+        }, 2500, 'AI request после пользовательской правки');
+
+        let request = capturedEvents.find(function (event) {
+          return event.name == 'EVENT_AI_INLINE_COMPLETION_REQUEST';
+        }).params;
+        assert.equal(request.context.prefix, 'Запрос = Нов');
+        assert.equal(request.position.column, 13);
+        assert.equal(window.resolveAIInlineCompletion(request.requestId, ['ый Запрос()']), true);
+
+        await waitFor(function () {
+          return !!document.querySelector('.ghost-text-decoration');
+        }, 2500, 'native ghost text AI-подсказки');
+        window.editor.trigger('ai-inline-browser-test', 'editor.action.inlineSuggest.commit');
+        await waitFor(function () { return window.getText() == 'Запрос = Новый Запрос()'; }, 2500, 'принятия AI-подсказки');
+      }
+      finally {
+        window.setOption('generateAIInlineCompletionEvent', false);
+        window.setOption('aiInlineCompletionDebounceMs', originalDebounce);
+        window.setOption('aiInlineCompletionRequestTimeoutMs', originalTimeout);
+        window.updateText(originalText);
+        window.sendEvent = originalSendEvent;
+        window.setOption('generateAIInlineCompletionEvent', originalEnabled);
+      }
+    });
+
+    it("явный AI inline-запрос отменяется перемещением курсора", async function () {
+      this.timeout(7000);
+
+      const originalText = window.getText();
+      const originalSendEvent = window.sendEvent;
+      const originalEnabled = window.getOption('generateAIInlineCompletionEvent');
+      const originalTimeout = window.getOption('aiInlineCompletionRequestTimeoutMs');
+      const capturedEvents = [];
+
+      try {
+        window.sendEvent = function (name, params) {
+          if (name.indexOf('EVENT_AI_INLINE_COMPLETION_') == 0)
+            capturedEvents.push({ name: name, params: params });
+          else
+            originalSendEvent(name, params);
+        };
+
+        window.setOption('aiInlineCompletionRequestTimeoutMs', 3000);
+        window.setOption('generateAIInlineCompletionEvent', true);
+        window.updateText('АБ');
+        window.editor.setPosition({ lineNumber: 1, column: 3 });
+        window.editor.focus();
+
+        assert.equal(window.triggerInlineSuggestions(), true);
+        await waitFor(function () {
+          return capturedEvents.some(function (event) {
+            return event.name == 'EVENT_AI_INLINE_COMPLETION_REQUEST';
+          });
+        }, 2500, 'явного AI request');
+
+        window.editor.setPosition({ lineNumber: 1, column: 1 });
+        await waitFor(function () {
+          return capturedEvents.some(function (event) {
+            return event.name == 'EVENT_AI_INLINE_COMPLETION_CANCEL'
+              && event.params.reason == 'cursorChanged';
+          });
+        }, 2500, 'отмены AI request курсором');
+
+        assert.equal(window.triggerInlineSuggestions(), true);
+        await waitFor(function () {
+          return capturedEvents.filter(function (event) {
+            return event.name == 'EVENT_AI_INLINE_COMPLETION_REQUEST';
+          }).length == 2;
+        }, 2500, 'повторного явного AI request');
+
+        let inputArea = window.editor.getDomNode().querySelector('textarea');
+        assert.isOk(inputArea, 'textarea Monaco должна существовать');
+        inputArea.dispatchEvent(new KeyboardEvent('keydown', {
+          key: 'Escape',
+          code: 'Escape',
+          keyCode: 27,
+          which: 27,
+          bubbles: true,
+          cancelable: true
+        }));
+        await waitFor(function () {
+          return capturedEvents.some(function (event) {
+            return event.name == 'EVENT_AI_INLINE_COMPLETION_CANCEL'
+              && event.params.reason == 'hidden';
+          });
+        }, 2500, 'отмены AI request по Esc');
+      }
+      finally {
+        window.setOption('generateAIInlineCompletionEvent', false);
+        window.setOption('aiInlineCompletionRequestTimeoutMs', originalTimeout);
+        window.updateText(originalText);
+        window.sendEvent = originalSendEvent;
+        window.setOption('generateAIInlineCompletionEvent', originalEnabled);
+      }
+    });
+
+    it("showInlineSuggestion имеет приоритет над AI provider", async function () {
+      this.timeout(7000);
+
+      const originalText = window.getText();
+      const originalSendEvent = window.sendEvent;
+      const originalEnabled = window.getOption('generateAIInlineCompletionEvent');
+      const capturedEvents = [];
+
+      try {
+        window.sendEvent = function (name, params) {
+          if (name.indexOf('EVENT_AI_INLINE_COMPLETION_') == 0)
+            capturedEvents.push({ name: name, params: params });
+          else
+            originalSendEvent(name, params);
+        };
+        window.setOption('generateAIInlineCompletionEvent', true);
+        window.updateText('');
+        window.editor.setPosition({ lineNumber: 1, column: 1 });
+        window.editor.focus();
+        assert.equal(window.showInlineSuggestion('["Б"]'), true);
+
+        await waitFor(function () {
+          return !!document.querySelector('.ghost-text-decoration');
+        }, 2500, 'native ghost text ручной подсказки');
+        await new Promise(function (resolve) { setTimeout(resolve, 150); });
+        assert.equal(capturedEvents.length, 0, 'ручная inline-подсказка не должна запускать AI');
+      }
+      finally {
+        window.editor.trigger('ai-inline-browser-test', 'editor.action.inlineSuggest.hide');
+        window.setOption('generateAIInlineCompletionEvent', false);
+        window.updateText(originalText);
+        window.sendEvent = originalSendEvent;
+        window.setOption('generateAIInlineCompletionEvent', originalEnabled);
+      }
+    });
+
     it("пользовательские подсказки не токенизируют текст до курсора (issue #335)", function () {
 
       const originalTokenize = monaco.editor.tokenize;
