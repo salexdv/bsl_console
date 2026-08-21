@@ -34,6 +34,7 @@ setOption("skipInsertSuggestionAcceptor", true);
 * `disableNativeHovers` - *boolean*, отключает стандартные всплывающие подсказки при наведении курсора мыши на слово
 * `disableNativeCodeAction` - *boolean*, отключает стандартные подсказки по форматированию кода
 * `showSnippetsOnCustomSuggestions` - *boolean*, включает показ стандартных сниппетов при выводе пользовательских подсказок через [`showCustomSuggestions`](custom_suggestions.md)
+* `inlineSuggestionSyntaxHighlightingEnabled` - *boolean*, включает/отключает подсветку синтаксиса в штатных inline-подсказках, включая [`showInlineSuggestion`](show_inline_suggestion.md) и AI inline-подсказки. Значение по умолчанию: `true`. При `false` подсказка отображается однотонным цветом `editorGhostText.foreground` активной темы
 * `aiInlineCompletionDebounceMs` - *number*, задержка автоматического AI inline-запроса. Значение по умолчанию: `400`
 * `aiInlineCompletionRequestTimeoutMs` - *number*, тайм-аут ответа 1С. Значение по умолчанию: `15000`
 * `aiInlineCompletionMaxPrefixChars` - *number*, максимальная длина контекста перед курсором. Значение по умолчанию: `16000`

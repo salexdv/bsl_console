@@ -78,6 +78,58 @@ setTimeout(() => {
       }
     });
 
+    it("управляет подсветкой синтаксиса inline-подсказок", async function () {
+      this.timeout(7000);
+
+      const optionName = 'inlineSuggestionSyntaxHighlightingEnabled';
+      const originalValue = window.getOption(optionName);
+      const originalText = window.getText();
+
+      try {
+        assert.equal(originalValue, true);
+        assert.equal(
+          window.editor.getOption(monaco.editor.EditorOption.inlineSuggest).syntaxHighlightingEnabled,
+          true
+        );
+
+        assert.equal(window.setOption(optionName, 'false'), false);
+        assert.equal(window.getOption(optionName), true);
+
+        window.setOption(optionName, false);
+        assert.equal(
+          window.editor.getOption(monaco.editor.EditorOption.inlineSuggest).syntaxHighlightingEnabled,
+          false
+        );
+        assert.equal(window.editor_options[optionName], false,
+          'настройка должна сохраняться для пересоздания редактора');
+
+        window.updateText('');
+        window.editor.setPosition({ lineNumber: 1, column: 1 });
+        window.editor.focus();
+        assert.equal(window.showInlineSuggestion('["Новый Запрос()"]'), true);
+
+        await waitFor(function () {
+          return !!document.querySelector('.ghost-text-decoration:not(.syntax-highlighted)');
+        }, 2500, 'однотонного ghost text');
+
+        window.editor.trigger('inline-syntax-highlighting-test', 'editor.action.inlineSuggest.hide');
+        await waitFor(function () {
+          return !document.querySelector('.ghost-text-decoration');
+        }, 2500, 'скрытия однотонного ghost text');
+
+        window.setOption(optionName, true);
+        assert.equal(window.showInlineSuggestion('["Новый Запрос()"]'), true);
+        await waitFor(function () {
+          return !!document.querySelector('.ghost-text-decoration.syntax-highlighted');
+        }, 2500, 'токенизированного ghost text');
+      }
+      finally {
+        window.editor.trigger('inline-syntax-highlighting-test', 'editor.action.inlineSuggest.hide');
+        window.setOption(optionName, originalValue);
+        window.updateText(originalText);
+      }
+    });
+
     it("AI inline provider использует нативный request-response lifecycle Monaco", async function () {
       this.timeout(7000);
 

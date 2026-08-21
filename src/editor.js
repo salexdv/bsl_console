@@ -78,6 +78,10 @@ function resolveTreeIcon(iconName) {
   return treeIcons[iconName] || treeIcons['undefined.png'] || '';
 }
 
+const INLINE_SUGGESTION_SYNTAX_HIGHLIGHTING_OPTION = 'inlineSuggestionSyntaxHighlightingEnabled';
+const INLINE_SUGGESTION_SYNTAX_HIGHLIGHTING_DEFAULT = true;
+
+
 // NLS: monaco-editor-nls (setLocaleData/ruLocale) удалён — несовместим с 0.55; UI monaco
 // по умолчанию английский (русская локализация — отдельным шагом). MonacoEnvironment
 // (blob-воркер + globalAPI) задаётся в ./monaco-environment (импортирован выше, до monaco).
@@ -126,6 +130,8 @@ window.editor_options = [];
 Object.keys(AI_INLINE_DEFAULT_OPTIONS).forEach(function (name) {
   window.editor_options[name] = AI_INLINE_DEFAULT_OPTIONS[name];
 });
+window.editor_options[INLINE_SUGGESTION_SYNTAX_HIGHLIGHTING_OPTION]
+  = INLINE_SUGGESTION_SYNTAX_HIGHLIGHTING_DEFAULT;
 window.snippets = {};
 window.bslSnippets = {};
 window.treeview = null;
@@ -1724,8 +1730,21 @@ window.setOption = function (optionName, optionValue) {
   if (isAIInlineOption(optionName) && !isValidAIInlineOption(optionName, optionValue))
     return false;
 
+  if (optionName == INLINE_SUGGESTION_SYNTAX_HIGHLIGHTING_OPTION
+    && typeof optionValue != 'boolean')
+    return false;
+
   window.editor[optionName] = optionValue;
   window.editor_options[optionName] = optionValue;
+
+  if (optionName == INLINE_SUGGESTION_SYNTAX_HIGHLIGHTING_OPTION
+    && window.editor && !window.editor.navi) {
+    window.editor.updateOptions({
+      inlineSuggest: {
+        syntaxHighlightingEnabled: optionValue
+      }
+    });
+  }
 
   if (isAIInlineOption(optionName)) {
     aiInlineProvider.optionChanged(optionName, optionValue);
@@ -2423,6 +2442,10 @@ window.createEditor = function(language_id, text, theme) {
     renderValidationDecorations: "on",
     stickyScroll: {
       enabled: false
+    },
+    inlineSuggest: {
+      syntaxHighlightingEnabled:
+        window.editor_options[INLINE_SUGGESTION_SYNTAX_HIGHLIGHTING_OPTION]
     }
   });
 
