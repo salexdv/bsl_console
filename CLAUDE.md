@@ -63,6 +63,13 @@
 **Node:** сборка требует Node 20+ (в шелле дефолт может быть 16 — звать по полному пути
 `C:\Users\aaa\AppData\Local\nvm\v20.20.2`).
 
+**Windows managed sandbox:** все webpack-команды (`npm run build*`, `build:test`, `debug`/`dev`)
+сразу запускать вне sandbox / с повышенным разрешением. `esbuild-loader` поднимает дочерний процесс,
+и внутри sandbox он периодически падает с `spawn EPERM`; не тратить первый запуск на заведомо
+ненадёжную попытку и не диагностировать это как ошибку проекта. `test:headless` и `test:mocha` также
+сразу запускать с разрешением на системный Chrome/Edge. Обычные Node-тесты и `escheck` эскалации не
+требуют.
+
 ## Архитектура / ключевые файлы (`src/`)
 
 - `editor.js` — точка входа (AMD `define`, `require.config` nls, `init`); настраивает Monaco, темы, события.
