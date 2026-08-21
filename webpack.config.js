@@ -25,6 +25,17 @@ module.exports = (env, argv) => {
   // в маркер `customOptions: true` в src/editor.js (см. правило ниже). Восстановление механизма
   // ветки webpack (там был string-replace-loader + argv.customOptions).
   const customOptions = env && env.customOptions;
+  // Локаль штатного UI Monaco фиксируется при загрузке модулей NLS, поэтому выбирается
+  // на этапе сборки. По умолчанию интерфейс русский; английскую сборку включаем через
+  // `--env monacoLocale=en`. Другие значения запрещаем, чтобы опечатка не дала молча
+  // частично локализованный бандл.
+  const monacoLocale = (env && env.monacoLocale) || 'ru';
+  if (monacoLocale !== 'ru' && monacoLocale !== 'en') {
+    throw new Error('Неизвестная локаль Monaco: ' + monacoLocale + '. Допустимы ru и en.');
+  }
+  const monacoLocaleModule = monacoLocale === 'ru'
+    ? 'nls.messages.ru.js'
+    : 'nls.messages.js';
   // dev-сборка (npm run debug/dev) отдаёт И редактор, И mocha-страницы test/test_query, чтобы
   // http://localhost:9000/test.html и /test_query.html открывались без флагов (на ветке webpack
   // dev-режим подключал их по умолчанию — здесь это регресс). Чистый тест-таргет (--env test,
@@ -60,6 +71,9 @@ module.exports = (env, argv) => {
     resolve: {
       extensions: ['.js', '.json', '.css'],
       alias: {
+        // Виртуальный side-effect-модуль импортируется после polyfills, но до любого кода
+        // Monaco. Оба файла входят в официальный пакет monaco-editor@0.55.1.
+        'monaco-ui-locale$': path.resolve(__dirname, 'node_modules/monaco-editor/esm', monacoLocaleModule),
         // 0.55: package "exports" мапит require→min/vs/editor/editor.main.js (AMD, webpack
         // не парсит) и import→esm. Алиасим bare-импорт на УЗКУЮ ESM-точку edcore.main: ядро
         // редактора + ВСЕ editor-контрибы (suggest/find/folding/hover/parameterHints/format/…),

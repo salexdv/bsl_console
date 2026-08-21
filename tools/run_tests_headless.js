@@ -16,6 +16,13 @@ const fs = require('fs');
 const path = require('path');
 const puppeteer = require('puppeteer-core');
 
+const localeArg = process.argv.find((arg) => arg.indexOf('--locale=') === 0);
+const EXPECTED_MONACO_LOCALE = localeArg ? localeArg.substring('--locale='.length) : 'ru';
+if (EXPECTED_MONACO_LOCALE !== 'ru' && EXPECTED_MONACO_LOCALE !== 'en') {
+  console.error('Неизвестная ожидаемая локаль Monaco: ' + EXPECTED_MONACO_LOCALE + '. Допустимы ru и en.');
+  process.exit(2);
+}
+
 const DIST = path.resolve(__dirname, '..', 'dist');
 const PORT = 9007;
 const MIME = {
@@ -246,6 +253,28 @@ async function checkLegacyPointerDrag(browser, errors) {
     console.log('[headless] browser:', exe.split(/[\\/]/).pop());
     console.log('[headless] editor ready:', info.editor, '| window.monaco:', info.monaco);
     console.log('[headless] print smoke:', typed ? 'ok' : 'FAIL');
+
+    // Сборочная локаль Monaco: таблица NLS должна загрузиться до регистрации editor actions,
+    // поэтому проверяем и исходное сообщение панели inline-подсказок, и готовое действие.
+    const localeDiag = await page.evaluate(() => {
+      const messages = window._VSCODE_NLS_MESSAGES || [];
+      const action = window.editor.getAction('editor.action.inlineSuggest.acceptNextWord');
+      return {
+        language: window._VSCODE_NLS_LANGUAGE || 'en',
+        toolbarAcceptWord: messages[1175],
+        actionLabel: action && action.label
+      };
+    });
+    const expectedLocaleStrings = EXPECTED_MONACO_LOCALE === 'ru'
+      ? { toolbarAcceptWord: 'Принять слово', actionLabel: 'Принять следующее слово встроенного предложения' }
+      : { toolbarAcceptWord: 'Accept Word', actionLabel: 'Accept Next Word Of Inline Suggestion' };
+    if (localeDiag.language !== EXPECTED_MONACO_LOCALE)
+      errors.push('NLS language: ожидался ' + EXPECTED_MONACO_LOCALE + ', получен ' + localeDiag.language);
+    if (localeDiag.toolbarAcceptWord !== expectedLocaleStrings.toolbarAcceptWord)
+      errors.push('inline toolbar NLS: ожидалось «' + expectedLocaleStrings.toolbarAcceptWord + '», получено «' + localeDiag.toolbarAcceptWord + '»');
+    if (localeDiag.actionLabel !== expectedLocaleStrings.actionLabel)
+      errors.push('inline action label: ожидалось «' + expectedLocaleStrings.actionLabel + '», получено «' + localeDiag.actionLabel + '»');
+    console.log('[headless] Monaco UI locale:', localeDiag.language, '| inline action:', localeDiag.actionLabel);
 
     // Этап 2: языки зарегистрированы и BSL реально токенизируется (грамматика подключилась).
     const langDiag = await page.evaluate(() => {

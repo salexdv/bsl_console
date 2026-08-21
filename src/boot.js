@@ -4,11 +4,13 @@
 //
 // Порядок импортов критичен (ESM исполняет модули по порядку, каждый — полностью до следующего):
 //   1) polyfills          — рантайм-API старого WebKit ДО любого кода monaco
-//   2) monaco-environment — self.MonacoEnvironment (globalAPI + worker) ДО monaco
-//   3) product-service    — registerSingleton(IProductService) ДО StandaloneServices
-//   4) expose-monaco      — import monaco + window.monaco ДО bsl_language (bare-глобал)
-//   5) bsl_language       — определения языков (грамматика + темы), тянет bsl_helper/finder
+//   2) monaco-ui-locale   — выбранная сборкой NLS-таблица ДО любого кода monaco
+//   3) monaco-environment — self.MonacoEnvironment (globalAPI + worker) ДО monaco
+//   4) product-service    — registerSingleton(IProductService) ДО StandaloneServices
+//   5) expose-monaco      — import monaco + window.monaco ДО bsl_language (bare-глобал)
+//   6) bsl_language       — определения языков (грамматика + темы), тянет bsl_helper/finder
 import './polyfills';
+import 'monaco-ui-locale';
 import './monaco-environment';
 import './product-service';
 import monaco from './expose-monaco';

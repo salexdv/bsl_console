@@ -4,10 +4,12 @@
 // monaco ДОЛЖНЫ отработать до того, как наш код (bsl_language → bsl_helper, finder, actions)
 // впервые коснётся monaco:
 //   1) polyfills          — рантайм-API старого WebKit ДО любого кода monaco
-//   2) monaco-environment — self.MonacoEnvironment (globalAPI + blob-воркер) ДО monaco
-//   3) product-service    — registerSingleton(IProductService) ДО StandaloneServices
-//   4) expose-monaco      — import monaco (editor.main: API + ВСЕ контрибы) + window.monaco
+//   2) monaco-ui-locale   — выбранная сборкой NLS-таблица ДО любого кода monaco
+//   3) monaco-environment — self.MonacoEnvironment (globalAPI + blob-воркер) ДО monaco
+//   4) product-service    — registerSingleton(IProductService) ДО StandaloneServices
+//   5) expose-monaco      — import monaco (editor.main: API + ВСЕ контрибы) + window.monaco
 import './polyfills';
+import 'monaco-ui-locale';
 import './monaco-environment';
 import './product-service';
 import monaco from './expose-monaco';
@@ -82,9 +84,9 @@ const INLINE_SUGGESTION_SYNTAX_HIGHLIGHTING_OPTION = 'inlineSuggestionSyntaxHigh
 const INLINE_SUGGESTION_SYNTAX_HIGHLIGHTING_DEFAULT = true;
 
 
-// NLS: monaco-editor-nls (setLocaleData/ruLocale) удалён — несовместим с 0.55; UI monaco
-// по умолчанию английский (русская локализация — отдельным шагом). MonacoEnvironment
-// (blob-воркер + globalAPI) задаётся в ./monaco-environment (импортирован выше, до monaco).
+// NLS: штатная таблица monaco-editor выбирается webpack-опцией monacoLocale (ru по умолчанию)
+// и импортируется выше после polyfills, но до любого кода monaco. MonacoEnvironment
+// (blob-воркер + globalAPI) задаётся в ./monaco-environment.
 
 // #region global vars 
 window.languages = languages;
