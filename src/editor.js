@@ -826,6 +826,9 @@ window.selectedText = function(text = undefined, keepSelection = false) {
       let selection = window.getSelection();
       let tempModel = monaco.editor.createModel(text);
       let tempRange = tempModel.getFullModelRange();
+
+      // модель нужна была только ради диапазона — Monaco её сам не удалит
+      tempModel.dispose();
       
       window.setText(text, window.getSelection(), false);
 
@@ -901,6 +904,9 @@ window.insertLine = function(lineNumber, text) {
   let model = window.editor.getModel();
   let text_model = monaco.editor.createModel(text);
   let text_range = text_model.getFullModelRange();
+
+  // модель нужна была только ради диапазона — Monaco её сам не удалит
+  text_model.dispose();
   let total_lines = window.getLineCount();
   let text_lines = text_range.endLineNumber - text_range.startLineNumber;
   
@@ -3525,6 +3531,9 @@ function generateSnippetEvent(e) {
         let content_model = monaco.editor.createModel(changes.text);
         let content_range = content_model.getFullModelRange();
 
+        // модель нужна была только ради диапазона — Monaco её сам не удалит
+        content_model.dispose();
+
         let target_range = new monaco.Range(
           change_range.startLineNumber,
           change_range.startColumn,
@@ -5058,10 +5067,30 @@ function calculateDiff() {
         });
       }
 
-      window.diffEditor.setModel({
-        original: monaco.editor.createModel(window.editor.originalText),
-        modified: window.editor.getModel()
-      });
+      // Сюда приходим на каждое изменение текста. Пересоздавать original-модель каждый раз
+      // нельзя: это полная копия оригинала (на модуле в полмегабайта — по копии на пачку правок),
+      // а Monaco модели сам не диспозит. Если оригинал и модель редактора не менялись, diff
+      // пересчитается сам по изменению modified-модели — трогать setModel не нужно.
+      let previous = window.diffEditor.getModel();
+
+      let reusable = previous
+        && previous.original && !previous.original.isDisposed()
+        && previous.modified === window.editor.getModel()
+        && window.diffEditor.originalTextRef === window.editor.originalText;
+
+      if (!reusable) {
+
+        window.diffEditor.setModel({
+          original: monaco.editor.createModel(window.editor.originalText),
+          modified: window.editor.getModel()
+        });
+
+        window.diffEditor.originalTextRef = window.editor.originalText;
+
+        if (previous && previous.original && !previous.original.isDisposed())
+          previous.original.dispose();
+
+      }
 
     }, 50);
 
