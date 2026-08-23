@@ -18,6 +18,31 @@ setTimeout(() => {
     var expect = chai.expect;
     chai.should();
 
+    const ownedModels = new Set();
+    let modelsBeforeTest = new Set();
+
+    beforeEach(function () {
+      modelsBeforeTest = new Set(ownedModels);
+    });
+
+    afterEach(function () {
+      ownedModels.forEach(function (model) {
+        if (!modelsBeforeTest.has(model)) {
+          if (!model.isDisposed || !model.isDisposed())
+            model.dispose();
+          ownedModels.delete(model);
+        }
+      });
+    });
+
+    after(function () {
+      ownedModels.forEach(function (model) {
+        if (!model.isDisposed || !model.isDisposed())
+          model.dispose();
+      });
+      ownedModels.clear();
+    });
+
     function getPosition(model) {
 
       let strings = model.getValue().split('\n');
@@ -27,7 +52,9 @@ setTimeout(() => {
 
     function getModel(string) {
 
-      return monaco.editor.createModel(string, 'bsl');
+      const model = monaco.editor.createModel(string, 'bsl');
+      ownedModels.add(model);
+      return model;
 
     }
 
@@ -61,6 +88,137 @@ setTimeout(() => {
       });
 
     }
+
+    function wait(milliseconds) {
+      return new Promise(function (resolve) {
+        setTimeout(resolve, milliseconds);
+      });
+    }
+
+    it("временные модели разбора модуля освобождаются", function () {
+      const modelsCount = monaco.editor.getModels().length;
+      const moduleText = [
+        '// Параметры:',
+        '//  Значение - Строка - проверяемое значение',
+        '//',
+        'Функция Проверить(Знач Значение) Экспорт',
+        'Возврат Истина;',
+        'КонецФункции'
+      ].join('\n');
+
+      for (let index = 0; index < 5; index++)
+        assert.equal(bslHelper.parseModule(moduleText).count, 1);
+
+      assert.equal(monaco.editor.getModels().length, modelsCount);
+    });
+
+    it("временная completion-модель освобождается при ошибке", function () {
+      const modelsCount = monaco.editor.getModels().length;
+      const originalResolve = bslHelper.prototype.resolveCompletionItem;
+
+      try {
+        bslHelper.prototype.resolveCompletionItem = function () {
+          throw new Error('тестовая ошибка');
+        };
+
+        assert.throws(function () {
+          window.languages.bsl.completionProvider.resolveCompletionItem({ insertText: 'Текст' }, {});
+        }, 'тестовая ошибка');
+      }
+      finally {
+        bslHelper.prototype.resolveCompletionItem = originalResolve;
+      }
+
+      assert.equal(monaco.editor.getModels().length, modelsCount);
+    });
+
+    it("diff-декорации переиспользуют и освобождают original-модель", async function () {
+      const editor = window.editor;
+      const model = editor.getModel();
+      const previousText = model.getValue();
+      const previousOriginalText = editor.originalText;
+      const previousCalculateDiff = editor.calculateDiff;
+      const previousShowDiffDecorations = window.getOption('showDiffDecorations');
+      const modelsCount = monaco.editor.getModels().length;
+
+      try {
+        window.setOption('showDiffDecorations', true);
+        window.setOriginalText('Исходный текст');
+        await waitFor(function () {
+          const diffModel = window.diffEditor && window.diffEditor.getModel();
+          return diffModel && diffModel.original && diffModel.modified === model;
+        });
+        await waitFor(function () {
+          return Array.isArray(window.diffEditor.getLineChanges());
+        }, 2500, 'первичного расчёта diff');
+
+        const firstOriginalModel = window.diffEditor.getModel().original;
+        const modelsWithDiff = monaco.editor.getModels().length;
+
+        model.setValue('Изменение 1');
+        await wait(120);
+        assert.strictEqual(window.diffEditor.getModel().original, firstOriginalModel);
+        assert.equal(monaco.editor.getModels().length, modelsWithDiff);
+
+        window.setOriginalText('');
+        assert.equal(firstOriginalModel.isDisposed(), true);
+        assert.equal(window.diffEditor, null);
+        assert.equal(monaco.editor.getModels().length, modelsCount);
+      }
+      finally {
+        model.setValue(previousText);
+        window.setOriginalText(previousOriginalText, previousCalculateDiff && !previousOriginalText);
+        window.setOption('showDiffDecorations', previousShowDiffDecorations);
+      }
+    });
+
+    it("встроенный diff-виджет освобождает редактор и original-модель", async function () {
+      const editor = window.editor;
+      const model = editor.getModel();
+      const previousText = model.getValue();
+      const previousOriginalText = editor.originalText;
+      const modelsCount = monaco.editor.getModels().length;
+      const diffEditorsCount = monaco.editor.getDiffEditors().length;
+      const targetElement = document.createElement('div');
+      const mouseEvent = {
+        target: {
+          element: targetElement,
+          position: new monaco.Position(1, 1)
+        }
+      };
+
+      try {
+        model.setValue('Строка 1\nСтрока 2');
+        editor.originalText = 'Исходная строка 1\nИсходная строка 2';
+        editor.createDiffWidget(mouseEvent);
+
+        await waitFor(function () {
+          return !!window.inlineDiffEditor;
+        });
+
+        const originalModel = window.inlineDiffEditor.getModel().original;
+        assert.equal(monaco.editor.getModels().length, modelsCount + 1);
+        assert.equal(monaco.editor.getDiffEditors().length, diffEditorsCount + 1);
+
+        editor.removeDiffWidget();
+        assert.equal(originalModel.isDisposed(), true);
+        assert.equal(window.inlineDiffEditor, null);
+        assert.equal(monaco.editor.getModels().length, modelsCount);
+        assert.equal(monaco.editor.getDiffEditors().length, diffEditorsCount);
+
+        editor.createDiffWidget(mouseEvent);
+        editor.removeDiffWidget();
+        await wait(80);
+        assert.equal(window.inlineDiffEditor, null);
+        assert.equal(monaco.editor.getModels().length, modelsCount);
+        assert.equal(monaco.editor.getDiffEditors().length, diffEditorsCount);
+      }
+      finally {
+        editor.removeDiffWidget();
+        editor.originalText = previousOriginalText;
+        model.setValue(previousText);
+      }
+    });
 
     it("AI inline provider выключен по умолчанию и валидирует опции", function () {
       const originalDebounce = window.getOption('aiInlineCompletionDebounceMs');
@@ -677,6 +835,8 @@ setTimeout(() => {
           }
         }
       };
+      const container = document.getElementById("container");
+      const containerHeight = container.style.height;
 
       try {
         assert.equal(window.showVariablesDescription(JSON.stringify(variables)), true);
@@ -709,6 +869,7 @@ setTimeout(() => {
       finally {
         document.getElementById("display-close").click();
       }
+      assert.equal(container.style.height, containerHeight);
     });
 
     if (bslLoaded) {
@@ -2512,6 +2673,29 @@ setTimeout(() => {
       assert.equal(completion.suggestions.some(suggest => suggest.label === "ТаблицаЗначений"), false);
       assert.equal(completion.suggestions.some(suggest => suggest.label === "Массив"), true);
 
+    });
+
+    it("compare создаётся при отключённых diff-декорациях", async function () {
+      const previousShowDiffDecorations = window.getOption('showDiffDecorations');
+      const modelsCount = monaco.editor.getModels().length;
+
+      try {
+        window.setOption('showDiffDecorations', false);
+        assert.doesNotThrow(function () {
+          window.compare("123", true, true);
+        });
+        assert.ok(window.editor.navi);
+        await waitFor(function () {
+          return Array.isArray(window.editor.getLineChanges());
+        }, 2500);
+      }
+      finally {
+        if (window.editor.navi)
+          window.compare();
+        window.setOption('showDiffDecorations', previousShowDiffDecorations);
+      }
+
+      assert.equal(monaco.editor.getModels().length, modelsCount);
     });
 
     const testFormatter = false;

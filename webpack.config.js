@@ -247,13 +247,17 @@ module.exports = (env, argv) => {
       hot: false,
       client: {
         overlay: {
-          // Chromium отправляет это служебное уведомление через window.onerror, когда открытие
-          // DevTools меняет viewport во время layout Monaco. Редактор продолжает работать,
-          // поэтому не показываем только этот известный ResizeObserver-шум; остальные runtime-
-          // ошибки по-прежнему попадают в overlay.
+          // Chromium отправляет служебное ResizeObserver-уведомление при изменении viewport.
+          // Кроме того, Monaco штатно отклоняет незавершённые операции CancellationError'ом
+          // при dispose модели/редактора. Полифил гасит такую отмену в приложении, но listener
+          // dev-server регистрируется раньше него, поэтому фильтруем её и здесь. Остальные
+          // runtime-ошибки по-прежнему попадают в overlay.
           runtimeErrors: function (error) {
-            return !/^ResizeObserver loop (?:limit exceeded|completed with undelivered notifications)\.?$/
-              .test(error && error.message || '');
+            const message = error && error.message || '';
+            const isCancellation = error && error.name === 'Canceled' || message === 'Canceled';
+            const isResizeObserverNoise = /^ResizeObserver loop (?:limit exceeded|completed with undelivered notifications)\.?$/
+              .test(message);
+            return !isCancellation && !isResizeObserverNoise;
           }
         }
       },

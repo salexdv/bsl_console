@@ -753,11 +753,16 @@ export let languages = {
                 // guid + prepareSnippetCode), поэтому даём временную модель из insertText (по И4).
                 let text = (item && item.insertText) || '';
                 let model = monaco.editor.createModel(text);
-                let position = model.getPositionAt(text.length);
-                let bsl = new bslHelper(model, position);
-                item = bsl.resolveCompletionItem(item);
-                model.dispose();
-                return item;
+
+                try {
+                    let position = model.getPositionAt(text.length);
+                    let bsl = new bslHelper(model, position);
+                    item = bsl.resolveCompletionItem(item);
+                    return item;
+                }
+                finally {
+                    model.dispose();
+                }
             }
         },
         foldingProvider: {

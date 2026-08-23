@@ -19,6 +19,31 @@ setTimeout(() => {
     var expect = chai.expect;
     chai.should();
 
+    const ownedModels = new Set();
+    let modelsBeforeTest = new Set();
+
+    beforeEach(function () {
+      modelsBeforeTest = new Set(ownedModels);
+    });
+
+    afterEach(function () {
+      ownedModels.forEach(function (model) {
+        if (!modelsBeforeTest.has(model)) {
+          if (!model.isDisposed || !model.isDisposed())
+            model.dispose();
+          ownedModels.delete(model);
+        }
+      });
+    });
+
+    after(function () {
+      ownedModels.forEach(function (model) {
+        if (!model.isDisposed || !model.isDisposed())
+          model.dispose();
+      });
+      ownedModels.clear();
+    });
+
     function getPosition(line, column) {
       
       return new monaco.Position(line, column);
@@ -34,7 +59,9 @@ setTimeout(() => {
 
     function getModel(string) {
 
-      return monaco.editor.createModel(string, 'bsl');
+      const model = monaco.editor.createModel(string, 'bsl');
+      ownedModels.add(model);
+      return model;
 
     }
 
@@ -60,6 +87,16 @@ setTimeout(() => {
     }
 
     let bsl = helper('', 1, 1);
+
+    it("временная модель поиска токена освобождается", function () {
+      const model = getModel('ВЫБРАТЬ Товары');
+      const tokenHelper = new bslHelper(model, getPositionByModel(model));
+      const modelsCount = monaco.editor.getModels().length;
+
+      tokenHelper.getLastWordWithTokenInRange('keyword', 1, 1, 1, model.getLineMaxColumn(1), []);
+
+      assert.equal(monaco.editor.getModels().length, modelsCount);
+    });
 
     it("регистрация структуры только для bsl_query", async function () {
       let text = `ВЫБРАТЬ Товары.Код КАК Код
@@ -393,9 +430,11 @@ setTimeout(() => {
     it("проверка автокомплита для таблицы запроса, полученной из временной таблицы", function () {
       bsl = helper(getCode(), 209, 26);
       let suggestions = [];
+      const modelsCount = monaco.editor.getModels().length;
       bsl.getQueryFieldsCompletion(suggestions)
       expect(suggestions).to.be.an('array').that.not.is.empty;
       assert.equal(suggestions.some(suggest => suggest.label === "ПФРПоСуммарномуТарифу"), true);
+      assert.equal(monaco.editor.getModels().length, modelsCount);
     });
 
     it("проверка подсказки ссылочных реквизитов", function () {              	                                

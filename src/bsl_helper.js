@@ -276,47 +276,53 @@ class bslHelper {
 		if (value) {
 
 			let model = monaco.editor.createModel(value);
-			let lang_id = this.getLangId();
-			let tokens = monaco.editor.tokenize(value, lang_id);
 
-			if (tokens.length) {
+			try {
+				let lang_id = this.getLangId();
+				let tokens = monaco.editor.tokenize(value, lang_id);
 
-				let idx_line = tokens.length - 1;
+				if (tokens.length) {
 
-				while (0 <= idx_line && !word) {
+					let idx_line = tokens.length - 1;
 
-					let items = tokens[idx_line];
+					while (0 <= idx_line && !word) {
 
-					if (items.length) {
+						let items = tokens[idx_line];
 
-						let idx_item = items.length - 1;
+						if (items.length) {
 
-						while (0 <= idx_item && !word) {
+							let idx_item = items.length - 1;
 
-							let token = items[idx_item];
-							let token_type = token.type;
+							while (0 <= idx_item && !word) {
 
-							if (0 <= token_type.indexOf(token_name)) {
+								let token = items[idx_item];
+								let token_type = token.type;
 
-								let text = model.getWordAtPosition(new monaco.Position(idx_line + 1, token.offset + 1));
+								if (0 <= token_type.indexOf(token_name)) {
 
-								if (text && ignored_words.indexOf(text.word.toLowerCase()) == -1) {
-									word = text.word;
+									let text = model.getWordAtPosition(new monaco.Position(idx_line + 1, token.offset + 1));
+
+									if (text && ignored_words.indexOf(text.word.toLowerCase()) == -1) {
+										word = text.word;
+									}
+
+
 								}
 
+								idx_item--;
 
 							}
 
-							idx_item--;
-
 						}
+
+						idx_line--;
 
 					}
 
-					idx_line--;
-
 				}
-
+			}
+			finally {
+				model.dispose();
 			}
 
 		}
@@ -6463,9 +6469,15 @@ class bslHelper {
 								const bracket_text = this.model.getValueInRange(bracket_range);
 								const source_text = this.model.getValueInRange(match.range).replace(bracket_text, '');
 								const source_model = monaco.editor.createModel(source_text);
-								const model_range = source_model.getFullModelRange();
-								const model_position = new monaco.Position(model_range.endLineNumber, model_range.endColumn);
-								match = Finder.findPreviousMatch(source_model, '[a-zA-Z0-9\u0410-\u044F]+\\.[a-zA-Z0-9\u0410-\u044F_]+(?:\\.[a-zA-Z0-9\u0410-\u044F_]+)?(?:\\.[a-zA-Z0-9\u0410-\u044F_]+)?', model_position);
+
+								try {
+									const model_range = source_model.getFullModelRange();
+									const model_position = new monaco.Position(model_range.endLineNumber, model_range.endColumn);
+									match = Finder.findPreviousMatch(source_model, '[a-zA-Z0-9\u0410-\u044F]+\\.[a-zA-Z0-9\u0410-\u044F_]+(?:\\.[a-zA-Z0-9\u0410-\u044F_]+)?(?:\\.[a-zA-Z0-9\u0410-\u044F_]+)?', model_position);
+								}
+								finally {
+									source_model.dispose();
+								}
 							}
 							else 
 								match = null;
@@ -8211,29 +8223,34 @@ class bslHelper {
 			const range = new monaco.Range(line_number, 1, funcLineNumber, 1);
 			const func_model = monaco.editor.createModel(model.getValueInRange(range));
 
-			params.forEach(function (param) {
+			try {
+				params.forEach(function (param) {
 
-				let param_full_name = param.split('=')[0].trim();
-				let param_name = param_full_name.replace(/знач\s+/gi, '');
-				let pattern = '\/\/ параметры:[\\s\\SS\\n\\t]*?' + param_name + '([\\s\\SS\\n\\t]*?)(?:\/\/\\s{1,4}[a-zA-Z0-9\u0410-\u044F_])';
-				let match = Finder.findMatches(func_model, pattern);
-				let param_description = '';
+					let param_full_name = param.split('=')[0].trim();
+					let param_name = param_full_name.replace(/знач\s+/gi, '');
+					let pattern = '\/\/ параметры:[\\s\\SS\\n\\t]*?' + param_name + '([\\s\\SS\\n\\t]*?)(?:\/\/\\s{1,4}[a-zA-Z0-9\u0410-\u044F_])';
+					let match = Finder.findMatches(func_model, pattern);
+					let param_description = '';
 
-				if (match && !match.length) {
-					pattern = '\/\/ параметры:[\\s\\SS\\n\\t]*?' + param_name + '([\\s\\SS\\n\\t]*?)(?:\/\/\\s*$)';
-					match = Finder.findMatches(func_model, pattern);
-				}
+					if (match && !match.length) {
+						pattern = '\/\/ параметры:[\\s\\SS\\n\\t]*?' + param_name + '([\\s\\SS\\n\\t]*?)(?:\/\/\\s*$)';
+						match = Finder.findMatches(func_model, pattern);
+					}
 
-				if (match && match.length) {
-					param_description = match[0].matches[1];
-					param_description = param_description.replace(/^\/\/*/gm, '');
-					param_description = param_description.replace(/^\s*-\s*/gm, '');
-					param_description = param_description.replace(/^\s*/gm, '');
-				}
+					if (match && match.length) {
+						param_description = match[0].matches[1];
+						param_description = param_description.replace(/^\/\/*/gm, '');
+						param_description = param_description.replace(/^\s*-\s*/gm, '');
+						param_description = param_description.replace(/^\s*/gm, '');
+					}
 
-				sig_params[param_full_name] = param_description;
+					sig_params[param_full_name] = param_description;
 
-			});
+				});
+			}
+			finally {
+				func_model.dispose();
+			}
 
 		}
 
@@ -8595,48 +8612,54 @@ class bslHelper {
 		let module = {};
 
 		const model = monaco.editor.createModel(moduleText);
-		const pattern = '(?:процедура|функция|procedure|function)\\s+([a-zA-Z0-9\u0410-\u044F_]+)\\(([a-zA-Z0-9\u0410-\u044F_,\\s\\n="]*)\\)\\s+(?:экспорт|export)';
-		const matches = Finder.findMatches(model, pattern);
 
-		if (matches && matches.length) {
+		try {
+			const pattern = '(?:процедура|функция|procedure|function)\\s+([a-zA-Z0-9\u0410-\u044F_]+)\\(([a-zA-Z0-9\u0410-\u044F_,\\s\\n="]*)\\)\\s+(?:экспорт|export)';
+			const matches = Finder.findMatches(model, pattern);
 
-			count_matches = matches.length;
+			if (matches && matches.length) {
 
-			for (let idx = 0; idx < matches.length; idx++) {
+				count_matches = matches.length;
 
-				let match = matches[idx];
-				let method_name = match.matches[1];
-				let params_str = match.matches[2];
-				const description = this.parseFunctionDescription(model, match.range.startLineNumber)
-				let sig_params = this.parseFunctionParameters(model, params_str, match.range.startLineNumber);
-				
-				let method = {
-					name: method_name,
-					name_en: method_name,
-					description: description.full,
-					detail: description.short,
-					returns: '',
-				}
+				for (let idx = 0; idx < matches.length; idx++) {
 
-				if (Object.keys(sig_params).length) {
-					method['signature'] = {
-						default: {
-							СтрокаПараметров: "(" + params_str + ")",
-							Параметры: sig_params
+					let match = matches[idx];
+					let method_name = match.matches[1];
+					let params_str = match.matches[2];
+					const description = this.parseFunctionDescription(model, match.range.startLineNumber)
+					let sig_params = this.parseFunctionParameters(model, params_str, match.range.startLineNumber);
+
+					let method = {
+						name: method_name,
+						name_en: method_name,
+						description: description.full,
+						detail: description.short,
+						returns: '',
+					}
+
+					if (Object.keys(sig_params).length) {
+						method['signature'] = {
+							default: {
+								СтрокаПараметров: "(" + params_str + ")",
+								Параметры: sig_params
+							}
 						}
 					}
-				}
 
-				module[method_name] = method;
+					module[method_name] = method;
+
+				}
 
 			}
 
+			return {
+				module: module,
+				count: count_matches
+			};
 		}
-
-		return {
-			module: module,
-			count: count_matches
-		};
+		finally {
+			model.dispose();
+		}
 
 	}
 
