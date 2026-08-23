@@ -80,9 +80,11 @@ window.signatureVisible = true;
 window.currentBookmark = -1;
 window.currentMarker = -1;
 window.activeSuggestionAcceptors = [];
-window.diffEditor = null;  
+window.diffEditor = null;
 window.inlineDiffEditor = null;
 window.inlineDiffWidget = null;
+window.inlineDiffWidgetTimer = 0;
+window.inlineDiffEditorTimer = 0;
 window.events_queue = [];
 window.colors = {};
 window.editor_options = [];
@@ -1012,19 +1014,28 @@ window.compare = function (text="", sideBySide=true, highlight=true, markLines =
       decor: [],
       line: 0,
       position: 0
-    };      
+    };
     window.editor.diffEditorUpdateDecorations = diffEditorUpdateDecorations;
     window.editor.markDiffLines = function () {
+      const diff_editor = this;
       setTimeout(() => {
-        const modified_line = this.getPosition().lineNumber;
-        const diff_info = this.getDiffLineInformationForModified(modified_line);
+
+        if (window.editor !== diff_editor)
+          return;
+
+        const position = diff_editor.getModifiedEditor().getPosition();
+        if (!position)
+          return;
+
+        const modified_line = position.lineNumber;
+        const diff_info = diff_editor.getDiffLineInformationForModified(modified_line);
         const original_line = diff_info ? diff_info.equivalentLineNumber : modified_line;
-        if (this.markLines) {
-          this.getModifiedEditor().diffDecor.line = modified_line;
-          this.getOriginalEditor().diffDecor.line = original_line;
+        if (diff_editor.markLines) {
+          diff_editor.getModifiedEditor().diffDecor.line = modified_line;
+          diff_editor.getOriginalEditor().diffDecor.line = original_line;
         }
-        this.diffEditorUpdateDecorations();
-        window.editor.diffCount = window.editor.getLineChanges().length;
+        diff_editor.diffEditorUpdateDecorations();
+        diff_editor.diffCount = (diff_editor.getLineChanges() || []).length;
       }, 50);
     };
     window.editor.markDiffLines();
@@ -1730,11 +1741,14 @@ window.setOption = function (optionName, optionValue) {
   if (optionName == 'disableFolding')
     refreshFoldingState();
 
-  if (optionName == 'showDiffDecorations') {
+  // В compare-режиме создаётся новый diff-редактор без lifecycle-методов обычного редактора.
+  // Опцию сохраняем, но auxiliary diff-декорации к основному diff-редактору не применяем.
+  if (optionName == 'showDiffDecorations' && !window.editor.navi) {
     if (isShowDiffDecorationsEnabled() && window.editor.calculateDiff)
       calculateDiff();
     else {
       window.editor.removeDiffWidget();
+      disposeDiffCalculationEditor();
       window.editor.diff_decorations = [];
       window.editor.updateDecorations([]);
     }
@@ -1808,12 +1822,14 @@ window.setOriginalText = function (originalText, setEmptyOriginalText = false) {
   if (!window.editor.calculateDiff) {
     window.editor.diffCount = 0;
     window.editor.removeDiffWidget();
+    disposeDiffCalculationEditor();
     window.editor.diff_decorations = [];
   }
   else if (isShowDiffDecorationsEnabled())
     calculateDiff();
   else {
     window.editor.removeDiffWidget();
+    disposeDiffCalculationEditor();
     window.editor.diff_decorations = [];
   }
 
@@ -2551,20 +2567,32 @@ function initEditorEventListenersAndProperies() {
 
   window.editor.removeDiffWidget = function () {
 
-    if (window.editor.diffZoneId) {
+    const owner_editor = window.editor;
+    const inline_diff_editor = window.inlineDiffEditor;
+    const inline_diff_widget = window.inlineDiffWidget;
 
-      window.editor.removeOverlayWidget(window.inlineDiffWidget);
-      window.inlineDiffWidget = null;
-      window.inlineDiffEditor = null;
+    clearInlineDiffTimers();
+    window.inlineDiffEditor = null;
+    window.inlineDiffWidget = null;
 
-      window.editor.changeViewZones(function (changeAccessor) {
-        changeAccessor.removeZone(window.editor.diffZoneId);
-        window.editor.diffZoneId = 0;
+    if (owner_editor.diffZoneId) {
+
+      if (inline_diff_widget)
+        owner_editor.removeOverlayWidget(inline_diff_widget);
+
+      owner_editor.changeViewZones(function (changeAccessor) {
+        changeAccessor.removeZone(owner_editor.diffZoneId);
+        owner_editor.diffZoneId = 0;
       });
 
     }
 
+    disposeAuxiliaryDiffEditor(inline_diff_editor);
+
   }
+
+  // Внутренний обработчик вынесен в свойства редактора для тестирования полного lifecycle виджета.
+  window.editor.createDiffWidget = createDiffWidget;
 
   window.editor.onMouseMove(e => {
       
@@ -2658,7 +2686,7 @@ function initEditorEventListenersAndProperies() {
     }
 
     if (element.classList.contains('diff-navi')) {
-      createDiffWidget(e);
+      window.editor.createDiffWidget(e);
     }
 
     if (element.classList.contains('add-review')) {
@@ -4072,9 +4100,69 @@ window.activateInlineCompletionsApi = function () {
 
 ensureInlineCompletionProviders();
 
+function disposeOwnedDiffModel(diff_model) {
+
+  if (diff_model && diff_model.original
+    && (!diff_model.original.isDisposed || !diff_model.original.isDisposed()))
+    diff_model.original.dispose();
+
+}
+
+function disposeAuxiliaryDiffEditor(diff_editor) {
+
+  if (!diff_editor)
+    return;
+
+  let diff_model = diff_editor.getModel ? diff_editor.getModel() : null;
+
+  try {
+    if (diff_editor.navi && diff_editor.navi.dispose)
+      diff_editor.navi.dispose();
+
+    diff_editor.dispose();
+  }
+  finally {
+    // original-модель создаёт наша обвязка; modified-модель заимствована у основного редактора.
+    disposeOwnedDiffModel(diff_model);
+  }
+
+}
+
+function disposeDiffCalculationEditor() {
+
+  let diff_editor = window.diffEditor;
+  window.diffEditor = null;
+  disposeAuxiliaryDiffEditor(diff_editor);
+
+}
+
+function clearInlineDiffTimers() {
+
+  if (window.inlineDiffWidgetTimer) {
+    clearTimeout(window.inlineDiffWidgetTimer);
+    window.inlineDiffWidgetTimer = 0;
+  }
+
+  if (window.inlineDiffEditorTimer) {
+    clearTimeout(window.inlineDiffEditorTimer);
+    window.inlineDiffEditorTimer = 0;
+  }
+
+}
+
 window.disposeEditor = function() {
 
   if (window.editor) {
+
+    if (window.editor.diffTimer) {
+      clearTimeout(window.editor.diffTimer);
+      window.editor.diffTimer = 0;
+    }
+
+    if (window.editor.removeDiffWidget)
+      window.editor.removeDiffWidget();
+
+    disposeDiffCalculationEditor();
 
     if (window.editor.inlineSuggestController)
       window.editor.inlineSuggestController.dispose();
@@ -4083,6 +4171,8 @@ window.disposeEditor = function() {
       window.editor.diffRevertButtons.dispose();
 
     if (window.editor.navi) {
+      if (window.editor.navi.dispose)
+        window.editor.navi.dispose();
       window.editor.getOriginalEditor().getModel().dispose();
       window.editor.getOriginalEditor().dispose();
       window.editor.getModifiedEditor().getModel().dispose();
@@ -6133,6 +6223,7 @@ function getDiffChanges() {
 
   if (!isShowDiffDecorationsEnabled()) {
     window.editor.removeDiffWidget();
+    disposeDiffCalculationEditor();
     window.editor.diff_decorations = [];
     window.editor.updateDecorations([]);
     return;
@@ -6193,11 +6284,19 @@ function calculateDiff() {
 
   if (window.editor.calculateDiff && isShowDiffDecorationsEnabled()) {
 
-    if (window.editor.diffTimer)
-      clearTimeout(window.editor.diffTimer);
+    const owner_editor = window.editor;
 
-    window.editor.diffTimer = setTimeout(() => {
-              
+    if (owner_editor.diffTimer)
+      clearTimeout(owner_editor.diffTimer);
+
+    owner_editor.diffTimer = setTimeout(() => {
+
+      owner_editor.diffTimer = 0;
+
+      if (window.editor !== owner_editor || !owner_editor.calculateDiff
+        || !isShowDiffDecorationsEnabled())
+        return;
+
       if (!window.diffEditor) {
         window.diffEditor = monaco.editor.createDiffEditor(document.createElement("div"));
         window.diffEditor.onDidUpdateDiff(() => {
@@ -6212,17 +6311,26 @@ function calculateDiff() {
 
       let reusable = previous
         && previous.original && !previous.original.isDisposed()
-        && previous.modified === window.editor.getModel()
-        && window.diffEditor.originalTextRef === window.editor.originalText;
+        && previous.modified === owner_editor.getModel()
+        && window.diffEditor.originalTextRef === owner_editor.originalText;
 
       if (!reusable) {
 
-        window.diffEditor.setModel({
-          original: monaco.editor.createModel(window.editor.originalText),
-          modified: window.editor.getModel()
-        });
+        const original_model = monaco.editor.createModel(owner_editor.originalText);
+        let model_installed = false;
 
-        window.diffEditor.originalTextRef = window.editor.originalText;
+        try {
+          window.diffEditor.setModel({
+            original: original_model,
+            modified: owner_editor.getModel()
+          });
+          model_installed = true;
+          window.diffEditor.originalTextRef = owner_editor.originalText;
+        }
+        finally {
+          if (!model_installed)
+            original_model.dispose();
+        }
 
         if (previous && previous.original && !previous.original.isDisposed())
           previous.original.dispose();
@@ -6307,13 +6415,14 @@ function createStatusBarWidget(overlapScroll) {
 
 function createDiffWidget(e) {
 
-  if (window.inlineDiffWidget) {
+  if (window.inlineDiffWidget || window.inlineDiffWidgetTimer || window.editor.diffZoneId) {
     
     window.editor.removeDiffWidget();
 
   }
   else {
 
+    const owner_editor = window.editor;
     let element = e.target.element;
     let line_number = e.target.position.lineNumber;
     
@@ -6331,7 +6440,7 @@ function createDiffWidget(e) {
     else if (element.classList.contains('diff-removed'))
       class_name = 'removed-block';
 
-    window.editor.changeViewZones(function (changeAccessor) {
+    owner_editor.changeViewZones(function (changeAccessor) {
 
       let domNode = document.getElementById('diff-zone');
 
@@ -6340,15 +6449,13 @@ function createDiffWidget(e) {
         domNode.setAttribute('id', 'diff-zone');
       }
 
-      window.editor.removeDiffWidget();
-
-      window.editor.diffZoneId = changeAccessor.addZone({
+      owner_editor.diffZoneId = changeAccessor.addZone({
         afterLineNumber: line_number,
         afterColumn: 1,
         heightInLines: 10,
         domNode: domNode,
         onComputedHeight: function(height) {
-          if (window.inlineDiffWidget) {
+          if (window.editor === owner_editor && window.inlineDiffWidget) {
             if (height == 0)
               window.inlineDiffWidget.domNode.classList.add('invisible');
             else
@@ -6356,8 +6463,8 @@ function createDiffWidget(e) {
           }
         },
         onDomNodeTop: function (top) {
-          if (window.inlineDiffWidget) {
-            let layout = window.editor.getLayoutInfo();
+          if (window.editor === owner_editor && window.inlineDiffWidget) {
+            let layout = owner_editor.getLayoutInfo();
             const width = (layout.contentWidth + layout.decorationsWidth + layout.lineNumbersWidth - layout.verticalScrollbarWidth);
             window.inlineDiffWidget.domNode.style.top = top + 'px';
             window.inlineDiffWidget.domNode.style.width = width + 'px';
@@ -6367,7 +6474,12 @@ function createDiffWidget(e) {
 
     });
 
-    setTimeout(() => {
+    window.inlineDiffWidgetTimer = setTimeout(() => {
+
+      window.inlineDiffWidgetTimer = 0;
+
+      if (window.editor !== owner_editor || !owner_editor.diffZoneId)
+        return;
 
       window.inlineDiffWidget = {
         domNode: null,
@@ -6381,7 +6493,7 @@ function createDiffWidget(e) {
             this.domNode = document.createElement('div');
             this.domNode.setAttribute("id", "diff-widget");
 
-            let layout = window.editor.getLayoutInfo();
+            let layout = owner_editor.getLayoutInfo();
             let diff_zone = document.getElementById('diff-zone');
             let rect = diff_zone.getBoundingClientRect();
             const width = (layout.contentWidth + layout.decorationsWidth + layout.lineNumbersWidth - layout.verticalScrollbarWidth);
@@ -6403,7 +6515,7 @@ function createDiffWidget(e) {
 
             let close_button = document.createElement('div');
             close_button.classList.add('diff-close');
-            close_button.onclick = window.editor.removeDiffWidget;
+            close_button.onclick = owner_editor.removeDiffWidget;
             header.appendChild(close_button);
 
             this.domNode.appendChild(header);
@@ -6413,11 +6525,17 @@ function createDiffWidget(e) {
             body.classList.add(class_name);            
             this.domNode.appendChild(body);
 
-            setTimeout(() => {
+            window.inlineDiffEditorTimer = setTimeout(() => {
 
-              let language_id = window.getCurrentLanguageId();
+              window.inlineDiffEditorTimer = 0;
 
-              window.inlineDiffEditor = monaco.editor.createDiffEditor(body, {
+              if (window.editor !== owner_editor || window.inlineDiffWidget !== this
+                || !owner_editor.diffZoneId)
+                return;
+
+              let language_id = owner_editor.getModel().getModeId();
+
+              const inline_diff_editor = monaco.editor.createDiffEditor(body, {
                 theme: currentTheme,
                 language: language_id,
                 contextmenu: false,
@@ -6425,27 +6543,41 @@ function createDiffWidget(e) {
                 renderSideBySide: false
               });
 
-              let originalModel = monaco.editor.createModel(window.editor.originalText);
-              let modifiedModel = window.editor.getModel();
+              let originalModel = monaco.editor.createModel(owner_editor.originalText);
+              let modifiedModel = owner_editor.getModel();
+              let model_installed = false;
 
-              monaco.editor.setModelLanguage(originalModel, language_id);
+              try {
+                monaco.editor.setModelLanguage(originalModel, language_id);
 
-              window.inlineDiffEditor.setModel({
-                original: originalModel,
-                modified: modifiedModel
-              });
+                inline_diff_editor.setModel({
+                  original: originalModel,
+                  modified: modifiedModel
+                });
 
-              window.inlineDiffEditor.navi = monaco.editor.createDiffNavigator(window.inlineDiffEditor, {
-                followsCaret: true,
-                ignoreCharChanges: true
-              });
+                inline_diff_editor.navi = monaco.editor.createDiffNavigator(inline_diff_editor, {
+                  followsCaret: true,
+                  ignoreCharChanges: true
+                });
+                window.inlineDiffEditor = inline_diff_editor;
+                model_installed = true;
+              }
+              finally {
+                if (!model_installed) {
+                  if (inline_diff_editor.navi)
+                    inline_diff_editor.navi.dispose();
+                  inline_diff_editor.dispose();
+                  originalModel.dispose();
+                }
+              }
 
               setTimeout(() => {
-                window.inlineDiffEditor.revealLineInCenter(line_number);
+                if (window.inlineDiffEditor === inline_diff_editor)
+                  inline_diff_editor.revealLineInCenter(line_number);
               }, 10);
 
               if (reveal_line)
-                editor.revealLine(line_number + 1);
+                owner_editor.revealLine(line_number + 1);
 
             }, 10);
 
@@ -6459,7 +6591,7 @@ function createDiffWidget(e) {
         }
       };
 
-      window.editor.addOverlayWidget(window.inlineDiffWidget);
+      owner_editor.addOverlayWidget(window.inlineDiffWidget);
 
     }, 50);
 
@@ -6900,7 +7032,10 @@ function eraseTextBeforeUpdate() {
 
 function showVariablesDisplay() {
 
-  document.getElementById("container").style.height = "70%";
+  let container = document.getElementById("container");
+  if (typeof container.heightBeforeVariablesDisplay == 'undefined')
+    container.heightBeforeVariablesDisplay = container.style.height;
+  container.style.height = "70%";
   getActiveEditor().layout();
   document.getElementById("display-title").innerHTML = window.engLang ? "Variables" : "Просмотр значений переменных:"
   let element = document.getElementById("display");
@@ -6910,8 +7045,12 @@ function showVariablesDisplay() {
 }
 
 function hideVariablesDisplay() {
-  
-  document.getElementById("container").style.height = "100%";
+
+  let container = document.getElementById("container");
+  container.style.height = typeof container.heightBeforeVariablesDisplay == 'undefined'
+    ? "100%"
+    : container.heightBeforeVariablesDisplay;
+  delete container.heightBeforeVariablesDisplay;
   getActiveEditor().layout();
   let element = document.getElementById("display");
   element.style.height = "0";
