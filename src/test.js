@@ -102,6 +102,57 @@ setTimeout(() => {
 
     }
 
+    function wait(milliseconds) {
+
+      return new Promise(function (resolve) {
+        setTimeout(resolve, milliseconds);
+      });
+
+    }
+
+    it("diff-декорации повторно используют модель оригинала", async function () {
+      const editor = window.editor;
+      const model = editor.getModel();
+      const previousText = model.getValue();
+      const previousOriginalText = editor.originalText;
+      const previousCalculateDiff = editor.calculateDiff;
+      const previousShowDiffDecorations = window.getOption('showDiffDecorations');
+
+      try {
+        window.setOption('showDiffDecorations', true);
+        window.setOriginalText('Исходный текст');
+        await waitFor(function () {
+          const diffModel = window.diffEditor && window.diffEditor.getModel();
+          return diffModel && diffModel.original && diffModel.modified === model;
+        });
+
+        const firstOriginalModel = window.diffEditor.getModel().original;
+        const modelsCount = monaco.editor.getModels().length;
+
+        model.setValue('Изменение 1');
+        await wait(120);
+        assert.strictEqual(window.diffEditor.getModel().original, firstOriginalModel);
+        assert.equal(monaco.editor.getModels().length, modelsCount);
+
+        model.setValue('Изменение 2');
+        await wait(120);
+        assert.strictEqual(window.diffEditor.getModel().original, firstOriginalModel);
+        assert.equal(monaco.editor.getModels().length, modelsCount);
+
+        window.setOriginalText('Новый исходный текст');
+        await waitFor(function () {
+          const diffModel = window.diffEditor.getModel();
+          return diffModel.original !== firstOriginalModel;
+        });
+        assert.equal(firstOriginalModel.isDisposed(), true);
+      }
+      finally {
+        model.setValue(previousText);
+        window.setOriginalText(previousOriginalText, previousCalculateDiff && !previousOriginalText);
+        window.setOption('showDiffDecorations', previousShowDiffDecorations);
+      }
+    });
+
     it("AI inline provider выключен по умолчанию", function () {
       assert.equal(window.getOption('generateAIInlineCompletionEvent'), false);
     });
