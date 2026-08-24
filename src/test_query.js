@@ -416,7 +416,31 @@ setTimeout(() => {
       bsl = helper('РАЗНОСТЬДАТ(');
       let context = bsl.getLastSigMethod({});
       let help = bsl.getCommonSigHelp(context, window.bslQuery.functions);
-      expect(help).to.have.property('activeParameter');              
+      expect(help).to.have.property('activeParameter');
+    });
+
+    it("токен-aware контекст сигнатуры сохраняется в режимах запроса и СКД (issue #343)", function () {
+      let queryHelper = helper('РАЗНОСТЬДАТ(ДОБАВИТЬКДАТЕ(Дата, ДЕНЬ, 1), ');
+      let queryContext = queryHelper.getLastSigMethod({});
+      let queryHelp = queryHelper.getQuerySigHelp({});
+
+      assert.equal(queryContext.methodName, 'РАЗНОСТЬДАТ');
+      assert.equal(queryContext.activeParameter, 1);
+      expect(queryHelp).to.have.property('value');
+
+      try {
+        window.setLanguageMode('dcs_query');
+        let dcsHelper = helper('ВычислитьВыражение("Сумма(Поле, Другое)", ');
+        let dcsContext = dcsHelper.getLastSigMethod({});
+        let dcsHelp = dcsHelper.getDCSSigHelp({});
+
+        assert.equal(dcsContext.methodName, 'ВычислитьВыражение');
+        assert.equal(dcsContext.activeParameter, 1);
+        expect(dcsHelp).to.have.property('value');
+      }
+      finally {
+        window.setLanguageMode('bsl_query');
+      }
     });
 
     it("проверка автокомплита для таблицы запроса, являющейся справочником", function () {

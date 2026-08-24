@@ -632,37 +632,6 @@ class bslHelper {
 	}
 
 	/**
-	 * Returns the first word until open bracket
-	 * at current position
-	 * 
-	 * @returns {string} word
-	 */
-	getWordUntilOpenBracket() {
-
-		let word = '';
-
-		let match = Finder.findPreviousMatch(this.model, '\\(', this.position);
-		
-		if (match) {
-
-			const position = new monaco.Position(match.range.startLineNumber, match.range.startColumn);
-
-			if (position.lineNumber = this.lineNumber) {
-					
-				let wordUntil = this.model.getWordUntilPosition(position);
-
-				if (wordUntil)
-					word = wordUntil.word.toLowerCase();
-
-			}
-
-		}
-
-		return word
-
-	}
-
-	/**
 	 * Returns the name of current function/procudure
 	 * 
 	 * @param {string} func_name
@@ -7382,30 +7351,6 @@ class bslHelper {
 	}
 
 	/**
-	 * Return an index of the active parameter
-	 * 
-	 * @returns {int} index
-	 */
-	 getSignatureActiveParameter() {
-
-		let unclosed_string = this.unclosedString(this.textBeforePosition).string;
-		let is_query = (window.isQueryMode() || window.isDCSMode());
-		
-		if (!is_query && this.isItStringLiteral()) {
-
-			while (unclosed_string && unclosed_string.slice(-1) != '"')
-				unclosed_string = unclosed_string.substr(0, unclosed_string.length - 1);
-
-		}
-
-		unclosed_string = unclosed_string.replace(/\(.*?\)/gi, '');
-		unclosed_string = unclosed_string.replace(/\".*?\"/gi, '');
-
-		return unclosed_string.split(',').length - 1;
-		
-	}
-
-	/**
 	 * Finds metadata item by name
 	 * 
 	 * @param {object} data objects from BSL-JSON dictionary
@@ -7744,26 +7689,31 @@ class bslHelper {
 	 */
 	getCustomSigHelp(context) {
 
-		let helper = null;
 		let method = context.methodName.toLowerCase();
-					
-		for (const [key, value] of Object.entries(window.customSignatures)) {			
-	
-			if (key.toLowerCase() == method && value) {
+		let word = context.methodWord || method.split('.').pop();
+		let exactSignatures = null;
+		let fallbackSignatures = null;
 
-				let activeSignature = context && context.activeSignatureHelp ? context.activeSignatureHelp.activeSignature : 0;
-				
-				helper = {
-					activeParameter: this.getSignatureActiveParameter(),
-					activeSignature: activeSignature,
-					signatures: value,
-				}						
-						
-			}
+		for (const [key, value] of Object.entries(window.customSignatures)) {
+
+			let normalizedKey = key.toLowerCase();
+			if (normalizedKey == method && value)
+				exactSignatures = value;
+			else if (normalizedKey == word && value)
+				fallbackSignatures = value;
 
 		}
 
-		return helper;
+		let signatures = exactSignatures || fallbackSignatures;
+		if (!signatures)
+			return null;
+
+		let activeSignature = context && context.activeSignatureHelp ? context.activeSignatureHelp.activeSignature : 0;
+		return {
+			activeParameter: context.activeParameter,
+			activeSignature: activeSignature,
+			signatures: signatures,
+		};
 
 	}
 
@@ -7805,47 +7755,157 @@ class bslHelper {
 	}
 
 	/**
-	 * Return an index of the active parameter
-	 * 
-	 * @param {string} signatureString string with method's params
-	 * 
-	 * @returns {int} index
+	 * Токенизирует текст до текущей позиции один раз для анализа сигнатуры.
+	 *
+	 * @returns {object} строки и токены Monaco
 	 */
-	getActiveParameterFromSignatureString(signatureString) {
+	getSignatureLexicalData() {
 
-		let is_query = (window.isQueryMode() || window.isDCSMode());
-		
-		if (!is_query && this.isItStringLiteral()) {
+		let range = new monaco.Range(1, 1, this.lineNumber, this.column);
+		let text = this.model.getValueInRange(range);
+		return {
+			lines: text.split(/\r\n|\r|\n/),
+			tokens: monaco.editor.tokenize(text, this.getLangId()),
+			queryLanguage: window.isQueryMode() || window.isDCSMode(),
+		};
 
-			while (signatureString && signatureString.slice(-1) != '"')
-			signatureString = signatureString.substr(0, signatureString.length - 1);
-
-		}
-
-		signatureString = signatureString.replace(/\(.*?\)/gi, '');
-		signatureString = signatureString.replace(/\".*?\"/gi, '');
-
-		return signatureString.split(',').length - 1;
-		
 	}
 
 	/**
-	 * Determines if the current position is suitable for
-	 * showing a signature help
-	 * 
-	 * @returns {bool}
+	 * Возвращает тип токена в позиции со смещением от нуля.
+	 *
+	 * @param {array} tokens токены Monaco одной строки
+	 * @param {int} offset смещение символа от начала строки
+	 *
+	 * @returns {string} тип токена
 	 */
-	isSuitablePlaceForSigHelp() {
+	getSignatureTokenType(tokens, offset) {
 
-		if (window.isQueryMode())
-			return !this.requireQueryValue()
-		else if (window.isDCSMode())
+		let tokenType = '';
+		for (let token of tokens || []) {
+			if (token.offset > offset)
+				break;
+			tokenType = token.type || '';
+		}
+		return tokenType.toLowerCase();
+
+	}
+
+	/**
+	 * Определяет, следует ли игнорировать скобки и запятые токена.
+	 *
+	 * @param {string} tokenType тип токена Monaco
+	 * @param {bool} queryLanguage режим языка запроса или СКД
+	 *
+	 * @returns {bool} токен игнорируется при анализе сигнатуры
+	 */
+	isIgnoredSignatureToken(tokenType, queryLanguage) {
+
+		if (0 <= tokenType.search(/(string|comment)/))
 			return true;
-		else
-			// https://github.com/salexdv/bsl_console/issues/343
-			// return !this.isItStringLiteral();
-			return true; 
 
+		return !queryLanguage && 0 <= tokenType.search(/query/);
+
+	}
+
+	/**
+	 * Находит активную открывающую скобку вне строк и комментариев.
+	 *
+	 * @param {object} lexicalData токенизированный текст до текущей позиции
+	 *
+	 * @returns {Range|null} диапазон открывающей скобки
+	 */
+	findActiveSignatureBracket(lexicalData) {
+
+		let lastLineIndex = lexicalData.lines.length - 1;
+		let lastLine = lexicalData.lines[lastLineIndex] || '';
+		let currentToken = this.getSignatureTokenType(lexicalData.tokens[lastLineIndex], Math.max(0, lastLine.length - 1));
+
+		if (0 <= currentToken.search(/comment/))
+			return null;
+		if (!lexicalData.queryLanguage && 0 <= currentToken.search(/query/))
+			return null;
+
+		let depth = 0;
+		for (let lineIndex = lastLineIndex; 0 <= lineIndex; lineIndex--) {
+
+			let line = lexicalData.lines[lineIndex];
+			let tokens = lexicalData.tokens[lineIndex] || [];
+			let tokenIndex = tokens.length - 1;
+
+			for (let offset = line.length - 1; 0 <= offset; offset--) {
+
+				while (0 < tokenIndex && offset < tokens[tokenIndex].offset)
+					tokenIndex--;
+
+				let tokenType = tokenIndex < 0 ? '' : (tokens[tokenIndex].type || '').toLowerCase();
+				if (this.isIgnoredSignatureToken(tokenType, lexicalData.queryLanguage))
+					continue;
+
+				let character = line[offset];
+				if (character == ')') {
+					depth++;
+				}
+				else if (character == '(') {
+					if (depth == 0)
+						return new monaco.Range(lineIndex + 1, offset + 1, lineIndex + 1, offset + 2);
+					depth--;
+				}
+
+			}
+
+		}
+
+		return null;
+
+	}
+
+	/**
+	 * Считает параметры верхнего уровня между активной скобкой и курсором.
+	 *
+	 * @param {object} lexicalData токенизированный текст до текущей позиции
+	 * @param {Range} bracket активная открывающая скобка
+	 *
+	 * @returns {int} индекс активного параметра
+	 */
+	getSignatureActiveParameter(lexicalData, bracket) {
+
+		let activeParameter = 0;
+		let depth = 0;
+		let firstLineIndex = bracket.startLineNumber - 1;
+
+		for (let lineIndex = firstLineIndex; lineIndex < lexicalData.lines.length; lineIndex++) {
+
+			let line = lexicalData.lines[lineIndex];
+			let tokens = lexicalData.tokens[lineIndex] || [];
+			let startOffset = lineIndex == firstLineIndex ? bracket.startColumn : 0;
+			let tokenIndex = 0;
+
+			while (tokenIndex + 1 < tokens.length && tokens[tokenIndex + 1].offset <= startOffset)
+				tokenIndex++;
+
+			for (let offset = startOffset; offset < line.length; offset++) {
+
+				while (tokenIndex + 1 < tokens.length && tokens[tokenIndex + 1].offset <= offset)
+					tokenIndex++;
+
+				let tokenType = tokens.length ? (tokens[tokenIndex].type || '').toLowerCase() : '';
+				if (this.isIgnoredSignatureToken(tokenType, lexicalData.queryLanguage))
+					continue;
+
+				let character = line[offset];
+				if (character == '(')
+					depth++;
+				else if (character == ')' && 0 < depth)
+					depth--;
+				else if (character == ',' && depth == 0)
+					activeParameter++;
+
+			}
+
+		}
+
+		return activeParameter;
 
 	}
 	
@@ -7858,10 +7918,12 @@ class bslHelper {
 	 */
 	getLastSigMethod(context) {
 
+		context = context || {};
 		let method = '';
-		let bracket = this.model.bracketPairs.findMatchingBracketUp(')', this.position);
+		let lexicalData = this.getSignatureLexicalData();
+		let bracket = this.findActiveSignatureBracket(lexicalData);
 
-		if (bracket && this.isSuitablePlaceForSigHelp()) {
+		if (bracket) {
 
 			let position = new monaco.Position(bracket.startLineNumber, bracket.startColumn);
 			let data = this.model.getWordUntilPosition(position);
@@ -7881,13 +7943,14 @@ class bslHelper {
 			}	
 
 			context.methodPosition = position;
-
-			let range = new monaco.Range(bracket.startLineNumber, bracket.startColumn + 1, this.lineNumber, this.column);
-			let params_text = this.model.getValueInRange(range);
-			context.activeParameter = this.getActiveParameterFromSignatureString(params_text);	
+			context.activeParameter = this.getSignatureActiveParameter(lexicalData, bracket);
 		}
 
 		context.methodName = method;
+		context.methodWord = method ? method.split('.').pop().toLowerCase() : '';
+		context.methodExpression = method.toLowerCase();
+		if (context.activeParameter == undefined)
+			context.activeParameter = 0;
 
 		return context;
 
@@ -7942,12 +8005,11 @@ class bslHelper {
 	 * @returns {object} helper
 	 */
 	getQuerySigHelp(context) {
-		
+
 		context = this.getLastSigMethod(context);
 
 		if (context.methodName) {
-			
-			context = this.getLastSigMethod(context);
+
 			let helper = this.getCustomSigHelp(context);
 
 			if (!helper && !window.editor.disableNativeSignatures) {

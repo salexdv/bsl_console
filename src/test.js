@@ -1166,7 +1166,7 @@ setTimeout(() => {
 
       it("проверка подсказки переопределенных параметров для функции Состояние", function () {
         let strJSON = '{ "Состояние": [ { "label": "(Первый, Второй)", "documentation": "Описание сигнатуры", "parameters": [ { "label": "Первый", "documentation": "Описание первого" }, { "label": "Второй", "documentation": "Описание второго" } ] } ] }';
-        assert.equal(window.setCustomSignatures(strJSON), true);        
+        assert.equal(window.setCustomSignatures(strJSON), true);
         let position = new monaco.Position(37, 12);
         let model = window.editor.getModel();
         window.editor.setPosition(position);
@@ -1174,7 +1174,127 @@ setTimeout(() => {
         let context = bsl.getLastSigMethod({});
         let help = bsl.getCustomSigHelp(context);
         expect(help).to.have.property('activeParameter');
-        assert.equal(window.setCustomSignatures('{}'), true);        
+        assert.equal(window.setCustomSignatures('{}'), true);
+      });
+
+      describe("пользовательские сигнатуры контекстных вызовов (issue #343)", function () {
+
+        const shortSignature = [{
+          label: "Короткая(Имя?)",
+          parameters: [{ label: "Имя?" }]
+        }];
+        const exactSignature = [{
+          label: "Полная(Имя?)",
+          parameters: [{ label: "Имя?" }]
+        }];
+
+        afterEach(function () {
+          window.setCustomSignatures('{}');
+        });
+
+        it("использует короткий ключ метода после точки без учета регистра", function () {
+          window.setCustomSignatures(JSON.stringify({ "ДоБаВиТь": shortSignature }));
+
+          let signatureHelper = helper('я = Новый ТаблицаЗначений;\nя.Колонки.Добавить(');
+          let context = signatureHelper.getLastSigMethod({});
+          let help = signatureHelper.getCustomSigHelp(context);
+
+          assert.equal(context.methodExpression, 'я.колонки.добавить');
+          assert.equal(context.methodWord, 'добавить');
+          assert.equal(help.signatures[0].label, 'Короткая(Имя?)');
+        });
+
+        it("дает полному ключу приоритет над коротким", function () {
+          window.setCustomSignatures(JSON.stringify({
+            "ДОБАВИТЬ": shortSignature,
+            "Я.КоЛоНкИ.ДоБаВиТь": exactSignature
+          }));
+
+          let signatureHelper = helper('я.Колонки.Добавить(');
+          let context = signatureHelper.getLastSigMethod({});
+          let help = signatureHelper.getCustomSigHelp(context);
+
+          assert.equal(help.signatures[0].label, 'Полная(Имя?)');
+        });
+
+        it("сохраняет короткий ключ глобальной функции", function () {
+          window.setCustomSignatures(JSON.stringify({ "ОТКРЫТЬФОРМУ": shortSignature }));
+
+          let signatureHelper = helper('ОткрытьФорму(');
+          let context = signatureHelper.getLastSigMethod({});
+          let help = signatureHelper.getCustomSigHelp(context);
+
+          assert.equal(context.methodExpression, 'открытьформу');
+          assert.equal(help.signatures[0].label, 'Короткая(Имя?)');
+        });
+
+        it("определяет внешний вызов внутри строки и после закрывающей кавычки", function () {
+          let insideString = helper('ОткрытьФорму("ОбщаяФорма.Форма');
+          let insideContext = insideString.getLastSigMethod({});
+          assert.equal(insideContext.methodName, 'ОткрытьФорму');
+          assert.equal(insideContext.activeParameter, 0);
+
+          let afterString = helper('ОткрытьФорму("ОбщаяФорма.Форма"');
+          let afterContext = afterString.getLastSigMethod({});
+          assert.equal(afterContext.methodName, 'ОткрытьФорму');
+          assert.equal(afterContext.activeParameter, 0);
+        });
+
+        it("игнорирует скобки и запятые строк, а также вложенные вызовы", function () {
+          let signatureHelper = helper('Метод("текст, (скобка)", Вложенный(1, 2), ');
+          let context = signatureHelper.getLastSigMethod({});
+
+          assert.equal(context.methodName, 'Метод');
+          assert.equal(context.activeParameter, 2);
+
+          signatureHelper = helper('Метод(\n\tПервый,\n\tВложенный(1, 2),\n\t');
+          context = signatureHelper.getLastSigMethod({});
+          assert.equal(context.methodName, 'Метод');
+          assert.equal(context.activeParameter, 2);
+        });
+
+        it("не создает вызов из скобки внутри строки или комментария", function () {
+          let stringContext = helper('Строка = "Вызов(').getLastSigMethod({});
+          let commentContext = helper('Значение = 1; // Вызов(').getLastSigMethod({});
+
+          assert.equal(stringContext.methodName, '');
+          assert.equal(commentContext.methodName, '');
+        });
+
+        it("передает короткое и полное имя в EVENT_BEFORE_SIGNATURE", function () {
+          const originalSendEvent = window.sendEvent;
+          const originalGenerateEvent = window.getOption('generateBeforeSignatureEvent');
+          let capturedEvent = null;
+
+          try {
+            window.setCustomSignatures(JSON.stringify({ "добавить": shortSignature }));
+            window.sendEvent = function (event, params) {
+              capturedEvent = { event: event, params: params };
+            };
+            window.setOption('generateBeforeSignatureEvent', true);
+
+            let model = getModel('я.Колонки.Добавить(');
+            let position = getPosition(model);
+            let context = { triggerCharacter: '(' };
+            let result = window.languages.bsl.signatureProvider.provideSignatureHelp(
+              model,
+              position,
+              { isCancellationRequested: false },
+              context
+            );
+
+            expect(result).to.have.property('value');
+            assert.equal(capturedEvent.event, 'EVENT_BEFORE_SIGNATURE');
+            assert.equal(capturedEvent.params.word, 'добавить');
+            assert.equal(capturedEvent.params.expression, 'я.колонки.добавить');
+            assert.equal(capturedEvent.params.activeParameter, 0);
+          }
+          finally {
+            window.sendEvent = originalSendEvent;
+            window.setOption('generateBeforeSignatureEvent', originalGenerateEvent);
+          }
+        });
+
       });
 
       it("проверка автокомплита для функции 'Тип'", function () {
