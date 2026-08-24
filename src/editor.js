@@ -149,6 +149,28 @@ window.objectContext = null;
 // #endregion
 
 // #region public API
+/**
+ * Полностью очищает справочник глобальных объектов, сохраняя его корневые разделы.
+ * @returns {boolean} true, если справочник уже загружен и очищен
+ */
+window.clearBslGlobals = function () {
+  return rebuildBslGlobals([], false);
+}
+
+/**
+ * Фильтрует справочник глобальных объектов по путям раздел.Имя.
+ * По умолчанию остаются только указанные объекты; при exclude=true указанные
+ * объекты удаляются, а остальные сохраняются. Операция необратима до
+ * перезагрузки редактора.
+ * @param {string[]|string} paths массив путей или JSON-строка с таким массивом,
+ * например `["globalfunctions.Base64Значение"]`
+ * @param {boolean} [exclude=false] удалить указанные объекты вместо их включения
+ * @returns {boolean} true, если справочник уже загружен и отфильтрован
+ */
+window.filterBslGlobals = function (paths, exclude = false) {
+  return rebuildBslGlobals(paths, exclude);
+}
+
 /** @param {string} name диагностическое имя передаваемых данных */
 window.beginBase64Transfer = function (name) {
   helpBrowser.beginTransfer(name);
@@ -2550,7 +2572,7 @@ for (const [key, lang] of Object.entries(window.languages)) {
       if (!window.editor) {
 
         import('./bslGlobals').then(({ default: bslGlobals }) => {
-          window.bslGlobals = bslGlobals
+          window.bslGlobals = bslGlobals;
         }).catch((error) => 'An error occurred while loading the bslGlobals');
 
         import('./bslMetadata').then(({ default: bslMetadata }) => {
@@ -2886,6 +2908,41 @@ function initEditorEventListenersAndProperies() {
 // #endregion
   
 // #region non-public functions
+function rebuildBslGlobals(paths, exclude) {
+  if (!window.bslGlobals)
+    return false;
+
+  if (typeof paths == 'string') {
+    try {
+      paths = JSON.parse(paths);
+    }
+    catch (e) {
+      return false;
+    }
+  }
+
+  if (!Array.isArray(paths))
+    return false;
+
+  const pathSet = new Set(paths);
+
+  Object.keys(window.bslGlobals).forEach(function (section) {
+    const sourceSection = window.bslGlobals[section];
+    if (!sourceSection || typeof sourceSection !== 'object')
+      return;
+
+    Object.keys(sourceSection).forEach(function (name) {
+      const included = pathSet.has(section + '.' + name);
+      if (exclude ? !included : included)
+        return;
+
+      delete sourceSection[name];
+    });
+  });
+
+  return true;
+}
+
 function mapsAreEqual(map1, map2) {
     
   let testVal;
