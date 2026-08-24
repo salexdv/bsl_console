@@ -219,6 +219,8 @@ npm run build  -- --customOptions "automaticLayout: true, someOption: false"
 | [`setObjectContext`](docs/set_object_context.md) | Задаёт контекст объекта (реквизиты/методы/ТЧ доступны как в модуле объекта) |
 | `clearObjectContext`           | Сбрасывает контекст объекта, заданный через `setObjectContext`                                |
 | `clearMetadata`                | Очищает структуру метаданных                                                                  |
+| [`clearBslGlobals`](docs/clear_bsl_globals.md) | Очищает справочник глобальных объектов, сохраняя корневые разделы             |
+| [`filterBslGlobals`](docs/filter_bsl_globals.md) | Оставляет или исключает выбранные объекты справочника глобальных объектов   |
 | `updateSnippets`               | Обновляет пользовательские сниппеты                                                           |
 | [`parseSnippets`](docs/parse_snippets.md) |  Загружает шаблоны кода (сниппеты) в формате 1С:Предприятия                        |
 | [`updateSnippetByGUID`](docs/update_snippet_guid.md) |  Обновление текущего сниппета                                           |
