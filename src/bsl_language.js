@@ -1013,10 +1013,11 @@ function onProvideSignature(bsl, context, position) {
     if (fire_event) {
         let activeSignature = context.activeSignatureHelp ? context.activeSignatureHelp.activeSignature : 0;
         let params = {
-            word: bsl.getWordUntilOpenBracket(),
+            word: context.methodWord || '',
+            expression: context.methodExpression || '',
             line: position.lineNumber,
             column: position.column,
-            activeParameter: bsl.textBeforePosition.split(',').length - 1,
+            activeParameter: context.activeParameter || 0,
             activeSignature: activeSignature,
             triggerCharacter: context.triggerCharacter
         };

@@ -17,7 +17,8 @@ setOption('generateBeforeSignatureEvent', false);
 ## Пример параметров генерируемого события
 ```json
 {
-    "word": "состояние",
+    "word": "добавить",
+    "expression": "я.колонки.добавить",
     "line": 16,
     "column": 13,
     "activeParameter": 0,
@@ -25,3 +26,7 @@ setOption('generateBeforeSignatureEvent', false);
     "triggerCharacter": "("
 }
 ```
+
+`word` содержит короткое имя функции или метода, а `expression` — полное выражение вызова. Оба
+значения приводятся к нижнему регистру. Поле `expression` можно использовать как приоритетный ключ
+для [`setCustomSignatures`](set_custom_signatures.md), сохраняя `word` как общий fallback.
