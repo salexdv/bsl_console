@@ -1295,10 +1295,12 @@ window.showInlineSuggestion = function (suggestions) {
     if (!suggestionItems.length)
       return false;
 
-    if (typeof suggestionItems[0] != 'string')
-      throw new TypeError('Первый элемент массива должен быть строкой');
+    for (let suggestionIndex = 0; suggestionIndex < suggestionItems.length; suggestionIndex++) {
+      if (typeof suggestionItems[suggestionIndex] != 'string')
+        throw new TypeError('Элемент массива с индексом ' + suggestionIndex + ' должен быть строкой');
+    }
 
-    return window.editor.inlineSuggestController.showText(suggestionItems[0]);
+    return window.editor.inlineSuggestController.showTexts(suggestionItems);
 
   }
   catch (e) {
@@ -3044,12 +3046,12 @@ function createInlineGhostTextRenderer(codeEditor) {
     let color = themeName && 0 <= themeName.indexOf('dark') ? 'rgba(140, 140, 140, 0.9)' : 'rgba(120, 120, 120, 0.85)';
     let content = escapeInlineCompletionText(lineText);
 
-    styleNode.textContent = '.' + currentClassName + '::after { content: "' + content + '"; color: ' + color + '; white-space: pre; pointer-events: none; }';
+    styleNode.textContent = '.' + currentClassName + '::after { content: "' + content + '"; color: ' + color + '; white-space: pre; pointer-events: auto; }';
 
     decorationIds = codeEditor.deltaDecorations(decorationIds, [{
       range: new monaco.Range(currentState.position.lineNumber, currentState.position.column, currentState.position.lineNumber, currentState.position.column),
       options: {
-        afterContentClassName: currentClassName
+        afterContentClassName: 'inline-completion-ghost-text ' + currentClassName
       }
     }]);
 
@@ -3132,10 +3134,215 @@ function createInlineGhostTextRenderer(codeEditor) {
         updateAdditionalLinesLayout(themeName);
       }
     },
+    isGhostDomTarget: function (target) {
+
+      let editorNode = codeEditor.getDomNode();
+      let node = target;
+
+      while (node && node !== editorNode) {
+        if (node.classList && (node.classList.contains('inline-completion-ghost-text')
+          || node.classList.contains('inline-completion-additional-lines')))
+          return true;
+        node = node.parentNode;
+      }
+
+      return false;
+
+    },
     dispose: function () {
       this.hide();
       if (styleNode.parentElement)
         styleNode.parentElement.removeChild(styleNode);
+    }
+  };
+
+}
+
+function createInlineSuggestToolbar(codeEditor, actions) {
+
+  let visible = false;
+  let position = null;
+  let hideTimerId = 0;
+  let rootNode = document.createElement('div');
+  let toolbarNode = document.createElement('div');
+  let menuNode = document.createElement('div');
+  let countNode = document.createElement('span');
+
+  rootNode.className = 'monaco-editor-hover monaco-hover fade-in inlineSuggestionsHints inline-completion-toolbar hidden';
+  rootNode.setAttribute('role', 'toolbar');
+  rootNode.setAttribute('aria-label', 'Управление inline-подсказкой');
+  toolbarNode.className = 'inline-completion-toolbar-actions';
+  menuNode.className = 'inline-completion-toolbar-menu hidden';
+  menuNode.setAttribute('role', 'menu');
+  countNode.className = 'inline-completion-toolbar-count';
+  countNode.setAttribute('aria-live', 'polite');
+
+  function runAction(action) {
+    closeMenu();
+    if (action())
+      codeEditor.focus();
+  }
+
+  function createButton(className, label, title, action) {
+
+    let button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'inline-completion-toolbar-button ' + className;
+    button.setAttribute('aria-label', label);
+    button.title = title || label;
+    button.textContent = label;
+    button.addEventListener('mousedown', function (event) {
+      event.preventDefault();
+    });
+    button.addEventListener('click', function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+      runAction(action);
+    });
+    return button;
+
+  }
+
+  function appendKeyLabel(button, parts) {
+    parts.forEach(function (part, index) {
+      if (index) {
+        let separator = document.createElement('span');
+        separator.className = 'inline-completion-toolbar-key-separator';
+        separator.textContent = '+';
+        button.appendChild(separator);
+      }
+      let key = document.createElement('span');
+      key.className = 'inline-completion-toolbar-key';
+      key.textContent = part;
+      button.appendChild(key);
+    });
+  }
+
+  let previousButton = createButton('inline-completion-toolbar-previous', '‹', 'Предыдущая подсказка (Alt+[)', actions.previous);
+  let nextButton = createButton('inline-completion-toolbar-next', '›', 'Следующая подсказка (Alt+])', actions.next);
+  let acceptButton = createButton('inline-completion-toolbar-accept', 'Принять', 'Принять подсказку (Tab)', actions.accept);
+  let primaryModifierLabel = navigator.platform && 0 <= navigator.platform.indexOf('Mac') ? 'Cmd' : 'Ctrl';
+  let acceptWordButton = createButton('inline-completion-toolbar-accept-word', 'Принять слово', 'Принять слово (' + primaryModifierLabel + '+RightArrow)', actions.acceptNextWord);
+  let moreButton = createButton('inline-completion-toolbar-more', '…', 'Дополнительные действия', function () {
+    toggleMenu();
+    return false;
+  });
+  let acceptLineButton = createButton('inline-completion-toolbar-menu-item', 'Принять строку', 'Принять строку', actions.acceptNextLine);
+  let hideButton = createButton('inline-completion-toolbar-menu-item', 'Скрыть подсказку', 'Скрыть подсказку (Esc)', actions.hide);
+
+  appendKeyLabel(acceptButton, ['Tab']);
+  appendKeyLabel(acceptWordButton, [primaryModifierLabel, '→']);
+  moreButton.setAttribute('aria-haspopup', 'menu');
+  moreButton.setAttribute('aria-expanded', 'false');
+  acceptLineButton.setAttribute('role', 'menuitem');
+  hideButton.setAttribute('role', 'menuitem');
+
+  toolbarNode.appendChild(previousButton);
+  toolbarNode.appendChild(countNode);
+  toolbarNode.appendChild(nextButton);
+  toolbarNode.appendChild(acceptButton);
+  toolbarNode.appendChild(acceptWordButton);
+  toolbarNode.appendChild(moreButton);
+  menuNode.appendChild(acceptLineButton);
+  menuNode.appendChild(hideButton);
+  rootNode.appendChild(toolbarNode);
+  rootNode.appendChild(menuNode);
+
+  function closeMenu() {
+    menuNode.classList.add('hidden');
+    moreButton.setAttribute('aria-expanded', 'false');
+  }
+
+  function toggleMenu() {
+    let willShow = menuNode.classList.contains('hidden');
+    menuNode.classList.toggle('hidden', !willShow);
+    moreButton.setAttribute('aria-expanded', willShow ? 'true' : 'false');
+  }
+
+  function clearHideTimer() {
+    clearTimeout(hideTimerId);
+    hideTimerId = 0;
+  }
+
+  function hide() {
+    clearHideTimer();
+    visible = false;
+    closeMenu();
+    rootNode.classList.add('hidden');
+    codeEditor.layoutContentWidget(widget);
+  }
+
+  function scheduleHide() {
+    clearHideTimer();
+    hideTimerId = setTimeout(hide, 120);
+  }
+
+  function show() {
+    clearHideTimer();
+    if (!position)
+      return;
+    visible = true;
+    rootNode.classList.remove('hidden');
+    codeEditor.layoutContentWidget(widget);
+    codeEditor.render();
+  }
+
+  function update(currentPosition, currentIndex, count) {
+    position = currentPosition;
+    countNode.textContent = (currentIndex + 1) + '/' + count;
+    previousButton.disabled = count <= 1;
+    nextButton.disabled = count <= 1;
+    previousButton.setAttribute('aria-disabled', count <= 1 ? 'true' : 'false');
+    nextButton.setAttribute('aria-disabled', count <= 1 ? 'true' : 'false');
+    if (visible)
+      codeEditor.layoutContentWidget(widget);
+  }
+
+  function contains(target) {
+    return !!target && (target === rootNode || rootNode.contains(target));
+  }
+
+  function onDocumentMouseDown(event) {
+    if (!contains(event.target))
+      closeMenu();
+  }
+
+  rootNode.addEventListener('mouseenter', clearHideTimer);
+  rootNode.addEventListener('mouseleave', scheduleHide);
+  document.addEventListener('mousedown', onDocumentMouseDown);
+
+  let widget = {
+    allowEditorOverflow: true,
+    suppressMouseDown: false,
+    getId: function () { return 'bsl.inlineSuggestionToolbar'; },
+    getDomNode: function () { return rootNode; },
+    getPosition: function () {
+      if (!visible || !position)
+        return null;
+      return {
+        position: position,
+        preference: [
+          monaco.editor.ContentWidgetPositionPreference.ABOVE,
+          monaco.editor.ContentWidgetPositionPreference.BELOW
+        ]
+      };
+    }
+  };
+
+  codeEditor.addContentWidget(widget);
+
+  return {
+    update: update,
+    show: show,
+    hide: hide,
+    scheduleHide: scheduleHide,
+    keepVisible: clearHideTimer,
+    contains: contains,
+    isVisible: function () { return visible; },
+    dispose: function () {
+      hide();
+      document.removeEventListener('mousedown', onDocumentMouseDown);
+      codeEditor.removeContentWidget(widget);
     }
   };
 
@@ -3280,17 +3487,23 @@ function createInlineCancellationTokenSource() {
 function createInlineSuggestController(codeEditor) {
 
   let renderer = createInlineGhostTextRenderer(codeEditor);
-  let activeCompletion = null;
+  let activeCompletions = [];
+  let activeCompletionIndex = 0;
   let visible = false;
   let timerId = 0;
   let requestId = 0;
   let requestCancellation = null;
+  let editorNode = codeEditor.getDomNode();
+  let toolbar = null;
 
   function clearPresentation() {
 
-    activeCompletion = null;
+    activeCompletions = [];
+    activeCompletionIndex = 0;
     visible = false;
     renderer.hide();
+    if (toolbar)
+      toolbar.hide();
 
   }
 
@@ -3331,11 +3544,36 @@ function createInlineSuggestController(codeEditor) {
 
   }
 
-  function render(normalizedItem) {
+  function getActiveCompletion() {
+    return activeCompletions.length ? activeCompletions[activeCompletionIndex] : null;
+  }
 
-    activeCompletion = normalizedItem;
+  function renderActiveCompletion() {
+
+    let activeCompletion = getActiveCompletion();
+
+    if (!activeCompletion) {
+      clearPresentation();
+      return false;
+    }
+
     visible = true;
-    renderer.show(normalizedItem, codeEditor.getPosition(), getCurrentThemeName());
+    renderer.show(activeCompletion, codeEditor.getPosition(), getCurrentThemeName());
+    toolbar.update(codeEditor.getPosition(), activeCompletionIndex, activeCompletions.length);
+    return true;
+
+  }
+
+  function renderCompletions(normalizedItems, selectedIndex = 0) {
+
+    if (!normalizedItems || !normalizedItems.length) {
+      clearPresentation();
+      return false;
+    }
+
+    activeCompletions = normalizedItems;
+    activeCompletionIndex = Math.max(0, Math.min(selectedIndex, activeCompletions.length - 1));
+    return renderActiveCompletion();
 
   }
 
@@ -3391,12 +3629,16 @@ function createInlineSuggestController(codeEditor) {
           return Promise.resolve(provider.provideInlineCompletions(model, position, context, currentCancellation.token)).then(function (result) {
 
             let items = result && result.items ? result.items : [];
+            let normalizedItems = [];
 
             for (let item_idx = 0; item_idx < items.length; item_idx++) {
               let normalized = normalizeInlineCompletionItem(model, position, items[item_idx]);
               if (normalized)
-                return normalized;
+                normalizedItems.push(normalized);
             }
+
+            if (normalizedItems.length)
+              return normalizedItems;
 
             return findProvided(providerIndex + 1);
 
@@ -3413,7 +3655,7 @@ function createInlineSuggestController(codeEditor) {
             requestCancellation = null;
 
           if (provided)
-            render(provided);
+            renderCompletions(provided);
           else
             clearPresentation();
 
@@ -3431,48 +3673,242 @@ function createInlineSuggestController(codeEditor) {
 
   }
 
+  function positionAfterText(position, text) {
+
+    let lines = text.split('\n');
+
+    if (lines.length == 1)
+      return { lineNumber: position.lineNumber, column: position.column + text.length };
+
+    return {
+      lineNumber: position.lineNumber + lines.length - 1,
+      column: lines[lines.length - 1].length + 1
+    };
+
+  }
+
+  function getNextWordLength(text) {
+
+    let wordMatch = text.match(/[A-Za-zА-Яа-яЁё_][A-Za-zА-Яа-яЁё0-9_]*/);
+    let acceptUntil = text.length;
+
+    if (wordMatch && typeof wordMatch.index == 'number')
+      acceptUntil = wordMatch.index == 0 ? wordMatch[0].length : wordMatch.index;
+
+    let whitespaceMatch = /\s+/.exec(text);
+    if (whitespaceMatch && typeof whitespaceMatch.index == 'number'
+      && whitespaceMatch.index + whitespaceMatch[0].length < acceptUntil)
+      acceptUntil = whitespaceMatch.index + whitespaceMatch[0].length;
+
+    return acceptUntil;
+
+  }
+
+  function rebuildAfterPartialAccept(acceptedText, selectedCompletion, newPosition) {
+
+    let newCompletions = [];
+    let newSelectedIndex = 0;
+
+    activeCompletions.forEach(function (completion) {
+
+      if (isSnippetInlineCompletion(completion.item)
+        || completion.suffix.substr(0, acceptedText.length) !== acceptedText)
+        return;
+
+      let remainingText = completion.suffix.substr(acceptedText.length);
+      if (!remainingText)
+        return;
+
+      let rebuilt = createInlineCompletionFromText(codeEditor.getModel(), newPosition, remainingText);
+      if (!rebuilt)
+        return;
+
+      if (completion.item.command)
+        rebuilt.item.command = completion.item.command;
+      if (completion.item.additionalTextEdits)
+        rebuilt.item.additionalTextEdits = completion.item.additionalTextEdits;
+
+      if (completion === selectedCompletion)
+        newSelectedIndex = newCompletions.length;
+
+      newCompletions.push(rebuilt);
+
+    });
+
+    return renderCompletions(newCompletions, newSelectedIndex);
+
+  }
+
+  function acceptPart(acceptLength) {
+
+    let activeCompletion = getActiveCompletion();
+    if (!activeCompletion || !activeCompletion.suffix)
+      return false;
+
+    if (isSnippetInlineCompletion(activeCompletion.item))
+      return accept();
+
+    let length = Math.max(0, Math.min(acceptLength(activeCompletion.suffix), activeCompletion.suffix.length));
+    if (!length)
+      return false;
+
+    if (length == activeCompletion.suffix.length)
+      return accept();
+
+    let acceptedText = activeCompletion.suffix.substr(0, length);
+    let currentPosition = codeEditor.getPosition();
+    let partialRange = new monaco.Range(
+      currentPosition.lineNumber,
+      currentPosition.column,
+      activeCompletion.range.endLineNumber,
+      activeCompletion.range.endColumn
+    );
+    let newPosition = positionAfterText(currentPosition, acceptedText);
+
+    beginAIInlineProgrammaticChange();
+    try {
+      codeEditor.pushUndoStop();
+      codeEditor.executeEdits('inlineCompletionPartialAccept', [{
+        range: partialRange,
+        text: acceptedText,
+        forceMoveMarkers: true
+      }]);
+      codeEditor.setPosition(newPosition);
+      codeEditor.pushUndoStop();
+    }
+    finally {
+      endAIInlineProgrammaticChange();
+      cancelScheduledAIInlineContentTrigger();
+    }
+
+    return rebuildAfterPartialAccept(acceptedText, activeCompletion, newPosition);
+
+  }
+
+  function accept() {
+
+    let activeCompletion = getActiveCompletion();
+    if (!activeCompletion)
+      return false;
+
+    hide('superseded');
+    return applyInlineCompletion(activeCompletion);
+
+  }
+
+  function acceptNextWord() {
+    return acceptPart(getNextWordLength);
+  }
+
+  function acceptNextLine() {
+    return acceptPart(function (text) {
+      let lineBreak = text.indexOf('\n');
+      return lineBreak < 0 ? text.length : lineBreak + 1;
+    });
+  }
+
+  function moveSelection(delta) {
+
+    if (!visible)
+      return false;
+
+    if (activeCompletions.length <= 1)
+      return true;
+
+    activeCompletionIndex = (activeCompletionIndex + delta + activeCompletions.length) % activeCompletions.length;
+    return renderActiveCompletion();
+
+  }
+
+  toolbar = createInlineSuggestToolbar(codeEditor, {
+    previous: function () { return moveSelection(-1); },
+    next: function () { return moveSelection(1); },
+    accept: accept,
+    acceptNextWord: acceptNextWord,
+    acceptNextLine: acceptNextLine,
+    hide: function () {
+      if (!visible)
+        return false;
+      hide('hidden');
+      return true;
+    }
+  });
+
+  function onEditorMouseOver(event) {
+    if (!visible)
+      return;
+    if (toolbar.contains(event.target))
+      toolbar.keepVisible();
+    else if (renderer.isGhostDomTarget(event.target))
+      toolbar.show();
+  }
+
+  function onEditorMouseOut(event) {
+
+    if (!visible)
+      return;
+
+    let fromSuggestion = toolbar.contains(event.target) || renderer.isGhostDomTarget(event.target);
+    let toSuggestion = toolbar.contains(event.relatedTarget) || renderer.isGhostDomTarget(event.relatedTarget);
+
+    if (fromSuggestion && !toSuggestion)
+      toolbar.scheduleHide();
+
+  }
+
+  editorNode.addEventListener('mouseover', onEditorMouseOver);
+  editorNode.addEventListener('mouseout', onEditorMouseOut);
+
   return {
     trigger: trigger,
     hide: hide,
-    showText: function (text) {
+    showTexts: function (texts) {
 
       cancelRequest('superseded');
 
-      if (!window.inlineSuggestEnabled || window.readOnlyMode || codeEditor.navi || !codeEditor.hasModel())
+      if (!canShowInlineSuggestions())
         return false;
 
       let currentPosition = codeEditor.getPosition();
-      let normalizedItem = createInlineCompletionFromText(codeEditor.getModel(), currentPosition, text);
+      let model = codeEditor.getModel();
+      let normalizedItems = texts.map(function (text) {
+        return createInlineCompletionFromText(model, currentPosition, text);
+      }).filter(function (item) { return !!item; });
 
-      if (!normalizedItem) {
-        clearPresentation();
-        return false;
-      }
+      return renderCompletions(normalizedItems);
 
-      activeCompletion = normalizedItem;
-      visible = true;
-      renderer.show(normalizedItem, currentPosition, getCurrentThemeName());
-      return true;
-
+    },
+    showText: function (text) {
+      return this.showTexts([text]);
     },
     isVisible: function () {
       return visible;
     },
-    accept: function () {
-      if (!activeCompletion)
-        return false;
-
-      let completionToAccept = activeCompletion;
-      hide('superseded');
-      return applyInlineCompletion(completionToAccept);
+    accept: accept,
+    acceptNextWord: acceptNextWord,
+    acceptNextLine: acceptNextLine,
+    previous: function () { return moveSelection(-1); },
+    next: function () { return moveSelection(1); },
+    getState: function () {
+      return {
+        visible: visible,
+        index: activeCompletionIndex,
+        count: activeCompletions.length,
+        toolbarVisible: toolbar.isVisible()
+      };
     },
     layout: function () {
-      if (visible && activeCompletion)
+      if (visible && getActiveCompletion()) {
         renderer.layout(codeEditor.getPosition(), getCurrentThemeName());
+        toolbar.update(codeEditor.getPosition(), activeCompletionIndex, activeCompletions.length);
+      }
     },
     dispose: function () {
       cancelRequest('disposed');
       clearPresentation();
+      editorNode.removeEventListener('mouseover', onEditorMouseOver);
+      editorNode.removeEventListener('mouseout', onEditorMouseOut);
+      toolbar.dispose();
       renderer.dispose();
     }
   };
@@ -5772,6 +6208,28 @@ function editorOnKeyDown(e) {
   generateOnKeyDownEvent(e);
 
   window.editor.lastKeyCode = e.keyCode;
+
+  if (window.editor.inlineSuggestController && window.editor.inlineSuggestController.isVisible()) {
+    if ((e.ctrlKey || e.metaKey) && e.keyCode == 17
+      && window.editor.inlineSuggestController.acceptNextWord()) {
+      // Ctrl/Cmd+RightArrow
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+    if (e.altKey && e.keyCode == 87 && window.editor.inlineSuggestController.previous()) {
+      // Alt+[
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+    if (e.altKey && e.keyCode == 89 && window.editor.inlineSuggestController.next()) {
+      // Alt+]
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+  }
 
   if ((e.keyCode == 3 || e.keyCode == 2) && isSuggestWidgetVisible()) {
     let eventSuggestItem = getFocusedSuggestItem();

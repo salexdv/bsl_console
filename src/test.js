@@ -341,9 +341,10 @@ setTimeout(() => {
         let request = capturedEvents.find(event => event.name == 'EVENT_AI_INLINE_COMPLETION_REQUEST').params;
         assert.equal(request.context.prefix, 'Запрос = Нов');
         assert.equal(request.position.column, 13);
-        assert.equal(window.resolveAIInlineCompletion(request.requestId, ['ый Запрос()']), true);
+        assert.equal(window.resolveAIInlineCompletion(request.requestId, ['ый Запрос()', 'ый Массив()']), true);
 
         await waitFor(function () { return window.isInlineSuggestionsVisible(); });
+        assert.equal(window.editor.inlineSuggestController.getState().count, 2);
         assert.equal(window.editor.inlineSuggestController.accept(), true);
         assert.equal(window.getText(), 'Запрос = Новый Запрос()');
       }
@@ -426,6 +427,253 @@ setTimeout(() => {
         window.updateText(originalText);
         window.sendEvent = originalSendEvent;
         window.setOption('generateAIInlineCompletionEvent', originalEnabled);
+      }
+
+    });
+
+    it("showInlineSuggestion использует все варианты и проверяет весь массив", async function () {
+
+      const originalText = window.getText();
+
+      try {
+        window.setContent('');
+        window.editor.setPosition({ lineNumber: 1, column: 1 });
+        await wait(30);
+
+        assert.equal(window.showInlineSuggestion(['Первый', 'Второй']), true);
+        assert.deepEqual(window.editor.inlineSuggestController.getState(), {
+          visible: true,
+          index: 0,
+          count: 2,
+          toolbarVisible: false
+        });
+
+        let inputArea = document.querySelector('.monaco-editor textarea.inputarea');
+        inputArea.dispatchEvent(new KeyboardEvent('keydown', {
+          key: ']',
+          code: 'BracketRight',
+          keyCode: 221,
+          which: 221,
+          altKey: true,
+          bubbles: true,
+          cancelable: true
+        }));
+        assert.equal(window.editor.inlineSuggestController.getState().index, 1);
+        assert.equal(window.editor.inlineSuggestController.next(), true);
+        assert.equal(window.editor.inlineSuggestController.getState().index, 0);
+        assert.equal(window.editor.inlineSuggestController.previous(), true);
+        assert.equal(window.editor.inlineSuggestController.getState().index, 1);
+
+        let invalidResult = window.showInlineSuggestion(['Допустимо', 42]);
+        assert.equal(typeof invalidResult.errorDescription, 'string');
+        assert.equal(window.editor.inlineSuggestController.getState().count, 2);
+        assert.equal(window.showInlineSuggestion([]), false);
+
+        assert.equal(window.showInlineSuggestion('["JSON первый","JSON второй"]'), true);
+        assert.equal(window.editor.inlineSuggestController.getState().count, 2);
+        window.editor.inlineSuggestController.next();
+        assert.equal(window.editor.inlineSuggestController.accept(), true);
+        assert.equal(window.getText(), 'JSON второй');
+      }
+      finally {
+        window.hideInlineSuggestions();
+        window.setContent(originalText);
+      }
+
+    });
+
+    it("панель inline-подсказок появляется при наведении и управляет вариантами", async function () {
+
+      const originalText = window.getText();
+
+      try {
+        window.setContent('');
+        window.editor.setPosition({ lineNumber: 1, column: 1 });
+        await wait(30);
+        window.showInlineSuggestion(['Первый вариант', 'Второй вариант']);
+
+        await waitFor(function () {
+          return !!document.querySelector('.inline-completion-ghost-text');
+        });
+
+        let ghostText = document.querySelector('.inline-completion-ghost-text');
+        ghostText.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+
+        await waitFor(function () {
+          return window.editor.inlineSuggestController.getState().toolbarVisible;
+        });
+
+        let toolbar = document.querySelector('.inline-completion-toolbar.monaco-hover.fade-in');
+        assert.isNotNull(toolbar);
+        assert.equal(toolbar.classList.contains('hidden'), false);
+        assert.equal(toolbar.querySelector('.inline-completion-toolbar-count').textContent, '1/2');
+
+        toolbar.querySelector('.inline-completion-toolbar-next').click();
+        assert.equal(window.editor.inlineSuggestController.getState().index, 1);
+        assert.equal(toolbar.querySelector('.inline-completion-toolbar-count').textContent, '2/2');
+
+        toolbar.querySelector('.inline-completion-toolbar-accept').click();
+        assert.equal(window.getText(), 'Второй вариант');
+        assert.equal(window.isInlineSuggestionsVisible(), false);
+
+        window.setContent('');
+        window.editor.setPosition({ lineNumber: 1, column: 1 });
+        await wait(30);
+        window.showInlineSuggestion(['Скрываемая подсказка']);
+        await waitFor(function () {
+          return !!document.querySelector('.inline-completion-ghost-text');
+        });
+        document.querySelector('.inline-completion-ghost-text')
+          .dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+        await waitFor(function () {
+          return window.editor.inlineSuggestController.getState().toolbarVisible;
+        });
+        toolbar = document.querySelector('.inline-completion-toolbar');
+
+        toolbar.querySelector('.inline-completion-toolbar-more').click();
+        assert.equal(toolbar.querySelector('.inline-completion-toolbar-menu').classList.contains('hidden'), false);
+        toolbar.querySelectorAll('.inline-completion-toolbar-menu-item')[1].click();
+        assert.equal(window.isInlineSuggestionsVisible(), false);
+
+        window.showInlineSuggestion(['Единственный']);
+        await waitFor(function () {
+          return !!document.querySelector('.inline-completion-ghost-text');
+        });
+        document.querySelector('.inline-completion-ghost-text')
+          .dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+        await waitFor(function () {
+          return window.editor.inlineSuggestController.getState().toolbarVisible;
+        });
+        toolbar = document.querySelector('.inline-completion-toolbar');
+        assert.equal(toolbar.querySelector('.inline-completion-toolbar-count').textContent, '1/1');
+        assert.equal(toolbar.querySelector('.inline-completion-toolbar-previous').disabled, true);
+        assert.equal(toolbar.querySelector('.inline-completion-toolbar-next').disabled, true);
+
+        toolbar.querySelector('.inline-completion-toolbar-accept-word').click();
+        assert.equal(window.getText(), 'Единственный');
+        assert.equal(window.isInlineSuggestionsVisible(), false);
+
+        window.setContent('');
+        window.editor.setPosition({ lineNumber: 1, column: 1 });
+        await wait(30);
+        window.showInlineSuggestion(['Первая строка\nВторая строка']);
+        await waitFor(function () {
+          return !!document.querySelector('.inline-completion-ghost-text');
+        });
+        document.querySelector('.inline-completion-ghost-text')
+          .dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+        await waitFor(function () {
+          return window.editor.inlineSuggestController.getState().toolbarVisible;
+        });
+        toolbar = document.querySelector('.inline-completion-toolbar');
+        toolbar.querySelector('.inline-completion-toolbar-more').click();
+        toolbar.querySelectorAll('.inline-completion-toolbar-menu-item')[0].click();
+        assert.equal(window.getText(), 'Первая строка' + window.editor.getModel().getEOL());
+        assert.equal(window.isInlineSuggestionsVisible(), true);
+      }
+      finally {
+        window.hideInlineSuggestions();
+        window.setContent(originalText);
+      }
+
+    });
+
+    it("частичное принятие фильтрует варианты и сохраняет многострочный остаток", async function () {
+
+      const originalText = window.getText();
+
+      try {
+        window.setContent('');
+        window.editor.setPosition({ lineNumber: 1, column: 1 });
+        await wait(30);
+
+        window.showInlineSuggestion(['Новый Запрос();', 'Новый Массив();', 'Другое Значение']);
+        let inputArea = document.querySelector('.monaco-editor textarea.inputarea');
+        inputArea.dispatchEvent(new KeyboardEvent('keydown', {
+          key: 'ArrowRight',
+          code: 'ArrowRight',
+          keyCode: 39,
+          which: 39,
+          ctrlKey: true,
+          bubbles: true,
+          cancelable: true
+        }));
+        assert.equal(window.getText(), 'Новый');
+        assert.equal(window.editor.inlineSuggestController.getState().count, 2);
+        assert.equal(window.editor.inlineSuggestController.getState().visible, true);
+
+        assert.equal(window.editor.inlineSuggestController.acceptNextWord(), true);
+        assert.equal(window.getText(), 'Новый ');
+        window.editor.inlineSuggestController.next();
+        assert.equal(window.editor.inlineSuggestController.accept(), true);
+        assert.equal(window.getText(), 'Новый Массив();');
+
+        window.setContent('');
+        window.editor.setPosition({ lineNumber: 1, column: 1 });
+        await wait(30);
+        window.showInlineSuggestion(['Строка1\nСтрока2\nСтрока3']);
+        assert.equal(window.editor.inlineSuggestController.acceptNextLine(), true);
+        let eol = window.editor.getModel().getEOL();
+        assert.equal(window.getText(), 'Строка1' + eol);
+        assert.equal(window.editor.inlineSuggestController.getState().visible, true);
+        assert.equal(window.editor.inlineSuggestController.accept(), true);
+        assert.equal(window.getText(), ['Строка1', 'Строка2', 'Строка3'].join(eol));
+      }
+      finally {
+        window.hideInlineSuggestions();
+        window.setContent(originalText);
+      }
+
+    });
+
+    it("частичное принятие откладывает дополнительные edits и command до полного принятия", async function () {
+
+      const originalText = window.getText();
+      let commandCalls = 0;
+      let commandId = window.editor.addCommand(0, function () { commandCalls++; });
+
+      try {
+        window.setContent('');
+        window.editor.setPosition({ lineNumber: 1, column: 1 });
+        await wait(30);
+
+        window.showCustomInlineSuggestions(JSON.stringify([{
+          name: 'Проверка',
+          text: 'Первое Второе',
+          additionalTextEdits: [{
+            range: { startLineNumber: 1, startColumn: 1, endLineNumber: 1, endColumn: 1 },
+            text: '>'
+          }],
+          command: { id: commandId }
+        }]));
+
+        await waitFor(function () { return window.isInlineSuggestionsVisible(); });
+        assert.equal(window.editor.inlineSuggestController.acceptNextWord(), true);
+        assert.equal(window.getText(), 'Первое');
+        assert.equal(commandCalls, 0);
+
+        assert.equal(window.editor.inlineSuggestController.accept(), true);
+        assert.equal(window.getText(), '>Первое Второе');
+        assert.equal(commandCalls, 1);
+
+        window.setContent('');
+        window.editor.setPosition({ lineNumber: 1, column: 1 });
+        await wait(30);
+        window.customInlineSuggestions = [{
+          label: 'Snippet',
+          insertText: 'Первое ${1:Второе}',
+          insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+        }];
+        window.triggerInlineSuggestions();
+        await waitFor(function () { return window.isInlineSuggestionsVisible(); });
+        assert.equal(window.editor.inlineSuggestController.acceptNextWord(), true);
+        assert.equal(window.isInlineSuggestionsVisible(), false);
+        assert.equal(window.getText(), 'Первое Второе');
+      }
+      finally {
+        window.customInlineSuggestions = [];
+        window.hideInlineSuggestions();
+        window.setContent(originalText);
       }
 
     });
