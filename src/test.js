@@ -280,6 +280,11 @@ setTimeout(() => {
         await waitFor(function () {
           return !!document.querySelector('.ghost-text-decoration.syntax-highlighted');
         }, 2500, 'токенизированного ghost text');
+        assert.equal(
+          getComputedStyle(document.querySelector('.ghost-text-decoration.syntax-highlighted')).opacity,
+          '0.7',
+          'токенизированный ghost text должен быть приглушён'
+        );
       }
       finally {
         window.editor.trigger('inline-syntax-highlighting-test', 'editor.action.inlineSuggest.hide');

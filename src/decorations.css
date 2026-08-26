@@ -690,3 +690,20 @@ div:has(> .add-review) {
 	opacity: 0.6;
 	text-align: center;
 }
+
+/*
+ * Monaco 0.55 описывает эти состояния через CSS nesting (`&.syntax-highlighted`).
+ * Старый WebKit ПоляHTMLДокумента 1С не поддерживает nesting и отбрасывает правила,
+ * поэтому оставляем эквивалентные плоские селекторы в совместимом CSS.
+ */
+.monaco-editor .ghost-text-decoration.syntax-highlighted,
+.monaco-editor .ghost-text-decoration-preview.syntax-highlighted,
+.monaco-editor .suggest-preview-text .ghost-text.syntax-highlighted {
+	opacity: 0.7;
+}
+
+.monaco-editor .ghost-text-decoration:not(.syntax-highlighted),
+.monaco-editor .ghost-text-decoration-preview:not(.syntax-highlighted),
+.monaco-editor .suggest-preview-text .ghost-text:not(.syntax-highlighted) {
+	color: var(--vscode-editorGhostText-foreground);
+}
