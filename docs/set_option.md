@@ -58,3 +58,4 @@ setOption("skipInsertSuggestionAcceptor", true);
 * `disableFolding` - *boolean*, отключает сворачивание блоков кода
 * `highlightInnerQuotes` - *boolean*, включает/отключает подсветку экранированных двойных кавычек `""` внутри строк
 * `showDiffDecorations` - *boolean*, включает/отключает отображение различий при использовании функции [`setOriginalText`](set_original_text.md). Значение по умолчанию `true`
+* `confirmTabClose` - *boolean*, включает модальное подтверждение закрытия вкладки через крестик или [`closeCurrentTab`](tabs.md). Значение по умолчанию `false`

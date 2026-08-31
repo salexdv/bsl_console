@@ -29,6 +29,7 @@ import { patchWebKit1C } from './1c-webkit-patch';
 import SearchHistoryController from './search_history';
 import bslHelper from './bsl_helper';
 import { createHelpBrowser } from './help';
+import EditorTabs from './tabs';
 import {
   AI_INLINE_DEFAULT_OPTIONS,
   MANUAL_INLINE_PROVIDER_GROUP,
@@ -136,6 +137,16 @@ Object.keys(AI_INLINE_DEFAULT_OPTIONS).forEach(function (name) {
 });
 window.editor_options[INLINE_SUGGESTION_SYNTAX_HIGHLIGHTING_OPTION]
   = INLINE_SUGGESTION_SYNTAX_HIGHLIGHTING_DEFAULT;
+window.editor_options.confirmTabClose = false;
+window.sharedEditorOptions = {
+  fontFamily: 'Courier New',
+  fontSize: 14,
+  lineHeight: 16,
+  letterSpacing: 0
+};
+window.currentThemeName = 'bsl-white';
+window.statusBarEnabled = false;
+window.statusBarOverlapScroll = true;
 window.snippets = {};
 window.bslSnippets = {};
 window.treeview = null;
@@ -147,6 +158,38 @@ window.inlineSuggestionsChanged = new monaco.Emitter();
 window.aiInlineProgrammaticChangeDepth = 0;
 window.objectContext = null;
 // #endregion
+
+const TAB_STATE_KEYS = [
+  'selectionText',
+  'contextData',
+  'readOnlyMode',
+  'queryMode',
+  'DCSMode',
+  'debugMode',
+  'usingDebugger',
+  'customHovers',
+  'immediateHover',
+  'customSignatures',
+  'customCodeLenses',
+  'originalText',
+  'customSuggestions',
+  'customInlineSuggestion',
+  'statusBarWidget',
+  'currentBookmark',
+  'currentMarker',
+  'lineNumbersDedocrations',
+  'selectedQueryDelimiters',
+  'reviewWidgets',
+  'currentIssue',
+  'objectContext',
+  'diffEditor',
+  'inlineDiffEditor',
+  'inlineDiffWidget',
+  'inlineDiffWidgetTimer',
+  'inlineDiffEditorTimer'
+];
+
+let tabsController = null;
 
 // #region public API
 /**
@@ -248,17 +291,49 @@ window.getHelpState = function () {
   return Object.assign({ ready: state.status == 'ready' }, state);
 }
 
+/**
+ * Создаёт и выбирает новую вкладку редактора.
+ * @param {string} title заголовок вкладки
+ * @param {string} text начальный текст
+ * @param {{language?: string, readOnly?: boolean}} options параметры сессии
+ */
+window.createTab = function (title, text, options = {}) {
+  options = options && typeof options == 'object' ? options : {};
+  const language = typeof options.language == 'string' ? options.language : 'bsl';
+  const readOnly = options.readOnly === true;
+  const editor = createEditorInstance(
+    language,
+    text == null ? '' : String(text),
+    window.currentThemeName,
+    readOnly
+  );
+  setEditorVisible(editor, false);
+  const state = createTabState(readOnly);
+  state.queryMode = language == 'bsl_query';
+  state.DCSMode = language == 'dcs_query';
+  tabsController.add({
+    title: title == null ? '' : String(title),
+    editor: editor,
+    state: state
+  });
+}
+
+/** Закрывает текущую вкладку. */
+window.closeCurrentTab = function () {
+  if (tabsController)
+    tabsController.closeCurrent();
+}
+
+/** Возвращает название и нулевой индекс текущей вкладки. */
+window.getCurrentTab = function () {
+  return tabsController ? tabsController.getCurrent() : null;
+}
+
 window.wordWrap = function (enabled) {
-
-  if (window.editor.navi) {
-    // 0.55: свойства .originalEditor/.modifiedEditor удалены — только методы get*Editor().
-    window.editor.getOriginalEditor().updateOptions({ wordWrap: enabled });
-    window.editor.getModifiedEditor().updateOptions({ wordWrap: enabled });
-  }
-  else {
-    window.editor.updateOptions({ wordWrap: enabled })
-  }
-
+  window.sharedEditorOptions.wordWrap = enabled;
+  forEachTabEditor(function (editor) {
+    editor.updateOptions({ wordWrap: enabled });
+  });
 }
 
 window.reserMark = function() {
@@ -515,9 +590,12 @@ window.updateCustomFunctions = function (data) {
 
 window.setTheme = function (theme) {
 
+  window.currentThemeName = theme;
   monaco.editor.setTheme(theme);
   setThemeVariablesDisplay(theme);
   helpBrowser.setTheme(theme);
+  if (tabsController)
+    tabsController.setTheme(theme);
 
 }
 
@@ -609,15 +687,17 @@ window.init = function(version, user = '') {
 }
 
 window.enableQuickSuggestions = function (enabled) {
-
-  window.editor.updateOptions({ quickSuggestions: enabled });
-
+  window.sharedEditorOptions.quickSuggestions = enabled;
+  forEachTabEditor(function (editor) {
+    editor.updateOptions({ quickSuggestions: enabled });
+  });
 }
 
 window.minimap = function (enabled) {
-
-  window.editor.updateOptions({ minimap: { enabled: enabled } });
-  
+  window.sharedEditorOptions.minimap = { enabled: enabled };
+  forEachTabEditor(function (editor) {
+    editor.updateOptions({ minimap: { enabled: enabled } });
+  });
 }
 
 window.addContextMenuItem = function(label, eventName) {
@@ -1041,11 +1121,23 @@ function updateDiffEditorOption(optionName, optionValue) {
     ? { enabled: optionValue }
     : optionValue;
 
-  if (window.editor.navi)
-    window.editor.updateOptions(option);
+  forEachTabEditor(function (editor) {
+    if (editor.navi)
+      editor.updateOptions(option);
+  });
 
-  if (window.inlineDiffEditor)
+  if (tabsController) {
+    tabsController.getSessions().forEach(function (session) {
+      const inlineDiffEditor = session === tabsController.active
+        ? window.inlineDiffEditor
+        : session.state.inlineDiffEditor;
+      if (inlineDiffEditor)
+        inlineDiffEditor.updateOptions(option);
+    });
+  }
+  else if (window.inlineDiffEditor) {
     window.inlineDiffEditor.updateOptions(option);
+  }
 
 }
 
@@ -1103,16 +1195,22 @@ window.compare = function (text="", sideBySide=true, highlight=true, markLines =
         enabled: false
       }
     });
-    window.editor.countDiffEvents = 0;
-    window.editor.initialDiffCount = 0;
-    window.editor.onDidUpdateDiff(e => {
+    applySharedEditorOptions(window.editor);
+    if (tabsController)
+      tabsController.replaceCurrentEditor(window.editor);
+    const ownerDiffEditor = window.editor;
+    ownerDiffEditor.countDiffEvents = 0;
+    ownerDiffEditor.initialDiffCount = 0;
+    ownerDiffEditor.onDidUpdateDiff(e => {
+      if (window.editor !== ownerDiffEditor)
+        return;
       if (window.getOption('generateCompareCompleteEvent')) {
-        const diffCount = (window.editor.getLineChanges() || []).length;
-        if (window.editor.initialDiffCount == 0) {
+        const diffCount = (ownerDiffEditor.getLineChanges() || []).length;
+        if (ownerDiffEditor.initialDiffCount == 0) {
           sendEvent("EVENT_COMPARE_COMPLETE", {});
-          window.editor.initialDiffCount = diffCount;
+          ownerDiffEditor.initialDiffCount = diffCount;
         }
-        if (diffCount < window.editor.initialDiffCount)
+        if (diffCount < ownerDiffEditor.initialDiffCount)
           sendEvent("EVENT_COMPARE_COMPLETE", {});
       }
       if (window.getOption('generateModificationEvent'))
@@ -1185,7 +1283,7 @@ window.compare = function (text="", sideBySide=true, highlight=true, markLines =
       if (e.target.element.classList.contains('add-review'))
         createReviewWidget(e.target.position.lineNumber);
     });
-    window.setDefaultStyle();
+    applySharedEditorOptions(window.editor);
   }
   else
   {
@@ -1400,8 +1498,10 @@ window.previousDiff = function() {
 }
 
 window.disableContextMenu = function() {
-  
-  window.editor.updateOptions({ contextmenu: false });
+  window.sharedEditorOptions.contextmenu = false;
+  forEachTabEditor(function (editor) {
+    editor.updateOptions({ contextmenu: false });
+  });
   window.contextMenuEnabled = false;
 
 }
@@ -1414,14 +1514,20 @@ window.scrollToTop = function () {
 }
 
 window.hideLineNumbers = function() {
-      
-  window.editor.updateOptions({ lineNumbers: false, lineDecorationsWidth: 0 });
+  window.sharedEditorOptions.lineNumbers = false;
+  window.sharedEditorOptions.lineDecorationsWidth = 0;
+  forEachTabEditor(function (editor) {
+    editor.updateOptions({ lineNumbers: false, lineDecorationsWidth: 0 });
+  });
 
 }
 
 window.showLineNumbers = function() {
-      
-  window.editor.updateOptions({ lineNumbers: true, lineDecorationsWidth: 10 });
+  window.sharedEditorOptions.lineNumbers = true;
+  window.sharedEditorOptions.lineDecorationsWidth = 10;
+  forEachTabEditor(function (editor) {
+    editor.updateOptions({ lineNumbers: true, lineDecorationsWidth: 10 });
+  });
   
 }
 
@@ -1509,57 +1615,68 @@ window.closeSearchWidget = function() {
 }
 
 window.setFontSize = function(fontSize)  {
-  
-  window.editor.updateOptions({fontSize: fontSize});
+  window.sharedEditorOptions.fontSize = fontSize;
+  forEachTabEditor(function (editor) { editor.updateOptions({fontSize: fontSize}); });
 
 }
 
 window.setFontFamily = function(fontFamily)  {
-  
-  window.editor.updateOptions({fontFamily: fontFamily});
+  window.sharedEditorOptions.fontFamily = fontFamily;
+  forEachTabEditor(function (editor) { editor.updateOptions({fontFamily: fontFamily}); });
 
 }
 
 window.setFontWeight = function(fontWeight)  {
-
-  window.editor.updateOptions({fontWeight: fontWeight});
+  window.sharedEditorOptions.fontWeight = fontWeight;
+  forEachTabEditor(function (editor) { editor.updateOptions({fontWeight: fontWeight}); });
 
 }
 
 window.setLineHeight = function(lineHeight) {
-
-  window.editor.updateOptions({lineHeight: lineHeight});
+  window.sharedEditorOptions.lineHeight = lineHeight;
+  forEachTabEditor(function (editor) { editor.updateOptions({lineHeight: lineHeight}); });
 
 }
 
 window.setLetterSpacing = function(letterSpacing) {
-
-  window.editor.updateOptions({letterSpacing: letterSpacing});
+  window.sharedEditorOptions.letterSpacing = letterSpacing;
+  forEachTabEditor(function (editor) { editor.updateOptions({letterSpacing: letterSpacing}); });
 
 }
 
 window.renderWhitespace = function(enabled) {
 
   let mode = enabled ? 'all' : 'none';
-  window.editor.updateOptions({renderWhitespace: mode});
+  window.sharedEditorOptions.renderWhitespace = mode;
+  forEachTabEditor(function (editor) { editor.updateOptions({renderWhitespace: mode}); });
 
 }
 
 window.showStatusBar = function(overlapScroll = true) {
-  
+  window.statusBarEnabled = true;
+  window.statusBarOverlapScroll = overlapScroll;
   if (!window.statusBarWidget)
-    createStatusBarWidget(overlapScroll);    
+    createStatusBarWidget(overlapScroll);
 
 }
 
 window.hideStatusBar = function() {
-
-  if (window.statusBarWidget) {
-    let dom = window.statusBarWidget.domNode;
-    if (dom && dom.parentNode)
-      dom.parentNode.removeChild(dom);
-    window.statusBarWidget = null;
-  }
+  window.statusBarEnabled = false;
+  const sessions = tabsController ? tabsController.getSessions() : [];
+  if (!sessions.length && window.editor)
+    sessions.push({ editor: window.editor, state: { statusBarWidget: window.statusBarWidget } });
+  sessions.forEach(function (session) {
+    const widget = session === (tabsController && tabsController.active)
+      ? window.statusBarWidget
+      : session.state.statusBarWidget;
+    if (!widget)
+      return;
+    const domNode = widget.domNode;
+    if (domNode && domNode.parentNode)
+      domNode.parentNode.removeChild(domNode);
+    session.state.statusBarWidget = null;
+  });
+  window.statusBarWidget = null;
 
 }
 
@@ -1775,14 +1892,20 @@ window.setOption = function (optionName, optionValue) {
     && typeof optionValue != 'boolean')
     return false;
 
-  window.editor[optionName] = optionValue;
   window.editor_options[optionName] = optionValue;
+  forEachTabEditor(function (editor) {
+    editor[optionName] = optionValue;
+  });
 
   if (optionName == INLINE_SUGGESTION_SYNTAX_HIGHLIGHTING_OPTION
-    && window.editor && !window.editor.navi) {
-    window.editor.updateOptions({
-      inlineSuggest: {
-        syntaxHighlightingEnabled: optionValue
+    && window.editor) {
+    forEachTabEditor(function (editor) {
+      if (!editor.navi) {
+        editor.updateOptions({
+          inlineSuggest: {
+            syntaxHighlightingEnabled: optionValue
+          }
+        });
       }
     });
   }
@@ -2426,18 +2549,46 @@ window.stopCodeReview = function() {
 
 // #region init editor
 window.editor = undefined;
+let editorKeybindingsConfigured = false;
+const commandOnlyActions = ['saveref', 'requestMetadata'];
 
-window.createEditor = function(language_id, text, theme) {
+for (const [action_id, action] of Object.entries(permanentActions)) {
+  if (commandOnlyActions.indexOf(action_id) != -1)
+    monaco.editor.registerCommand('bsl.' + action_id, action.callback);
+}
+
+function registerPermanentEditorActions(editor) {
+  for (const [action_id, action] of Object.entries(permanentActions)) {
+    if (commandOnlyActions.indexOf(action_id) != -1)
+      continue;
+
+    editor.addAction({
+      id: action_id,
+      label: action.label,
+      // 0.55: addAction не терпит null/undefined в keybindings.
+      keybindings: [action.key, action.cmd].filter(function (keybinding) { return keybinding; }),
+      precondition: null,
+      keybindingContext: null,
+      contextMenuGroupId: null,
+      contextMenuOrder: action.order,
+      run: action.callback
+    });
+  }
+}
+
+function createEditorInstance(language_id, text, theme, readOnly = false) {
 
   const container = document.getElementById("container");
+  const previousEditor = window.editor;
 
   if (!container)
     return;
 
-  window.editor = monaco.editor.create(container, {
+  const editor = monaco.editor.create(container, {
     theme: theme,
     value: text,
     language: language_id,
+    readOnly: readOnly,
     contextmenu: true,
     // КРИТИЧНО для «Поля HTML документа» 1С (старый WebKit-webview красит по событию ВВОДА, не
     // постоянно). Monaco вставляет строки suggest АСИНХРОННО (rAF, suggestWidget.js). Без
@@ -2495,15 +2646,35 @@ window.createEditor = function(language_id, text, theme) {
     }
   });
 
-  changeCommandKeybinding('editor.action.revealDefinition', monaco.KeyCode.F12);
-  changeCommandKeybinding('editor.action.peekDefinition', monaco.KeyMod.CtrlCmd | monaco.KeyCode.F12);
-  changeCommandKeybinding('editor.action.deleteLines',  monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyL);
-  changeCommandKeybinding('editor.action.selectToBracket',  monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.KeyB);
-  changeCommandKeybinding('editor.action.quickOutline',  monaco.KeyMod.CtrlCmd | monaco.KeyMod.Alt | monaco.KeyCode.KeyP);
+  if (!window.editor)
+    window.editor = editor;
+  if (previousEditor && previousEditor.updateCodeLens)
+    editor.updateCodeLens = previousEditor.updateCodeLens;
 
-  window.lineNumbersDedocrations = [];
-  window.setDefaultStyle();
-  initEditorEventListenersAndProperies();
+  registerPermanentEditorActions(editor);
+
+  if (!editorKeybindingsConfigured) {
+    changeCommandKeybinding('editor.action.revealDefinition', monaco.KeyCode.F12);
+    changeCommandKeybinding('editor.action.peekDefinition', monaco.KeyMod.CtrlCmd | monaco.KeyCode.F12);
+    changeCommandKeybinding('editor.action.deleteLines',  monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyL);
+    changeCommandKeybinding('editor.action.selectToBracket',  monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.KeyB);
+    changeCommandKeybinding('editor.action.quickOutline',  monaco.KeyMod.CtrlCmd | monaco.KeyMod.Alt | monaco.KeyCode.KeyP);
+    editorKeybindingsConfigured = true;
+  }
+
+  applySharedEditorOptions(editor);
+  if (readOnly && window.contextMenuEnabled)
+    editor.updateOptions({ contextmenu: false });
+  initEditorEventListenersAndProperies(editor);
+  return editor;
+
+}
+
+window.createEditor = function(language_id, text, theme, readOnly = false) {
+  window.editor = createEditorInstance(language_id, text, theme, readOnly);
+  if (tabsController)
+    tabsController.replaceCurrentEditor(window.editor);
+  return window.editor;
 
 }
 
@@ -2635,8 +2806,6 @@ monaco.languages.registerInlineCompletionsProvider(
   aiInlineProvider.provider
 );
 
-const commandOnlyActions = ['saveref', 'requestMetadata'];
-
 monaco.editor.addEditorAction({
   id: 'bsl.showHelp',
   label: 'Справка 1С',
@@ -2661,73 +2830,50 @@ monaco.editor.addEditorAction({
   }
 });
 
-for (const [action_id, action] of Object.entries(permanentActions)) {
-
-  if (commandOnlyActions.indexOf(action_id) != -1) {
-    // 0.55: служебные действия, вызываемые из команд элементов автодополнения
-    // (CompletionItem.command = {id:'bsl.saveref'|'bsl.requestMetadata'}), нельзя регистрировать
-    // через addAction (тот вешает id 'editorId:saveref') — только глобальной командой.
-    // handler(accessor, ...args); callback(e, obj) читает только obj → e=accessor, obj=args[0].
-    monaco.editor.registerCommand('bsl.' + action_id, action.callback);
-    continue;
-  }
-
-  window.editor.addAction({
-    id: action_id,
-    label: action.label,
-    // 0.55: addAction не терпит null/undefined в keybindings (0.20 их игнорил) — фильтруем
-    // (действия без горячей клавиши: key/cmd = null/undefined → [] → пункт только в контекстном меню).
-    keybindings: [action.key, action.cmd].filter(function (k) { return k; }),
-    precondition: null,
-    keybindingContext: null,
-    contextMenuGroupId: null,
-    contextMenuOrder: action.order,
-    run: action.callback
-  });
-
-}
+initializeTabs(window.editor);
 
 // #endregion
 
 // #region editor events
-function initEditorEventListenersAndProperies() {
+function initEditorEventListenersAndProperies(ownerEditor) {
 
-  window.editor.sendEvent = sendEvent;
-  window.editor.decorations = [];
-  window.editor.bookmarks = new Map();
-  window.editor.breakpoints = new Map();
-  window.editor.currentDebugLine = new Map();
-  window.editor.checkBookmarks = true;
-  window.editor.diff_decorations = [];
-  window.editor.ifDecorations = [];
+  ownerEditor.sendEvent = sendEvent;
+  ownerEditor.decorations = [];
+  ownerEditor.bookmarks = new Map();
+  ownerEditor.breakpoints = new Map();
+  ownerEditor.currentDebugLine = new Map();
+  ownerEditor.checkBookmarks = true;
+  ownerEditor.diff_decorations = [];
+  ownerEditor.ifDecorations = [];
 
-  window.editor.updateDecorations = function (new_decorations) {
+  ownerEditor.updateDecorations = function (new_decorations) {
 
     let permanent_decor = [];
 
-    window.editor.bookmarks.forEach(function (value) {
+    ownerEditor.bookmarks.forEach(function (value) {
       permanent_decor.push(value);
     });
 
-    window.editor.breakpoints.forEach(function (value) {
+    ownerEditor.breakpoints.forEach(function (value) {
       permanent_decor.push(value);
     });
 
-    window.editor.currentDebugLine.forEach(function (value) {
+    ownerEditor.currentDebugLine.forEach(function (value) {
       permanent_decor.push(value.line);
       permanent_decor.push(value.pointer);
     });
 
-    permanent_decor = permanent_decor.concat(window.editor.diff_decorations);
+    permanent_decor = permanent_decor.concat(ownerEditor.diff_decorations);
 
-    getQueryDelimiterDecorations(permanent_decor);
+    if (window.editor === ownerEditor)
+      getQueryDelimiterDecorations(permanent_decor);
 
-    window.editor.decorations = window.editor.deltaDecorations(window.editor.decorations, permanent_decor.concat(new_decorations));
+    ownerEditor.decorations = ownerEditor.deltaDecorations(ownerEditor.decorations, permanent_decor.concat(new_decorations));
   }
 
-  window.editor.removeDiffWidget = function () {
+  ownerEditor.removeDiffWidget = function () {
 
-    const owner_editor = window.editor;
+    const owner_editor = ownerEditor;
     const inline_diff_editor = window.inlineDiffEditor;
     const inline_diff_widget = window.inlineDiffWidget;
 
@@ -2752,20 +2898,26 @@ function initEditorEventListenersAndProperies() {
   }
 
   // Внутренний обработчик вынесен в свойства редактора для тестирования полного lifecycle виджета.
-  window.editor.createDiffWidget = createDiffWidget;
+  ownerEditor.createDiffWidget = createDiffWidget;
 
-  window.editor.onMouseMove(e => {
-      
+  ownerEditor.onMouseMove(e => {
+    if (window.editor !== ownerEditor)
+      return;
     newReviewDecoration(e);
             
   });
 
-  window.editor.onKeyDown(e => editorOnKeyDown(e));
+  ownerEditor.onKeyDown(e => {
+    if (window.editor === ownerEditor)
+      editorOnKeyDown(e);
+  });
 
-  window.editor.onDidChangeModelContent(e => {
+  ownerEditor.onDidChangeModelContent(e => {
+    if (window.editor !== ownerEditor)
+      return;
 
     aiInlineProvider.recordContentChange(
-      window.editor.getModel(),
+      ownerEditor.getModel(),
       e,
       window.aiInlineProgrammaticChangeDepth > 0
     );
@@ -2780,21 +2932,23 @@ function initEditorEventListenersAndProperies() {
     window.updateBookmarks(undefined);
     window.updateBreakpoints(undefined);
 
-    setOption('lastContentChanges', e);
+    ownerEditor.lastContentChanges = e;
 
     if (window.getCurrentLanguageId() == 'bsl_query') {
-      if (window.editor.navi) {
-        queryModelService.schedule(window.editor.getModifiedEditor().getModel());
-        queryModelService.schedule(window.editor.getOriginalEditor().getModel());
+      if (ownerEditor.navi) {
+        queryModelService.schedule(ownerEditor.getModifiedEditor().getModel());
+        queryModelService.schedule(ownerEditor.getOriginalEditor().getModel());
       }
       else {
-        queryModelService.schedule(window.editor.getModel());
+        queryModelService.schedule(ownerEditor.getModel());
       }
     }
         
   });
 
-  window.editor.onKeyUp(e => {
+  ownerEditor.onKeyUp(e => {
+    if (window.editor !== ownerEditor)
+      return;
     
     if (e.ctrlKey)
       window.ctrlPressed = false;
@@ -2807,7 +2961,9 @@ function initEditorEventListenersAndProperies() {
 
   });
 
-  window.editor.onMouseDown(e => {
+  ownerEditor.onMouseDown(e => {
+    if (window.editor !== ownerEditor)
+      return;
 
     if (e.event.leftButton && e.event.ctrlKey) {
 
@@ -2815,10 +2971,10 @@ function initEditorEventListenersAndProperies() {
 
       if (position) {
 
-        let target = window.editor.getModel().getWordAtPosition(position);
+        let target = ownerEditor.getModel().getWordAtPosition(position);
 
         if (target) {
-          let current_selection = window.editor.getSelection();
+          let current_selection = ownerEditor.getSelection();
           let target_selection = new monaco.Range(position.lineNumber, target.startColumn, position.lineNumber, target.endColumn);
           if (!current_selection.containsRange(target_selection))
             window.setSelection(position.lineNumber, target.startColumn, position.lineNumber, target.endColumn)
@@ -2838,7 +2994,7 @@ function initEditorEventListenersAndProperies() {
     }
 
     if (element.classList.contains('diff-navi')) {
-      window.editor.createDiffWidget(e);
+      ownerEditor.createDiffWidget(e);
     }
 
     if (element.classList.contains('add-review')) {
@@ -2847,7 +3003,9 @@ function initEditorEventListenersAndProperies() {
 
   });
 
-  window.editor.onDidScrollChange(e => {
+  ownerEditor.onDidScrollChange(e => {
+    if (window.editor !== ownerEditor)
+      return;
         
     if (e.scrollTop == 0) {
       window.scrollToTop();
@@ -2855,7 +3013,9 @@ function initEditorEventListenersAndProperies() {
 
   });
 
-  window.editor.onDidType(text => {
+  ownerEditor.onDidType(text => {
+    if (window.editor !== ownerEditor)
+      return;
 
     if (text === '\n') {
       checkNewStringLine();
@@ -2865,7 +3025,9 @@ function initEditorEventListenersAndProperies() {
 
   });
 
-  window.editor.onDidChangeCursorSelection(e => {
+  ownerEditor.onDidChangeCursorSelection(e => {
+    if (window.editor !== ownerEditor)
+      return;
 
     aiInlineProvider.cursorChanged();
 
@@ -2876,14 +3038,17 @@ function initEditorEventListenersAndProperies() {
     
   });
 
-  window.editor.onDidLayoutChange(e => {
+  ownerEditor.onDidLayoutChange(e => {
+    if (window.editor !== ownerEditor)
+      return;
 
     setTimeout(() => { resizeStatusBar(); } , 50);
 
   })
 
-  window.editor.onDidPaste(e => {
-    onDidPaste(e);
+  ownerEditor.onDidPaste(e => {
+    if (window.editor === ownerEditor)
+      onDidPaste(e);
   });
 
   // 0.55: гасим пустой suggest-виджет («No suggestions»). При ПЕРЕ-триггере автодополнения
@@ -2893,7 +3058,7 @@ function initEditorEventListenersAndProperies() {
   // выполняются синхронно, поэтому show+cancel проходят ДО отрисовки — блок не мелькает.
   // (Наш провайдер уже возвращает undefined на пусто, но это не гасит ЯВНЫЙ триггер.)
   try {
-    let suggestCtrl = window.editor.getContribution('editor.contrib.suggestController');
+    let suggestCtrl = ownerEditor.getContribution('editor.contrib.suggestController');
     if (suggestCtrl && suggestCtrl.model && typeof suggestCtrl.model.onDidSuggest === 'function') {
       suggestCtrl.model.onDidSuggest(function (e) {
         try {
@@ -2906,8 +3071,186 @@ function initEditorEventListenersAndProperies() {
 
 }
 // #endregion
-  
+
 // #region non-public functions
+function createTabState(readOnly) {
+  return {
+    selectionText: '',
+    contextData: new Map(),
+    readOnlyMode: Boolean(readOnly),
+    queryMode: false,
+    DCSMode: false,
+    debugMode: false,
+    usingDebugger: false,
+    customHovers: {},
+    immediateHover: [],
+    customSignatures: {},
+    customCodeLenses: [],
+    originalText: '',
+    customSuggestions: [],
+    customInlineSuggestion: [],
+    statusBarWidget: null,
+    currentBookmark: -1,
+    currentMarker: -1,
+    lineNumbersDedocrations: [],
+    selectedQueryDelimiters: new Map(),
+    reviewWidgets: new Map(),
+    currentIssue: -1,
+    objectContext: null,
+    diffEditor: null,
+    inlineDiffEditor: null,
+    inlineDiffWidget: null,
+    inlineDiffWidgetTimer: 0,
+    inlineDiffEditorTimer: 0
+  };
+}
+
+function captureTabState(session) {
+  if (!session)
+    return;
+  session.editor = window.editor;
+  TAB_STATE_KEYS.forEach(function (name) {
+    session.state[name] = window[name];
+  });
+}
+
+function restoreTabState(session) {
+  TAB_STATE_KEYS.forEach(function (name) {
+    window[name] = session.state[name];
+  });
+  window.editor = session.editor;
+}
+
+function setEditorVisible(editor, visible) {
+  if (!editor)
+    return;
+  const domNode = typeof editor.getDomNode == 'function'
+    ? editor.getDomNode()
+    : (typeof editor.getContainerDomNode == 'function' ? editor.getContainerDomNode() : null);
+  if (domNode)
+    domNode.style.display = visible ? '' : 'none';
+}
+
+function forEachTabEditor(callback) {
+  if (!tabsController) {
+    if (window.editor)
+      callback(window.editor);
+    return;
+  }
+  tabsController.getSessions().forEach(function (session) {
+    if (session.editor)
+      callback(session.editor);
+  });
+}
+
+function applySharedEditorOptions(editor) {
+  if (!editor)
+    return;
+  editor.updateOptions(window.sharedEditorOptions);
+  Object.keys(window.editor_options).forEach(function (name) {
+    editor[name] = window.editor_options[name];
+  });
+}
+
+function editorLanguageId(editor) {
+  if (!editor)
+    return 'bsl';
+  const codeEditor = editor.navi ? editor.getModifiedEditor() : editor;
+  const model = codeEditor.getModel();
+  return model && typeof model.getLanguageId == 'function' ? model.getLanguageId() : 'bsl';
+}
+
+function activateTabSession(session, previous) {
+  if (previous) {
+    captureTabState(previous);
+    setEditorVisible(previous.editor, false);
+  }
+
+  restoreTabState(session);
+  setEditorVisible(session.editor, true);
+  const language = editorLanguageId(session.editor);
+  window.queryMode = language == 'bsl_query';
+  window.DCSMode = language == 'dcs_query';
+  session.state.queryMode = window.queryMode;
+  session.state.DCSMode = window.DCSMode;
+  helpBrowser.setLanguageMode(language);
+  window.setTheme(getCurrentThemeName());
+  initContextMenuActions();
+
+  if (window.statusBarEnabled && !window.statusBarWidget)
+    window.showStatusBar(window.statusBarOverlapScroll);
+
+  aiInlineProvider.cursorChanged();
+  window.editor.layout();
+  window.editor.focus();
+  updateStatusBar();
+}
+
+function disposeTabSession(session, wasActive) {
+  if (wasActive)
+    captureTabState(session);
+  disposeEditorInstance(session.editor, session.state);
+  session.editor = null;
+}
+
+function resetLastTabSession(session) {
+  captureTabState(session);
+  disposeEditorInstance(session.editor, session.state);
+  const editor = createEditorInstance('bsl', '', window.currentThemeName, false);
+  session.editor = editor;
+  session.state = createTabState(false);
+  restoreTabState(session);
+  setEditorVisible(editor, true);
+  if (window.statusBarEnabled)
+    window.showStatusBar(window.statusBarOverlapScroll);
+  helpBrowser.setLanguageMode('bsl');
+  window.setTheme(getCurrentThemeName());
+  initContextMenuActions();
+  editor.layout();
+  editor.focus();
+}
+
+function showTabCloseConfirmation(title, accept) {
+  const modal = new tingle.modal({
+    footer: true,
+    stickyFooter: false,
+    closeMethods: []
+  });
+  const heading = document.createElement('h3');
+  heading.textContent = 'Закрыть вкладку «' + title + '»?';
+  modal.setContent(heading);
+  modal.addFooterBtn('Закрыть', 'tingle-btn tingle-btn--primary', function () {
+    modal.close();
+    accept();
+  });
+  modal.addFooterBtn('Отмена', 'tingle-btn tingle-btn--danger', function () {
+    modal.close();
+  });
+  modal.open();
+}
+
+function initializeTabs(initialEditor) {
+  tabsController = new EditorTabs({
+    onActivate: activateTabSession,
+    onDispose: disposeTabSession,
+    onResetLast: resetLastTabSession,
+    shouldConfirmClose: function () {
+      return window.editor_options.confirmTabClose === true;
+    },
+    confirmClose: showTabCloseConfirmation,
+    onChanged: function (payload) {
+      window.sendEvent('EVENT_TAB_CHANGED', payload);
+    }
+  });
+  tabsController.registerInitial({
+    title: 'Основная',
+    editor: initialEditor,
+    state: createTabState(false)
+  });
+  captureTabState(tabsController.active);
+  tabsController.setTheme(window.currentThemeName);
+}
+
 function rebuildBslGlobals(paths, exclude) {
   if (!window.bslGlobals)
     return false;
@@ -3617,44 +3960,63 @@ function clearInlineDiffTimers() {
 
 }
 
-window.disposeEditor = function() {
+function disposeEditorInstance(targetEditor, state) {
 
-  if (window.editor) {
+  if (targetEditor) {
 
-    if (window.editor.diffTimer) {
-      clearTimeout(window.editor.diffTimer);
-      window.editor.diffTimer = 0;
+    if (targetEditor.diffTimer) {
+      clearTimeout(targetEditor.diffTimer);
+      targetEditor.diffTimer = 0;
     }
 
-    if (window.editor.removeDiffWidget)
-      window.editor.removeDiffWidget();
+    if (targetEditor === window.editor) {
+      if (targetEditor.removeDiffWidget)
+        targetEditor.removeDiffWidget();
+      disposeDiffCalculationEditor();
+      aiInlineProvider.dispose();
+    }
+    else if (state) {
+      if (state.inlineDiffWidgetTimer)
+        clearTimeout(state.inlineDiffWidgetTimer);
+      if (state.inlineDiffEditorTimer)
+        clearTimeout(state.inlineDiffEditorTimer);
+      disposeAuxiliaryDiffEditor(state.inlineDiffEditor);
+      disposeAuxiliaryDiffEditor(state.diffEditor);
+      state.inlineDiffEditor = null;
+      state.diffEditor = null;
+    }
 
-    disposeDiffCalculationEditor();
-
-    aiInlineProvider.dispose();
-
-    if (window.editor.navi) {
+    if (targetEditor.navi) {
       // 0.55: НЕ диспозим суб-редакторы вручную — их владелец diff-редактор снимет сам при своём
       // dispose(). Модели original/modified создавали мы (createModel в compare()), поэтому снимаем
       // их отдельно, взяв с diff-редактора getModel() → {original, modified} ДО его dispose().
       // Прежний ручной обход `getOriginalEditor().getModel().dispose()` на 0.55 падал: getModel()
       // суб-редактора мог вернуть null → TypeError в compare() при ВЫХОДЕ, и режим сравнения не
       // закрывался (сначала здесь, ранее — в getCurrentThemeName).
-      let diff_model = window.editor.getModel();
-      window.editor.dispose();
+      let diff_model = targetEditor.getModel();
+      targetEditor.dispose();
       if (diff_model) {
-        if (diff_model.original) diff_model.original.dispose();
-        if (diff_model.modified) diff_model.modified.dispose();
+        if (diff_model.original && (!diff_model.original.isDisposed || !diff_model.original.isDisposed()))
+          diff_model.original.dispose();
+        if (diff_model.modified && (!diff_model.modified.isDisposed || !diff_model.modified.isDisposed()))
+          diff_model.modified.dispose();
       }
     }
     else {
-      hiddenBlocksController.disposeEditor(window.editor);
-      window.editor.getModel().dispose();
-      window.editor.dispose();
+      hiddenBlocksController.disposeEditor(targetEditor);
+      const model = targetEditor.getModel();
+      targetEditor.dispose();
+      if (model && (!model.isDisposed || !model.isDisposed()))
+        model.dispose();
     }
 
   }
 
+}
+
+window.disposeEditor = function() {
+  const state = tabsController && tabsController.active ? tabsController.active.state : null;
+  disposeEditorInstance(window.editor, state);
 }
 
 function generateSnippetEvent(e) {
@@ -5261,9 +5623,16 @@ function calculateDiff() {
 function refreshFoldingState() {
 
   const folding_enabled = !window.getOption('disableFolding');
-  const editors = window.editor.navi
-    ? [window.editor.getModifiedEditor(), window.editor.getOriginalEditor()]
-    : [window.editor];
+  const editors = [];
+  forEachTabEditor(function (editor) {
+    if (editor.navi) {
+      editors.push(editor.getModifiedEditor());
+      editors.push(editor.getOriginalEditor());
+    }
+    else {
+      editors.push(editor);
+    }
+  });
 
   editors.forEach((standalone_editor) => {
     standalone_editor.updateOptions({ folding: folding_enabled });

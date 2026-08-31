@@ -1,9 +1,16 @@
 import bslHelper from './bsl_helper';
 import registerFormatterBrowserTests from './test_formatter_browser';
+import registerTabsBrowserTests from './test_tabs';
 
 setTimeout(() => {
 
+  const def_text = window.editor.getValue();
+
   describe("Проверка автокомлита и подсказок редактора кода", function () {
+
+    after(function () {
+      window.editor.setValue(def_text);
+    });
 
     let urlParams = new URLSearchParams(window.location.search);
     let slow = urlParams.get('slow');
@@ -2822,6 +2829,8 @@ setTimeout(() => {
 
       assert.equal(monaco.editor.getModels().length, modelsCount);
     });
+
+    registerTabsBrowserTests();
 
     const testFormatter = false;
 
