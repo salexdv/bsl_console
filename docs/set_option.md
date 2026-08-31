@@ -57,3 +57,4 @@ setOption("generateAIInlineCompletionEvent", true);
 * `allowRevertBack` - *boolean*, включает/отключает возможность поблочного отката изменений в режиме сравнения
 * `highlightInnerQuotes` - *boolean*, включает/отключает подсветку экранированных двойных кавычек `""` внутри строк
 * `showDiffDecorations` - *boolean*, включает/отключает отображение различий при использовании функции [`setOriginalText`](set_original_text.md). Значение по умолчанию `true`
+* `confirmTabClose` - *boolean*, включает модальное подтверждение закрытия вкладки через крестик или [`closeCurrentTab`](tabs.md). Значение по умолчанию `false`

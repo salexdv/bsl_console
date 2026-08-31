@@ -1,0 +1,95 @@
+.bsl-editor-tabs {
+  box-sizing: border-box;
+  flex: 0 0 auto;
+  width: 100%;
+  height: 32px;
+  overflow: hidden;
+  border-bottom: 1px solid #c8c8c8;
+  color: #333;
+  background: #f2f2f2;
+  font-family: Arial, sans-serif;
+  font-size: 13px;
+  user-select: none;
+}
+
+.bsl-editor-tabs-hidden {
+  display: none;
+}
+
+.bsl-editor-tabs-list {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.bsl-editor-tab {
+  box-sizing: border-box;
+  position: relative;
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  min-width: 96px;
+  max-width: 240px;
+  height: 100%;
+  padding: 0 4px 0 10px;
+  border-right: 1px solid #c8c8c8;
+  background: #ececec;
+  cursor: default;
+}
+
+.bsl-editor-tab.active {
+  background: #fff;
+}
+
+.bsl-editor-tab.active::after {
+  content: '';
+  position: absolute;
+  right: 4px;
+  bottom: 0;
+  left: 4px;
+  height: 2px;
+  background: #009646;
+}
+
+.bsl-editor-tab-title {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.bsl-editor-tab-close {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  margin-left: 5px;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  color: inherit;
+  background: transparent;
+  font: 18px/20px Arial, sans-serif;
+  cursor: pointer;
+}
+
+.bsl-editor-tab-close:hover {
+  background: rgba(127, 127, 127, 0.25);
+}
+
+.bsl-editor-tabs.dark {
+  border-bottom-color: #454545;
+  color: #ddd;
+  background: #252526;
+}
+
+.bsl-editor-tabs.dark .bsl-editor-tab {
+  border-right-color: #454545;
+  background: #2d2d2d;
+}
+
+.bsl-editor-tabs.dark .bsl-editor-tab.active {
+  background: #1e1e1e;
+}

@@ -145,6 +145,14 @@ npm run build  -- --customOptions "automaticLayout: true, someOption: false"
 | [`hideUnchangedBlocks`](docs/hide_unchanged_blocks.md) | Сворачивает неизмененные блоки строк в режиме сравнения               |
 | [`showHiddenBlocks`](docs/show_hidden_blocks.md) | Раскрывает все свернутые области                                            |
 
+### Вкладки
+
+| Функция                        | Описание                                                                                      |
+| ------------------------------ | --------------------------------------------------------------------------------------------- |
+| [`createTab`](docs/tabs.md) | Создаёт и выбирает новую независимую вкладку с редактором                                        |
+| [`closeCurrentTab`](docs/tabs.md) | Закрывает текущую вкладку или очищает единственную вкладку                                 |
+| [`getCurrentTab`](docs/tabs.md) | Возвращает название и нулевой индекс текущей вкладки                                         |
+
 ### Управление режимом работы / настройками
 
 | Функция                        | Описание                                                                                      |
@@ -316,6 +324,7 @@ npm run build  -- --customOptions "automaticLayout: true, someOption: false"
 | [`EVENT_ON_HELP_PREPARED`](docs/help_prepared_event.md) | Ранний сигнал готовности справки (фаза `prepared`: оглавление и индекс заголовков готовы, полнотекстовая индексация ещё идёт). Параметр `{kind}` |
 | [`EVENT_AI_INLINE_COMPLETION_REQUEST`](docs/ai_inline_completions.md) | Запрос AI inline-подсказки у 1С |
 | [`EVENT_AI_INLINE_COMPLETION_CANCEL`](docs/ai_inline_completions.md) | Отмена ранее отправленного AI inline-запроса |
+| [`EVENT_TAB_CHANGED`](docs/tab_changed_event.md) | Изменилась текущая вкладка или её нулевой индекс. Параметр `{title, index}` |
 
 *Перед началом работы с редактором из 1С Предприятия желательно вызвать функцию инициализации и передать в нее текущую версию платформы.*
 Пример:
