@@ -96,6 +96,31 @@ function registerTabsBrowserTests() {
       assert.isFalse(window.getReadOnly());
     });
 
+    it('принимает параметры вкладки как JSON-строку', function () {
+      const count = tabNodes().length;
+
+      window.createTab('Запрос из 1С', 'ВЫБРАТЬ 1', '{"language":"bsl_query","readOnly":true}');
+
+      assert.equal(tabNodes().length, count + 1);
+      assert.equal(window.getCurrentLanguageId(), 'bsl_query');
+      assert.isTrue(window.getReadOnly());
+      window.closeCurrentTab();
+    });
+
+    it('использует настройки по умолчанию для некорректной JSON-строки и JSON не объекта', function () {
+      const invalidOptions = ['{', 'null', '[]', '42'];
+
+      invalidOptions.forEach(function (options) {
+        const count = tabNodes().length;
+        window.createTab('Настройки по умолчанию', '', options);
+
+        assert.equal(tabNodes().length, count + 1);
+        assert.equal(window.getCurrentLanguageId(), 'bsl');
+        assert.isFalse(window.getReadOnly());
+        window.closeCurrentTab();
+      });
+    });
+
     it('допускает одинаковые и безопасно отображает произвольные названия', function () {
       window.createTab('Одинаковая', 'Первый');
       window.createTab('Одинаковая', 'Второй');
