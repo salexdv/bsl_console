@@ -257,10 +257,19 @@ window.getHelpState = function () {
  * Создаёт и выбирает новую вкладку редактора.
  * @param {string} title заголовок вкладки
  * @param {string} text начальный текст
- * @param {{language?: string, readOnly?: boolean}} options параметры сессии
+ * @param {{language?: string, readOnly?: boolean}|string} options параметры сессии
+ * или JSON-строка с ними
  */
 window.createTab = function (title, text, options = {}) {
-  options = options && typeof options == 'object' ? options : {};
+  if (typeof options == 'string') {
+    try {
+      options = JSON.parse(options);
+    }
+    catch (e) {
+      options = {};
+    }
+  }
+  options = options && typeof options == 'object' && !Array.isArray(options) ? options : {};
   const language = typeof options.language == 'string' ? options.language : 'bsl';
   const readOnly = options.readOnly === true;
   const editor = createEditorInstance(
