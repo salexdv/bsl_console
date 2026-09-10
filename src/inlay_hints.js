@@ -353,7 +353,19 @@ export function createInlayHintsController(codeEditor) {
       const model = codeEditor.getModel();
       const entry = model ? hintsByModel.get(model) : null;
 
-      return { hintsCount: entry ? entry.parsedCount : 0 };
+      return {
+        hintsCount: entry ? entry.parsedCount : 0,
+        // Копия текущего набора — позиции/тексты для тестов и отладки.
+        hints: (entry ? entry.hints : []).map(function (hint) {
+          return {
+            line: hint.line,
+            column: hint.column,
+            text: hint.text,
+            id: hint.id,
+            eventParams: hint.eventParams
+          };
+        })
+      };
 
     },
     // Для тестов: обработчики события мыши (см. hintFromMouseTarget) — вызываются
