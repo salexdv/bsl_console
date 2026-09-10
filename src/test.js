@@ -2830,6 +2830,285 @@ setTimeout(() => {
       assert.equal(monaco.editor.getModels().length, modelsCount);
     });
 
+    describe("Инлей-хинты (specs/inlay-hints)", function () {
+
+      function controller() {
+        return window.editor.inlayHintsController;
+      }
+
+      // Спаны injected text имеют динамические классы dyn-rule-* (в атрибуте class после
+      // класса токена mtk*, поэтому [class*=]); у whitespace-вставок паддинга текст из
+      // узких пробелов \u200a — отбираем «настоящие» хинты и нормализуем неразрывные пробелы
+      // (\u00a0, штатная подмена injected text) в обычные. Остальные пользователи dyn-rule-*
+      // (color-decorators) в тестовом тексте не встречаются.
+      function renderedHintTexts() {
+        const nodes = window.editor.getDomNode().querySelectorAll('.view-lines span[class*="dyn-rule-"]');
+        const texts = [];
+        nodes.forEach(function (node) {
+          const text = node.textContent;
+          if (text && text.indexOf('\u200a') < 0)
+            texts.push(text.replace(/\u00a0/g, ' '));
+        });
+        return texts;
+      }
+
+      // Синтетическое событие мыши по отрисованному хинту: повторяет структуру
+      // IEditorMouseEvent для клика по injected text (см. hintFromMouseTarget в inlay_hints.js).
+      function clickEvent(hint, modifiers) {
+        modifiers = modifiers || {};
+        return {
+          event: {
+            leftButton: true,
+            ctrlKey: !!modifiers.ctrl,
+            altKey: !!modifiers.alt,
+            metaKey: !!modifiers.meta
+          },
+          target: {
+            type: monaco.editor.MouseTargetType.CONTENT_TEXT,
+            detail: {
+              injectedText: {
+                options: {
+                  attachedData: { item: { hint: hint } }
+                }
+              }
+            }
+          }
+        };
+      }
+
+      function withCapturedEvents(capturedEvents, run) {
+        const originalSendEvent = window.editor.sendEvent;
+        window.editor.sendEvent = function (name, params) {
+          capturedEvents.push({ name: name, params: params });
+        };
+        try {
+          run();
+        }
+        finally {
+          window.editor.sendEvent = originalSendEvent;
+        }
+      }
+
+      function clickTab(index) {
+        const nodes = document.querySelectorAll('.bsl-editor-tab');
+        if (nodes.length > index)
+          nodes[index].click();
+      }
+
+      afterEach(function () {
+        window.clearInlayHints();
+      });
+
+      it("setInlayHints рисует хинты, clearInlayHints убирает, getText не содержит текст хинтов", async function () {
+
+        window.updateText('Таб = ПолучитьТаблицу();\nСтр = Таб.Добавить();');
+
+        assert.equal(window.setInlayHints([
+          { line: 1, column: 25, text: ': ТаблицаЗначений' },
+          { line: 2, column: 22, text: ': СтрокаТаблицыЗначений', id: 'row' }
+        ]), true);
+
+        assert.equal(controller().getState().hintsCount, 2);
+
+        await waitFor(function () {
+          const texts = renderedHintTexts();
+          return texts.length == 2
+            && texts.indexOf(': ТаблицаЗначений') >= 0
+            && texts.indexOf(': СтрокаТаблицыЗначений') >= 0;
+        }, 2500, function () { return 'хинты не отрисованы: ' + JSON.stringify(renderedHintTexts()); });
+
+        assert.equal(window.getText().indexOf('ТаблицаЗначений'), -1);
+
+        window.clearInlayHints();
+        assert.equal(controller().getState().hintsCount, 0);
+        await waitFor(function () { return renderedHintTexts().length == 0; });
+
+      });
+
+      it("клик по хинту с event_params генерирует EVENT_ON_INLAY_HINT_CLICK с прокинутым значением", async function () {
+
+        window.updateText('Таб = ПолучитьТаблицу();');
+
+        window.setInlayHints([{
+          line: 1,
+          column: 25,
+          text: ': ТаблицаЗначений',
+          id: 7,
+          event_params: { action: 'open', code: 42 }
+        }]);
+
+        await waitFor(function () { return controller().getRenderedHints().length == 1; });
+
+        const capturedEvents = [];
+
+        withCapturedEvents(capturedEvents, function () {
+          const event = clickEvent(controller().getRenderedHints()[0]);
+          controller().handleMouseDown(event);
+          controller().handleMouseUp(event);
+        });
+
+        assert.equal(capturedEvents.length, 1);
+        assert.equal(capturedEvents[0].name, 'EVENT_ON_INLAY_HINT_CLICK');
+        assert.deepEqual(capturedEvents[0].params, {
+          id: 7,
+          line: 1,
+          column: 25,
+          text: ': ТаблицаЗначений',
+          event_params: { action: 'open', code: 42 }
+        });
+
+      });
+
+      it("хинт без event_params не кликабельный, клик с Ctrl не дублирует событие", async function () {
+
+        window.updateText('Таб = ПолучитьТаблицу();');
+
+        window.setInlayHints([
+          { line: 1, column: 25, text: ': ТаблицаЗначений' },
+          { line: 1, column: 4, text: ': тип', event_params: { action: 'open' } }
+        ]);
+
+        await waitFor(function () { return controller().getRenderedHints().length == 2; });
+
+        const capturedEvents = [];
+        const renderedHints = controller().getRenderedHints();
+        const plainHint = renderedHints.filter(function (hint) { return hint.label == ': ТаблицаЗначений'; })[0];
+        const clickableHint = renderedHints.filter(function (hint) { return hint.label != ': ТаблицаЗначений'; })[0];
+
+        withCapturedEvents(capturedEvents, function () {
+
+          // обычный клик по некликабельному — событие не генерируется
+          controller().handleMouseDown(clickEvent(plainHint));
+          controller().handleMouseUp(clickEvent(plainHint));
+          assert.equal(capturedEvents.length, 0);
+
+          // обычный клик по кликабельному — событие
+          controller().handleMouseDown(clickEvent(clickableHint));
+          controller().handleMouseUp(clickEvent(clickableHint));
+          assert.equal(capturedEvents.length, 1);
+
+          // клик с Ctrl (жест command label part) — обычный путь молчит, дубля нет
+          controller().handleMouseDown(clickEvent(clickableHint, { ctrl: true }));
+          controller().handleMouseUp(clickEvent(clickableHint, { ctrl: true }));
+          assert.equal(capturedEvents.length, 1);
+
+        });
+
+      });
+
+      it("невалидный вход возвращает errorDescription и не меняет предыдущий набор", async function () {
+
+        window.updateText('Таб = ПолучитьТаблицу();');
+
+        window.setInlayHints([{ line: 1, column: 25, text: ': ТаблицаЗначений' }]);
+        await waitFor(function () { return renderedHintTexts().length == 1; });
+        assert.equal(controller().getState().hintsCount, 1);
+
+        let invalidResult = window.setInlayHints('{oops');
+        assert.isObject(invalidResult);
+        assert.property(invalidResult, 'errorDescription');
+
+        invalidResult = window.setInlayHints('{"line": 1}');
+        assert.property(invalidResult, 'errorDescription');
+
+        assert.equal(controller().getState().hintsCount, 1);
+        await waitFor(function () { return renderedHintTexts().length == 1; });
+
+      });
+
+      it("пропускает позиции вне модели и элементы без текста, пустой набор очищает хинты", async function () {
+
+        window.updateText('Таб = ПолучитьТаблицу();\nСтр = Таб.Добавить();');
+
+        assert.equal(window.setInlayHints([
+          { line: 99, column: 1, text: 'вне модели' },
+          { line: 1, column: 999, text: 'вне строки' },
+          { line: 0, column: 1, text: 'нулевая строка' },
+          { line: 1, column: 25 },
+          { line: 1, column: 25, text: ': ТаблицаЗначений' }
+        ]), true);
+
+        assert.equal(controller().getState().hintsCount, 3);
+        await waitFor(function () { return renderedHintTexts().length == 1; });
+
+        assert.equal(window.setInlayHints([]), true);
+        assert.equal(controller().getState().hintsCount, 0);
+        await waitFor(function () { return renderedHintTexts().length == 0; });
+
+      });
+
+      it("принимает JSON-строку с массивом хинтов", async function () {
+
+        window.updateText('Таб = ПолучитьТаблицу();');
+
+        assert.equal(window.setInlayHints(
+          '[{"line":1,"column":25,"text":": ТаблицаЗначений","id":"json"}]'
+        ), true);
+
+        assert.equal(controller().getState().hintsCount, 1);
+        await waitFor(function () { return renderedHintTexts().length == 1; });
+
+      });
+
+      it("якорь хинта следует за правками текста выше", async function () {
+
+        window.updateText('Таб = ПолучитьТаблицу();');
+
+        window.setInlayHints([{ line: 1, column: 25, text: ': ТаблицаЗначений' }]);
+        await waitFor(function () { return renderedHintTexts().length == 1; });
+
+        window.editor.executeEdits('inlay-hints-test', [{
+          range: new monaco.Range(1, 1, 1, 1),
+          text: 'НоваяСтрока();\n'
+        }]);
+
+        // хинт уезжает на строку 2 вместе со своим якорем
+        await waitFor(function () {
+          const hints = controller().getRenderedHints();
+          return hints.length == 1 && hints[0].position.lineNumber == 2;
+        }, 2500, function () { return 'якорь не проследовал за правкой: ' + JSON.stringify(controller().getRenderedHints()); });
+
+        await waitFor(function () { return renderedHintTexts().length == 1; });
+
+      });
+
+      it("набор хинтов хранится на вкладке и восстанавливается при переключении", async function () {
+
+        window.updateText('Таб = ПолучитьТаблицу();');
+
+        window.setInlayHints([{ line: 1, column: 25, text: ': ТаблицаЗначений' }]);
+        await waitFor(function () { return renderedHintTexts().length == 1; });
+
+        window.createTab('Вторая', 'Стр = Таб.Добавить();', { language: 'bsl' });
+
+        try {
+
+          assert.equal(controller().getState().hintsCount, 0);
+          await waitFor(function () { return renderedHintTexts().length == 0; });
+
+          window.setInlayHints([{ line: 1, column: 22, text: ': СтрокаТаблицыЗначений' }]);
+          await waitFor(function () { return renderedHintTexts().length == 1; });
+
+          // возврат на первую вкладку — её набор на месте
+          clickTab(0);
+          await waitFor(function () {
+            const texts = renderedHintTexts();
+            return texts.length == 1 && texts.indexOf(': ТаблицаЗначений') >= 0;
+          }, 2500, function () { return 'набор первой вкладки не восстановлен: ' + JSON.stringify(renderedHintTexts()); });
+
+        }
+        finally {
+
+          // закрытие второй вкладки (диспоз её редактора/модели) и возврат на первую
+          clickTab(1);
+          window.closeCurrentTab();
+
+        }
+
+      });
+
+    });
+
     registerTabsBrowserTests();
 
     const testFormatter = false;

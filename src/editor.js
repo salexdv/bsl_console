@@ -37,6 +37,7 @@ import {
   isAIInlineOption,
   isValidAIInlineOption
 } from './ai_inline_provider';
+import { inlayHintsProvider, createInlayHintsController } from './inlay_hints';
 
 const hiddenBlocksController = new HiddenBlocksController(monaco, function () {
   return window.engLang;
@@ -1488,6 +1489,39 @@ window.triggerInlineSuggestions = function () {
 
 }
 
+/**
+ * Показывает инлей-хинты — короткие текстовые подсказки в строках кода (specs/inlay-hints).
+ * Полностью заменяет предыдущий набор текущей вкладки.
+ * @param {string|Array<{line: number, column: number, text: string, id?: string|number, event_params?: *}>} hints
+ *   массив хинтов или JSON-строка с ним: line/column — позиция (1-based), после которой выводится
+ *   текст (для конца строки column = длина строки + 1); text — однострочный текст; id —
+ *   необязательный идентификатор; event_params — произвольное значение, прокидываемое в событие
+ *   клика: хинт с незаданным event_params (отсутствует или null) не кликабельный.
+ * @returns {boolean|{errorDescription: string}} true — набор принят; false — редактор недоступен
+ *   или режим сравнения; {errorDescription} — ошибка разбора.
+ */
+window.setInlayHints = function (hints) {
+
+  if (!window.editor || !window.editor.inlayHintsController || window.editor.navi)
+    return false;
+
+  return window.editor.inlayHintsController.setHints(hints);
+
+}
+
+/**
+ * Убирает все инлей-хинты текущей вкладки (specs/inlay-hints).
+ * @returns {boolean} true
+ */
+window.clearInlayHints = function () {
+
+  if (window.editor && window.editor.inlayHintsController && !window.editor.navi)
+    window.editor.inlayHintsController.clear();
+
+  return true;
+
+}
+
 window.nextDiff = function() {
 
   if (window.editor.navi) {
@@ -2643,6 +2677,12 @@ function createEditorInstance(language_id, text, theme, readOnly = false) {
     parameterHints: {
       cycle: true
     },
+    // 0.55: инлей-хинты (specs/inlay-hints) — рендерит штатный InlayHintsController;
+    // maximumLength: 0 снимает штатную обрезку суммарной длины хинтов строки (43 символа) —
+    // в реализации на Monaco 0.20 обрезки не было.
+    inlayHints: {
+      maximumLength: 0
+    },
     lineNumbers: window.getLineNumber,
     customOptions: true,
     renderValidationDecorations: "on",
@@ -2815,6 +2855,10 @@ monaco.languages.registerInlineCompletionsProvider(
   aiInlineProvider.provider
 );
 
+// Инлей-хинты (specs/inlay-hints): селектор '*' — набор хранится по модели, языки значения
+// не имеют (провайдер возвращает пусто для моделей без набора).
+monaco.languages.registerInlayHintsProvider('*', inlayHintsProvider);
+
 monaco.editor.addEditorAction({
   id: 'bsl.showHelp',
   label: 'Справка 1С',
@@ -2854,6 +2898,7 @@ function initEditorEventListenersAndProperies(ownerEditor) {
   ownerEditor.checkBookmarks = true;
   ownerEditor.diff_decorations = [];
   ownerEditor.ifDecorations = [];
+  ownerEditor.inlayHintsController = createInlayHintsController(ownerEditor);
 
   ownerEditor.updateDecorations = function (new_decorations) {
 
@@ -3972,6 +4017,12 @@ function clearInlineDiffTimers() {
 function disposeEditorInstance(targetEditor, state) {
 
   if (targetEditor) {
+
+    if (targetEditor.inlayHintsController) {
+      targetEditor.inlayHintsController.dispose();
+      targetEditor.inlayHintsController = null;
+    }
+
 
     if (targetEditor.diffTimer) {
       clearTimeout(targetEditor.diffTimer);
