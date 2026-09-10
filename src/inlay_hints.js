@@ -232,7 +232,17 @@ export function createInlayHintsController(codeEditor) {
       return {
         hintsCount: currentHints.length,
         renderedCount: renderedCount,
-        cssText: styleNode.textContent
+        cssText: styleNode.textContent,
+        // Копия текущего набора — позиции/тексты для тестов и отладки.
+        hints: currentHints.map(function (hint) {
+          return {
+            line: hint.line,
+            column: hint.column,
+            text: hint.text,
+            id: hint.id,
+            eventParams: hint.eventParams
+          };
+        })
       };
 
     }

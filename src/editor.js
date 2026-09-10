@@ -16,6 +16,7 @@ import bslHelper from './bsl_helper';
 import { createHelpBrowser } from './help';
 import { AI_INLINE_DEFAULT_OPTIONS, createAIInlineProvider, isAIInlineOption, isValidAIInlineOption } from './ai_inline_provider';
 import { createInlayHintsController } from './inlay_hints';
+import { createQueryParamsTooltipsController } from './query_params_hints';
 import EditorTabs from './tabs';
 
 const monaco = require('./monaco');
@@ -727,6 +728,11 @@ window.setLanguageMode = function(mode) {
   }
 
   helpBrowser.setLanguageMode(mode);
+
+  // Вне режимов запроса тултипы параметров бессмысленны: набор забывается, хинты убираются
+  // (specs/query-params-tooltips).
+  if (mode != 'bsl_query' && mode != 'dcs_query' && window.editor && window.editor.queryParamsTooltipsController)
+    window.editor.queryParamsTooltipsController.clear();
 
   let currentTheme = getCurrentThemeName();
   window.setTheme(currentTheme);
@@ -1461,12 +1467,18 @@ window.setInlayHints = function (hints) {
   if (!window.editor || !window.editor.inlayHintsController || window.editor.navi)
     return false;
 
-  return window.editor.inlayHintsController.setHints(hints);
+  let result = window.editor.inlayHintsController.setHints(hints);
+
+  // Ручной набор занимает инлей-хинты целиком — тултипы параметров запроса забываются.
+  if (result === true && window.editor.queryParamsTooltipsController)
+    window.editor.queryParamsTooltipsController.forget();
+
+  return result;
 
 }
 
 /**
- * Убирает все инлей-хинты текущей вкладки (specs/inlay-hints).
+ * Убирает все инлей-хинты текущей вкладки, включая тултипы параметров запроса (specs/inlay-hints).
  * @returns {boolean} true
  */
 window.clearInlayHints = function () {
@@ -1474,7 +1486,33 @@ window.clearInlayHints = function () {
   if (window.editor && window.editor.inlayHintsController && !window.editor.navi)
     window.editor.inlayHintsController.clear();
 
+  if (window.editor && window.editor.queryParamsTooltipsController)
+    window.editor.queryParamsTooltipsController.forget();
+
   return true;
+
+}
+
+/**
+ * Показывает тултипы значений параметров запроса (&Параметр) как инлей-хинты
+ * (specs/query-params-tooltips). Работает только в режимах bsl_query / dcs_query: позиции
+ * вычисляются по тексту модели и пересчитываются при каждом его изменении. Занимает набор
+ * инлей-хинтов целиком (см. setInlayHints); очистка — clearInlayHints или пустой массив.
+ * @param {string|Array<{param: string, label: string, value?: *}>} params массив (или JSON-строка)
+ *   описаний: param — имя параметра без &; label — текст тултипа; value — произвольное значение,
+ *   прокидываемое в событие клика как event_params (хинт с незаданным value не кликабельный).
+ * @returns {boolean|{errorDescription: string}} true — набор принят; false — редактор недоступен,
+ *   режим сравнения или не режим запроса; {errorDescription} — ошибка разбора.
+ */
+window.setQueryParamsTooltips = function (params) {
+
+  if (!window.editor || !window.editor.queryParamsTooltipsController || window.editor.navi)
+    return false;
+
+  if (!window.isQueryMode() && !window.isDCSMode())
+    return false;
+
+  return window.editor.queryParamsTooltipsController.setParams(params);
 
 }
 
@@ -2741,6 +2779,7 @@ function initEditorEventListenersAndProperies(ownerEditor) {
   ownerEditor.ifDecorations = [];
   ownerEditor.inlineSuggestController = createInlineSuggestController(ownerEditor);
   ownerEditor.inlayHintsController = createInlayHintsController(ownerEditor);
+  ownerEditor.queryParamsTooltipsController = createQueryParamsTooltipsController(ownerEditor);
 
   ownerEditor.updateDecorations = function (new_decorations) {
 
@@ -2846,6 +2885,11 @@ function initEditorEventListenersAndProperies(ownerEditor) {
         queryModelService.schedule(window.editor.getModel());
       }
     }
+
+    // Тултипы параметров запроса пересчитываются при каждом изменении текста
+    // (specs/query-params-tooltips): состав следует за вхождениями &Параметр.
+    if (ownerEditor.queryParamsTooltipsController)
+      ownerEditor.queryParamsTooltipsController.refresh();
 
   });
 

@@ -861,6 +861,235 @@ setTimeout(() => {
 
     });
 
+    describe("Тултипы параметров запроса (specs/query-params-tooltips)", function () {
+
+      function inlayState() {
+        return window.editor.inlayHintsController.getState();
+      }
+
+      function renderedTooltips() {
+        return window.editor.getDomNode().querySelectorAll('.bsl-inlay-hint');
+      }
+
+      function executeEdit(range, text) {
+        window.editor.executeEdits('test', [{ range: range, text: text, forceMoveMarkers: false }]);
+      }
+
+      // '\tТовары.СтавкаНДС <> &БезНДС' — &БезНДС занимает колонки 22..28, хинт на 29;
+      // 'ГДЕ &БезНДС <> 0' — &БезНДС занимает колонки 5..11, хинт на 12.
+      const queryText = [
+        'ВЫБРАТЬ',
+        '\tТовары.СтавкаНДС <> &БезНДС',
+        'ИЗ Справочник.Товары КАК Товары',
+        'ГДЕ &БезНДС <> 0'
+      ].join('\n');
+
+      beforeEach(function () {
+        window.setLanguageMode('bsl_query');
+        window.setContent(queryText);
+      });
+
+      afterEach(function () {
+        window.clearInlayHints();
+        window.setLanguageMode('bsl');
+      });
+
+      it("setQueryParamsTooltips рисует тултип после каждого вхождения параметра", async function () {
+
+        assert.equal(window.setQueryParamsTooltips([
+          { param: 'БезНДС', label: 'Без НДС', value: 'ref-1' }
+        ]), true);
+
+        assert.deepEqual(inlayState().hints, [
+          { line: 2, column: 29, text: 'Без НДС', id: 'БезНДС', eventParams: 'ref-1' },
+          { line: 4, column: 12, text: 'Без НДС', id: 'БезНДС', eventParams: 'ref-1' }
+        ]);
+
+        await waitFor(function () { return renderedTooltips().length == 2; });
+
+      });
+
+      it("пересчитывает тултипы при изменении текста: смещение, переименование, новое вхождение", async function () {
+
+        window.setQueryParamsTooltips([{ param: 'БезНДС', label: 'Без НДС' }]);
+        await waitFor(function () { return renderedTooltips().length == 2; });
+
+        // Вставка строки выше — оба тултипа сместились на строку вниз.
+        executeEdit(new monaco.Range(1, 1, 1, 1), '// выше\n');
+        assert.deepEqual(inlayState().hints.map(function (hint) { return hint.line; }), [3, 5]);
+        assert.equal(inlayState().hints[0].column, 29);
+
+        // Переименование параметра — тултип у него исчез, второй остался.
+        executeEdit(new monaco.Range(3, 22, 3, 29), '&Другой');
+        assert.deepEqual(inlayState().hints.map(function (hint) { return hint.line; }), [5]);
+
+        // Новое вхождение параметра — тултип появился без повторного вызова из 1С.
+        executeEdit(new monaco.Range(1, 1, 1, 1), '&БезНДС,\n');
+        assert.deepEqual(inlayState().hints.map(function (hint) { return hint.line; }), [1, 6]);
+        await waitFor(function () { return renderedTooltips().length == 2; });
+
+      });
+
+      it("клик по тултипу с value генерирует EVENT_ON_INLAY_HINT_CLICK с id параметра и event_params", async function () {
+
+        const originalSendEvent = window.editor.sendEvent;
+        const capturedEvents = [];
+
+        try {
+          window.editor.sendEvent = function (name, params) {
+            capturedEvents.push({ name: name, params: params });
+          };
+
+          window.setQueryParamsTooltips([{
+            param: 'БезНДС',
+            label: 'Без НДС',
+            value: { action: 'open', ref: 'e8db7890-6b72-453e-a3c4-ecc721864638' }
+          }]);
+
+          await waitFor(function () { return renderedTooltips().length == 2; });
+
+          assert.isTrue(renderedTooltips()[0].classList.contains('bsl-inlay-hint-clickable'));
+          assert.equal(window.editor.inlayHintsController.handleElementClick(renderedTooltips()[0]), true);
+          assert.equal(capturedEvents.length, 1);
+          assert.equal(capturedEvents[0].name, 'EVENT_ON_INLAY_HINT_CLICK');
+          assert.deepEqual(capturedEvents[0].params, {
+            id: 'БезНДС',
+            line: 2,
+            column: 29,
+            text: 'Без НДС',
+            event_params: { action: 'open', ref: 'e8db7890-6b72-453e-a3c4-ecc721864638' }
+          });
+        }
+        finally {
+          window.editor.sendEvent = originalSendEvent;
+        }
+
+      });
+
+      it("тултип без value не кликабельный: событие не генерируется, клики проходят сквозь", async function () {
+
+        const originalSendEvent = window.editor.sendEvent;
+        const capturedEvents = [];
+
+        try {
+          window.editor.sendEvent = function (name, params) {
+            capturedEvents.push({ name: name, params: params });
+          };
+
+          window.setQueryParamsTooltips([{ param: 'БезНДС', label: 'Без НДС' }]);
+          await waitFor(function () { return renderedTooltips().length == 2; });
+
+          for (let i = 0; i < renderedTooltips().length; i++) {
+            assert.isFalse(renderedTooltips()[i].classList.contains('bsl-inlay-hint-clickable'));
+            assert.equal(window.editor.inlayHintsController.handleElementClick(renderedTooltips()[i]), false);
+          }
+
+          assert.equal(capturedEvents.length, 0);
+        }
+        finally {
+          window.editor.sendEvent = originalSendEvent;
+        }
+
+      });
+
+      it("вызов вне режимов запроса возвращает false, набор не хранится", function () {
+
+        window.setLanguageMode('bsl');
+        assert.equal(window.setQueryParamsTooltips([{ param: 'БезНДС', label: 'Без НДС' }]), false);
+
+        // Набор не запоминается: возврат в режим запроса и правки текста хинтов не рисуют.
+        window.setLanguageMode('bsl_query');
+        executeEdit(new monaco.Range(1, 1, 1, 1), '// выше\n');
+        assert.equal(inlayState().hintsCount, 0);
+        assert.equal(window.editor.queryParamsTooltipsController.getState().paramsCount, 0);
+
+      });
+
+      it("setLanguageMode из режима запроса очищает тултипы и запомненный набор", async function () {
+
+        window.setQueryParamsTooltips([{ param: 'БезНДС', label: 'Без НДС' }]);
+        await waitFor(function () { return renderedTooltips().length == 2; });
+
+        window.setLanguageMode('bsl');
+        assert.equal(inlayState().renderedCount, 0);
+        assert.equal(window.editor.queryParamsTooltipsController.getState().paramsCount, 0);
+
+      });
+
+      it("setInlayHints заменяет тултипы и отключает автопересчёт, clearInlayHints убирает всё", async function () {
+
+        window.setQueryParamsTooltips([{ param: 'БезНДС', label: 'Без НДС' }]);
+        await waitFor(function () { return renderedTooltips().length == 2; });
+
+        assert.equal(window.setInlayHints([{ line: 1, column: 8, text: 'ручной хинт' }]), true);
+        assert.equal(inlayState().hintsCount, 1);
+        assert.equal(window.editor.queryParamsTooltipsController.getState().paramsCount, 0);
+
+        // Автопересчёт отключен: правка текста не восстанавливает тултипы параметров.
+        executeEdit(new monaco.Range(1, 1, 1, 1), '// выше\n');
+        assert.equal(inlayState().hintsCount, 1);
+        assert.equal(inlayState().hints[0].text, 'ручной хинт');
+
+        window.clearInlayHints();
+        assert.equal(inlayState().renderedCount, 0);
+        assert.equal(window.editor.queryParamsTooltipsController.getState().paramsCount, 0);
+
+        // Пустой массив — эквивалент clearInlayHints.
+        window.setQueryParamsTooltips([{ param: 'БезНДС', label: 'Без НДС' }]);
+        assert.equal(inlayState().hintsCount, 2);
+        assert.equal(window.setQueryParamsTooltips([]), true);
+        assert.equal(inlayState().hintsCount, 0);
+        assert.equal(window.editor.queryParamsTooltipsController.getState().paramsCount, 0);
+
+      });
+
+      it("граница имени: &Парам не совпадает с &Параметр", function () {
+
+        window.setContent('ВЫБРАТЬ\nГДЕ &Параметр <> 0');
+
+        assert.equal(window.setQueryParamsTooltips([{ param: 'Парам', label: 'парам' }]), true);
+        assert.equal(inlayState().hintsCount, 0);
+
+        assert.equal(window.setQueryParamsTooltips([{ param: 'Параметр', label: 'полный' }]), true);
+        assert.equal(inlayState().hintsCount, 1);
+        assert.equal(inlayState().hints[0].column, 14);
+
+      });
+
+      it("невалидный вход возвращает errorDescription и не меняет предыдущий набор", function () {
+
+        window.setQueryParamsTooltips([{ param: 'БезНДС', label: 'Без НДС' }]);
+        assert.equal(inlayState().hintsCount, 2);
+
+        let invalidResult = window.setQueryParamsTooltips('{oops');
+        assert.isObject(invalidResult);
+        assert.property(invalidResult, 'errorDescription');
+
+        invalidResult = window.setQueryParamsTooltips('{"param": "БезНДС"}');
+        assert.property(invalidResult, 'errorDescription');
+
+        assert.equal(inlayState().hintsCount, 2);
+
+      });
+
+      it("принимает JSON-строку, работает в режиме dcs_query", function () {
+
+        window.setLanguageMode('dcs_query');
+
+        assert.equal(window.setQueryParamsTooltips(
+          '[{"param":"БезНДС","label":"Без НДС","value":"ref-1"}]'
+        ), true);
+        assert.equal(inlayState().hintsCount, 2);
+        assert.equal(inlayState().hints[0].id, 'БезНДС');
+
+        executeEdit(new monaco.Range(1, 1, 1, 1), '// выше\n');
+        assert.deepEqual(inlayState().hints.map(function (hint) { return hint.line; }), [3, 5]);
+
+      });
+
+    });
+
+
     it("пользовательские подсказки не токенизируют текст до курсора (issue #335)", function () {
 
       const originalTokenize = monaco.editor.tokenize;
