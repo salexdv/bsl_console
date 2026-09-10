@@ -685,6 +685,182 @@ setTimeout(() => {
 
     });
 
+    describe("Инлей-хинты (specs/inlay-hints)", function () {
+
+      function controller() {
+        return window.editor.inlayHintsController;
+      }
+
+      function renderedNodes() {
+        return window.editor.getDomNode().querySelectorAll('.bsl-inlay-hint');
+      }
+
+      afterEach(function () {
+        window.clearInlayHints();
+      });
+
+      it("setInlayHints рисует хинты, clearInlayHints убирает, getText не содержит текст хинтов", async function () {
+
+        window.setContent('Таб = ПолучитьТаблицу();\nСтр = Таб.Добавить();');
+
+        assert.equal(window.setInlayHints([
+          { line: 1, column: 25, text: ': ТаблицаЗначений' },
+          { line: 2, column: 22, text: ': СтрокаТаблицыЗначений', id: 'row' }
+        ]), true);
+
+        assert.equal(controller().getState().hintsCount, 2);
+        assert.equal(controller().getState().renderedCount, 2);
+        await waitFor(function () { return renderedNodes().length == 2; });
+
+        assert.equal(window.getText().indexOf('ТаблицаЗначений'), -1);
+
+        window.clearInlayHints();
+        assert.equal(controller().getState().renderedCount, 0);
+        await waitFor(function () { return renderedNodes().length == 0; });
+
+      });
+
+      it("клик по хинту с event_params генерирует EVENT_ON_INLAY_HINT_CLICK с прокинутым значением", async function () {
+
+        const originalSendEvent = window.editor.sendEvent;
+        const capturedEvents = [];
+
+        try {
+          window.editor.sendEvent = function (name, params) {
+            capturedEvents.push({ name: name, params: params });
+          };
+
+          window.setContent('Таб = ПолучитьТаблицу();');
+          window.setInlayHints([{
+            line: 1,
+            column: 25,
+            text: ': ТаблицаЗначений',
+            id: 7,
+            event_params: { action: 'open', code: 42 }
+          }]);
+
+          await waitFor(function () { return renderedNodes().length == 1; });
+
+          assert.isTrue(renderedNodes()[0].classList.contains('bsl-inlay-hint-clickable'));
+          assert.equal(controller().handleElementClick(renderedNodes()[0]), true);
+          assert.equal(capturedEvents.length, 1);
+          assert.equal(capturedEvents[0].name, 'EVENT_ON_INLAY_HINT_CLICK');
+          assert.deepEqual(capturedEvents[0].params, {
+            id: 7,
+            line: 1,
+            column: 25,
+            text: ': ТаблицаЗначений',
+            event_params: { action: 'open', code: 42 }
+          });
+        }
+        finally {
+          window.editor.sendEvent = originalSendEvent;
+        }
+
+      });
+
+      it("хинт без event_params не кликабельный: событие не генерируется, клики проходят сквозь", async function () {
+
+        const originalSendEvent = window.editor.sendEvent;
+        const capturedEvents = [];
+
+        try {
+          window.editor.sendEvent = function (name, params) {
+            capturedEvents.push({ name: name, params: params });
+          };
+
+          window.setContent('Таб = ПолучитьТаблицу();');
+          window.setInlayHints([
+            { line: 1, column: 25, text: ': ТаблицаЗначений' },
+            { line: 1, column: 4, text: ': без параметра', event_params: null }
+          ]);
+
+          await waitFor(function () { return renderedNodes().length == 2; });
+
+          for (let i = 0; i < renderedNodes().length; i++) {
+            assert.isFalse(renderedNodes()[i].classList.contains('bsl-inlay-hint-clickable'));
+            assert.equal(controller().handleElementClick(renderedNodes()[i]), false);
+          }
+
+          assert.equal(capturedEvents.length, 0);
+        }
+        finally {
+          window.editor.sendEvent = originalSendEvent;
+        }
+
+      });
+
+      it("экранирует кавычки и обратные слэши, переводы строк заменяет пробелом", function () {
+
+        window.setContent('Таб = ПолучитьТаблицу();');
+
+        assert.equal(window.setInlayHints([{
+          line: 1,
+          column: 25,
+          text: '"кавычки" и \\слэш\nперевод'
+        }]), true);
+
+        const cssText = controller().getState().cssText;
+        assert.include(cssText, '\\"кавычки\\"');
+        assert.include(cssText, '\\\\слэш');
+        assert.include(cssText, 'слэш перевод');
+        assert.notInclude(cssText, '\n');
+
+      });
+
+      it("невалидный вход возвращает errorDescription и не меняет предыдущий набор", function () {
+
+        window.setContent('Таб = ПолучитьТаблицу();');
+        window.setInlayHints([{ line: 1, column: 25, text: ': ТаблицаЗначений' }]);
+        assert.equal(controller().getState().hintsCount, 1);
+
+        let invalidResult = window.setInlayHints('{oops');
+        assert.isObject(invalidResult);
+        assert.property(invalidResult, 'errorDescription');
+
+        invalidResult = window.setInlayHints('{"line": 1}');
+        assert.property(invalidResult, 'errorDescription');
+
+        assert.equal(controller().getState().hintsCount, 1);
+
+      });
+
+      it("пропускает позиции вне модели и элементы без текста, пустой набор очищает хинты", function () {
+
+        window.setContent('Таб = ПолучитьТаблицу();\nСтр = Таб.Добавить();');
+
+        assert.equal(window.setInlayHints([
+          { line: 99, column: 1, text: 'вне модели' },
+          { line: 1, column: 999, text: 'вне строки' },
+          { line: 0, column: 1, text: 'нулевая строка' },
+          { line: 1, column: 25 },
+          { line: 1, column: 25, text: ': ТаблицаЗначений' }
+        ]), true);
+
+        assert.equal(controller().getState().hintsCount, 3);
+        assert.equal(controller().getState().renderedCount, 1);
+
+        assert.equal(window.setInlayHints([]), true);
+        assert.equal(controller().getState().hintsCount, 0);
+        assert.equal(controller().getState().renderedCount, 0);
+
+      });
+
+      it("принимает JSON-строку с массивом хинтов", function () {
+
+        window.setContent('Таб = ПолучитьТаблицу();');
+
+        assert.equal(window.setInlayHints(
+          '[{"line":1,"column":25,"text":": ТаблицаЗначений","id":"json"}]'
+        ), true);
+
+        assert.equal(controller().getState().hintsCount, 1);
+        assert.equal(controller().getState().renderedCount, 1);
+
+      });
+
+    });
+
     it("пользовательские подсказки не токенизируют текст до курсора (issue #335)", function () {
 
       const originalTokenize = monaco.editor.tokenize;

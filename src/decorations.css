@@ -890,5 +890,34 @@ div:has(> .add-review) {
 }
 
 .code-marker.marker-warning {
-	border-left: 10px solid #eaac0e;
+    border-left: 10px solid #eaac0e;
+}
+
+/* Инлей-хинты (specs/inlay-hints): текст подсказки вставляется CSS ::after
+   в пустой span декорации afterContentClassName. Текст каждого хинта — в
+   динамическом правиле content (см. src/inlay_hints.js), здесь — общие стили.
+   Кликабельный — только хинт с заданным event_params (класс bsl-inlay-hint-clickable). */
+.bsl-inlay-hint::after {
+	pointer-events: none;
+	user-select: none;
+	-webkit-user-select: none;
+	-ms-user-select: none;
+	white-space: pre;
+	padding: 0 3px;
+	border-radius: 2px;
+}
+
+.bsl-inlay-hint.bsl-inlay-hint-clickable::after {
+	pointer-events: auto;
+	cursor: pointer;
+}
+
+.monaco-editor.vs .bsl-inlay-hint::after {
+	color: #6c6c6c;
+	background: rgba(128, 128, 128, 0.12);
+}
+
+.monaco-editor.vs-dark .bsl-inlay-hint::after {
+	color: #9d9d9d;
+	background: rgba(128, 128, 128, 0.22);
 }

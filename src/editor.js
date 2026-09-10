@@ -15,6 +15,7 @@ import SearchHistoryController from './search_history';
 import bslHelper from './bsl_helper';
 import { createHelpBrowser } from './help';
 import { AI_INLINE_DEFAULT_OPTIONS, createAIInlineProvider, isAIInlineOption, isValidAIInlineOption } from './ai_inline_provider';
+import { createInlayHintsController } from './inlay_hints';
 import EditorTabs from './tabs';
 
 const monaco = require('./monaco');
@@ -1444,6 +1445,39 @@ window.enableInlineSuggestions = function (enabled) {
 
 }
 
+/**
+ * Показывает инлей-хинты — короткие текстовые подсказки в строках кода (specs/inlay-hints).
+ * Полностью заменяет предыдущий набор текущей вкладки.
+ * @param {string|Array<{line: number, column: number, text: string, id?: string|number, event_params?: *}>} hints
+ *   массив хинтов или JSON-строка с ним: line/column — позиция (1-based), после которой выводится
+ *   текст (для конца строки column = длина строки + 1); text — однострочный текст; id —
+ *   необязательный идентификатор; event_params — произвольное значение, прокидываемое в событие
+ *   клика: хинт с незаданным event_params (отсутствует или null) не кликабельный.
+ * @returns {boolean|{errorDescription: string}} true — набор принят; false — редактор недоступен
+ *   или режим сравнения; {errorDescription} — ошибка разбора.
+ */
+window.setInlayHints = function (hints) {
+
+  if (!window.editor || !window.editor.inlayHintsController || window.editor.navi)
+    return false;
+
+  return window.editor.inlayHintsController.setHints(hints);
+
+}
+
+/**
+ * Убирает все инлей-хинты текущей вкладки (specs/inlay-hints).
+ * @returns {boolean} true
+ */
+window.clearInlayHints = function () {
+
+  if (window.editor && window.editor.inlayHintsController && !window.editor.navi)
+    window.editor.inlayHintsController.clear();
+
+  return true;
+
+}
+
 window.nextDiff = function() {
 
   if (window.editor.navi) {
@@ -2706,6 +2740,7 @@ function initEditorEventListenersAndProperies(ownerEditor) {
   ownerEditor.diff_decorations = [];
   ownerEditor.ifDecorations = [];
   ownerEditor.inlineSuggestController = createInlineSuggestController(ownerEditor);
+  ownerEditor.inlayHintsController = createInlayHintsController(ownerEditor);
 
   ownerEditor.updateDecorations = function (new_decorations) {
 
@@ -2864,6 +2899,9 @@ function initEditorEventListenersAndProperies(ownerEditor) {
     if (element.classList.contains('diff-navi')) {
       ownerEditor.createDiffWidget(e);
     }
+
+    if (element.classList.contains('bsl-inlay-hint-clickable') && ownerEditor.inlayHintsController)
+      ownerEditor.inlayHintsController.handleElementClick(element);
 
     if (element.classList.contains('add-review')) {
       createReviewWidget(e.target.position.lineNumber);

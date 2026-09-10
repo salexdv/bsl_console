@@ -248,7 +248,9 @@ npm run build  -- --customOptions "automaticLayout: true, someOption: false"
 | [`triggerSigHelp`](docs/trigger_signature_help.md) | Принудительный вызов подсказки по вызову процедуры/метода                 |
 | [`showCustomSuggestions`](docs/custom_suggestions.md) | Показ пользовательских подсказок                                       |
 | [`showInlineSuggestion`](docs/show_inline_suggestion.md) | Показ inline-подсказки в текущей позиции редактора                  |
-| [`resolveAIInlineCompletion`](docs/ai_inline_completions.md) | Передача результата AI inline-запроса из 1С                    |
+| [`setInlayHints`](docs/inlay_hints.md) | Показ инлей-хинтов — текстовых подсказок в строках кода                               |
+| [`clearInlayHints`](docs/inlay_hints.md) | Убирает все инлей-хинты текущей вкладки                                             |
+| [`resolveAIInlineCompletion`](docs/ai_inline_completions.md) | Передача результата AI inline-запроса из 1С                     |
 | `showPreviousCustomSuggestions`| Вывод списка пользовательских подсказок, ранее показанных через `showCustomSuggestions`       |
 | `hideSuggestionsList`          | Скрывает текущий список подсказок                                                             |
 | `hideHoverList`                | Скрывает активную всплывающую подсказку для слова                                             |
