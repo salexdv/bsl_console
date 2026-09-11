@@ -17,6 +17,7 @@ import { createHelpBrowser } from './help';
 import { AI_INLINE_DEFAULT_OPTIONS, createAIInlineProvider, isAIInlineOption, isValidAIInlineOption } from './ai_inline_provider';
 import { createInlayHintsController } from './inlay_hints';
 import { createQueryParamsTooltipsController } from './query_params_hints';
+import { createQueryDescriptionsController } from './query_descriptions';
 import EditorTabs from './tabs';
 
 const monaco = require('./monaco');
@@ -733,6 +734,10 @@ window.setLanguageMode = function(mode) {
   // (specs/query-params-tooltips).
   if (mode != 'bsl_query' && mode != 'dcs_query' && window.editor && window.editor.queryParamsTooltipsController)
     window.editor.queryParamsTooltipsController.clear();
+
+  // Там же примечания подзапросов (specs/query-descriptions).
+  if (mode != 'bsl_query' && mode != 'dcs_query' && window.editor && window.editor.queryDescriptionsController)
+    window.editor.queryDescriptionsController.clear();
 
   let currentTheme = getCurrentThemeName();
   window.setTheme(currentTheme);
@@ -1513,6 +1518,30 @@ window.setQueryParamsTooltips = function (params) {
     return false;
 
   return window.editor.queryParamsTooltipsController.setParams(params);
+
+}
+
+/**
+ * Показывает примечания подзапросов в режимах bsl_query / dcs_query: серый текст у правого
+ * края строки разделителя ; (или последней строки запроса для последнего подзапроса).
+ * Индекс элемента массива равен индексу подзапроса (подзапросы определяются по строкам-
+ * разделителям, см. опцию renderQueryDelimiters). Якоря пересчитываются при каждом изменении
+ * текста; полная замена текста модели — набор забывается (specs/query-descriptions).
+ * @param {string|string[]|null} descriptions массив примечаний, JSON-строка с ним или null
+ *   (очистка); пустая строка — подзапрос без подписи.
+ * @returns {boolean|{errorDescription: string}} true — набор принят (пустой массив/null —
+ *   очищен); false — редактор недоступен, режим сравнения или не режим запроса;
+ *   {errorDescription} — ошибка разбора.
+ */
+window.setQueryDescription = function (descriptions) {
+
+  if (!window.editor || !window.editor.queryDescriptionsController || window.editor.navi)
+    return false;
+
+  if (!window.isQueryMode() && !window.isDCSMode())
+    return false;
+
+  return window.editor.queryDescriptionsController.setDescriptions(descriptions);
 
 }
 
@@ -2780,6 +2809,7 @@ function initEditorEventListenersAndProperies(ownerEditor) {
   ownerEditor.inlineSuggestController = createInlineSuggestController(ownerEditor);
   ownerEditor.inlayHintsController = createInlayHintsController(ownerEditor);
   ownerEditor.queryParamsTooltipsController = createQueryParamsTooltipsController(ownerEditor);
+  ownerEditor.queryDescriptionsController = createQueryDescriptionsController(ownerEditor);
 
   ownerEditor.updateDecorations = function (new_decorations) {
 
@@ -2890,6 +2920,11 @@ function initEditorEventListenersAndProperies(ownerEditor) {
     // (specs/query-params-tooltips): состав следует за вхождениями &Параметр.
     if (ownerEditor.queryParamsTooltipsController)
       ownerEditor.queryParamsTooltipsController.refresh();
+
+    // Примечания подзапросов пересчитываются при каждом изменении текста
+    // (specs/query-descriptions): якоря следуют за разделителями.
+    if (ownerEditor.queryDescriptionsController)
+      ownerEditor.queryDescriptionsController.handleContentChanged(e);
 
   });
 

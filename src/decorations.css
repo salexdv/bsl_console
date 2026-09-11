@@ -921,3 +921,33 @@ div:has(> .add-review) {
 	color: #9d9d9d;
 	background: rgba(128, 128, 128, 0.22);
 }
+
+/* Примечания подзапросов (specs/query-descriptions): серый текст у правого края строки
+   разделителя ; (или последней строки запроса). Whole-line декорация рендерится в слое
+   overlays, ширина которого max(scrollWidth, contentWidth), — right:0 даёт правый край
+   области кода, до минимальной карты. Слой не участвует в замере ширины строк Monaco.
+   Текст каждой подписи — в динамическом правиле content (см. src/query_descriptions.js),
+   здесь — общие стили. Подписи не кликабельные. */
+.bsl-query-desc {
+	position: relative;
+}
+
+.bsl-query-desc::after {
+	position: absolute;
+	right: 0;
+	top: 0;
+	font-size: 0.85em;
+	pointer-events: none;
+	user-select: none;
+	-webkit-user-select: none;
+	-ms-user-select: none;
+	white-space: pre;
+}
+
+.monaco-editor.vs .bsl-query-desc::after {
+	color: #9d9d9d;
+}
+
+.monaco-editor.vs-dark .bsl-query-desc::after {
+	color: #9d9d9d;
+}
