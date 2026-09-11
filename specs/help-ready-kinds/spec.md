@@ -2,7 +2,7 @@
 issue: -
 title: EVENT_ON_HELP_READY для shquery/dcsui с параметром kind
 status: in-progress
-owner: opencode
+owner: salexdv
 created: 2026-08-19
 updated: 2026-08-19
 area:

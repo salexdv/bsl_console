@@ -3386,6 +3386,234 @@ setTimeout(() => {
 
     });
 
+    describe("Примечания подзапросов (specs/query-descriptions)", function () {
+
+      function descState() {
+        return window.editor.queryDescriptionsController.getState();
+      }
+
+      function renderedDescriptions() {
+        return window.editor.getDomNode().querySelectorAll('.bsl-query-desc');
+      }
+
+      function executeEdit(range, text) {
+        window.editor.executeEdits('test', [{ range: range, text: text, forceMoveMarkers: false }]);
+      }
+
+      // Разделители подзапросов — строки 3 и 6, последний подзапрос — строки 7-8
+      const queryText = [
+        'ВЫБРАТЬ Товары.Ссылка',
+        'ИЗ Справочник.Товары КАК Товары',
+        ';',
+        'ВЫБРАТЬ Остатки.Количество',
+        'ИЗ РегистрНакопления.ТоварыНаСкладах',
+        ';',
+        'ВЫБРАТЬ Продажи.Сумма',
+        'ИЗ РегистрНакопления.Продажи'
+      ].join('\n');
+
+      beforeEach(function () {
+        window.setLanguageMode('bsl_query');
+        window.setContent(queryText);
+      });
+
+      afterEach(function () {
+        window.setQueryDescription(null);
+        window.setLanguageMode('bsl');
+      });
+
+      it("setQueryDescription рисует подпись на строках разделителей и последней строке запроса", async function () {
+
+        assert.equal(window.setQueryDescription(['Товары', 'Остатки', 'Продажи']), true);
+
+        assert.equal(descState().descriptionsCount, 3);
+        assert.deepEqual(descState().anchors, [
+          { line: 3, text: 'Товары' },
+          { line: 6, text: 'Остатки' },
+          { line: 8, text: 'Продажи' }
+        ]);
+
+        await waitFor(function () { return renderedDescriptions().length == 3; });
+
+        // Подпись — ::after у правого края строки: absolute-позиционирование с отступом
+        // от вертикального скроллбара (он рендерится поверх края контента, Monaco 0.55
+        // не вычитает его из contentWidth) + QUERY_DESCRIPTION_RIGHT_PADDING; при
+        // включённой минимальной карте край — сам минимап, прижатый влево от скроллбара
+        let wasMinimapEnabled = window.editor.getLayoutInfo().minimap.minimapWidth > 0;
+        let expectedRight = (window.editor.getLayoutInfo().verticalScrollbarWidth + 8) + 'px';
+
+        window.minimap(false);
+        let style = window.getComputedStyle(renderedDescriptions()[0], '::after');
+        assert.equal(style.position, 'absolute');
+        assert.equal(style.right, expectedRight);
+        assert.include(style.content, 'Товары');
+
+        window.minimap(true);
+        await waitFor(function () {
+          let node = renderedDescriptions()[0];
+          return node && window.getComputedStyle(node, '::after').right == expectedRight;
+        });
+        assert.equal(
+          window.getComputedStyle(renderedDescriptions()[0], '::after').right,
+          expectedRight
+        );
+
+        // Текст подписи не наезжает на минимальную карту
+        let nodeRect = renderedDescriptions()[0].getBoundingClientRect();
+        let textRight = nodeRect.right - parseFloat(expectedRight);
+        let minimapRect = window.editor.getDomNode().querySelector('.minimap').getBoundingClientRect();
+        assert.isAtMost(textRight, minimapRect.left - 7);
+
+        window.minimap(wasMinimapEnabled);
+
+      });
+
+      it("пересчитывает якоря при изменении текста: смещение и сдвиг индексов", async function () {
+
+        window.setQueryDescription(['Товары', 'Остатки', 'Продажи']);
+        await waitFor(function () { return renderedDescriptions().length == 3; });
+
+        // Вставка строки выше — все подписи сместились на строку вниз.
+        executeEdit(new monaco.Range(1, 1, 1, 1), '// выше\n');
+        assert.deepEqual(descState().anchors.map(function (anchor) { return anchor.line; }), [4, 7, 9]);
+
+        // Удаление первого разделителя — индексы сдвинулись: «Остатки» стала последним
+        // подзапросом (якорь — последняя строка), «Продажи» — за пределами, игнорируется.
+        executeEdit(new monaco.Range(4, 1, 5, 1), '');
+        assert.deepEqual(descState().anchors, [
+          { line: 6, text: 'Товары' },
+          { line: 8, text: 'Остатки' }
+        ]);
+        assert.equal(descState().renderedCount, 2);
+
+      });
+
+      it("подпись с индексом N игнорируется, когда текст кончается разделителем", function () {
+
+        window.setContent('ВЫБРАТЬ 1\n;\nВЫБРАТЬ 2\n;');
+
+        assert.equal(window.setQueryDescription(['первый', 'второй', 'третий']), true);
+        assert.deepEqual(descState().anchors, [
+          { line: 2, text: 'первый' },
+          { line: 4, text: 'второй' }
+        ]);
+        assert.equal(descState().renderedCount, 2);
+
+      });
+
+      it("пустая строка в массиве — подзапрос без подписи, индекс не сдвигается", function () {
+
+        assert.equal(window.setQueryDescription(['Товары', '', 'Продажи']), true);
+        assert.deepEqual(descState().anchors, [
+          { line: 3, text: 'Товары' },
+          { line: 8, text: 'Продажи' }
+        ]);
+
+      });
+
+      it("вызов вне режимов запроса возвращает false, набор не хранится", function () {
+
+        window.setLanguageMode('bsl');
+        assert.equal(window.setQueryDescription(['Товары']), false);
+
+        // Набор не запоминается: возврат в режим запроса и правки текста подписей не рисуют.
+        window.setLanguageMode('bsl_query');
+        executeEdit(new monaco.Range(1, 1, 1, 1), '// выше\n');
+        assert.equal(descState().descriptionsCount, 0);
+        assert.equal(descState().renderedCount, 0);
+
+      });
+
+      it("setLanguageMode из режима запроса очищает подписи и запомненный набор", async function () {
+
+        window.setQueryDescription(['Товары', 'Остатки', 'Продажи']);
+        await waitFor(function () { return renderedDescriptions().length == 3; });
+
+        window.setLanguageMode('bsl');
+        assert.equal(descState().renderedCount, 0);
+        assert.equal(descState().descriptionsCount, 0);
+        await waitFor(function () { return renderedDescriptions().length == 0; });
+
+      });
+
+      it("пустой массив и null очищают, невалидный вход возвращает errorDescription без смены набора", async function () {
+
+        window.setQueryDescription(['Товары', 'Остатки', 'Продажи']);
+        await waitFor(function () { return renderedDescriptions().length == 3; });
+
+        let invalidResult = window.setQueryDescription('{oops');
+        assert.isObject(invalidResult);
+        assert.property(invalidResult, 'errorDescription');
+        assert.equal(descState().descriptionsCount, 3);
+
+        invalidResult = window.setQueryDescription('{"0": "Товары"}');
+        assert.property(invalidResult, 'errorDescription');
+
+        assert.equal(window.setQueryDescription([]), true);
+        assert.equal(descState().descriptionsCount, 0);
+        assert.equal(descState().renderedCount, 0);
+        await waitFor(function () { return renderedDescriptions().length == 0; });
+
+        assert.equal(window.setQueryDescription(null), true);
+        assert.equal(descState().descriptionsCount, 0);
+
+      });
+
+      it("полная замена текста забывает набор, побайтово тот же текст сохраняет", async function () {
+
+        window.setQueryDescription(['Товары', 'Остатки', 'Продажи']);
+        await waitFor(function () { return renderedDescriptions().length == 3; });
+
+        // Повторная установка того же текста — набор сохраняется и перерисовывается.
+        window.setContent(queryText);
+        assert.equal(descState().descriptionsCount, 3);
+        assert.deepEqual(descState().anchors.map(function (anchor) { return anchor.line; }), [3, 6, 8]);
+
+        // Установка другого текста — набор забывается.
+        window.setContent('ВЫБРАТЬ 1');
+        assert.equal(descState().descriptionsCount, 0);
+        assert.equal(descState().renderedCount, 0);
+
+      });
+
+      it("работает в режиме dcs_query независимо от опции renderQueryDelimiters", async function () {
+
+        window.setLanguageMode('dcs_query');
+        window.setOption('renderQueryDelimiters', false);
+
+        assert.equal(window.setQueryDescription('["Товары","Остатки","Продажи"]'), true);
+        assert.deepEqual(descState().anchors.map(function (anchor) { return anchor.line; }), [3, 6, 8]);
+
+        await waitFor(function () { return renderedDescriptions().length == 3; });
+
+      });
+
+      it("при renderQueryDelimiters подпись рендерится поверх подсветки разделителя", async function () {
+
+        window.setOption('renderQueryDelimiters', true);
+
+        assert.equal(window.setQueryDescription(['Товары', 'Остатки', 'Продажи']), true);
+        window.editor.updateDecorations([]);
+        await waitFor(function () {
+          let node = renderedDescriptions()[0];
+          return node && node.parentElement.querySelector('.query-delimiter');
+        });
+
+        // В overlays-строке DOM-порядок равен порядку стека: div подписи (zIndex 100)
+        // должен идти после div подсветки (zIndex 0), иначе фон перекрывает текст
+        let descriptionNode = renderedDescriptions()[0];
+        let delimiterNode = descriptionNode.parentElement.querySelector('.query-delimiter');
+        assert.equal(
+          delimiterNode.compareDocumentPosition(descriptionNode),
+          Node.DOCUMENT_POSITION_FOLLOWING
+        );
+
+        window.setOption('renderQueryDelimiters', false);
+
+      });
+
+    });
+
     registerTabsBrowserTests();
 
     const testFormatter = false;

@@ -281,6 +281,7 @@ npm run build -- --env customOptions="automaticLayout: true, someOption: false"
 | [`setInlayHints`](docs/inlay_hints.md) | Показ инлей-хинтов — текстовых подсказок в строках кода                               |
 | [`clearInlayHints`](docs/inlay_hints.md) | Убирает все инлей-хинты текущей вкладки                                             |
 | [`setQueryParamsTooltips`](docs/query_params_tooltips.md) | Показ тултипов значений параметров запроса (&Параметр) в режимах запроса/СКД |
+| [`setQueryDescription`](docs/set_query_description.md) | Показ примечаний подзапросов у правого края строк в режимах запроса/СКД |
 | `showPreviousCustomSuggestions`| Вывод списка пользовательских подсказок, ранее показанных через `showCustomSuggestions`       |
 | `hideSuggestionsList`          | Скрывает текущий список подсказок                                                             |
 | `hideHoverList`                | Скрывает активную всплывающую подсказку для слова                                             |
