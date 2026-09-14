@@ -2746,9 +2746,11 @@ function createEditorInstance(language_id, text, theme, readOnly = false) {
     },
     // 0.55: инлей-хинты (specs/inlay-hints) — рендерит штатный InlayHintsController;
     // maximumLength: 0 снимает штатную обрезку суммарной длины хинтов строки (43 символа) —
-    // в реализации на Monaco 0.20 обрезки не было.
+    // в реализации на Monaco 0.20 обрезки не было. padding: true включает внутренние отступы
+    // и скругление фона хинта (паритет стиля 0.20: margin 4px + padding 3px + border-radius).
     inlayHints: {
-      maximumLength: 0
+      maximumLength: 0,
+      padding: true
     },
     lineNumbers: window.getLineNumber,
     customOptions: true,
