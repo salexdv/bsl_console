@@ -903,6 +903,7 @@ div:has(> .add-review) {
 	-webkit-user-select: none;
 	-ms-user-select: none;
 	white-space: pre;
+	margin-left: 4px;
 	padding: 0 3px;
 	border-radius: 2px;
 }
