@@ -3404,6 +3404,51 @@ setTimeout(() => {
 
       });
 
+      it("updateText(setValue) + повторные setQueryParamsTooltips не копят мёртвые декорации хинтов", async function () {
+
+        // Регрессия строкового патча monaco (webpack.config.js, патч 7): setValue уничтожает
+        // все декорации модели (_setValueFromTextBuffer), а _decorationsMetadata вклада
+        // InlayHints хранит мёртвые id. Без вычистки они копятся по слою на каждый
+        // setValue-цикл, и при наведении мыши на хинт _getInlineHintsForRange рендерит
+        // мёртвые items вместе с текущими — тултип «Без НДС Без НДС …» по числу циклов
+        // (monaco-editor#4700, фикс vscode#303808).
+        const contribution = window.editor.getContribution('editor.contrib.InlayHints');
+        assert.ok(contribution, 'вклад InlayHints не найден — дрейф monaco?');
+
+        function deadEntriesCount() {
+          const model = window.editor.getModel();
+          let count = 0;
+          contribution._decorationsMetadata.forEach(function (metadata, id) {
+            if (!model.getDecorationRange(id))
+              count++;
+          });
+          return count;
+        }
+
+        window.setQueryParamsTooltips([{ param: 'БезНДС', label: 'Без НДС' }]);
+        await waitFor(function () { return renderedHintTexts().length == 2; });
+
+        // Пять циклов «setValue + повторный вызов» — как рефреш запроса из 1С
+        // (updateText + setQueryParamsTooltips на каждое обновление текста).
+        for (let i = 0; i < 5; i++) {
+          window.updateText(queryText);
+          window.setQueryParamsTooltips([{ param: 'БезНДС', label: 'Без НДС' }]);
+          await waitFor(function () { return renderedHintTexts().length == 2; });
+        }
+
+        // Мёртвых записей в карте контроллера нет — слои не копятся.
+        assert.equal(deadEntriesCount(), 0);
+
+        // Вектор видимых дублей (#4700): пересборка items строки при наведении берёт их из
+        // _decorationsMetadata по исходным якорям — один item на вхождение параметра.
+        const model = window.editor.getModel();
+        const secondLine = new monaco.Range(2, 1, 2, model.getLineMaxColumn(2));
+        const fourthLine = new monaco.Range(4, 1, 4, model.getLineMaxColumn(4));
+        assert.equal(contribution._getInlineHintsForRange(secondLine).length, 1);
+        assert.equal(contribution._getInlineHintsForRange(fourthLine).length, 1);
+
+      });
+
     });
 
     describe("Примечания подзапросов (specs/query-descriptions)", function () {

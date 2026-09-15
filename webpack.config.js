@@ -176,7 +176,25 @@ module.exports = (env, argv) => {
                   //     фикс — store.add(toDisposable(() => watchedProviders.clear())) после
                   //     store.add(inlayHints); в monaco-editor 0.55.1 строки нет. Якорь уникален
                   //     по esm (только inlayHintsController.js), toDisposable уже импортирован.
-                  { search: 'store.add(inlayHints);', replace: 'store.add(inlayHints); store.add(toDisposable(() => watchedProviders.clear()));' }
+                  { search: 'store.add(inlayHints);', replace: 'store.add(inlayHints); store.add(toDisposable(() => watchedProviders.clear()));' },
+                  // (7) InlayHintsController: model.setValue (updateText/setContent моста)
+                  //     уничтожает ВСЕ декорации модели (textModel._setValueFromTextBuffer
+                  //     сбрасывает _decorations), но _decorationsMetadata контроллера хранит
+                  //     мёртвые id: в _updateHintsDecorators записи с null-диапазоном не
+                  //     попадают в guard `if (range && ...)` — не заменяются и НЕ вычищаются,
+                  //     копясь по слою на каждый setValue-цикл. При наведении мыши на хинт
+                  //     _getInlineHintsForRange собирает items по item.anchor.range из ВСЕХ
+                  //     записей карты (мёртвые и текущие — разные объекты, Set не дедуплицирует)
+                  //     и _updateHintsDecorators рендерит их все: тултип параметра запроса
+                  //     «123 123 123…» по числу циклов updateText+setQueryParamsTooltips
+                  //     (monaco-editor#4700). Фикс — порт vscode#303808: вычищать записи с
+                  //     null-диапазоном до накопления. Якорь уникален по esm: единственное
+                  //     вхождение ranges.some(r => r.containsRange(range)) — только
+                  //     inlayHintsController.js.
+                  {
+                    search: 'if (range && ranges.some(r => r.containsRange(range))) {',
+                    replace: 'if (!range) { metadata.classNameRef.dispose(); this._decorationsMetadata.delete(id); continue; } if (ranges.some(r => r.containsRange(range))) {'
+                  }
                 ]
               }
             }
