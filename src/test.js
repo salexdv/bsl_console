@@ -3384,6 +3384,26 @@ setTimeout(() => {
 
       });
 
+      it("рисует тултипы после «холодного» вызова — позже отложенного прогона 800 мс, без правок текста", async function () {
+        this.timeout(7000);
+
+        // Регрессия строкового патча monaco (webpack.config.js, патч 6): в 0.55.1 подписка
+        // InlayHintsController на onDidChangeInlayHints провайдера умирает после второго
+        // прогона планировщика. beforeEach уже сделал updateText — правка текста запланирует
+        // отложенный прогон (~800 мс), который её убивает. Вызов после него должен рендериться
+        // сам: без патча fire() теряется и тултипы приходят только после правки текста/скролла
+        // (поле 1С: короткий запрос без скролла — не приходят никогда).
+        await wait(900);
+
+        assert.equal(window.setQueryParamsTooltips([{ param: 'БезНДС', label: 'Без НДС' }]), true);
+
+        await waitFor(function () {
+          const texts = renderedHintTexts();
+          return texts.length == 2 && texts.indexOf('Без НДС') >= 0;
+        }, 2500, function () { return 'тултипы не отрисованы после «холодного» вызова: ' + JSON.stringify(renderedHintTexts()); });
+
+      });
+
     });
 
     describe("Примечания подзапросов (specs/query-descriptions)", function () {

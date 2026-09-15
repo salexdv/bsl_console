@@ -164,7 +164,19 @@ module.exports = (env, argv) => {
                   //     живым остаётся только input-путь textarea (печать). Ограничиваем ветку
                   //     настоящими keypress. Полевой лог-доказательство: kbdiag 2026-07-16,
                   //     `MONACO kc=0(Unknown) | raw kc=38 cc=63232` на каждой стрелке.
-                  { search: 'if (e.charCode) {', replace: "if (e.charCode && e.type === 'keypress') {" }
+                  { search: 'if (e.charCode) {', replace: "if (e.charCode && e.type === 'keypress') {" },
+                  // (6) InlayHintsController: в 0.55.1 подписка на onDidChangeInlayHints провайдера
+                  //     умирает после ВТОРОГО прогона планировщика — store прогона disposes при
+                  //     cancellationStore.reset(), а повторной подписке мешает watchedProviders,
+                  //     который не чистится. Прогоны случаются на правку текста (включая отложенный
+                  //     ~800 мс), скролл, смену опций. Без патча setInlayHints/setQueryParamsTooltips/
+                  //     clearInlayHints рендерятся ТОЛЬКО после правки текста/скролла: fire() уходит
+                  //     в пустоту (поле 1С: тултипы параметров запроса «появляются после правки
+                  //     текста»; на коротком запросе без скролла — вообще никогда). В vscode main
+                  //     фикс — store.add(toDisposable(() => watchedProviders.clear())) после
+                  //     store.add(inlayHints); в monaco-editor 0.55.1 строки нет. Якорь уникален
+                  //     по esm (только inlayHintsController.js), toDisposable уже импортирован.
+                  { search: 'store.add(inlayHints);', replace: 'store.add(inlayHints); store.add(toDisposable(() => watchedProviders.clear()));' }
                 ]
               }
             }
