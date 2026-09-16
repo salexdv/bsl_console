@@ -194,6 +194,21 @@ module.exports = (env, argv) => {
                   {
                     search: 'if (range && ranges.some(r => r.containsRange(range))) {',
                     replace: 'if (!range) { metadata.classNameRef.dispose(); this._decorationsMetadata.delete(id); continue; } if (ranges.some(r => r.containsRange(range))) {'
+                  },
+                  // (8) InlayHintsHover: HoverForeignElementAnchor.equals сравнивает только owner,
+                  //     а owner один на весь редактор (единый экземпляр участника InlayHintsHover).
+                  //     При переходе мыши с одного хинта на другой contentHoverWidgetWrapper
+                  //     (_startShowingOrUpdateHover) считает якоря равными и рано возвращается:
+                  //     пересчёт не запускается, виджет не прячется — тултип первого параметра
+                  //     «висит» над вторым (specs/query-params-tooltips; одинаково ломает и hover
+                  //     «Execute Command» классических setInlayHints-хинтов). Фикс — сравнение
+                  //     ещё и part: RenderedInlayHintLabelPart стабилен у декорации, движение
+                  //     внутри одного хинта hover не дёргает, переход между хинтами обновляет
+                  //     тултип штатным потоком Monaco. Якорь уникален по esm (строка super(10,
+                  //     owner, …) — только inlayHintsHover.js).
+                  {
+                    search: 'super(10, owner, part.item.anchor.range, initialMousePosX, initialMousePosY, true);\n        this.part = part;\n    }',
+                    replace: 'super(10, owner, part.item.anchor.range, initialMousePosX, initialMousePosY, true);\n        this.part = part;\n    }\n    equals(other) {\n        return other instanceof InlayHintsHoverAnchor && other.part === this.part;\n    }'
                   }
                 ]
               }
