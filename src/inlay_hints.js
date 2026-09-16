@@ -10,6 +10,11 @@ import monaco from './expose-monaco';
 // вычисляет текст сам. Набор хранится по модели вкладки, якорь каждого хинта — невидимая
 // декорация модели, поэтому при правках текста хинт следует за кодом, а состав набора
 // не пересчитывается (обновление — повторный вызов setInlayHints со стороны 1С).
+//
+// Исключение — наборы тултипов параметров запроса (specs/query-params-tooltips): их кладёт
+// queryParamsTooltipsController с флагом queryParams (setHints), такие хинты идут без штатной
+// command-ссылки (нативный hover «Выполнить команду» выключен), с markdown-tooltip
+// (поле tooltip входа) и pointer-курсором при наведении на кликабельный хинт.
 
 const INLAY_HINT_CLICK_EVENT = 'EVENT_ON_INLAY_HINT_CLICK';
 const INLAY_HINT_CLICK_COMMAND_ID = 'bsl-console.inlayHintClick';
@@ -60,7 +65,11 @@ function buildClickParams(hint) {
 // Преобразует разобранный хинт в InlayHint Monaco.
 // position — ТЕКУЩАЯ позиция якоря ({ lineNumber, column }, следует за правками текста),
 // не исходная из входа.
-function toInlayHint(hint, position) {
+// queryParams — набор от контроллера тултипов параметров запроса (specs/query-params-tooltips):
+// label всегда строка без command (иначе Monaco показывает нативный hover «Выполнить команду
+// (ctrl+click)»), вместо него у хинта штатный markdown-tooltip (InlayHint.tooltip, IMarkdownString).
+// isTrusted не ставим: http/https/mailto-ссылки в markdown кликабельны, command:-ссылки — нет.
+function toInlayHint(hint, position, queryParams) {
 
   const result = {
     position: { lineNumber: position.lineNumber, column: position.column },
@@ -69,20 +78,32 @@ function toInlayHint(hint, position) {
     paddingRight: true
   };
 
-  // Кликабельный хинт получает command на label part: Monaco подчёркивает его при наведении
-  // и исполняет команду по клику с модификатором (Ctrl/Cmd, см. ClickLinkGesture). Обычный
-  // клик без модификатора обрабатывает контроллер (createInlayHintsController).
-  if (hint.eventParams !== undefined)
-    result.label = [{
-      label: hint.text,
-      command: {
-        id: INLAY_HINT_CLICK_COMMAND_ID,
-        title: hint.text,
-        arguments: [buildClickParams(hint)]
-      }
-    }];
-  else
+  if (queryParams) {
+
     result.label = hint.text;
+
+    if (hint.tooltip !== undefined)
+      result.tooltip = { value: hint.tooltip };
+
+  }
+  else {
+
+    // Кликабельный хинт получает command на label part: Monaco подчёркивает его при наведении
+    // и исполняет команду по клику с модификатором (Ctrl/Cmd, см. ClickLinkGesture). Обычный
+    // клик без модификатора обрабатывает контроллер (createInlayHintsController).
+    if (hint.eventParams !== undefined)
+      result.label = [{
+        label: hint.text,
+        command: {
+          id: INLAY_HINT_CLICK_COMMAND_ID,
+          title: hint.text,
+          arguments: [buildClickParams(hint)]
+        }
+      }];
+    else
+      result.label = hint.text;
+
+  }
 
   // Маркер для обработчика клика (attachedData внутреннего рендера ведёт на этот объект).
   result[INLAY_HINT_FLAG] = hint;
@@ -122,7 +143,7 @@ export const inlayHintsProvider = {
       hints.push(toInlayHint(entry.hints[i], {
         lineNumber: anchorRange.startLineNumber,
         column: anchorRange.startColumn
-      }));
+      }, entry.queryParams));
 
     }
 
@@ -188,12 +209,20 @@ export function parseInlayHints(value) {
         ? undefined
         : item.event_params;
 
+      // Markdown-строка всплывающей подсказки (specs/query-params-tooltips); отсутствующая
+      // или null — подсказки нет. Используется только в наборах тултипов параметров запроса
+      // (см. setHints), классический setInlayHints её игнорирует.
+      let tooltip = item.tooltip === undefined || item.tooltip === null
+        ? undefined
+        : String(item.tooltip);
+
       hints.push({
         line: line,
         column: column,
         text: text,
         id: item.id === undefined ? null : item.id,
-        eventParams: eventParams
+        eventParams: eventParams,
+        tooltip: tooltip
       });
 
     }
@@ -264,19 +293,71 @@ export function createInlayHintsController(codeEditor) {
 
   }
 
+  // Тултипы параметров запроса (specs/query-params-tooltips): хинт с event_params кликабельный
+  // обычным кликом (без штатной command-ссылки), поэтому курсор pointer при наведении ставим
+  // сами — Monaco даёт pointer только на активной ссылке с модификатором. Monaco не позволяет
+  // передать CSS-класс injected text, а сам .view-lines носит класс monaco-mouse-cursor-text
+  // с cursor:text (viewLines.js/mouseCursor.css) — наследованием с контейнера его не перебить.
+  // Поэтому вешаем класс на хост-контейнер редактора (getContainerDomNode — родитель
+  // div.monaco-editor; className самого .monaco-editor Monaco перезаписывает при смене темы),
+  // правило в decorations.css специфичнее cursor:text, пока мышь над хинтом (уходит — сброс).
+  const POINTER_CLASS = 'bsl-inlay-hint-pointer';
+  let pointerCursor = false;
+
+  function setPointerCursor(enabled) {
+
+    if (pointerCursor === enabled)
+      return;
+
+    pointerCursor = enabled;
+    codeEditor.getContainerDomNode().classList.toggle(POINTER_CLASS, enabled);
+
+  }
+
+  function queryParamsEntry() {
+    const model = codeEditor.getModel();
+    const entry = model ? hintsByModel.get(model) : null;
+    return entry && entry.queryParams ? entry : null;
+  }
+
+  function handleMouseMove(e) {
+
+    const entry = queryParamsEntry();
+
+    if (!entry) {
+      setPointerCursor(false);
+      return;
+    }
+
+    const hint = hintFromMouseTarget(e);
+
+    setPointerCursor(!!(hint && hint.eventParams !== undefined));
+
+  }
+
+  function handleMouseLeave() {
+    setPointerCursor(false);
+  }
+
   const mouseDownListener = codeEditor.onMouseDown(handleMouseDown);
   const mouseUpListener = codeEditor.onMouseUp(handleMouseUp);
+  const mouseMoveListener = codeEditor.onMouseMove(handleMouseMove);
+  const mouseLeaveListener = codeEditor.onMouseLeave(handleMouseLeave);
 
   // Записывает набор хинтов в хранилище и пересоздает якорные декорации модели.
   // Позиции вне модели (строка/колонка за пределами текста) пропускаются — как и в
   // реализации 0.20, рисовались только хинты с валидной позицией.
-  function setModelHints(hints) {
+  // queryParams — набор от контроллера тултипов параметров запроса: хинты без штатной
+  // command-ссылки, с markdown-tooltip и pointer-курсором (см. toInlayHint/handleMouseMove).
+  function setModelHints(hints, queryParams) {
 
     const model = codeEditor.getModel();
     const previous = hintsByModel.get(model);
 
     if (previous && previous.anchorIds.length)
       model.deltaDecorations(previous.anchorIds, []);
+
+    setPointerCursor(false);
 
     if (!hints.length) {
       hintsByModel.delete(model);
@@ -309,7 +390,8 @@ export function createInlayHintsController(codeEditor) {
     hintsByModel.set(model, {
       hints: anchoredHints,
       anchorIds: model.deltaDecorations([], decorations),
-      parsedCount: parsedCount
+      parsedCount: parsedCount,
+      queryParams: !!queryParams
     });
 
   }
@@ -320,7 +402,9 @@ export function createInlayHintsController(codeEditor) {
   }
 
   return {
-    setHints: function (value) {
+    // options.queryParams — набор от контроллера тултипов параметров запроса
+    // (см. setModelHints); window.setInlayHints зовет без опций — классическое поведение.
+    setHints: function (value, options) {
 
       const parsed = parseInlayHints(value);
 
@@ -332,7 +416,7 @@ export function createInlayHintsController(codeEditor) {
       if (!model)
         return false;
 
-      setModelHints(parsed.hints);
+      setModelHints(parsed.hints, options && options.queryParams);
       inlayHintsChanged.fire();
 
       return true;
@@ -344,6 +428,8 @@ export function createInlayHintsController(codeEditor) {
         setModelHints([]);
         inlayHintsChanged.fire();
       }
+      else
+        setPointerCursor(false);
 
     },
     // Для тестов: число хинтов в принятом наборе, включая позиции вне модели
@@ -355,24 +441,35 @@ export function createInlayHintsController(codeEditor) {
 
       return {
         hintsCount: entry ? entry.parsedCount : 0,
-        // Копия текущего набора — позиции/тексты для тестов и отладки.
+        // Копия текущего набора — позиции/тексты для тестов и отладки. tooltip включается
+        // в копию только когда задан (markdown-подсказка есть не у каждого хинта).
         hints: (entry ? entry.hints : []).map(function (hint) {
-          return {
+
+          const copy = {
             line: hint.line,
             column: hint.column,
             text: hint.text,
             id: hint.id,
             eventParams: hint.eventParams
           };
-        })
+
+          if (hint.tooltip !== undefined)
+            copy.tooltip = hint.tooltip;
+
+          return copy;
+
+        }),
+        queryParams: !!(entry && entry.queryParams)
       };
 
     },
     // Для тестов: обработчики события мыши (см. hintFromMouseTarget) — вызываются
-    // реальными подписками onMouseDown/onMouseUp и напрямую из тестов с синтетическим
-    // событием (по образцу handleElementClick в реализации 0.20).
+    // реальными подписками onMouseDown/onMouseUp/onMouseMove и напрямую из тестов
+    // с синтетическим событием (по образцу handleElementClick в реализации 0.20).
     handleMouseDown: handleMouseDown,
     handleMouseUp: handleMouseUp,
+    handleMouseMove: handleMouseMove,
+    handleMouseLeave: handleMouseLeave,
     // Для тестов: объекты InlayHint, отданные провайдером при последнем запросе рендера.
     getRenderedHints: function () {
 
@@ -391,9 +488,13 @@ export function createInlayHintsController(codeEditor) {
 
       if (modelAlive())
         setModelHints([]);
+      else
+        setPointerCursor(false);
 
       mouseDownListener.dispose();
       mouseUpListener.dispose();
+      mouseMoveListener.dispose();
+      mouseLeaveListener.dispose();
 
     }
   };

@@ -737,3 +737,15 @@ div:has(> .add-review) {
 .monaco-editor.vs-dark .bsl-query-desc::after {
 	color: #9d9d9d;
 }
+
+/* Тултипы параметров запроса (specs/query-params-tooltips): курсор pointer над
+   кликабельным хинтом (задан value). Класс bsl-inlay-hint-pointer вешает/снимает
+   контроллер инлей-хинтов (handleMouseMove/handleMouseLeave, src/inlay_hints.js)
+   на хост-контейнер редактора (getContainerDomNode — родитель div.monaco-editor;
+   className самого .monaco-editor Monaco перезаписывает при смене темы).
+   Специфичность (0,3,0) перебивает штатный cursor:text у .view-lines — Monaco вешает
+   на него класс monaco-mouse-cursor-text (viewParts/viewLines + mouseCursor.css),
+   поэтому курсор наследованием с контейнера не переопределить. */
+.bsl-inlay-hint-pointer .monaco-editor .view-lines {
+	cursor: pointer;
+}

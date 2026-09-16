@@ -3288,6 +3288,120 @@ setTimeout(() => {
 
       });
 
+      it("tooltip задаёт markdown-подсказку хинта, command-ссылка («Выполнить команду») не строится", async function () {
+
+        assert.equal(window.setQueryParamsTooltips([{
+          param: 'БезНДС',
+          label: 'Без НДС',
+          value: 'ref-1',
+          tooltip: '**Ставка НДС**: `20%`'
+        }]), true);
+        assert.equal(inlayState().queryParams, true);
+
+        await waitFor(function () { return controller().getRenderedHints().length == 2; });
+
+        const rendered = controller().getRenderedHints()[0];
+
+        // Label — строка, не массив label part с command: нативный hover Monaco
+        // «Выполнить команду (ctrl+click)» показывается только при command на label part.
+        assert.equal(rendered.label, 'Без НДС');
+
+        // Markdown-подсказка — штатный InlayHint.tooltip (IMarkdownString): рендерит
+        // Monaco штатным markdown-рендерером с sanitize (isTrusted не ставим —
+        // http/https-ссылки кликабельны, command:-ссылки заблокированы).
+        assert.deepEqual(rendered.tooltip, { value: '**Ставка НДС**: `20%`' });
+
+        assert.deepEqual(inlayState().hints, [
+          { line: 2, column: 29, text: 'Без НДС', id: 'БезНДС', eventParams: 'ref-1', tooltip: '**Ставка НДС**: `20%`' },
+          { line: 4, column: 12, text: 'Без НДС', id: 'БезНДС', eventParams: 'ref-1', tooltip: '**Ставка НДС**: `20%`' }
+        ]);
+
+      });
+
+      it("тултип параметра без tooltip: ни markdown-подсказки, ни command-ссылки", async function () {
+
+        assert.equal(window.setQueryParamsTooltips([{ param: 'БезНДС', label: 'Без НДС', value: 'ref-1' }]), true);
+        await waitFor(function () { return controller().getRenderedHints().length == 2; });
+
+        const rendered = controller().getRenderedHints()[0];
+
+        assert.equal(rendered.label, 'Без НДС');
+        assert.equal(rendered.tooltip, undefined);
+
+      });
+
+      it("наведение на кликабельный тултип параметра включает pointer-курсор, уход — сбрасывает", async function () {
+
+        const container = window.editor.getContainerDomNode();
+        const viewLines = container.querySelector('.view-lines');
+
+        const pointerClass = function () {
+          return container.classList.contains('bsl-inlay-hint-pointer');
+        };
+
+        const computedCursor = function () {
+          return window.getComputedStyle(viewLines).cursor;
+        };
+
+        window.setQueryParamsTooltips([{ param: 'БезНДС', label: 'Без НДС', value: 'ref-1' }]);
+        await waitFor(function () { return controller().getRenderedHints().length == 2; });
+
+        const rendered = controller().getRenderedHints()[0];
+
+        // Над хинтом с value (event_params задан) — pointer: класс на контейнере и
+        // вычисленный курсор .view-lines — правило decorations.css специфичнее штатного
+        // cursor:text (класс monaco-mouse-cursor-text, который Monaco вешает на .view-lines;
+        // inline-стиль на контейнере-родителе его не перебивает — регрессия первого варианта).
+        controller().handleMouseMove(clickEvent(rendered));
+        assert.equal(pointerClass(), true);
+        assert.equal(computedCursor(), 'pointer');
+
+        // Уход с хинта (мышь по обычному тексту) — сброс в штатный text.
+        controller().handleMouseMove({ target: { type: monaco.editor.MouseTargetType.CONTENT_TEXT, detail: {} } });
+        assert.equal(pointerClass(), false);
+        assert.equal(computedCursor(), 'text');
+
+        // Некликабельный хинт (без value) — курсор не включается.
+        window.setQueryParamsTooltips([{ param: 'БезНДС', label: 'Без НДС' }]);
+        await waitFor(function () { return controller().getRenderedHints().length == 2; });
+        controller().handleMouseMove(clickEvent(controller().getRenderedHints()[0]));
+        assert.equal(pointerClass(), false);
+
+        // Возврат на кликабельный и уход из редактора — сброс.
+        window.setQueryParamsTooltips([{ param: 'БезНДС', label: 'Без НДС', value: 'ref-1' }]);
+        await waitFor(function () { return controller().getRenderedHints().length == 2; });
+        controller().handleMouseMove(clickEvent(controller().getRenderedHints()[0]));
+        assert.equal(pointerClass(), true);
+        controller().handleMouseLeave();
+        assert.equal(pointerClass(), false);
+        assert.equal(computedCursor(), 'text');
+
+      });
+
+      it("классический setInlayHints прежний: command-ссылка остаётся, pointer-курсор не включается", async function () {
+
+        assert.equal(window.setInlayHints([
+          { line: 2, column: 29, text: 'ручной хинт', event_params: 'ref-2' }
+        ]), true);
+        assert.equal(inlayState().queryParams, false);
+
+        await waitFor(function () { return controller().getRenderedHints().length == 1; });
+
+        const rendered = controller().getRenderedHints()[0];
+
+        // Label part с command: нативный hover и ctrl+click работают как раньше.
+        assert.ok(Array.isArray(rendered.label), 'label part с command не построен');
+        assert.equal(rendered.label[0].label, 'ручной хинт');
+        assert.equal(rendered.label[0].command.id, 'bsl-console.inlayHintClick');
+        assert.equal(rendered.label[0].command.arguments[0].event_params, 'ref-2');
+        assert.equal(rendered.tooltip, undefined);
+
+        // pointer-курсор — только у наборов тултипов параметров запроса.
+        controller().handleMouseMove(clickEvent(rendered));
+        assert.equal(window.editor.getContainerDomNode().classList.contains('bsl-inlay-hint-pointer'), false);
+
+      });
+
       it("вызов вне режимов запроса возвращает false, набор не хранится", function () {
 
         window.setLanguageMode('bsl');

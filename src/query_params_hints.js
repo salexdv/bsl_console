@@ -1,7 +1,8 @@
 // Тултипы параметров запроса (&Параметр) поверх механизма инлей-хинтов (specs/query-params-tooltips).
 // В отличие от setInlayHints позиции не передаются: контроллер сам ищет вхождения параметров в тексте
 // модели и пересчитывает набор при каждом изменении текста. Отрисовка делегируется в inlayHintsController
-// редактора — набор хинтов общий (см. specs/inlay-hints).
+// редактора — набор хинтов общий (см. specs/inlay-hints). Опциональное поле tooltip (markdown-строка)
+// становится всплывающей подсказкой хинта при наведении (без нативного окна «Выполнить команду»).
 
 // Символы имени параметра запроса после первого знака (первый — буква или подчёркивание).
 const QUERY_PARAM_NAME_TRAILING = 'A-Za-zА-ЯЁа-яё0-9_';
@@ -45,10 +46,17 @@ function parseQueryParams(value) {
         ? undefined
         : item.value;
 
+      // Markdown-строка всплывающей подсказки при наведении (InlayHint.tooltip Monaco);
+      // отсутствующая или null — подсказки нет.
+      let tooltip = item.tooltip === undefined || item.tooltip === null
+        ? undefined
+        : String(item.tooltip);
+
       byName.set(param, {
         param: param,
         label: label,
-        value: tooltipValue
+        value: tooltipValue,
+        tooltip: tooltip
       });
 
     }
@@ -117,12 +125,15 @@ export function createQueryParamsTooltipsController(codeEditor) {
         column: matches[i].range.endColumn,
         text: item.label,
         id: item.param,
-        event_params: item.value
+        event_params: item.value,
+        tooltip: item.tooltip
       });
 
     }
 
-    return codeEditor.inlayHintsController.setHints(hints);
+    // Флаг queryParams: хинты набора рендерятся без штатной command-ссылки (нативный hover
+    // «Выполнить команду» выключен), с markdown-tooltip и pointer-курсором — см. inlay_hints.js.
+    return codeEditor.inlayHintsController.setHints(hints, { queryParams: true });
 
   }
 

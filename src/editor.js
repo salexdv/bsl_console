@@ -1547,9 +1547,14 @@ window.clearInlayHints = function () {
  * (specs/query-params-tooltips). Работает только в режимах bsl_query / dcs_query: позиции
  * вычисляются по тексту модели и пересчитываются при каждом его изменении. Занимает набор
  * инлей-хинтов целиком (см. setInlayHints); очистка — clearInlayHints или пустой массив.
- * @param {string|Array<{param: string, label: string, value?: *}>} params массив (или JSON-строка)
- *   описаний: param — имя параметра без &; label — текст тултипа; value — произвольное значение,
- *   прокидываемое в событие клика как event_params (хинт с незаданным value не кликабельный).
+ * В отличие от setInlayHints, кликабельные тултипы параметров идут без штатной гиперссылки
+ * «Выполнить команду»: наведение показывает markdown-подсказку (tooltip), клик — обычный,
+ * без модификатора, с курсором pointer при заданном value.
+ * @param {string|Array<{param: string, label: string, value?: *, tooltip?: string}>} params
+ *   массив (или JSON-строка) описаний: param — имя параметра без &; label — текст тултипа;
+ *   value — произвольное значение, прокидываемое в событие клика как event_params (тултип
+ *   с незаданным value не кликабельный); tooltip — markdown-строка всплывающей подсказки
+ *   при наведении (отсутствует/null — подсказки нет).
  * @returns {boolean|{errorDescription: string}} true — набор принят; false — редактор недоступен,
  *   режим сравнения или не режим запроса; {errorDescription} — ошибка разбора.
  */

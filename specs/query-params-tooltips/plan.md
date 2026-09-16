@@ -22,6 +22,17 @@
   заметка в `docs/inlay_hints.md`.
 - Gate: `npm run test`, `build:test` + `test:mocha`, `escheck`, `build`, `test:headless`.
 
+### Этап 3. Markdown-tooltip и pointer-курсор (2026-09-16)
+
+- Контракт расширен полем `tooltip` (markdown-строка): наведение на тултип параметра
+  показывает markdown-подсказку вместо нативного окна Monaco «Выполнить команду (ctrl+click)».
+- Кликабельные тултипы параметров рендерятся без command-ссылки на label part (обычный клик
+  остаётся, ctrl+click уходит); над хинтом с `value` — курсор pointer.
+- Классический `setInlayHints` не меняется: флаг происхождения набора (`queryParams`) в
+  `inlayHintsController.setHints(hints, { queryParams: true })`.
+- Gate: `build:test` + `test:mocha`, `escheck`, `build`; ручная проверка hover/курсора
+  в `npm run debug` (обе темы).
+
 ### Риски и снижение
 
 - Офф-бай-один позиции хинта: колонка хинта — `range.endColumn` вхождения, что согласовано
@@ -46,3 +57,7 @@
 | 2026-09-10 | Поиск по всему тексту, без исключения строк/комментариев | Упрощение первого этапа; отмечено вне области спеки |
 | 2026-09-10 | Интеграционные тесты — в `src/test.js`, а не `src/test_query.js` | `test:mocha` прогоняет только страницу `/test`; прецедент — тесты inlay-hints живут в `src/test.js`, режим запроса включается в `beforeEach` |
 | 2026-09-10 | Перенос на ветку `feature/inlay-hints-0.55`: контроллер без изменений, клик в тестах — через `handleMouseDown`/`handleMouseUp` с синтетическим событием, `getState().hints` добавлен в контроллер inlay-hints, `disposeEditorInstance` обнуляет ссылку stateless-контроллера | Контроллер завязан только на `setHints`/`clear`/`findMatches` (совместимы с 0.55); паритет с паттернами тестов и жизненным циклом inlay-hints на 0.55 |
+| 2026-09-16 | У QP-хинтов убрана command-ссылка: label — строка, tooltip — штатный `InlayHint.tooltip` (IMarkdownString `{ value }`, без isTrusted), рендер и sanitize — штатный markdown-рендерер Monaco | Нативный hover «Выполнить команду» показывается только при command на label part; свой tooltip — без патчей Monaco. Без isTrusted: `http/https`-ссылки кликабельны, `command:`-ссылки заблокированы (безопасный дефолт, контент приходит из 1С) |
+| 2026-09-16 | ctrl+click у QP-хинтов убран (клик — только обычный) | Прямое следствие убранной command-ссылки; обычный клик уже ловил наш контроллер (`handleMouseDown`/`handleMouseUp`), событие `EVENT_ON_INLAY_HINT_CLICK` без изменений |
+| 2026-09-16 | pointer-курсор — своим `onMouseMove`/`onMouseLeave` в контроллере inlay-hints: класс `bsl-inlay-hint-pointer` на хост-контейнере редактора (`getContainerDomNode` — родитель `div.monaco-editor`; `className` самого `.monaco-editor` Monaco перезаписывает при смене темы), правило `.bsl-inlay-hint-pointer .monaco-editor .view-lines { cursor: pointer }` в decorations.css, пока мышь над QP-хинтом с `event_params`; сброс при уходе/`clear`/`dispose` | Monaco не даёт CSS-класс injected text через API; `.view-lines` носит класс `monaco-mouse-cursor-text` с `cursor: text` — наследованием с контейнера не перебить, а класс на `.monaco-editor` нестойкий (перезапись className). Правило специфичностью (0,3,0) перебивает `cursor:text`; проверяется тестом по `getComputedStyle(.view-lines).cursor`. Вариант «строчный патч Monaco» отклонён. Гейт — флаг `queryParams` записи набора, классический `setInlayHints` не задет |
+| 2026-09-16 | Разделение режимов наборов — флагом `queryParams` в `setHints(value, options)` (запись в `hintsByModel`), поле `tooltip` проносится общим парсером, но у классических наборов игнорируется | `window.setInlayHints` зовёт без опций → поведение прежнее; поле входа `tooltip` у классического набора семантики не меняет (документировано только для QP) |
