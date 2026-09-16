@@ -11,7 +11,7 @@ const ROOT = path.resolve(__dirname, '..');
 const DIST = path.join(ROOT, 'dist');
 const HTTP_PORT = 9013;
 const DEBUG_PORT = 9014;
-const QUERY_TEST_MODE = process.env.BSL_HEADLESS_QUERY_TEST == '1';
+const QUERY_TEST_MODE = process.env.BSL_HEADLESS_QUERY_TEST == '1' || process.argv.includes('--query');
 
 function findBrowser() {
   const candidates = [

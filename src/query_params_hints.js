@@ -84,6 +84,96 @@ function buildParamsPattern(params) {
 
 }
 
+// Markdown-подсказка при наведении на хинт из набора тултипов параметров запроса
+// (specs/query-params-tooltips). На Monaco 0.20 нет InlayHint.tooltip (injected text
+// появился позже), поэтому подсказку показывает штатный hover-виджет Monaco через
+// hover-провайдера: markdown рендерит штатный рендерер с sanitize:true, command:-ссылки
+// без isTrusted заблокированы, http/https — кликабельны (markdownRenderer.js).
+//
+// Позиция мыши над ::after-псевдоэлементом хинта разрешается Monaco в якорь хинта
+// (mouseTarget.js: caretRangeFromPoint приходит в граничную колонку пустого span
+// декорации), а нативный hover запускается на CONTENT_TEXT (hover.js) — провайдер
+// и получает запрос с позицией якоря или якоря-1 (у хинта в середине строки виджет
+// запрашивает на range.startColumn, см. provideQueryParamsHover). Гейты против ложных
+// срабатываний: мышь сейчас над этим хинтом (DOM-детект в handleMouseMove — позиция
+// соседнего символа тоже равна якорю) и строка/колонка запроса соседствуют с якорем.
+//
+// Monaco здесь намеренно берётся глобальным (window.monaco), а не через require('./monaco'):
+// модуль попадает в граф entry test_query через bsl_language, и статический require Monaco
+// породил бы второй экземпляр Monaco в отдельном webpack-рантайме entry — см. комментарий
+// в bsl_language.js и specs/query-params-tooltips/plan.md.
+let hoveredHint = null;
+let hoveredModel = null;
+
+// Запоминает хинт под мышью (только с tooltip — прочие подсказки не показывают),
+// null — сброс (уход мыши, смена/очистка набора). Вызывается контроллером инлей-хинтов
+// из inlay_hints.js (handleMouseMove/handleMouseLeave/setHints/clear/dispose).
+export function setHoveredHint(hint, model) {
+
+  if (hint && hint.tooltip !== undefined) {
+    hoveredHint = hint;
+    hoveredModel = model;
+  }
+  else {
+    hoveredHint = null;
+    hoveredModel = null;
+  }
+
+}
+
+export function provideQueryParamsHover(model, position) {
+
+  if (!hoveredHint || model !== hoveredModel)
+    return null;
+
+  if (position.lineNumber != hoveredHint.line)
+    return null;
+
+  // Позиция запроса — якорь хинта или колонка слева от него. У хинта в конце строки
+  // Monaco запрашивает hover коллапсированным диапазоном ровно на якоре, а у хинта
+  // в середине строки ::after-чип визуально занимает место между якорем и предыдущей
+  // колонкой, hit-test брекетует якорь соседними колонками (mouseTarget.js) и hover-
+  // виджет запрашивает провайдеров на range.startColumn = якорь - 1 (modesContentHover.js).
+  // Ложные срабатывания отсекает DOM-гейт: провайдер активен, только пока мышь над
+  // самим хинтом (hoveredHint, см. handleMouseMove).
+  if (position.column != hoveredHint.column && position.column != hoveredHint.column - 1)
+    return null;
+
+  return {
+    range: new monaco.Range(hoveredHint.line, hoveredHint.column, hoveredHint.line, hoveredHint.column),
+    contents: [{ value: hoveredHint.tooltip }]
+  };
+
+}
+
+let hoverProviderRegistered = false;
+
+// Для hover-провайдеров языка запроса (bsl_language.js): возвращает markdown-подсказку
+// тултипа параметра, если мышь сейчас над его хинтом и позиция — якорь хинта. Провайдеры
+// языка по этому же условию подавляют штатный hover слова — иначе слово параметра
+// (совпавшее со ссылкой в SELECT, см. getQueryModelSelectItemByWord) добавляет вторую
+// строку в hover-виджет рядом с markdown-подсказкой.
+export function queryParamsTooltipHover(model, position) {
+  return provideQueryParamsHover(model, position);
+}
+
+// Регистрируется один раз лениво — при первом наборе тултипов параметров запроса
+// (по образцу ensureClickCommand в реализации 0.55). Редакторов-вкладок много,
+// провайдер один; гейт по модели/позиции отсекает чужие редакторы.
+export function ensureQueryParamsHoverProvider() {
+
+  if (hoverProviderRegistered)
+    return;
+
+  hoverProviderRegistered = true;
+
+  const provider = { provideHover: provideQueryParamsHover };
+
+  monaco.languages.registerHoverProvider('bsl_query', provider);
+  monaco.languages.registerHoverProvider('dcs_query', provider);
+
+}
+
 export function createQueryParamsTooltipsController(codeEditor) {
 
   let currentParams = [];

@@ -10,6 +10,7 @@
     "test:search-history": "node tests/search_history_test.js",
     "build:headless": "webpack --mode development --progress",
     "test:headless": "node tools/run_search_history_headless.js",
+    "test:query:headless": "node tools/run_search_history_headless.js --query",
     "test:query-model-corpus": "node tests/query_model_corpus_test.js --strict-errors --strict-structure",
     "test:query-model-corpus:loose": "node tests/query_model_corpus_test.js",
     "test:query-navigation": "node tests/query_navigation_test.js",

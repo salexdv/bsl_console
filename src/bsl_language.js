@@ -1,6 +1,6 @@
 import bslHelper from './bsl_helper';
 import queryModelService from './query_model_service';
-import { queryParamsTooltipHover } from './inlay_hints';
+import { queryParamsTooltipHover } from './query_params_hints';
 
 function getQueryCompletion(model, position, context) {
     let bsl = new bslHelper(model, position);
