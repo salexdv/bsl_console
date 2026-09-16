@@ -1060,8 +1060,14 @@ setTimeout(() => {
           contents: [{ value: '**Ставка НДС**: `20%`' }]
         });
 
-        // Чужая позиция — гейт отсекает: соседний символ имеет ту же колонку, что якорь.
-        assert.equal(controller().hoverAt(model, { lineNumber: 2, column: 28 }), null);
+        // Позиция якорь-1 тоже валидна: у хинта в середине строки ::after-чип занимает
+        // место между якорем и предыдущей колонкой, hit-test Monaco брекетует якорь
+        // соседними колонками и hover-виджет запрашивает провайдеров на range.startColumn
+        // = якорь - 1 (mouseTarget.js + modesContentHover.js, см. provideQueryParamsHover).
+        assert.equal(controller().hoverAt(model, { lineNumber: 2, column: 28 }).contents[0].value, '**Ставка НДС**: `20%`');
+
+        // Действительно чужая позиция — гейт отсекает.
+        assert.equal(controller().hoverAt(model, { lineNumber: 2, column: 27 }), null);
 
         // Второе вхождение параметра — свой якорь.
         controller().handleMouseMove({ target: { element: renderedTooltips()[1], type: monaco.editor.MouseTargetType.CONTENT_TEXT } });
@@ -1114,11 +1120,50 @@ setTimeout(() => {
         assert.equal(window.languages.query.hoverProvider.provideHover(model, { lineNumber: 2, column: 29 }), null);
         assert.equal(window.languages.dcs.hoverProvider.provideHover(model, { lineNumber: 2, column: 29 }), null);
 
+        // Якорь-1 — вторая валидная позиция запроса (хинт в середине строки, см.
+        // provideQueryParamsHover): подавление штатного hover работает и на ней.
+        assert.equal(controller().hoverAt(model, { lineNumber: 2, column: 28 }).contents[0].value, '**Ставка НДС**: `20%`');
+        assert.equal(window.languages.query.hoverProvider.provideHover(model, { lineNumber: 2, column: 28 }), null);
+        assert.equal(window.languages.dcs.hoverProvider.provideHover(model, { lineNumber: 2, column: 28 }), null);
+
         // Увод мыши — guard провайдеров языка больше не срабатывает (позиция якоря
         // проходит к штатной логике getQueryHover/getCustomHover без подавления).
         controller().handleMouseLeave();
         window.languages.query.hoverProvider.provideHover(model, { lineNumber: 2, column: 29 });
         window.languages.dcs.hoverProvider.provideHover(model, { lineNumber: 2, column: 29 });
+
+      });
+
+      it("хинт в середине строки: Monaco запрашивает hover на якоре-1 — подсказка показывается", async function () {
+
+        const model = window.editor.getModel();
+
+        window.setQueryParamsTooltips([{ param: 'БезНДС', label: 'Без НДС', value: 'ref-1', tooltip: '**Ставка НДС**: `20%`' }]);
+
+        // Ждем именно свежие узлы (см. waitFor в тесте выше).
+        await waitFor(function () {
+          return renderedTooltips().length == 2
+            && renderedTooltips()[0].classList.contains('bsl-inlay-hint-with-tooltip');
+        });
+
+        // 'ГДЕ &БезНДС <> 0' — хинт на колонке 12 в середине строки (справа еще ' <> 0'):
+        // ::after-чип визуально занимает место между колонками 11 и 12, hit-test Monaco
+        // брекетует якорь соседними колонками — CONTENT_TEXT с диапазоном (11, 12), и
+        // hover-виджет запрашивает провайдеров на range.startColumn = 11 (modesContentHover.js).
+        // Регрессия: строгий гейт «колонка == якорь» отбрасывал такой запрос — тултип
+        // не показывался у параметров не в конце строки (например, МЕЖДУ &НачалоГода И ...).
+        controller().handleMouseMove({ target: { element: renderedTooltips()[1], type: monaco.editor.MouseTargetType.CONTENT_TEXT } });
+
+        assert.equal(controller().hoverAt(model, { lineNumber: 4, column: 11 }).contents[0].value, '**Ставка НДС**: `20%`');
+        assert.equal(controller().hoverAt(model, { lineNumber: 4, column: 12 }).contents[0].value, '**Ставка НДС**: `20%`');
+        assert.equal(controller().hoverAt(model, { lineNumber: 4, column: 10 }), null);
+
+        // Штатный hover слова запроса подавляется на той же позиции запроса.
+        assert.equal(window.languages.query.hoverProvider.provideHover(model, { lineNumber: 4, column: 11 }), null);
+
+        // Уход мыши — сброс.
+        controller().handleMouseLeave();
+        assert.equal(controller().hoverAt(model, { lineNumber: 4, column: 11 }), null);
 
       });
 

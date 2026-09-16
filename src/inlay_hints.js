@@ -49,9 +49,10 @@ function escapeCssString(text) {
 // Позиция мыши над ::after-псевдоэлементом хинта разрешается Monaco в якорь хинта
 // (mouseTarget.js: caretRangeFromPoint приходит в граничную колонку пустого span
 // декорации), а нативный hover запускается на CONTENT_TEXT (hover.js) — провайдер
-// и получает запрос с якорем. Гейты против ложных срабатываний: мышь сейчас над этим
-// хинтом (DOM-детект в handleMouseMove — позиция соседнего символа тоже равна якорю)
-// и позиция запроса совпадает с якорем хинта.
+// и получает запрос с позицией якоря или якоря-1 (у хинта в середине строки виджет
+// запрашивает на range.startColumn, см. provideQueryParamsHover). Гейты против ложных
+// срабатываний: мышь сейчас над этим хинтом (DOM-детект в handleMouseMove — позиция
+// соседнего символа тоже равна якорю) и строка/колонка запроса соседствуют с якорем.
 let hoveredHint = null;
 let hoveredModel = null;
 
@@ -75,7 +76,17 @@ function provideQueryParamsHover(model, position) {
   if (!hoveredHint || model !== hoveredModel)
     return null;
 
-  if (position.lineNumber != hoveredHint.line || position.column != hoveredHint.column)
+  if (position.lineNumber != hoveredHint.line)
+    return null;
+
+  // Позиция запроса — якорь хинта или колонка слева от него. У хинта в конце строки
+  // Monaco запрашивает hover коллапсированным диапазоном ровно на якоре, а у хинта
+  // в середине строки ::after-чип визуально занимает место между якорем и предыдущей
+  // колонкой, hit-test брекетует якорь соседними колонками (mouseTarget.js) и hover-
+  // виджет запрашивает провайдеров на range.startColumn = якорь - 1 (modesContentHover.js).
+  // Ложные срабатывания отсекает DOM-гейт: провайдер активен, только пока мышь над
+  // самим хинтом (hoveredHint, см. handleMouseMove).
+  if (position.column != hoveredHint.column && position.column != hoveredHint.column - 1)
     return null;
 
   return {
