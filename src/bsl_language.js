@@ -1,5 +1,6 @@
 import bslHelper from './bsl_helper';
 import queryModelService from './query_model_service';
+import { queryParamsTooltipHover } from './inlay_hints';
 
 function getQueryCompletion(model, position, context) {
     let bsl = new bslHelper(model, position);
@@ -877,7 +878,12 @@ export let languages = {
             }
         },
         hoverProvider: {
-            provideHover: function (model, position) {                    
+            provideHover: function (model, position) {
+                // Над хинтом тултипа параметра запроса — только markdown-подсказка набора
+                // (specs/query-params-tooltips): иначе слово параметра добавляет вторую
+                // строку в hover-виджет (например, совпав со ссылкой в SELECT).
+                if (queryParamsTooltipHover(model, position))
+                    return null;
                 let bsl = new bslHelper(model, position);
                 bsl.onProvideHover();
                 if (!window.ctrlPressed) {                        
@@ -956,7 +962,11 @@ export let languages = {
             }
         },
         hoverProvider: {
-            provideHover: function (model, position) {                    
+            provideHover: function (model, position) {
+                // Над хинтом тултипа параметра запроса — только markdown-подсказка набора
+                // (specs/query-params-tooltips), см. guard в bsl_query выше.
+                if (queryParamsTooltipHover(model, position))
+                    return null;
                 let bsl = new bslHelper(model, position);
                 bsl.onProvideHover();
                 if (!window.ctrlPressed) {                        

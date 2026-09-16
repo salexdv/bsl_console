@@ -1503,9 +1503,13 @@ window.clearInlayHints = function () {
  * (specs/query-params-tooltips). Работает только в режимах bsl_query / dcs_query: позиции
  * вычисляются по тексту модели и пересчитываются при каждом его изменении. Занимает набор
  * инлей-хинтов целиком (см. setInlayHints); очистка — clearInlayHints или пустой массив.
- * @param {string|Array<{param: string, label: string, value?: *}>} params массив (или JSON-строка)
- *   описаний: param — имя параметра без &; label — текст тултипа; value — произвольное значение,
- *   прокидываемое в событие клика как event_params (хинт с незаданным value не кликабельный).
+ * Опциональное поле tooltip (markdown-строка) — всплывающая подсказка хинта при наведении
+ * (штатный markdown-рендерер Monaco: http/https-ссылки кликабельны, command: — заблокированы).
+ * @param {string|Array<{param: string, label: string, value?: *, tooltip?: string}>} params
+ *   массив (или JSON-строка) описаний: param — имя параметра без &; label — текст тултипа;
+ *   value — произвольное значение, прокидываемое в событие клика как event_params (хинт
+ *   с незаданным value не кликабельный); tooltip — markdown-строка всплывающей подсказки
+ *   при наведении (отсутствует/null — подсказки нет).
  * @returns {boolean|{errorDescription: string}} true — набор принят; false — редактор недоступен,
  *   режим сравнения или не режим запроса; {errorDescription} — ошибка разбора.
  */
@@ -2869,6 +2873,17 @@ function initEditorEventListenersAndProperies(ownerEditor) {
     if (window.editor !== ownerEditor)
       return;
     newReviewDecoration(e);
+    // Markdown-tooltip хинтов тултипов параметров запроса (specs/query-params-tooltips):
+    // контроллер запоминает хинт под мышью для hover-провайдера (см. inlay_hints.js).
+    if (ownerEditor.inlayHintsController)
+      ownerEditor.inlayHintsController.handleMouseMove(e);
+  });
+
+  ownerEditor.onMouseLeave(() => {
+    if (window.editor !== ownerEditor)
+      return;
+    if (ownerEditor.inlayHintsController)
+      ownerEditor.inlayHintsController.handleMouseLeave();
   });
 
   ownerEditor.onKeyDown(e => {

@@ -867,6 +867,10 @@ setTimeout(() => {
         return window.editor.inlayHintsController.getState();
       }
 
+      function controller() {
+        return window.editor.inlayHintsController;
+      }
+
       function renderedTooltips() {
         return window.editor.getDomNode().querySelectorAll('.bsl-inlay-hint');
       }
@@ -989,6 +993,159 @@ setTimeout(() => {
         finally {
           window.editor.sendEvent = originalSendEvent;
         }
+
+      });
+
+      it("tooltip задаёт markdown-подсказку хинта: набор хранит tooltip, флаг queryParams", async function () {
+
+        assert.equal(window.setQueryParamsTooltips([{
+          param: 'БезНДС',
+          label: 'Без НДС',
+          value: 'ref-1',
+          tooltip: '**Ставка НДС**: `20%`'
+        }]), true);
+        assert.equal(inlayState().queryParams, true);
+
+        // Ждем именно свежие узлы: первый опрос waitFor синхронный и может увидеть
+        // узлы предыдущего набора до перерисовки декораций (она на следующем кадре).
+        // Маркер включает pointer-events у ::after — без него hover по некликабельному
+        // хинту не детектится (см. decorations.css, handleMouseMove).
+        await waitFor(function () {
+          return renderedTooltips().length == 2
+            && renderedTooltips()[0].classList.contains('bsl-inlay-hint-with-tooltip');
+        });
+
+        assert.deepEqual(inlayState().hints, [
+          { line: 2, column: 29, text: 'Без НДС', id: 'БезНДС', eventParams: 'ref-1', tooltip: '**Ставка НДС**: `20%`' },
+          { line: 4, column: 12, text: 'Без НДС', id: 'БезНДС', eventParams: 'ref-1', tooltip: '**Ставка НДС**: `20%`' }
+        ]);
+
+      });
+
+      it("тултип параметра без tooltip: ни markdown-подсказки, ни маркера", async function () {
+
+        assert.equal(window.setQueryParamsTooltips([{ param: 'БезНДС', label: 'Без НДС', value: 'ref-1' }]), true);
+
+        // Ждем именно свежие узлы: первый опрос waitFor синхронный и может увидеть
+        // узлы предыдущего набора до перерисовки декораций (она на следующем кадре).
+        await waitFor(function () {
+          return renderedTooltips().length == 2
+            && !renderedTooltips()[0].classList.contains('bsl-inlay-hint-with-tooltip');
+        });
+
+        assert.equal(inlayState().hints[0].tooltip, undefined);
+
+      });
+
+      it("наведение на хинт с tooltip подготавливает markdown-hover, уход — сбрасывает", async function () {
+
+        const model = window.editor.getModel();
+
+        window.setQueryParamsTooltips([{ param: 'БезНДС', label: 'Без НДС', value: 'ref-1', tooltip: '**Ставка НДС**: `20%`' }]);
+
+        // Ждем именно свежие узлы (см. waitFor в тесте выше): у нового набора другой uid
+        // классов, DOM-детект по устаревшему узлу ничего не найдет.
+        await waitFor(function () {
+          return renderedTooltips().length == 2
+            && renderedTooltips()[0].classList.contains('bsl-inlay-hint-with-tooltip');
+        });
+
+        // Мышь над хинтом: hover-провайдер отдаёт markdown штатному hover-виджету Monaco.
+        // Позиция мыши над ::after-псевдоэлементом разрешается в якорь хинта (mouseTarget.js),
+        // DOM-гейт — элемент события несёт классы декорации (тем же механизмом, что клики).
+        controller().handleMouseMove({ target: { element: renderedTooltips()[0], type: monaco.editor.MouseTargetType.CONTENT_TEXT } });
+
+        assert.deepEqual(controller().hoverAt(model, { lineNumber: 2, column: 29 }), {
+          range: new monaco.Range(2, 29, 2, 29),
+          contents: [{ value: '**Ставка НДС**: `20%`' }]
+        });
+
+        // Чужая позиция — гейт отсекает: соседний символ имеет ту же колонку, что якорь.
+        assert.equal(controller().hoverAt(model, { lineNumber: 2, column: 28 }), null);
+
+        // Второе вхождение параметра — свой якорь.
+        controller().handleMouseMove({ target: { element: renderedTooltips()[1], type: monaco.editor.MouseTargetType.CONTENT_TEXT } });
+        assert.equal(controller().hoverAt(model, { lineNumber: 4, column: 12 }).contents[0].value, '**Ставка НДС**: `20%`');
+        assert.equal(controller().hoverAt(model, { lineNumber: 2, column: 29 }), null);
+
+        // Мышь по обычному тексту — сброс.
+        controller().handleMouseMove({ target: { element: window.editor.getDomNode().querySelector('.view-line'), type: monaco.editor.MouseTargetType.CONTENT_TEXT } });
+        assert.equal(controller().hoverAt(model, { lineNumber: 4, column: 12 }), null);
+
+        // Некликабельный хинт (без value) с tooltip — подсказка тоже показывается:
+        // маркер держит pointer-events: auto, клики при этом проходят в редактор.
+        window.setQueryParamsTooltips([{ param: 'БезНДС', label: 'Без НДС', tooltip: 'Подсказка' }]);
+
+        // Ждем именно свежие узлы: первый опрос waitFor синхронный и может увидеть
+        // кликабельные узлы предыдущего набора до перерисовки декораций.
+        await waitFor(function () {
+          return renderedTooltips().length == 2
+            && !renderedTooltips()[0].classList.contains('bsl-inlay-hint-clickable');
+        });
+
+        assert.isTrue(renderedTooltips()[0].classList.contains('bsl-inlay-hint-with-tooltip'));
+
+        controller().handleMouseMove({ target: { element: renderedTooltips()[0], type: monaco.editor.MouseTargetType.CONTENT_TEXT } });
+        assert.equal(controller().hoverAt(model, { lineNumber: 2, column: 29 }).contents[0].value, 'Подсказка');
+
+        // Уход мыши из редактора — сброс.
+        controller().handleMouseLeave();
+        assert.equal(controller().hoverAt(model, { lineNumber: 2, column: 29 }), null);
+
+      });
+
+      it("над хинтом с tooltip штатный hover слова запроса подавляется на позиции якоря", async function () {
+
+        const model = window.editor.getModel();
+
+        window.setQueryParamsTooltips([{ param: 'БезНДС', label: 'Без НДС', value: 'ref-1', tooltip: '**Ставка НДС**: `20%`' }]);
+
+        await waitFor(function () {
+          return renderedTooltips().length == 2
+            && renderedTooltips()[0].classList.contains('bsl-inlay-hint-with-tooltip');
+        });
+
+        // Мышь над хинтом: наша markdown-подсказка активна, а провайдеры языка запроса
+        // на якоре молчат — иначе слово параметра (совпав со ссылкой в SELECT, см.
+        // getQueryModelSelectItemByWord) добавило бы вторую строку в hover-виджет.
+        controller().handleMouseMove({ target: { element: renderedTooltips()[0], type: monaco.editor.MouseTargetType.CONTENT_TEXT } });
+
+        assert.ok(controller().hoverAt(model, { lineNumber: 2, column: 29 }));
+        assert.equal(window.languages.query.hoverProvider.provideHover(model, { lineNumber: 2, column: 29 }), null);
+        assert.equal(window.languages.dcs.hoverProvider.provideHover(model, { lineNumber: 2, column: 29 }), null);
+
+        // Увод мыши — guard провайдеров языка больше не срабатывает (позиция якоря
+        // проходит к штатной логике getQueryHover/getCustomHover без подавления).
+        controller().handleMouseLeave();
+        window.languages.query.hoverProvider.provideHover(model, { lineNumber: 2, column: 29 });
+        window.languages.dcs.hoverProvider.provideHover(model, { lineNumber: 2, column: 29 });
+
+      });
+
+      it("классический setInlayHints прежний: tooltip игнорируется, hover не включается", async function () {
+
+        assert.equal(window.setInlayHints([
+          { line: 2, column: 29, text: 'ручной хинт', event_params: 'ref-2', tooltip: '**не** показывается' }
+        ]), true);
+        assert.equal(inlayState().queryParams, false);
+
+        await waitFor(function () { return renderedTooltips().length == 1; });
+
+        const rendered = renderedTooltips()[0];
+
+        // Кликабельность и pointer-курсор — как до наборов QP (decorations.css):
+        // на 0.20 у кликабельных хинтов нет command-ссылки с подчёркиванием, pointer —
+        // единственный аффорданс, поэтому существует для всех кликабельных хинтов.
+        assert.isTrue(rendered.classList.contains('bsl-inlay-hint-clickable'));
+        assert.isFalse(rendered.classList.contains('bsl-inlay-hint-with-tooltip'));
+        assert.equal(window.getComputedStyle(rendered, '::after').cursor, 'pointer');
+
+        // Поле tooltip проносится общим парсером в набор (паритет с реализацией 0.55),
+        // но у классических наборов инертно: маркер не ставится, hover не включается
+        // (проверено ниже и выше).
+        assert.equal(inlayState().hints[0].tooltip, '**не** показывается');
+        controller().handleMouseMove({ target: { element: rendered, type: monaco.editor.MouseTargetType.CONTENT_TEXT } });
+        assert.equal(controller().hoverAt(window.editor.getModel(), { lineNumber: 2, column: 29 }), null);
 
       });
 

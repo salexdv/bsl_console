@@ -913,6 +913,17 @@ div:has(> .add-review) {
 	cursor: pointer;
 }
 
+/* Тултипы параметров запроса (specs/query-params-tooltips): хинт с markdown-tooltip.
+   Класс вешает рендер набора queryParams (src/inlay_hints.js). pointer-events: auto
+   делает ::after хит-тестуемым — у некликабельного хинта (без value) ::after по умолчанию
+   прозрачен для событий (pointer-events: none), и событие мыши проваливается мимо span
+   декорации: контроллер (handleMouseMove) не опознает хинт, hover-провайдер не покажет
+   подсказку. Курсор не меняется: хинт без value некликабельный, с value pointer задает
+   правило bsl-inlay-hint-clickable выше. */
+.bsl-inlay-hint.bsl-inlay-hint-with-tooltip::after {
+	pointer-events: auto;
+}
+
 .monaco-editor.vs .bsl-inlay-hint::after {
 	color: #6c6c6c;
 	background: rgba(128, 128, 128, 0.12);
