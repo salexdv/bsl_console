@@ -2660,6 +2660,12 @@ window.stopCodeReview = function() {
 
 }
 
+window.getEvents = function() {
+		let copy = window.events_queue;
+		window.events_queue = [];
+		return JSON.stringify(copy);
+}
+
 // #endregion
 
 // #region init editor
@@ -6525,10 +6531,12 @@ document.onclick = function (e) {
 
   }
   else if (e.target.id == 'event-button' && window.events_queue.length) {
-    let eventData1C = window.events_queue.shift();
-    e.eventData1C = eventData1C;
-    console.debug(eventData1C.event, eventData1C.params);
-
+    if (window.getOption('webClientMode')) {
+   	  // Для веб-клиента отправляется только признак события для проверки очереди
+    } else {
+      e.eventData1C = window.events_queue.shift();
+	  console.debug(eventData1C.event, eventData1C.params);
+    }
   }
 
 }
