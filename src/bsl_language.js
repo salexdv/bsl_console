@@ -981,7 +981,7 @@ export let languages = {
             provideCompletionItems: function (model, position, context, token) {
                 resetSuggestWidgetDisplay();
                 let bsl = new bslHelper(model, position);
-                let completion = bsl.getDCSCompletion();
+                let completion = bsl.getDCSCompletion(context);
                 bsl.onProvideCompletion(context, completion);
                 // 0.55: пусто → undefined, иначе на авто-триггере (пробел/точка/&) висит блок
                 // «No suggestions» (в 0.20 return [] его не показывал). Ctrl+Space monaco обработает сам.

@@ -2,6 +2,7 @@ import monaco from "./expose-monaco";
 import Finder from "./finder";
 import queryModelService from "./query_model_service";
 import queryNavigation from "./query_navigation";
+import { getQueryVirtualTableSignature } from './query_virtual_table_signatures';
 import BslFormatter from "./bsl_formatter";
 import { availabilityToArray } from "./bslGlobals";
 
@@ -6515,14 +6516,14 @@ class bslHelper {
 			}
 			else if (type == 'action_period') {
 				tables = {					
-					"Base": "Base",
+					"Base<RegisterName>": "Base${1:RegisterName}",
 					"ScheduleData": "ScheduleData",
-					"ActualActionPeriod": "ActualActionPeriod"					
+					"AdjustedEffectivePeriod": "AdjustedEffectivePeriod"
 				};
 			}
 			else if (type == 'noaction_period') {
 				tables = {					
-					"Base": "Base"					
+					"Base<RegisterName>": "Base${1:RegisterName}"
 				};
 			}
 
@@ -6551,7 +6552,7 @@ class bslHelper {
 				tables = {					
 					"ДвиженияССубконто": "ДвиженияССубконто",
 					"Обороты": "Обороты",
-					"ОборотыДт": "ОборотыДт",
+					"ОборотыДтКт": "ОборотыДтКт",
 					"Остатки": "Остатки",
 					"ОстаткиИОбороты": "ОстаткиИОбороты",
 					"Субконто": "Субконто"
@@ -6559,14 +6560,14 @@ class bslHelper {
 			}
 			else if (type == 'action_period') {
 				tables = {					
-					"БазаНачисления": "БазаНачисления",
+					"База<ИмяБазовогоРегистра>": "База${1:ИмяБазовогоРегистра}",
 					"ДанныеГрафика": "ДанныеГрафика",
 					"ФактическийПериодДействия": "ФактическийПериодДействия"					
 				};
 			}
 			else if (type == 'noaction_period') {
 				tables = {					
-					"БазаНачисления": "БазаНачисления"					
+					"База<ИмяБазовогоРегистра>": "База${1:ИмяБазовогоРегистра}"
 				};
 			}
 
@@ -7112,11 +7113,17 @@ class bslHelper {
 
 	}
 
-	/**
-	 * Completion provider for query language	
-	 * 
-	 * @returns {array} array of completion
-	 */
+	/** Определяет автотриггер дополнений на открытии виртуальной таблицы. */
+	isQueryVirtualTableOpening(context) {
+
+		// На открытии списка параметров достаточно signature help. Обычное
+		// дополнение здесь ошибочно воспринимает позицию как новый источник ИЗ.
+		return context && context.triggerCharacter == '('
+			&& !!getQueryVirtualTableSignature(this.getLastSigMethod({}));
+
+	}
+
+	/** Возвращает дополнения языка запросов. */
 	getQueryCompletion(context) {
 
 		let suggestions = [];
@@ -7137,6 +7144,8 @@ class bslHelper {
 		else {
 
 			suggestions = this.getCustomSuggestions(true);
+			if (!suggestions.length && this.isQueryVirtualTableOpening(context))
+				return { suggestions: [] };
 
 			if (!suggestions.length && !editor.disableNativeSuggestions) {
 
@@ -7211,9 +7220,11 @@ class bslHelper {
 	 * 
 	 * @returns {array} array of completion
 	 */
-	 getDCSCompletion() {
+	 getDCSCompletion(context) {
 
 		let suggestions = this.getCustomSuggestions(true);
+		if (!suggestions.length && this.isQueryVirtualTableOpening(context))
+			return { suggestions: [] };
 		
 		if (!suggestions.length && !window.editor.disableNativeSuggestions) {
 
@@ -7910,12 +7921,35 @@ class bslHelper {
 	}
 	
 	/**
-	 * Returnes name of last method for signature help
-	 * 
-	 * @param {SignatureHelpContext} context signature help context
-	 * 
-	 * @returns {SignatureHelpContext} context
+	 * Восстанавливает имя вызова запроса, включая разделённые пробелами части.
+	 * @param {object} lexicalData токенизированный текст до курсора
+	 * @param {Range} bracket активная открывающая скобка
+	 * @returns {string} имя вызова без пробелов и комментариев
 	 */
+	getQuerySignatureMethod(lexicalData, bracket) {
+
+		// Маскируем комментарии, сохраняя смещения; строки разрывают имя вызова.
+		let lines = lexicalData.lines.slice(0, bracket.startLineNumber);
+		lines[lines.length - 1] = lines[lines.length - 1].slice(0, bracket.startColumn - 1);
+		let text = lines.map((line, index) => {
+			let tokens = lexicalData.tokens[index] || [];
+			let characters = line.split('');
+			for (let i = 0; i < tokens.length; i++) {
+				let type = (tokens[i].type || '').toLowerCase();
+				if (!this.isIgnoredSignatureToken(type, true))
+					continue;
+				let end = i + 1 < tokens.length ? tokens[i + 1].offset : line.length;
+				for (let offset = tokens[i].offset; offset < end && offset < line.length; offset++)
+					characters[offset] = /comment/.test(type) ? ' ' : '\u0000';
+			}
+			return characters.join('');
+		}).join('\n');
+		let match = /[a-zа-яё_][a-zа-яё_0-9]*(?:\s*\.\s*[a-zа-яё_][a-zа-яё_0-9]*)*\s*$/i.exec(text);
+		return match ? match[0].replace(/\s/g, '') : '';
+
+	}
+
+	/** Возвращает имя вызова и индекс аргумента для подсказки параметров. */
 	getLastSigMethod(context) {
 
 		context = context || {};
@@ -7941,6 +7975,9 @@ class bslHelper {
 					data.word = '';
 				}
 			}	
+
+			if (lexicalData.queryLanguage)
+				method = this.getQuerySignatureMethod(lexicalData, bracket);
 
 			context.methodPosition = position;
 			context.activeParameter = this.getSignatureActiveParameter(lexicalData, bracket);
@@ -8013,8 +8050,11 @@ class bslHelper {
 			let helper = this.getCustomSigHelp(context);
 
 			if (!helper && !window.editor.disableNativeSignatures) {
-				let functions = this.getQueryFunctions(window.bslQuery);
-				helper = this.getCommonSigHelp(context, functions);
+				helper = getQueryVirtualTableSignature(context);
+				if (!helper) {
+					let functions = this.getQueryFunctions(window.bslQuery);
+					helper = this.getCommonSigHelp(context, functions);
+				}
 			}
 			
 			if (helper)
@@ -8040,9 +8080,11 @@ class bslHelper {
 			let helper = this.getCustomSigHelp(context);
 
 			if (!helper && !window.editor.disableNativeSignatures) {
+				helper = getQueryVirtualTableSignature(context);
 
 				let functions = this.getQueryFunctions(window.bslDCS);
-				helper = this.getCommonSigHelp(context, functions);
+				if (!helper)
+					helper = this.getCommonSigHelp(context, functions);
 
 				if (!helper) {
 					functions = this.getQueryFunctions(window.bslQuery);

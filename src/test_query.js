@@ -419,6 +419,169 @@ setTimeout(() => {
       expect(help).to.have.property('activeParameter');
     });
 
+    describe('параметры виртуальных таблиц регистров', function () {
+      const cases = [
+        ['РегистрСведений.Цены.СрезПервых', 'InformationRegister.Prices.SliceFirst', ['Период', 'Условие']],
+        ['РегистрСведений.Цены.СрезПоследних', 'InformationRegister.Prices.SliceLast', ['Период', 'Условие']],
+        ['РегистрНакопления.Товары.Остатки', 'AccumulationRegister.Goods.Balance', ['Период', 'Условие']],
+        ['РегистрНакопления.Товары.Обороты', 'AccumulationRegister.Goods.Turnovers', ['НачалоПериода', 'КонецПериода', 'Периодичность', 'Условие']],
+        ['РегистрНакопления.Товары.ОстаткиИОбороты', 'AccumulationRegister.Goods.BalanceAndTurnovers', ['НачалоПериода', 'КонецПериода', 'Периодичность', 'МетодДополнения', 'Условие']],
+        ['РегистрБухгалтерии.Хозрасчетный.Остатки', 'AccountingRegister.Ledger.Balance', ['Период', 'УсловиеСчета', 'Субконто', 'Условие']],
+        ['РегистрБухгалтерии.Хозрасчетный.Обороты', 'AccountingRegister.Ledger.Turnovers', ['НачалоПериода', 'КонецПериода', 'Периодичность', 'УсловиеСчета', 'Субконто', 'Условие', 'УсловиеКорСчета', 'КорСубконто']],
+        ['РегистрБухгалтерии.Хозрасчетный.ОстаткиИОбороты', 'AccountingRegister.Ledger.BalanceAndTurnovers', ['НачалоПериода', 'КонецПериода', 'Периодичность', 'МетодДополнения', 'УсловиеСчета', 'Субконто', 'Условие']],
+        ['РегистрБухгалтерии.Хозрасчетный.ОборотыДтКт', 'AccountingRegister.Ledger.DrCrTurnovers', ['НачалоПериода', 'КонецПериода', 'Периодичность', 'УсловиеСчетаДт', 'СубконтоДт', 'УсловиеСчетаКт', 'СубконтоКт', 'Условие']],
+        ['РегистрБухгалтерии.Хозрасчетный.ДвиженияССубконто', 'AccountingRegister.Ledger.RecordsWithExtDimensions', ['НачалоПериода', 'КонецПериода', 'Условие', 'Порядок', 'Первые']],
+        ['РегистрРасчета.Начисления.ДанныеГрафика', 'CalculationRegister.Accruals.ScheduleData', ['Условие']],
+        ['РегистрРасчета.Начисления.ФактическийПериодДействия', 'CalculationRegister.Accruals.AdjustedEffectivePeriod', ['Условие']],
+        ['РегистрРасчета.Премии.БазаНачисления', 'CalculationRegister.Bonuses.BaseAccruals', ['ИзмеренияОсновногоРегистра', 'ИзмеренияБазовогоРегистра', 'Разрезы', 'Условие']]
+      ];
+
+      function queryHelper(text, mode) {
+        const model = monaco.editor.createModel(text, mode || 'bsl_query');
+        ownedModels.add(model);
+        return new bslHelper(model, getPositionByModel(model));
+      }
+
+      function signature(text, mode, context) {
+        const previousMode = window.getCurrentLanguageId();
+        try {
+          window.setLanguageMode(mode || 'bsl_query');
+          const instance = queryHelper(text, mode);
+          return mode == 'dcs_query' ? instance.getDCSSigHelp(context || {}) : instance.getQuerySigHelp(context || {});
+        }
+        finally { window.setLanguageMode(previousMode); }
+      }
+
+      function names(result, variant) {
+        const sig = result.value.signatures[variant || 0];
+        return sig.parameters.map(param => sig.label.slice(param.label[0], param.label[1]));
+      }
+
+      ['bsl_query', 'dcs_query'].forEach(mode => {
+        cases.forEach(item => {
+          it(mode + ': ' + item[0], function () {
+            const result = signature('ВЫБРАТЬ * ИЗ ' + item[0] + '(', mode);
+            assert.deepEqual(names(result), item[2]);
+            assert.equal(result.value.activeParameter, 0);
+            assert.equal(result.value.signatures[0].label.indexOf(item[0] + '('), 0);
+            result.value.signatures[0].parameters.forEach(param => {
+              assert.include(param.documentation.value, 'Тип:');
+              assert.isAbove(param.documentation.value.split('\n\n').length, 2);
+            });
+            const english = signature('SELECT * FROM ' + item[1].toLowerCase() + '(', mode);
+            assert.equal(english.value.signatures[0].parameters.length, item[2].length);
+            assert.match(names(english)[0], /^[A-Za-z]+$/);
+          });
+        });
+      });
+
+      it('считает пропущенные аргументы, строки, комментарии и завершённые вложенные вызовы', function () {
+        const prefix = 'ВЫБРАТЬ * ИЗ РегистрНакопления.Товары.ОстаткиИОбороты(';
+        ['&Начало,', ',,', 'ДАТАВРЕМЯ(2020, 1, 1),,', '"(,)",,', '&Начало, // (,\n,'].forEach((suffix, index) => {
+          assert.equal(signature(prefix + suffix).value.activeParameter, index == 0 ? 1 : 2);
+        });
+        const nested = signature(prefix + 'ДАТАВРЕМЯ(2020,');
+        assert.equal(nested.value.activeParameter, 1);
+        assert.notInclude(nested.value.signatures[0].label, 'ОстаткиИОбороты');
+        assert.isUndefined(signature(prefix + '),'));
+        assert.isUndefined(signature(prefix + ',,,,,'));
+      });
+
+      it('распознаёт пробелы, переносы, комментарии и смешанный регистр имени', function () {
+        const result = signature('ВЫБРАТЬ * ИЗ рЕгИсТрНаКоПлЕнИя \n . // комментарий\n Товары . Остатки \n (');
+        assert.deepEqual(names(result), ['Период', 'Условие']);
+      });
+
+      it('не требует метаданных и не принимает неизвестные или неполные имена', function () {
+        const metadata = window.bslMetadata;
+        try {
+          window.bslMetadata = {};
+          assert.deepEqual(names(signature('РегистрНакопления.Неизвестный.Остатки(')), ['Период', 'Условие']);
+          ['РегистрНакопления.Товары.НетТаблицы(', 'Товары.Остатки(', 'Справочник.Товары.Остатки(',
+            'РегистрСведений.Цены.Остатки(', 'РегистрРасчета.Премии.База(', 'РегистрБухгалтерии.Хозрасчетный.Субконто(',
+            '"РегистрНакопления.Товары.Остатки("', '// РегистрНакопления.Товары.Остатки('].forEach(text => {
+            assert.isUndefined(signature(text), text);
+          });
+        }
+        finally { window.bslMetadata = metadata; }
+      });
+
+      it('сохраняет выбранный вариант бухгалтерских оборотов и проверяет лишние аргументы', function () {
+        const prefix = 'РегистрБухгалтерии.Хозрасчетный.Обороты(';
+        const result = signature(prefix, 'bsl_query', { activeSignatureHelp: { activeSignature: 1 } });
+        assert.equal(result.value.activeSignature, 1);
+        assert.equal(result.value.signatures[1].parameters.length, 6);
+        assert.equal(signature(prefix + ',,,,,,', 'bsl_query', { activeSignatureHelp: { activeSignature: 1 } }).value.activeSignature, 0);
+        assert.isUndefined(signature(prefix + ',,,,,,,,'));
+      });
+
+      it('уважает пользовательские сигнатуры и disableNativeSignatures', function () {
+        const custom = window.customSignatures;
+        const disabled = window.editor.disableNativeSignatures;
+        try {
+          const prefix = 'РегистрНакопления.Товары.Остатки(';
+          window.editor.disableNativeSignatures = true;
+          assert.isUndefined(signature(prefix));
+          window.customSignatures = { 'регистрнакопления.товары.остатки': [{ label: '(МойПараметр)', parameters: [{ label: 'МойПараметр' }] }] };
+          assert.equal(signature(prefix).value.signatures[0].label, '(МойПараметр)');
+          window.editor.disableNativeSignatures = false;
+          assert.equal(signature(prefix).value.signatures[0].label, '(МойПараметр)');
+        }
+        finally {
+          window.customSignatures = custom;
+          window.editor.disableNativeSignatures = disabled;
+        }
+      });
+
+      it('исправляет имена виртуальных таблиц в автодополнении', function () {
+        const instance = queryHelper('');
+        const english = window.engLang;
+        try {
+          window.engLang = false;
+          assert.property(instance.getRegisterVirtualTables('accounting'), 'ОборотыДтКт');
+          assert.property(instance.getRegisterVirtualTables('action_period'), 'База<ИмяБазовогоРегистра>');
+          window.engLang = true;
+          assert.property(instance.getRegisterVirtualTables('action_period'), 'AdjustedEffectivePeriod');
+          assert.property(instance.getRegisterVirtualTables('noaction_period'), 'Base<RegisterName>');
+        }
+        finally { window.engLang = english; }
+      });
+
+      it('показывает тип и корректную нижнюю границу среза первых', function () {
+        const result = signature('РегистрСведений.Цены.СрезПервых(');
+        const param = result.value.signatures[0].parameters[0];
+        assert.include(param.documentation.value, 'Дата | МоментВремени | Граница');
+        assert.include(param.documentation.value, 'Нижняя граница');
+        const english = signature('CalculationRegister.Bonuses.BaseAccruals(');
+        assert.deepEqual(names(english), ['MainRegisterDimensions', 'BaseRegisterDimensions', 'ViewPoints', 'Condition']);
+      });
+
+      ['bsl_query', 'dcs_query'].forEach(mode => {
+        it(mode + ': открытие виртуальной таблицы показывает сигнатуру без списка метаданных', function () {
+          const previousMode = window.getCurrentLanguageId();
+          try {
+            window.setLanguageMode(mode);
+            cases.forEach(item => {
+              const instance = queryHelper('ВЫБРАТЬ *\nИЗ ' + item[0] + '(', mode);
+              const completion = mode == 'dcs_query'
+                ? instance.getDCSCompletion({ triggerCharacter: '(' })
+                : instance.getQueryCompletion({ triggerCharacter: '(' });
+              assert.deepEqual(completion.suggestions, [], item[0]);
+              const provider = mode == 'dcs_query' ? languages.dcs.completionProvider : languages.query.completionProvider;
+              assert.isUndefined(provider.provideCompletionItems(instance.model, instance.position,
+                { triggerCharacter: '(', triggerKind: monaco.languages.CompletionTriggerKind.TriggerCharacter },
+                { isCancellationRequested: false }));
+              assert.exists(mode == 'dcs_query' ? instance.getDCSSigHelp({}) : instance.getQuerySigHelp({}));
+            });
+            // Ограничение действует только на автотриггер виртуальной таблицы.
+            assert.isFalse(!!queryHelper('ВЫБРАТЬ ЕСТЬNULL(', mode).isQueryVirtualTableOpening({ triggerCharacter: '(' }));
+            assert.isFalse(!!queryHelper('ВЫБРАТЬ * ИЗ РегистрНакопления.Товары.Остатки(', mode).isQueryVirtualTableOpening({}));
+          }
+          finally { window.setLanguageMode(previousMode); }
+        });
+      });
+    });
+
     it("токен-aware контекст сигнатуры сохраняется в режимах запроса и СКД (issue #343)", function () {
       let queryHelper = helper('РАЗНОСТЬДАТ(ДОБАВИТЬКДАТЕ(Дата, ДЕНЬ, 1), ');
       let queryContext = queryHelper.getLastSigMethod({});
