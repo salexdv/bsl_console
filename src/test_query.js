@@ -1,6 +1,7 @@
 import bslHelper from './bsl_helper';
 import queryModel from './query_model';
 import { languages } from './bsl_language';
+import registerQueryFieldMoveTests from './test_query_field_move';
 
 setTimeout(() => {
 
@@ -1078,6 +1079,8 @@ setTimeout(() => {
       expect(suggestions.suggestions).to.be.an('array').that.not.is.empty;
       assert.equal(suggestions.suggestions.some(suggest => suggest.label === "Наименование"), true);
     });
+
+    registerQueryFieldMoveTests();
 
     window.setLanguageMode('bsl_query');
         

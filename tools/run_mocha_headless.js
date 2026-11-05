@@ -14,6 +14,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const puppeteer = require('puppeteer-core');
+const queryFieldKeysSmoke = require('./query_field_keys_smoke');
 
 const ROOT = path.resolve(__dirname, '..');
 const DIST = path.join(ROOT, 'dist');
@@ -74,6 +75,14 @@ async function runPage(browser, url, pageName) {
     await page.waitForFunction('window.mochaResults != null', { timeout: RESULT_TIMEOUT_MS });
     stats = await page.evaluate(() => window.mochaResults);
     failures = await page.evaluate(() => window.mochaFailures || []);
+    if (pageName == 'test_query.html') {
+      try {
+        await queryFieldKeysSmoke(page);
+        console.log('[mocha] Alt+↑/↓: проверка клавиатурой пройдена');
+      } catch (error) {
+        pageErrors.push('Alt+↑/↓: ' + error.message);
+      }
+    }
   } catch (e) {
     timedOut = true;
     pageErrors.push('НЕ дождались window.mochaResults за ' + (RESULT_TIMEOUT_MS / 1000) + 'с: ' + ((e && e.message) || e));

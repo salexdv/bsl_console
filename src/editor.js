@@ -16,6 +16,7 @@ import monaco from './expose-monaco';
 
 import { languages, setHighlightInnerQuotes} from './bsl_language';
 import queryModelService from './query_model_service';
+import { registerQueryFieldMove } from './query_field_move';
 import HiddenBlocksController from './hidden_blocks';
 import { getActions, permanentActions } from './actions';
 import './decorations.css'
@@ -2775,6 +2776,7 @@ function createEditorInstance(language_id, text, theme, readOnly = false) {
     editor.updateCodeLens = previousEditor.updateCodeLens;
 
   registerPermanentEditorActions(editor);
+  registerQueryFieldMove(editor, monaco);
 
   if (!editorKeybindingsConfigured) {
     changeCommandKeybinding('editor.action.revealDefinition', monaco.KeyCode.F12);

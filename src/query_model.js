@@ -1417,6 +1417,11 @@ const KEYWORDS = new Set([
 
 const queryModel = {
 
+        // Внутренний интерфейс для операций редактирования без построения AST.
+        tokenize(text) {
+            return new QueryTokenizer(text || '').tokenize();
+        },
+
         parse(text) {
             let start = nowMs();
             let parser = new QueryParser(text);
