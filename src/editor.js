@@ -3,6 +3,7 @@
 import 'core-js/stable';
 import { languages, setHighlightInnerQuotes} from './bsl_language';
 import queryModelService from './query_model_service';
+import { registerQueryFieldMove } from './query_field_move';
 import { getActions, permanentActions } from './actions';
 import './decorations.css'
 import './tingle.css'
@@ -2628,6 +2629,7 @@ function createEditorInstance(language_id, text, theme, readOnly = false) {
 
   registerHelpAction(editor);
   registerPermanentEditorActions(editor);
+  registerQueryFieldMove(editor, monaco);
 
   if (!editorKeybindingsConfigured) {
     changeCommandKeybinding(editor, 'editor.action.revealDefinition', monaco.KeyCode.F12);

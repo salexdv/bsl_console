@@ -4,6 +4,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const puppeteer = require('puppeteer-core');
+const queryFieldKeysSmoke = require('./query_field_keys_smoke');
 
 const DIST = path.resolve(__dirname, '..', 'dist');
 const PORT = 9014;
@@ -45,7 +46,9 @@ function serve() {
 (async function () {
   const executablePath = findBrowser();
   if (!executablePath) throw new Error('Chrome/Edge не найден');
-  if (!fs.existsSync(path.join(DIST, 'test'))) throw new Error('Сначала выполните npm run build:test');
+  for (const name of ['test', 'test_query']) {
+    if (!fs.existsSync(path.join(DIST, name))) throw new Error('Сначала выполните npm run build:test');
+  }
 
   const server = await serve();
   const browser = await puppeteer.launch({ executablePath: executablePath, headless: true, args: ['--no-sandbox'] });
@@ -58,29 +61,40 @@ function serve() {
   });
 
   try {
-    await page.goto('http://127.0.0.1:' + PORT + '/test', { waitUntil: 'load', timeout: 60000 });
-    await page.waitForFunction('window.mochaRunner && window.mochaRunner.state == "stopped"', { timeout: 120000 });
+    for (const name of ['test', 'test_query']) {
+      errors.length = 0;
+      await page.goto('http://127.0.0.1:' + PORT + '/' + name, { waitUntil: 'load', timeout: 60000 });
+      await page.waitForFunction(name == 'test_query'
+        ? 'window.queryTestsComplete != null'
+        : 'window.mochaRunner && window.mochaRunner.state == "stopped"', { timeout: 120000 });
 
-    const result = await page.evaluate(function () {
-      return {
-        failures: window.mochaRunner.failures,
-        passes: window.mochaRunner.stats.passes,
-        pending: window.mochaRunner.stats.pending,
-        failedTests: Array.prototype.map.call(document.querySelectorAll('#mocha-report .test.fail'), function (node) {
-          return node.innerText;
-        })
-      };
-    });
+      const result = await page.evaluate(function (name) {
+        const stats = name == 'test_query' ? window.queryTestsComplete : window.mochaRunner.stats;
+        return {
+          failures: stats.failures,
+          passes: stats.passes,
+          pending: stats.pending || 0,
+          failedTests: Array.prototype.map.call(document.querySelectorAll('#mocha-report .test.fail'), function (node) {
+            return node.innerText;
+          })
+        };
+      }, name);
 
-    if (errors.length)
+      if (name == 'test_query') {
+        try {
+          await queryFieldKeysSmoke(page);
+          console.log('Alt+↑/↓: проверка клавиатурой пройдена');
+        } catch (error) {
+          errors.push('Alt+↑/↓: ' + error.message);
+        }
+      }
       result.failedTests = result.failedTests.concat(errors);
-
-    console.log('Browser tests: ' + result.passes + ' passed, ' + result.failures + ' failed, ' + result.pending + ' pending');
-    if (result.failedTests.length)
-      console.error(result.failedTests.join('\n\n'));
-
-    if (result.failures || errors.length)
-      process.exitCode = 1;
+      console.log(name + ': ' + result.passes + ' passed, ' + result.failures + ' failed, ' + result.pending + ' pending');
+      if (result.failedTests.length)
+        console.error(result.failedTests.join('\n\n'));
+      if (result.failures || errors.length)
+        process.exitCode = 1;
+    }
   }
   finally {
     await browser.close();

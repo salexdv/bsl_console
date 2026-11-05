@@ -5,7 +5,8 @@
   "main": "editor.js",
   "homepage": "https://github.com/salexdv/bsl_console",
   "scripts": {
-    "test": "npm run test:formatter && npm run test:search-history && npm run test:query-model-corpus && npm run test:query-navigation && npm run test:query-model-service && npm run test:ai-inline && npm run test:help",
+    "test": "npm run test:formatter && npm run test:search-history && npm run test:query-model-corpus && npm run test:query-navigation && npm run test:query-field-move && npm run test:query-model-service && npm run test:ai-inline && npm run test:help",
+    "test:query-field-move": "node tests/query_field_move_test.js",
     "test:formatter": "mocha tests/bsl_formatter_test.js",
     "test:search-history": "node tests/search_history_test.js",
     "build:headless": "webpack --mode development --progress",
