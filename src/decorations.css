@@ -963,3 +963,8 @@ div:has(> .add-review) {
 .monaco-editor.vs-dark .bsl-query-desc::after {
 	color: #9d9d9d;
 }
+
+/* Monaco 0.20: сохраняем перенос между именем виртуальной таблицы и параметрами. */
+.monaco-editor .parameter-hints-widget .signature .code {
+    white-space: pre-wrap;
+}
