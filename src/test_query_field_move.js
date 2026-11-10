@@ -61,6 +61,40 @@ export default function registerQueryFieldMoveTests() {
             assert.equal(editor.getModel().getValueInRange(editor.getSelection()), '\tB,\n\tC,\n');
         });
 
+        it('перемещает блок из второй ветки объединения и отменяет обе правки за один шаг', async function () {
+            const original = 'SELECT\n A,\n B,\n C\nFROM T\nUNION ALL\nSELECT\n X,\n Y,\n Z\nFROM U';
+            const expected = 'SELECT\n B,\n C,\n A\nFROM T\nUNION ALL\nSELECT\n Y,\n Z,\n X\nFROM U';
+            const selection = new monaco.Selection(11, 1, 9, 1);
+            const moved = new monaco.Selection(10, 1, 8, 1);
+            editor.setValue(original);
+            editor.setSelection(selection);
+            await key(false);
+            assert.equal(editor.getValue(), expected);
+            assert.isTrue(editor.getSelection().equalsSelection(moved));
+
+            editor.trigger('test', 'undo');
+            assert.equal(editor.getValue(), original);
+            assert.isTrue(editor.getSelection().equalsSelection(selection));
+            editor.trigger('test', 'redo');
+            assert.equal(editor.getValue(), expected);
+            assert.isTrue(editor.getSelection().equalsSelection(moved));
+        });
+
+        it('синхронно перемещает строки 69–70 и 129–130 в запросе из test_query', async function () {
+            const query = window.getCode();
+            const expected = query.split('\n');
+            for (const lastLine of [70, 130]) {
+                const [previous, first, last] = expected.slice(lastLine - 3, lastLine);
+                expected.splice(lastLine - 3, 3, first, last + ',', previous.slice(0, -1));
+            }
+
+            editor.setValue(query);
+            editor.setSelection(new monaco.Selection(69, 1, 71, 1));
+            await key(false);
+            assert.equal(editor.getValue(), expected.join('\n'));
+            assert.isTrue(editor.getSelection().equalsSelection(new monaco.Selection(68, 1, 70, 1)));
+        });
+
         it('перемещает многострочное поле целиком', async function () {
             editor.setValue('SELECT\n CASE\n WHEN A = 1 THEN 2\n END AS X,\n Y\nFROM T');
             editor.setPosition({ lineNumber: 3, column: 5 });

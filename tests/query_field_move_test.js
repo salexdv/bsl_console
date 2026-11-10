@@ -17,6 +17,17 @@ function test(name, callback) {
     catch (error) { console.error(name); throw error; }
 }
 
+function applyEdits(text, edits) {
+    let actual = '';
+    let offset = 0;
+    for (const edit of edits) {
+        assert.ok(offset <= edit.start && edit.start <= edit.end && edit.end <= text.length);
+        actual += text.slice(offset, edit.start) + edit.text;
+        offset = edit.end;
+    }
+    return actual + text.slice(offset);
+}
+
 function move(text, fragment, direction, expected, endFragment) {
     const queryStart = /^(select|выбрать)/i.exec(text);
     const anchor = text.indexOf(fragment, queryStart ? queryStart[0].length : 0);
@@ -24,7 +35,7 @@ function move(text, fragment, direction, expected, endFragment) {
     const active = endFragment == undefined ? anchor : text.indexOf(endFragment);
     const result = calculate(text, [{ anchor, active }], direction);
     assert.equal(result.status, 'edit');
-    const actual = text.slice(0, result.start) + result.text + text.slice(result.end);
+    const actual = applyEdits(text, result.edits);
     assert.equal(actual, expected);
     if (anchor == active) {
         const word = /^[\w\u0400-\u04ff]+/.exec(fragment)[0];
@@ -79,7 +90,7 @@ test('Курсор в конце выражения или концевого к
         const offset = text.indexOf('\n B');
         const result = calculate(text, [{ anchor: offset, active: offset }], 1);
         assert.equal(result.status, 'edit');
-        assert.ok(result.text.indexOf('B,') < result.text.indexOf('A'));
+        assert.ok(result.edits[0].text.indexOf('B,') < result.edits[0].text.indexOf('A'));
     }
 });
 test('Концевые и ведущие комментарии; пустые промежутки', () => {
@@ -111,13 +122,84 @@ test('Вложенные запросы независимы', () => {
     move('SELECT X, Y FROM (SELECT\n A,\n B\nFROM T) AS Q', 'B\n', -1,
         'SELECT X, Y FROM (SELECT\n B,\n A\nFROM T) AS Q');
 });
-test('Объединение и пакеты', () => {
-    move('SELECT X, Y FROM T UNION ALL SELECT A, B FROM U; SELECT C, D', 'B FROM', -1,
-        'SELECT X, Y FROM T UNION ALL SELECT B, A FROM U; SELECT C, D');
+test('Отдельные запросы пакета', () => {
     move('SELECT X, Y; SELECT A, B', 'B', -1, 'SELECT X, Y; SELECT B, A');
 });
+test('Все варианты объединения и запуск из разных веток', () => {
+    for (const operator of ['uNiOn', 'UNION aLl', 'оБъЕдИнИтЬ', 'ОБЪЕДИНИТЬ вСе']) {
+        const text = 'SELECT X AS First, Y AS Second FROM T ' + operator + ' SELECT A, B FROM U; SELECT C, D';
+        const expected = 'SELECT Y AS Second, X AS First FROM T ' + operator + ' SELECT B, A FROM U; SELECT C, D';
+        assert.equal(move(text, 'X AS', 1, expected).result.edits.length, 2);
+        assert.equal(move(text, 'B FROM', -1, expected).result.edits.length, 2);
+    }
+});
+test('Объединение трёх веток и обратное выделение блока', () => {
+    const text = 'SELECT A, B, C UNION ALL SELECT D, E, F UNION SELECT G, H, I';
+    const anchor = text.length;
+    const active = text.indexOf('H, I');
+    const result = calculate(text, [{ anchor, active }], -1);
+    assert.equal(result.status, 'edit');
+    assert.equal(result.edits.length, 3);
+    const actual = applyEdits(text, result.edits);
+    assert.equal(actual, 'SELECT B, C, A UNION ALL SELECT E, F, D UNION SELECT H, I, G');
+    assert.equal(actual.slice(result.active, result.anchor), 'H, I');
+});
+test('Многострочные поля, комментарии и запятые в каждой ветке', () => {
+    const expression = 'CASE\n WHEN V = 1 THEN F(2, 3)\n ELSE 0\n END AS Value';
+    const text = 'SELECT\n ' + expression + ',\n Y\nFROM T\nUNION ALL\nSELECT\n A, // первое\n B\nFROM U';
+    const expected = 'SELECT\n Y,\n ' + expression + '\nFROM T\nUNION ALL\nSELECT\n B,\n A // первое\nFROM U';
+    move(text, 'WHEN', 1, expected);
+});
+test('Сдвиг курсора из-за добавленного переноса в предыдущей ветке', () => {
+    for (const eol of ['\n', '\r\n']) {
+        const text = ['SELECT A, // хвост', ' B FROM T UNION SELECT X, Y FROM U'].join(eol);
+        const expected = ['SELECT  B,', 'A // хвост', ' FROM T UNION SELECT Y, X FROM U'].join(eol);
+        const { result } = move(text, 'Y FROM', -1, expected);
+        assert.equal(result.active, expected.indexOf('Y,'));
+    }
+});
+test('Вложенное объединение изолировано от внешнего и соседнего источника', () => {
+    const text = 'SELECT P, Q FROM (SELECT X, Y UNION SELECT I, J) AS S ' +
+        'JOIN (SELECT M, N UNION SELECT U, V) AS R ON 1 = 1 UNION SELECT K, L FROM T; SELECT A, B';
+    move(text, 'J)', -1, text.replace('SELECT X, Y UNION SELECT I, J', 'SELECT Y, X UNION SELECT J, I'));
+    move(text, 'L FROM', -1, text.replace('SELECT P, Q', 'SELECT Q, P').replace('SELECT K, L', 'SELECT L, K'));
+    move(text, 'B', -1, text.replace('SELECT A, B', 'SELECT B, A'));
+});
+test('Ключевые слова в реквизитах, комментариях и строках не образуют объединение', () => {
+    const text = 'SELECT T.UNION, "UNION SELECT A" FROM T // UNION SELECT B';
+    move(text, 'T.UNION', 1, 'SELECT "UNION SELECT A", T.UNION FROM T // UNION SELECT B');
+});
+test('Лишняя закрывающая скобка в ГДЕ не разрывает объединение', () => {
+    const text = 'SELECT A, B FROM T WHERE B IN (SELECT K FROM V)) UNION ALL SELECT X, Y FROM U';
+    const expected = 'SELECT B, A FROM T WHERE B IN (SELECT K FROM V)) UNION ALL SELECT Y, X FROM U';
+    move(text, 'A,', 1, expected);
+    move(text, 'Y FROM', -1, expected);
+});
+test('Неоднозначная ветка блокирует перестановку во всём объединении', () => {
+    for (const text of [
+        'SELECT A, B UNION ALL',
+        'SELECT A, B UNION ALL SELECT',
+        'SELECT A, B UNION ALL SELECT X',
+        'SELECT A, B UNION ALL SELECT X, Y +',
+        'SELECT A, B UNION ALL SELECT X, Y,',
+        'SELECT A, B UNION ALL SELECT X, Y UNION',
+        'SELECT A, B UNION ALL SELECT X, *',
+        'SELECT A, B UNION ALL SELECT X, T.* FROM T',
+        'SELECT A, B UNION ALL SELECT X, T.* AS Value FROM T'
+    ]) {
+        const offset = text.indexOf('B');
+        assert.equal(calculate(text, [{ anchor: offset, active: offset }], -1).status, 'blocked', text);
+    }
+    const text = 'SELECT A, B + FROM T UNION SELECT X, Y';
+    const offset = text.indexOf('Y');
+    assert.equal(calculate(text, [{ anchor: offset, active: offset }], -1).status, 'blocked');
+});
+test('Звёздочка внутри функции не мешает сопоставлению позиций', () => {
+    move('SELECT COUNT(*), A FROM T UNION SELECT X, Y FROM U', 'A FROM', -1,
+        'SELECT A, COUNT(*) FROM T UNION SELECT Y, X FROM U');
+});
 test('INTO и остальные границы', () => {
-    for (const boundary of ['INTO Q FROM T', 'WHERE 1 = 1', 'GROUP BY A', 'ORDER BY A', 'UNION SELECT 1', '']) {
+    for (const boundary of ['INTO Q FROM T', 'WHERE 1 = 1', 'GROUP BY A', 'ORDER BY A', '']) {
         move('SELECT A, B ' + boundary, 'B ', -1, 'SELECT B, A ' + boundary);
     }
 });
@@ -134,7 +216,7 @@ test('Выделение блока и обратное направление �
         const selection = reverse ? { anchor: active, active: anchor } : { anchor, active };
         const result = calculate(basic, [selection], -1);
         assert.equal(result.status, 'edit');
-        const actual = basic.slice(0, result.start) + result.text + basic.slice(result.end);
+        const actual = applyEdits(basic, result.edits);
         assert.equal(actual, 'ВЫБРАТЬ\n\tБ,\n\tВ,\n\tА\nИЗ Т');
         assert.equal(actual.slice(Math.min(result.anchor, result.active), Math.max(result.anchor, result.active)), '\tБ,\n\tВ,\n');
     }
@@ -146,7 +228,7 @@ test('Конец в колонке 1 не захватывает следующ�
         const active = text.indexOf('\tБ');
         const result = calculate(text, [{ anchor, active }], 1);
         assert.equal(result.status, 'edit');
-        const actual = text.slice(0, result.start) + result.text + text.slice(result.end);
+        const actual = applyEdits(text, result.edits);
         assert.equal(actual, 'ВЫБРАТЬ\n\tБ,\n\tА,\n\tВ\nИЗ Т'.replace(/\n/g, eol));
     }
 });
@@ -164,7 +246,7 @@ test('Конец документа принадлежит последнему 
     const text = 'SELECT\n A,\n B';
     const result = calculate(text, [{ anchor: text.length, active: text.length }], -1);
     assert.equal(result.status, 'edit');
-    assert.equal(text.slice(0, result.start) + result.text, 'SELECT\n B,\n A');
+    assert.equal(applyEdits(text, result.edits), 'SELECT\n B,\n A');
     assert.equal(calculate(text, [{ anchor: text.length, active: text.length }], 1).status, 'blocked');
 });
 test('Ключевые слова после точки являются именами реквизитов', () => {

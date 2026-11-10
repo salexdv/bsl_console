@@ -21,6 +21,10 @@ function lineStart(text, offset) {
     return text.lastIndexOf('\n', offset - 1) + 1;
 }
 
+function endsWithWildcard(tokens, length = tokens.length) {
+    return tokens[length - 1].value == '*' && (length == 1 || tokens[length - 2].value == '.');
+}
+
 // Здесь проверяется надёжность границ, а не весь синтаксис языка запросов.
 function completeExpression(tokens) {
     if (!tokens.length)
@@ -55,8 +59,7 @@ function completeExpression(tokens) {
         return alias > 0 && alias == tokens.length - 2 && tokens[alias + 1].type == 'identifier' &&
             completeExpression(tokens.slice(0, alias));
     const last = tokens[tokens.length - 1];
-    const wildcard = last.value == '*' && (tokens.length == 1 || tokens[tokens.length - 2].value == '.');
-    if (last.type == 'symbol' && last.value != ')' && !wildcard ||
+    if (last.type == 'symbol' && last.value != ')' && !endsWithWildcard(tokens) ||
         tokens.length > 1 && tokens[tokens.length - 2].value != '.' && WORD_OPERATORS.has(last.normalized))
         return false;
     return !/^(as|как|when|когда|then|тогда|else|иначе|and|и|or|или|not|не)$/.test(last.normalized || '');
@@ -64,11 +67,42 @@ function completeExpression(tokens) {
 
 function findLists(text, tokens) {
     const lists = [];
-    tokens.forEach((select, index) => {
-        if (!word(select, 'select', 'выбрать') || tokens[index - 1] && tokens[index - 1].value == '.')
+    const scopes = [{}];
+    tokens.forEach((token, index) => {
+        const scope = scopes[scopes.length - 1];
+        if (token.value == '(') {
+            scopes.push({});
             return;
+        }
+        if (token.value == ')') {
+            // Лишняя скобка вне вложенной области не завершает запрос пакета.
+            if (scopes.length > 1)
+                scopes.pop();
+            return;
+        }
+        if (token.value == ';') {
+            scopes[scopes.length - 1] = {};
+            return;
+        }
+        if (index > 0 && tokens[index - 1].value == '.')
+            return;
+        if (word(token, 'union', 'объединить')) {
+            const next = index + (word(tokens[index + 1], 'all', 'все') ? 2 : 1);
+            if (!scope.group)
+                scope.group = { lists: [], valid: false };
+            if (!word(tokens[next], 'select', 'выбрать'))
+                scope.group.valid = false;
+            scope.afterUnion = true;
+            return;
+        }
+        if (!word(token, 'select', 'выбрать'))
+            return;
+        if (!scope.afterUnion)
+            scope.group = { lists: [], valid: true };
+        scope.afterUnion = false;
+
         let cursor = index + 1;
-        let start = select.end;
+        let start = token.end;
         let valid = true;
         while (tokens[cursor] && (MODIFIERS.has(tokens[cursor].normalized) || word(tokens[cursor], 'top', 'первые'))) {
             const modifier = tokens[cursor++];
@@ -82,6 +116,9 @@ function findLists(text, tokens) {
             }
         }
         const fields = [];
+        const list = { start, fields, valid, group: scope.group };
+        lists.push(list);
+        scope.group.lists.push(list);
         let fieldTokens = [];
         let depth = 0;
         let cases = 0;
@@ -97,11 +134,12 @@ function findLists(text, tokens) {
                 const boundaryLine = lineStart(text, end);
                 if (/^[\t ]*$/.test(text.slice(boundaryLine, end)))
                     end = Math.max(start, boundaryLine);
-                lists.push({ start: start, end: end, atEOF: token.type == 'eof', fields: fields, valid: valid && !depth && !cases });
+                list.end = end;
+                list.atEOF = token.type == 'eof';
                 break;
             }
             if (!depth && !cases && token.value == ',') {
-                if (!fieldTokens.length) valid = false;
+                if (!fieldTokens.length) list.valid = false;
                 fields.push({ tokens: fieldTokens, comma: token });
                 fieldTokens = [];
                 continue;
@@ -112,7 +150,9 @@ function findLists(text, tokens) {
             if (word(token, 'case', 'выбор')) cases++;
             if (word(token, 'end', 'конец')) cases--;
             if (token.type == 'eof') {
-                lists.push({ start: start, end: text.length, atEOF: true, fields: [], valid: false });
+                list.end = text.length;
+                list.atEOF = true;
+                list.valid = false;
                 break;
             }
         }
@@ -163,53 +203,20 @@ function intersects(selection, list) {
         start < list.end && list.start < end;
 }
 
-/** Рассчитывает одну замену и новые смещения выделения по текущему тексту. */
-export function calculateFieldMove(text, selections, direction) {
-    const lists = findLists(text, queryModel.tokenize(text).tokens);
-    const touched = lists.filter(list => selections.some(selection => intersects(selection, list)));
-    if (!touched.length)
-        return { status: 'fallback' };
-    if (selections.length != 1)
-        return { status: 'blocked' };
-    const selection = selections[0];
-    const start = Math.min(selection.anchor, selection.active);
-    let end = Math.max(selection.anchor, selection.active);
-    // Выделенная строка с концом в колонке 1 не захватывает следующее поле.
-    if (start < end && text[end - 1] == '\n')
-        end--;
-    if (start < end && text[end] == '\n' && text[end - 1] == '\r')
-        end--;
-    const list = touched.sort((left, right) => left.end - left.start - (right.end - right.start))[0];
-    prepareFields(text, list);
-    if (!list.valid || !list.fields.length || start < list.start || end > list.end)
-        return { status: 'blocked' };
-    const fields = list.fields;
-    function fieldAt(offset) {
-        for (let index = 0; index < fields.length; index++) {
-            if (offset <= fields[index].end || offset < fields[index].separatorEnd ||
-                offset == fields[index].separatorEnd && (!fields[index + 1] || offset < fields[index + 1].start))
-                return index;
-        }
-        return fields.length - 1;
+function fieldAt(fields, offset) {
+    for (let index = 0; index < fields.length; index++) {
+        if (offset <= fields[index].end || offset < fields[index].separatorEnd ||
+            offset == fields[index].separatorEnd && (!fields[index + 1] || offset < fields[index + 1].start))
+            return index;
     }
-    const first = fieldAt(start);
-    const last = fieldAt(start == end ? end : Math.max(start, end - 1));
-    if (direction < 0 && first == 0 || direction > 0 && last == fields.length - 1)
-        return { status: 'blocked' };
-    const order = fields.map((field, index) => index);
-    if (direction < 0) {
-        const neighbour = order.splice(first - 1, 1)[0];
-        order.splice(last, 0, neighbour);
-    }
-    else {
-        const neighbour = order.splice(last + 1, 1)[0];
-        order.splice(first, 0, neighbour);
-    }
+    return fields.length - 1;
+}
+
+function buildListEdit(text, fields, order, eol) {
     const replacementStart = fields[0].start;
     const replacementEnd = fields[fields.length - 1].separatorEnd;
     let replacement = '';
     const newStarts = [];
-    const eol = text.indexOf('\r\n') == -1 ? '\n' : '\r\n';
     order.forEach((source, destination) => {
         const field = fields[source];
         newStarts[source] = replacementStart + replacement.length;
@@ -222,29 +229,96 @@ export function calculateFieldMove(text, selections, direction) {
             replacement += eol;
         replacement += gap;
     });
-    function movedOffset(offset, index) {
-        const field = fields[index];
-        // Позиции на разделителе/комментарии учитывают добавленную или убранную запятую.
-        let relative = Math.max(0, Math.min(offset - field.start, field.head.length));
-        if (offset > field.expressionEnd) {
-            const destination = order.indexOf(index);
-            const tailOffset = Math.max(0, offset - (field.comma ? field.comma.end : field.expressionEnd));
-            relative = field.head.length + (destination < fields.length - 1 ? 1 : 0) + Math.min(field.tail.length, tailOffset);
-        }
-        return newStarts[index] + relative;
+    return { edit: { start: replacementStart, end: replacementEnd, text: replacement }, newStarts };
+}
+
+function movedOffset(offset, field, newStart, hasComma) {
+    // Позиции на разделителе и комментарии учитывают новую запятую.
+    if (offset <= field.expressionEnd)
+        return newStart + Math.max(0, offset - field.start);
+    const tailOffset = Math.max(0, offset - (field.comma ? field.comma.end : field.expressionEnd));
+    return newStart + field.head.length + (hasComma ? 1 : 0) + Math.min(field.tail.length, tailOffset);
+}
+
+function canMoveLists(text, group, fieldCount) {
+    if (!group.valid || !fieldCount)
+        return false;
+    let previousEnd = 0;
+    for (const list of group.lists) {
+        if (!list.valid || list.fields.length != fieldCount || list.start < previousEnd)
+            return false;
+        prepareFields(text, list);
+        if (!list.valid)
+            return false;
+        if (group.lists.length > 1 &&
+            (list.atEOF && list.fields[fieldCount - 1].comma || list.fields.some(({ tokens }) => {
+                const length = tokens.length;
+                return endsWithWildcard(tokens, word(tokens[length - 2], 'as', 'как') ? length - 2 : length);
+            })))
+            return false;
+        previousEnd = list.end;
     }
-    let newStart = movedOffset(start, first);
-    let newEnd = movedOffset(end, last);
+    return true;
+}
+
+/** Рассчитывает замены по исходному тексту и смещения выделения после всех замен. */
+export function calculateFieldMove(text, selections, direction) {
+    const lists = findLists(text, queryModel.tokenize(text).tokens);
+    const touched = lists.filter(list => selections.some(selection => intersects(selection, list)));
+    if (!touched.length)
+        return { status: 'fallback' };
+    if (selections.length != 1)
+        return { status: 'blocked' };
+    const selection = selections[0];
+    const start = Math.min(selection.anchor, selection.active);
+    const selectionEnd = Math.max(selection.anchor, selection.active);
+    const wholeLines = start < selectionEnd && text[selectionEnd - 1] == '\n';
+    let end = wholeLines ? selectionEnd - 1 : selectionEnd;
+    // Выделенная строка с концом в колонке 1 не захватывает следующее поле.
+    if (start < end && text[end] == '\n' && text[end - 1] == '\r')
+        end--;
+    const list = touched.sort((left, right) => left.end - left.start - (right.end - right.start))[0];
+    const { fields, group } = list;
+    if (start < list.start || end > list.end || !canMoveLists(text, group, fields.length))
+        return { status: 'blocked' };
+    const first = fieldAt(fields, start);
+    const last = fieldAt(fields, start == end ? end : Math.max(start, end - 1));
+    if (direction < 0 && first == 0 || direction > 0 && last == fields.length - 1)
+        return { status: 'blocked' };
+    const order = fields.map((field, index) => index);
+    const neighbour = order.splice(direction < 0 ? first - 1 : last + 1, 1)[0];
+    order.splice(direction < 0 ? last : first, 0, neighbour);
+
+    const eol = text.indexOf('\r\n') == -1 ? '\n' : '\r\n';
+    const edits = [];
+    let shift = 0;
+    let newStart;
+    let newEnd;
+    for (const branch of group.lists) {
+        const { edit, newStarts } = buildListEdit(text, branch.fields, order, eol);
+        edits.push(edit);
+        if (branch == list) {
+            newStart = shift + movedOffset(start, fields[first], newStarts[first], order[order.length - 1] != first);
+            newEnd = shift + movedOffset(end, fields[last], newStarts[last], order[order.length - 1] != last);
+        }
+        shift += edit.text.length - (edit.end - edit.start);
+    }
     // Для выделения целых строк сохраняем конец в начале следующей строки.
-    if (start != Math.max(selection.anchor, selection.active) && text[Math.max(selection.anchor, selection.active) - 1] == '\n') {
-        const resultText = text.slice(0, replacementStart) + replacement + text.slice(replacementEnd);
-        const newline = resultText.indexOf('\n', newEnd);
+    if (wholeLines) {
+        let offset = 0;
+        const parts = edits.map(edit => {
+            const part = text.slice(offset, edit.start) + edit.text;
+            offset = edit.end;
+            return part;
+        });
+        parts.push(text.slice(offset));
+        const newline = parts.join('').indexOf('\n', newEnd);
         if (newline != -1) newEnd = newline + 1;
     }
     if (selection.anchor == selection.active)
         newEnd = newStart;
     return {
-        status: 'edit', start: replacementStart, end: replacementEnd, text: replacement,
+        status: 'edit', edits,
         anchor: selection.anchor <= selection.active ? newStart : newEnd,
         active: selection.anchor <= selection.active ? newEnd : newStart
     };
@@ -267,13 +341,16 @@ export function registerQueryFieldMove(editor, monaco) {
             return editor.getAction(direction < 0 ? 'editor.action.moveLinesUpAction' : 'editor.action.moveLinesDownAction').run();
         }
         if (move.status != 'edit') return;
-        const start = model.getPositionAt(move.start);
-        const end = model.getPositionAt(move.end);
+        const edits = move.edits.map(edit => {
+            const start = model.getPositionAt(edit.start);
+            const end = model.getPositionAt(edit.end);
+            return {
+                range: new monaco.Range(start.lineNumber, start.column, end.lineNumber, end.column),
+                text: edit.text
+            };
+        });
         editor.pushUndoStop();
-        editor.executeEdits('bsl.moveQueryField', [{
-            range: new monaco.Range(start.lineNumber, start.column, end.lineNumber, end.column),
-            text: move.text
-        }], () => {
+        editor.executeEdits('bsl.moveQueryField', edits, () => {
             const anchor = model.getPositionAt(move.anchor);
             const active = model.getPositionAt(move.active);
             return [new monaco.Selection(anchor.lineNumber, anchor.column, active.lineNumber, active.column)];
