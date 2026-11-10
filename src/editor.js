@@ -6537,7 +6537,7 @@ document.onclick = function (e) {
    	  // Для веб-клиента отправляется только признак события для проверки очереди
     } else {
       e.eventData1C = window.events_queue.shift();
-	  console.debug(eventData1C.event, eventData1C.params);
+      console.debug(e.eventData1C.event, e.eventData1C.params);
     }
   }
 
