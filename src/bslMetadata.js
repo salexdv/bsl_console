@@ -4069,6 +4069,10 @@ let bslMetadata = {
       "items":{
          "Начисления":{
             "type": "action_period",
+            "bases": [
+               "Начисления",
+               "ДополнительныеНачисления"
+            ],
             "properties":{
                "Сотрудник":{
                   "name": "Сотрудник"
@@ -4088,6 +4092,9 @@ let bslMetadata = {
          },
          "Удержания":{
             "type": "noaction_period",
+            "bases": [
+               "Начисления"
+            ],
             "properties":{
                "ФизическоеЛицо":{
                   "name": "ФизическоеЛицо"

@@ -420,6 +420,67 @@ setTimeout(() => {
       expect(help).to.have.property('activeParameter');
     });
 
+    describe('автодополнение виртуальных таблиц регистров расчёта', function () {
+      async function virtualTables(source) {
+        const model = monaco.editor.createModel('ВЫБРАТЬ\n\t*\nИЗ\n\t' + source + '.', 'bsl_query');
+        ownedModels.add(model);
+        const completion = await languages.query.completionProvider.provideCompletionItems(
+          model,
+          getPositionByModel(model),
+          { triggerCharacter: '.' },
+          { isCancellationRequested: false }
+        );
+        return completion.suggestions
+          .filter(item => item.kind === monaco.languages.CompletionItemKind.Unit)
+          .map(item => [item.label, item.insertText]);
+      }
+
+      it('предлагает и вставляет имена из метаданных выбранного регистра', async function () {
+        const english = window.engLang;
+        try {
+          window.engLang = false;
+          assert.deepEqual(await virtualTables('РегистрРасчета.Начисления'), [
+            ['БазаНачисления', 'БазаНачисления'],
+            ['БазаДополнительныеНачисления', 'БазаДополнительныеНачисления'],
+            ['ДанныеГрафика', 'ДанныеГрафика'],
+            ['ФактическийПериодДействия', 'ФактическийПериодДействия']
+          ]);
+          assert.deepEqual(await virtualTables('РегистрРасчета.Удержания'), [
+            ['БазаНачисления', 'БазаНачисления']
+          ]);
+
+          window.engLang = true;
+          assert.deepEqual(await virtualTables('CalculationRegister.Удержания'), [
+            ['BaseНачисления', 'BaseНачисления']
+          ]);
+        }
+        finally { window.engLang = english; }
+      });
+
+      it('различает пустой список баз и метаданные без списка', async function () {
+        const english = window.engLang;
+        const registers = window.bslMetadata.calcRegs.items;
+        try {
+          window.engLang = false;
+          assert.isTrue(window.updateMetadata(JSON.stringify({
+            ПустойСписок: { type: 'action_period', bases: [] },
+            БезСписка: { type: 'noaction_period' }
+          }), 'calcRegs.items'));
+          assert.deepEqual(await virtualTables('РегистрРасчета.ПустойСписок'), [
+            ['ДанныеГрафика', 'ДанныеГрафика'],
+            ['ФактическийПериодДействия', 'ФактическийПериодДействия']
+          ]);
+          assert.deepEqual(await virtualTables('РегистрРасчета.БезСписка'), [
+            ['База<ИмяБазовогоРегистра>', 'База${1:ИмяБазовогоРегистра}']
+          ]);
+        }
+        finally {
+          window.bslMetadata.calcRegs.items = registers;
+          window.engLang = english;
+        }
+      });
+    });
+
     describe('параметры виртуальных таблиц регистров', function () {
       const cases = [
         ['РегистрСведений.Цены.СрезПервых', 'InformationRegister.Prices.SliceFirst', ['Период', 'Условие']],
