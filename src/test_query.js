@@ -420,7 +420,9 @@ setTimeout(() => {
       expect(help).to.have.property('activeParameter');
     });
 
-    describe('автодополнение виртуальных таблиц регистров расчёта', function () {
+    describe('автодополнение виртуальных таблиц регистров', function () {
+      const triggerHints = 'editor.action.triggerParameterHints';
+
       async function virtualTables(source) {
         const model = monaco.editor.createModel('ВЫБРАТЬ\n\t*\nИЗ\n\t' + source + '.', 'bsl_query');
         ownedModels.add(model);
@@ -432,7 +434,7 @@ setTimeout(() => {
         );
         return completion.suggestions
           .filter(item => item.kind === monaco.languages.CompletionItemKind.Unit)
-          .map(item => [item.label, item.insertText]);
+          .map(item => [item.label, item.insertText, item.command && item.command.id]);
       }
 
       it('предлагает и вставляет имена из метаданных выбранного регистра', async function () {
@@ -440,18 +442,18 @@ setTimeout(() => {
         try {
           window.engLang = false;
           assert.deepEqual(await virtualTables('РегистрРасчета.Начисления'), [
-            ['БазаНачисления', 'БазаНачисления'],
-            ['БазаДополнительныеНачисления', 'БазаДополнительныеНачисления'],
-            ['ДанныеГрафика', 'ДанныеГрафика'],
-            ['ФактическийПериодДействия', 'ФактическийПериодДействия']
+            ['БазаНачисления', 'БазаНачисления(', triggerHints],
+            ['БазаДополнительныеНачисления', 'БазаДополнительныеНачисления(', triggerHints],
+            ['ДанныеГрафика', 'ДанныеГрафика(', triggerHints],
+            ['ФактическийПериодДействия', 'ФактическийПериодДействия(', triggerHints]
           ]);
           assert.deepEqual(await virtualTables('РегистрРасчета.Удержания'), [
-            ['БазаНачисления', 'БазаНачисления']
+            ['БазаНачисления', 'БазаНачисления(', triggerHints]
           ]);
 
           window.engLang = true;
           assert.deepEqual(await virtualTables('CalculationRegister.Удержания'), [
-            ['BaseНачисления', 'BaseНачисления']
+            ['BaseНачисления', 'BaseНачисления(', triggerHints]
           ]);
         }
         finally { window.engLang = english; }
@@ -467,11 +469,11 @@ setTimeout(() => {
             БезСписка: { type: 'noaction_period' }
           }), 'calcRegs.items'));
           assert.deepEqual(await virtualTables('РегистрРасчета.ПустойСписок'), [
-            ['ДанныеГрафика', 'ДанныеГрафика'],
-            ['ФактическийПериодДействия', 'ФактическийПериодДействия']
+            ['ДанныеГрафика', 'ДанныеГрафика(', triggerHints],
+            ['ФактическийПериодДействия', 'ФактическийПериодДействия(', triggerHints]
           ]);
           assert.deepEqual(await virtualTables('РегистрРасчета.БезСписка'), [
-            ['База<ИмяБазовогоРегистра>', 'База${1:ИмяБазовогоРегистра}']
+            ['База<ИмяБазовогоРегистра>', 'База${1:ИмяБазовогоРегистра}', undefined]
           ]);
         }
         finally {
@@ -479,6 +481,79 @@ setTimeout(() => {
           window.engLang = english;
         }
       });
+
+      it('добавляет скобку и команду подсказки только таблицам с параметрами', async function () {
+        const english = window.engLang;
+        try {
+          for (const [useEnglish, cases] of [
+            [false, [
+              ['РегистрСведений.ЦеныНоменклатуры', 'СрезПоследних'],
+              ['РегистрНакопления.ОстаткиТоваров', 'Остатки'],
+              ['РегистрБухгалтерии.Хозрасчетный', 'ОборотыДтКт', 'Субконто'],
+              ['РегистрРасчета.Начисления', 'ДанныеГрафика']
+            ]],
+            [true, [
+              ['InformationRegister.ЦеныНоменклатуры', 'SliceLast'],
+              ['AccumulationRegister.ОстаткиТоваров', 'Balance'],
+              ['AccountingRegister.Хозрасчетный', 'DrCrTurnovers', 'ExtDimensions'],
+              ['CalculationRegister.Начисления', 'ScheduleData']
+            ]]
+          ]) {
+            window.engLang = useEnglish;
+            for (const [source, table, parameterless] of cases) {
+              const suggestions = await virtualTables(source);
+              assert.deepInclude(suggestions, [table, table + '(', triggerHints]);
+              if (parameterless)
+                assert.deepInclude(suggestions, [parameterless, parameterless, undefined]);
+            }
+          }
+        }
+        finally { window.engLang = english; }
+      });
+
+      async function waitForEditorWidget(predicate, message) {
+        const deadline = Date.now() + 1500;
+        while (!predicate() && Date.now() < deadline)
+          await new Promise(resolve => setTimeout(resolve, 20));
+        assert.isTrue(!!predicate(), message);
+      }
+
+      for (const existingCall of [false, true]) {
+        it(existingCall ? 'открывает подсказку и сохраняет существующие аргументы'
+          : 'открывает подсказку сразу после выбора таблицы в Monaco', async function () {
+          const source = 'ВЫБРАТЬ * ИЗ РегистрНакопления.ОстаткиТоваров';
+          const argumentsText = existingCall ? '&Дата)' : '';
+          const english = window.engLang;
+          window.engLang = false;
+          window.createTab('Подсказка параметров таблицы', source + (existingCall ? '(' + argumentsText : ''),
+            { language: 'bsl_query' });
+          try {
+            const editor = window.editor;
+            editor.setPosition({ lineNumber: 1, column: source.length + 1 });
+            editor.focus();
+            editor.trigger('keyboard', 'type', { text: '.' });
+            await waitForEditorWidget(window.isSuggestWidgetVisible, 'Список таблиц открыт');
+            editor.trigger('keyboard', 'type', { text: 'Оста' });
+            const node = editor.getDomNode();
+            await waitForEditorWidget(() => {
+              const label = node.querySelector('.suggest-widget .monaco-list-row.focused .label-name');
+              return label && label.textContent === 'Остатки';
+            }, 'В списке выбраны Остатки');
+            editor.trigger('test', 'acceptSelectedSuggestion');
+
+            const opening = source + '.Остатки(';
+            assert.equal(editor.getValue(), opening + argumentsText);
+            assert.equal(editor.getPosition().column, opening.length + 1);
+            await waitForEditorWidget(window.isParameterHintsWidgetVisible, 'Подсказка параметров открыта');
+            assert.equal(node.querySelector('.parameter-hints-widget .parameter.active').textContent, 'Период');
+            assert.isFalse(window.isSuggestWidgetVisible());
+          }
+          finally {
+            window.closeCurrentTab();
+            window.engLang = english;
+          }
+        });
+      }
     });
 
     describe('параметры виртуальных таблиц регистров', function () {
