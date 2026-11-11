@@ -6474,15 +6474,35 @@ class bslHelper {
 	}
 
 	/**
-	 * Returns virtual tables of register depending on the register's type
-	 * 
-	 * @param {string} type of register like balance, turnovers, periodical
-	 *	 
-	 * @returns {array} array of names
+	 * Возвращает виртуальные таблицы регистра по его типу.
+	 * @param {string} type Тип регистра
+	 * @param {string[]} [bases] Имена базовых регистров расчёта
+	 * @returns {object} Тексты подсказок и соответствующие тексты вставки
 	 */
-	getRegisterVirtualTables(type) {
+	getRegisterVirtualTables(type, bases) {
 
 		let tables = {};
+		if (type == 'action_period' || type == 'noaction_period') {
+			const english = window.engLang;
+			const prefix = english ? 'Base' : 'База';
+			if (Array.isArray(bases)) {
+				for (const base of bases) {
+					const table = prefix + base;
+					tables[table] = table;
+				}
+			}
+			else {
+				const placeholder = english ? 'RegisterName' : 'ИмяБазовогоРегистра';
+				tables[prefix + '<' + placeholder + '>'] = prefix + '${1:' + placeholder + '}';
+			}
+			if (type == 'action_period') {
+				const scheduleData = english ? 'ScheduleData' : 'ДанныеГрафика';
+				const effectivePeriod = english ? 'AdjustedEffectivePeriod' : 'ФактическийПериодДействия';
+				tables[scheduleData] = scheduleData;
+				tables[effectivePeriod] = effectivePeriod;
+			}
+			return tables;
+		}
 
 		if (window.engLang) {
 
@@ -6512,18 +6532,6 @@ class bslHelper {
 					"Balance": "Balance",
 					"BalanceAndTurnovers": "BalanceAndTurnovers",
 					"ExtDimensions": "ExtDimensions"
-				};
-			}
-			else if (type == 'action_period') {
-				tables = {					
-					"Base<RegisterName>": "Base${1:RegisterName}",
-					"ScheduleData": "ScheduleData",
-					"AdjustedEffectivePeriod": "AdjustedEffectivePeriod"
-				};
-			}
-			else if (type == 'noaction_period') {
-				tables = {					
-					"Base<RegisterName>": "Base${1:RegisterName}"
 				};
 			}
 
@@ -6558,18 +6566,6 @@ class bslHelper {
 					"Субконто": "Субконто"
 				};
 			}
-			else if (type == 'action_period') {
-				tables = {					
-					"База<ИмяБазовогоРегистра>": "База${1:ИмяБазовогоРегистра}",
-					"ДанныеГрафика": "ДанныеГрафика",
-					"ФактическийПериодДействия": "ФактическийПериодДействия"					
-				};
-			}
-			else if (type == 'noaction_period') {
-				tables = {					
-					"База<ИмяБазовогоРегистра>": "База${1:ИмяБазовогоРегистра}"
-				};
-			}
 
 		}
 
@@ -6593,7 +6589,7 @@ class bslHelper {
 
 				if (ivalue.hasOwnProperty('type')) {
 
-					let tables = this.getRegisterVirtualTables(ivalue.type);
+					let tables = this.getRegisterVirtualTables(ivalue.type, ivalue.bases);
 
 					for (const [tkey, tvalue] of Object.entries(tables)) {
 
