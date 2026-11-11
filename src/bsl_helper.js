@@ -6593,12 +6593,29 @@ class bslHelper {
 
 					for (const [tkey, tvalue] of Object.entries(tables)) {
 
-						suggestions.push({
+						const suggestion = {
 							label: tkey,
 							kind: monaco.languages.CompletionItemKind.Unit,
 							insertText: tvalue,
 							insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
-						});
+						};
+						// У шаблона базы курсор должен остаться на редактируемом имени.
+						if (tkey == tvalue && getQueryVirtualTableSignature({
+							methodName: data[this.queryNameField] + '.' + ikey + '.' + tkey,
+							activeParameter: 0
+						})) {
+							suggestion.insertText += '(';
+							suggestion.command = { id: 'editor.action.triggerParameterHints' };
+
+							const wordEnd = this.wordData ? this.wordData.endColumn : this.column;
+							const opening = /^[ \t]*\(/.exec(this.model.getLineContent(this.lineNumber).slice(wordEnd - 1));
+							if (opening) {
+								const wordStart = this.wordData ? this.wordData.startColumn : this.column;
+								suggestion.range = new monaco.Range(this.lineNumber, wordStart,
+									this.lineNumber, wordEnd + opening[0].length);
+							}
+						}
+						suggestions.push(suggestion);
 
 					}
 
